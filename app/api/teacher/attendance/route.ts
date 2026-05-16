@@ -26,6 +26,16 @@ export async function GET(req: Request) {
 
     if (!batchId) return NextResponse.json({ error: 'Batch ID is required' }, { status: 400 });
 
+    // RBAC: Ensure teacher is assigned to this batch
+    if (session.user.role === 'TEACHER') {
+      const batch = await prisma.batch.findFirst({
+        where: { id: batchId, teachers: { some: { id: session.user.id } } }
+      });
+      if (!batch) {
+        return NextResponse.json({ error: 'Access Denied: You are not assigned to this batch' }, { status: 403 });
+      }
+    }
+
     const date = dateStr ? new Date(dateStr) : new Date();
     date.setHours(0, 0, 0, 0);
 
@@ -52,14 +62,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const validation = attendanceSchema.safeParse(body);
+    const { batchId, date: dateStr, records } = validation.data;
 
-    if (!validation.success) {
-      return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
+    // RBAC: Ensure teacher is assigned to this batch
+    if (session.user.role === 'TEACHER') {
+      const batch = await prisma.batch.findFirst({
+        where: { id: batchId, teachers: { some: { id: session.user.id } } }
+      });
+      if (!batch) {
+        return NextResponse.json({ error: 'Access Denied: You are not assigned to this batch' }, { status: 403 });
+      }
     }
 
-    const { batchId, date: dateStr, records } = validation.data;
     const date = dateStr ? new Date(dateStr) : new Date();
     date.setHours(0, 0, 0, 0);
 

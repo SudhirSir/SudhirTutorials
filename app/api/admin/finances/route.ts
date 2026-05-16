@@ -68,7 +68,13 @@ export async function POST(req: Request) {
     if (type === 'BATCH') {
       const students = await prisma.user.findMany({ 
         where: { role: 'STUDENT' },
-        include: { studentProfile: true }
+        select: {
+          id: true,
+          username: true,
+          studentProfile: {
+            select: { baseFee: true }
+          }
+        }
       });
       
       const payments = students.map((s: any) => ({
@@ -86,7 +92,12 @@ export async function POST(req: Request) {
       // Individual
       const student = await prisma.user.findUnique({ 
         where: { username: studentId },
-        include: { studentProfile: true }
+        select: {
+          id: true,
+          studentProfile: {
+            select: { baseFee: true }
+          }
+        }
       });
       if (!student) {
         return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });

@@ -39,6 +39,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // RBAC: Verify teacher teaches at least one batch in this course
+    const teacherAssignment = await prisma.batch.findFirst({
+      where: { courseId, teachers: { some: { id: teacherId } } }
+    });
+
+    if (!teacherAssignment) {
+      return NextResponse.json({ error: 'Access Denied: You do not teach this course' }, { status: 403 });
+    }
+
     const material = await prisma.material.create({
       data: {
         title,
