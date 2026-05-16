@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  name               String?
+  username           String   @unique
+  passwordHash       String
+
+ 
+  role               String   @default("STUDENT")
+
+  mustChangePassword Boolean  @default(true)
+  onboardingCompleted Boolean  @default(false)
+  isProfileVerified  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  
+  studentProfile     StudentProfile?
+  teacherProfile     TeacherProfile?
+  payments           Payment[]
+  sentMessages       Message[] @relation("SentMessages")
+  receivedMessages   Message[] @relation("ReceivedMessages")
+
+  // LMS Expansion Relations
+  teacherBatches     Batch[]        @relation("TeacherBatches")
+  studentBatches     Batch[]        @relation("StudentBatches")
+  attendance         Attendance[]   @relation("StudentAttendance")
+  materials          Material[]
+  notifications      Notification[]
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  isRead     Boolean  @default(false)
+}
+
+model StudentProfile {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rollNumber        String? @unique
+  registrationNo    String?
+  grade             String?
+  className         String?
+  batch             String?
+  school            String?
+  email             String?
+  phone             String?
+  fatherName        String?
+  parentContact     String?
+  address           String?
+  baseFee           Float?  @default(0)
+  dob               String?
+  photoUrl          String?
+  attendancePercent Float?
+  marksObtained     Float?
+  marksTotal        Float?
+}
+
+model TeacherProfile {
+  id      String  @id @default(cuid())
+  userId  String  @unique
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject String?
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  studentId    String
+  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title        String   @default("Monthly Fee")
+  billingMonth String
+  dueDate      DateTime
+  amount       Float
+  status       String   @default("PENDING")
+  paidAt       DateTime?
+  createdAt    DateTime @default(now())
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  batches     Batch[]
+  materials   Material[]
+  tests       Test[]
+}
+
+model Batch {
+  id        String       @id @default(cuid())
+  name      String
+  className String?      // e.g. "10th"
+  subjects  String?      // comma-separated or similar
+  defaultFee Float?       @default(0)
+  courseId  String
+  course    Course       @relation(fields: [courseId], references: [id])
+  teachers  User[]       @relation("TeacherBatches")
+  students  User[]       @relation("StudentBatches")
+  schedules Schedule[]
+  attendance Attendance[]
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id])
+  dayOfWeek Int      // 0-6 (Sunday-Saturday)
+  startTime String   // e.g., "10:00"
+  endTime   String   // e.g., "11:30"
+  room      String?
+}
+
+model Material {
+  id        String   @id @default(cuid())
+  title     String
+  type      String   // PDF, VIDEO, LINK
+  url       String
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   // SYSTEM, FEE, ALERT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Test {
+  id        String   @id @default(cuid())
+  title     String
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  date      DateTime
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation("StudentAttendance", fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  status    String   // PRESENT, ABSENT, LATE
+  
+  @@unique([batchId, studentId, date])
+}

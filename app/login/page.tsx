@@ -1,0 +1,234 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+
+type Role = "student" | "teacher" | "admin";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<Role>("student");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    if (!username || !password) {
+      setError("Please enter both username and password.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        username,
+        password
+      });
+
+      if (res?.error) {
+        setError("Invalid ID or Password.");
+        setLoading(false);
+      } else {
+        router.push(`/dashboard/${activeTab}`);
+        router.refresh();
+      }
+    } catch (err) {
+      setError("An unexpected error occurred.");
+      setLoading(false);
+    }
+  };
+
+  const tabs = [
+    { id: "student", label: "Student", icon: "🎓", color: "var(--primary)" },
+    { id: "teacher", label: "Teacher", icon: "👨‍🏫", color: "#10b981" },
+    { id: "admin", label: "Admin", icon: "🎛️", color: "#ef4444" },
+  ];
+
+  const activeColor = tabs.find(t => t.id === activeTab)?.color || "var(--primary)";
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
+      {/* Left Form Section */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem' }}>
+        <div style={{ marginBottom: 'auto' }}>
+          <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-block' }}>
+            <span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS
+          </Link>
+        </div>
+
+        <div style={{ maxWidth: '420px', width: '100%', margin: '0 auto' }}>
+          <div style={{ marginBottom: '2.5rem' }}>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>Welcome Back</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Enter your credentials to access your account.</p>
+          </div>
+
+          {/* Role Selection */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id as Role); setError(""); setUsername(""); setPassword(""); }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  border: 'none',
+                  background: activeTab === tab.id ? tab.color : 'transparent',
+                  color: activeTab === tab.id ? '#fff' : 'var(--text-muted)',
+                  borderRadius: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.3s ease',
+                  boxShadow: activeTab === tab.id ? `0 4px 15px -3px ${tab.color}66` : 'none'
+                }}
+              >
+                <span>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {error && (
+            <div className="animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', padding: '1rem', borderRadius: '12px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Username / ID</label>
+              <input
+                type="text"
+                placeholder={activeTab === 'teacher' ? 'e.g. FAC12345' : activeTab === 'student' ? 'e.g. STU12345' : 'Admin Username'}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '1rem 1.25rem',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = activeColor}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Password</label>
+                <Link 
+                  href="/forgot-password"
+                  style={{ fontSize: '0.85rem', color: activeColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '1rem 1.25rem',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = activeColor}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <input type="checkbox" id="remember" style={{ width: '18px', height: '18px', accentColor: activeColor, cursor: 'pointer' }} />
+              <label htmlFor="remember" style={{ fontSize: '0.9rem', color: 'var(--text-muted)', cursor: 'pointer' }}>Remember me for 30 days</label>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              style={{ 
+                width: '100%', 
+                padding: '1.2rem', 
+                background: activeColor,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                boxShadow: `0 4px 20px -5px ${activeColor}80`,
+                marginTop: '1rem',
+                transition: 'transform 0.2s'
+              }}
+              onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              {loading ? "Authenticating..." : `Sign In as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+            </button>
+          </form>
+
+          {activeTab !== 'admin' && (
+             <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                First time login? Please use the default credentials provided by the institute administration.
+             </p>
+          )}
+        </div>
+
+        <div style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          © 2026 Sudhir Tutorials
+        </div>
+      </div>
+
+      {/* Right Image Section */}
+      <div style={{ flex: 1.2, position: 'relative', display: 'none' }} className="hide-on-mobile">
+        <div style={{ position: 'absolute', inset: 0, background: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop) center/cover', zIndex: 0 }}></div>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(9,9,11,0.8) 0%, rgba(9,9,11,0.2) 100%)', zIndex: 1 }}></div>
+        
+        <div style={{ position: 'absolute', bottom: '4rem', left: '4rem', right: '4rem', zIndex: 2, background: 'rgba(9, 9, 11, 0.7)', backdropFilter: 'blur(20px)', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
+           <div style={{ color: activeColor, fontSize: '2rem', marginBottom: '1rem' }}>❝</div>
+           <p style={{ fontSize: '1.25rem', color: '#fff', lineHeight: 1.6, marginBottom: '1.5rem', fontWeight: 500 }}>
+             "The integrated digital tools at Sudhir Tutorials changed the way I prepared for my exams. Everything from live classes to fee receipts is available in one click."
+           </p>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff' }}>S</div>
+             <div>
+               <div style={{ fontWeight: 600, color: '#fff' }}>Shreya Sharma</div>
+               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>JEE Rank 142</div>
+             </div>
+           </div>
+        </div>
+      </div>
+      
+      <style jsx>{`
+        @media (min-width: 900px) {
+          .hide-on-mobile {
+            display: block !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
