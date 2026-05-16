@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { password, email, phone, parentName, parentContact } = await req.json();
+    const { password, email, phone, parentName, parentContact, recoveryPin } = await req.json();
 
     const updateData: any = {
       onboardingCompleted: true,
@@ -21,6 +21,10 @@ export async function POST(req: Request) {
     if (password && session.user.mustChangePassword) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
       updateData.mustChangePassword = false;
+    }
+
+    if (recoveryPin) {
+      updateData.recoveryPinHash = await bcrypt.hash(recoveryPin, 10);
     }
 
     await prisma.user.update({

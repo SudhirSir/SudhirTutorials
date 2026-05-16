@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 const icons = {
   home: (
@@ -61,8 +61,10 @@ const icons = {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
   const pathname = usePathname();
   const role = pathname.includes("admin") ? "Admin" : pathname.includes("teacher") ? "Teacher" : "Student";
+  const isVerified = (session?.user as any)?.isProfileVerified;
 
   return (
     <div className="dashboard-container">
@@ -70,7 +72,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="sidebar-inner">
           <div className="sidebar-header">
             <Link href="/" className="logo-small">SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></Link>
-            <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {session?.user?.name || 'User'}
+                </span>
+                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.9rem' }}>🔵</span>}
+              </div>
+            </div>
           </div>
 
           <nav className="sidebar-nav">

@@ -8,9 +8,10 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
   name: string;
+  isVerified?: boolean;
 }
 
-export function Sidebar({ activeTab, setActiveTab, role, name }: SidebarProps) {
+export function Sidebar({ activeTab, setActiveTab, role, name, isVerified }: SidebarProps) {
   const adminLinks = [
     { id: 'overview', label: 'Dashboard', icon: '📊' },
     { id: 'courses', label: 'Batches & Fees', icon: '🎓' },
@@ -128,8 +129,13 @@ export function Sidebar({ activeTab, setActiveTab, role, name }: SidebarProps) {
             {name.charAt(0)}
           </div>
           <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Online</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {name}
+              {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.8rem' }}>🔵</span>}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: isVerified ? '#10b981' : 'var(--text-muted)' }}>
+              {isVerified ? 'Verified Account' : 'Online'}
+            </div>
           </div>
         </div>
         

@@ -28,6 +28,9 @@ export default function OnboardingPage() {
     if ((session?.user as any)?.mustChangePassword && !password) {
       return setError("Please set a new password");
     }
+    if (!recoveryPin || recoveryPin.length !== 6 || isNaN(Number(recoveryPin))) {
+      return setError("Recovery PIN must be exactly 6 digits");
+    }
 
     setLoading(true);
     setError("");
@@ -36,7 +39,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, email, phone, parentName, parentContact })
+        body: JSON.stringify({ password, email, phone, parentName, parentContact, recoveryPin })
       });
 
       if (res.ok) {
@@ -116,6 +119,23 @@ export default function OnboardingPage() {
               )}
             </div>
           )}
+
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#fff' }}>3. Secure Account Recovery</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Set a 6-digit Secret PIN. You will need this to reset your password if you ever get locked out.</p>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label>6-Digit Secret PIN</label>
+              <input 
+                type="text" 
+                maxLength={6} 
+                placeholder="e.g. 123456" 
+                required 
+                value={recoveryPin} 
+                onChange={e => setRecoveryPin(e.target.value.replace(/\D/g, ''))} 
+                style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center' }}
+              />
+            </div>
+          </div>
 
           <button type="submit" disabled={loading} style={{ 
             width: '100%', padding: '1.2rem', background: 'var(--primary)', color: '#fff', 

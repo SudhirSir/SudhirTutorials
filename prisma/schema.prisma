@@ -15,8 +15,8 @@ model User {
   name               String?
   username           String   @unique
   passwordHash       String
+  recoveryPinHash    String?
 
- 
   role               String   @default("STUDENT")
 
   mustChangePassword Boolean  @default(true)
