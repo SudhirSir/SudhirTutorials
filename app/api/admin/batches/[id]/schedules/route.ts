@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { dayOfWeek, startTime, endTime, room } = await req.json();
-    const batchId = params.id;
+    const { id } = await params;
+    const batchId = id;
 
     const schedule = await prisma.schedule.create({
       data: {

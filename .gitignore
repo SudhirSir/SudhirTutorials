@@ -36,3 +36,14 @@ next-env.d.ts
 # database
 dev.db
 dev.db-journal
+
+# scripts & debug
+check_auth.js
+clear_data.mjs
+debug_db.js
+fix_auth.mjs
+reset_passwords.js
+seed.mjs
+runner.js
+/scratch/
+setup_error.txt

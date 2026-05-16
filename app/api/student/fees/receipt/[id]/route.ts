@@ -4,7 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
