@@ -7,7 +7,9 @@ import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
 
-export default function AdminDashboard() {
+import { Suspense } from 'react';
+
+function AdminDashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
@@ -1309,7 +1311,8 @@ export default function AdminDashboard() {
                           });
                         }
                         alert('Batch billing completed successfully!');
-                        fetchFees();
+                        fetchFinances();
+
                       }}
                       className="btn-primary" 
                       style={{ width: '100%', background: 'var(--secondary)', border: 'none' }}
@@ -1372,5 +1375,13 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-white">Loading Dashboard...</div>}>
+      <AdminDashboardContent />
+    </Suspense>
   );
 }

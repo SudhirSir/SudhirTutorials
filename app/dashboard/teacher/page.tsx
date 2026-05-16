@@ -7,7 +7,9 @@ import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
 
-export default function TeacherDashboard() {
+import { Suspense } from 'react';
+
+function TeacherDashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('classes');
@@ -502,5 +504,13 @@ export default function TeacherDashboard() {
         <ChatWindow currentUserId={(session.user as any).id} />
       )}
     </div>
+  );
+}
+
+export default function TeacherDashboard() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-white">Loading Dashboard...</div>}>
+      <TeacherDashboardContent />
+    </Suspense>
   );
 }

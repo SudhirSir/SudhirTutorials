@@ -20,11 +20,11 @@ export default withAuth(
     }
 
     if (path.startsWith('/onboarding') && token?.onboardingCompleted && !token.mustChangePassword) {
-      return NextResponse.redirect(new URL(`/dashboard/${token?.role?.toLowerCase() || 'student'}`, req.url));
+      return NextResponse.redirect(new URL(`/dashboard/${(token?.role as string)?.toLowerCase() || 'student'}`, req.url));
     }
 
     if (path.startsWith('/waiting-verification') && (token?.isProfileVerified || token?.role === 'ADMIN')) {
-      return NextResponse.redirect(new URL(`/dashboard/${token?.role?.toLowerCase() || 'student'}`, req.url));
+      return NextResponse.redirect(new URL(`/dashboard/${(token?.role as string)?.toLowerCase() || 'student'}`, req.url));
     }
 
     if (path.startsWith("/dashboard/admin") && token?.role !== "ADMIN") {

@@ -31,12 +31,12 @@ export async function POST(req: Request) {
     if (session.user.role === 'STUDENT') {
       await prisma.studentProfile.upsert({
         where: { userId: session.user.id },
-        update: { email, phone, parentName, parentContact },
+        update: { email, phone, fatherName: parentName, parentContact },
         create: {
           userId: session.user.id,
           email,
           phone,
-          parentName,
+          fatherName: parentName,
           parentContact
         }
       });
