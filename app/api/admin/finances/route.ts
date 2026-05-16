@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       
       const payments = students.map((s: any) => ({
         studentId: s.id,
-        amount: parseFloat(amount) || s.studentProfile?.baseFee || 0,
+        amount: (amount as number) || s.studentProfile?.baseFee || 0,
         billingMonth,
         dueDate,
         title: title || 'Monthly Fee',
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
       }
 
-      const finalAmount = parseFloat(amount) || student.studentProfile?.baseFee || 0;
+      const finalAmount = (amount as number) || student.studentProfile?.baseFee || 0;
 
       const payment = await prisma.payment.create({
         data: {
