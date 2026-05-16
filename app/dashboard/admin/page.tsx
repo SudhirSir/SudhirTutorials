@@ -860,61 +860,15 @@ function AdminDashboardContent() {
                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{exp.category} • {new Date(exp.date).toLocaleDateString()}</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-      {/* ── Receipt Modal ───────────────────────────── */}
-      {activeReceipt && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', background: '#fff', color: '#1a1a1a', borderRadius: '0' }}>
-            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6' }}>
-              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px' }}>SUDHIR TUTORIALS</h1>
-                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>
-                <div style={{ height: '1px', background: '#e5e7eb', width: '60px', margin: '1rem auto' }}></div>
-                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: '#374151' }}>Payment Receipt</h2>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', fontSize: '0.85rem' }}>
-                <div>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Student Name</div>
-                  <div style={{ fontWeight: 700 }}>{activeReceipt.student?.name}</div>
-                  <div style={{ color: '#6b7280' }}>ID: {activeReceipt.student?.username}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
-                  <div style={{ fontWeight: 700 }}>REC-{activeReceipt.id.slice(-6).toUpperCase()}</div>
-                  <div style={{ color: '#6b7280' }}>{new Date(activeReceipt.paidAt || Date.now()).toLocaleDateString()}</div>
-                </div>
-              </div>
-
-              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '1.5rem 0', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ color: '#6b7280' }}>{activeReceipt.title} ({activeReceipt.billingMonth})</span>
-                  <span style={{ fontWeight: 700 }}>₹{activeReceipt.amount.toFixed(2)}</span>
-                </div>
-                {activeReceipt.lateFine > 0 && (
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>Total Paid</span>
-                <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10b981' }}>₹{activeReceipt.totalAmount.toFixed(2)}</span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
-                  Status: <b>{activeReceipt.status}</b><br/>
-                  Verified by: <b>Admin</b>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#1a1a1a', fontWeight: 800, marginBottom: '0.5rem' }}>AUTHORIZED SIGNATORY</div>
-                  <div style={{ width: '120px', height: '1px', background: '#1a1a1a' }}></div>
+                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>-₹{exp.amount}</div>
+                           <button onClick={() => deleteExpense(exp.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.7rem', cursor: 'pointer' }}>Delete</button>
+                        </div>
+                     </div>
+                   ))}
+                   {expenses.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>No expenses recorded.</p>}
                 </div>
               </div>
             </div>
-            <button 
-              onClick={() => setActiveReceipt(null)}
-              style={{ width: '100%', padding: '1rem', background: '#1a1a1a', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer' }}
-            >
-              CLOSE RECEIPT
-            </button>
           </div>
         </div>
       )}
@@ -1748,6 +1702,7 @@ function AdminDashboardContent() {
           </div>
         </div>
       )}
+    </div>
   );
 }
 
