@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     const validation = feeSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
     }
 
     const { type, amount, billingMonth, title, studentId } = validation.data;
@@ -119,7 +119,7 @@ export async function PATCH(req: Request) {
     const validation = updateStatusSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
     }
 
     const { id, status } = validation.data;

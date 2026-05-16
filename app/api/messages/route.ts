@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const validation = messageSchema.safeParse(body);
 
-    if (!validation.success) return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
+    if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
     const { receiverId, content } = validation.data;
 

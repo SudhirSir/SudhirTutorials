@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const validation = batchSchema.safeParse(body);
-    if (!validation.success) return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
+    if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
     const { name, courseId, teacherUsernames, studentUsernames, className, subjects } = validation.data;
 
