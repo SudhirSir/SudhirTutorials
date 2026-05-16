@@ -33,18 +33,23 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const validation = batchSchema.safeParse(body);
-    if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
+    if (!validation.success)
+      return NextResponse.json(
+        { error: validation.error.issues[0].message },
+        { status: 400 }
+      );
 
     const { name, courseId, teacherUsernames, studentUsernames, className, subjects } = validation.data;
 
     // Connect teachers
-    const teachers = teacherUsernames?.length 
-      ? await prisma.user.findMany({ where: { username: { in: teacherUsernames }, role: 'TEACHER' } }) 
+
+    const teachers = teacherUsernames?.length
+      ? await prisma.user.findMany({ where: { username: { in: teacherUsernames }, role: 'TEACHER' } })
       : [];
 
     // Connect students
-    const students = studentUsernames?.length 
-      ? await prisma.user.findMany({ where: { username: { in: studentUsernames }, role: 'STUDENT' } }) 
+    const students = studentUsernames?.length
+      ? await prisma.user.findMany({ where: { username: { in: studentUsernames }, role: 'STUDENT' } })
       : [];
 
     const batch = await prisma.batch.create({
