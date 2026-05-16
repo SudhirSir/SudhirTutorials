@@ -8,39 +8,58 @@ const feeSchema = z.object({
   amount: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
   billingMonth: z.string().min(1, "Month is required"),
   title: z.string().optional().default("Monthly Fee"),
-  studentId: z.string().optional(),
+  studentId: z.string().optional(), // For individual
+  batchId: z.string().optional(), // For batch-specific assignment
+  discount: z.number().optional().default(0),
+  remarks: z.string().optional(),
 });
 
 const updateStatusSchema = z.object({
   id: z.string().min(1),
   status: z.enum(['PENDING', 'PAID', 'PAID_ONLINE', 'VERIFIED', 'FAILED']),
+  paymentMethod: z.string().optional(),
+  transactionId: z.string().optional(),
+  discount: z.number().optional(),
+  remarks: z.string().optional(),
 });
 
-// ─── GET: list every payment with computed late-fine ───────────────────────
-export async function GET() {
+// ─── GET: list every payment ───────────────────────
+export async function GET(req: Request) {
   try {
-    const raw = await prisma.payment.findMany({
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status');
+    const month = searchParams.get('month');
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (month) where.billingMonth = month;
+
+    const fees = await prisma.payment.findMany({
+      where,
       include: { student: { select: { name: true, username: true } } },
       orderBy: { createdAt: 'desc' },
     });
 
-    const fees = raw.map(fee => {
+    const enrichedFees = fees.map(fee => {
+      // For pending fees, show real-time calculated fine
+      // For paid/verified fees, show the fine that was locked in at time of payment
+      const currentFine = fee.status === 'PENDING' 
+        ? calculateLateFine(fee.dueDate, fee.status)
+        : fee.lateFine;
+
       const now = new Date();
       const due = new Date(fee.dueDate);
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
-      const daysLate = Math.floor((today.getTime() - dueDay.getTime()) / (1000 * 60 * 60 * 24));
+      const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
-      const lateFine = calculateLateFine(fee.dueDate, fee.status);
       return {
         ...fee,
         daysLate: daysLate > 0 ? daysLate : 0,
-        lateFine,
-        totalAmount: fee.amount + lateFine,
+        currentLateFine: currentFine,
+        totalDue: fee.amount + currentFine - fee.discount,
       };
     });
 
-    return NextResponse.json({ fees });
+    return NextResponse.json({ fees: enrichedFees });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch finances' }, { status: 500 });
   }
@@ -56,9 +75,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
     }
 
-    const { type, amount, billingMonth, title, studentId } = validation.data;
+    const { type, amount, billingMonth, title, studentId, batchId, discount, remarks } = validation.data;
 
-    // Parse billingMonth like "April 2026" → Due date = 12th of that month
     const parsed = new Date(`${billingMonth} 12`);
     if (isNaN(parsed.getTime())) {
       return NextResponse.json({ error: 'Invalid billingMonth format. Use e.g. "April 2026"' }, { status: 400 });
@@ -66,53 +84,68 @@ export async function POST(req: Request) {
     const dueDate = new Date(parsed.getFullYear(), parsed.getMonth(), 12);
 
     if (type === 'BATCH') {
+      const where: any = { role: 'STUDENT' };
+      if (batchId) {
+        where.studentBatches = { some: { id: batchId } };
+      }
+
       const students = await prisma.user.findMany({ 
-        where: { role: 'STUDENT' },
+        where,
         select: {
           id: true,
           username: true,
-          studentProfile: {
-            select: { baseFee: true }
-          }
+          studentProfile: { select: { baseFee: true } }
         }
       });
       
-      const payments = students.map((s: any) => ({
-        studentId: s.id,
-        amount: (amount as number) || s.studentProfile?.baseFee || 0,
-        billingMonth,
-        dueDate,
-        title: title || 'Monthly Fee',
-        status: 'PENDING',
-      }));
+      let count = 0;
+      for (const s of students) {
+        // Prevent duplicate for same month and title
+        const existing = await prisma.payment.findFirst({
+          where: { studentId: s.id, billingMonth, title: title || 'Monthly Fee' }
+        });
+        if (existing) continue;
 
-      await prisma.payment.createMany({ data: payments });
-      return NextResponse.json({ success: true, count: payments.length });
+        await prisma.payment.create({
+          data: {
+            studentId: s.id,
+            amount: amount || s.studentProfile?.baseFee || 0,
+            billingMonth,
+            dueDate,
+            title: title || 'Monthly Fee',
+            status: 'PENDING',
+            discount: discount || 0,
+            remarks
+          }
+        });
+        count++;
+      }
+
+      return NextResponse.json({ success: true, count });
     } else {
       // Individual
       const student = await prisma.user.findUnique({ 
         where: { username: studentId },
-        select: {
-          id: true,
-          studentProfile: {
-            select: { baseFee: true }
-          }
-        }
+        select: { id: true, studentProfile: { select: { baseFee: true } } }
       });
-      if (!student) {
-        return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
-      }
+      if (!student) return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
 
-      const finalAmount = (amount as number) || student.studentProfile?.baseFee || 0;
+      // Prevent duplicate
+      const existing = await prisma.payment.findFirst({
+        where: { studentId: student.id, billingMonth, title: title || 'Monthly Fee' }
+      });
+      if (existing) return NextResponse.json({ error: 'Fee already assigned for this month' }, { status: 400 });
 
       const payment = await prisma.payment.create({
         data: {
           studentId: student.id,
-          amount: finalAmount,
+          amount: amount || student.studentProfile?.baseFee || 0,
           billingMonth,
           dueDate,
           title: title || 'Monthly Fee',
           status: 'PENDING',
+          discount: discount || 0,
+          remarks
         },
       });
       return NextResponse.json({ success: true, payment });
@@ -123,26 +156,40 @@ export async function POST(req: Request) {
   }
 }
 
-// ─── PATCH: update fee status ────────────────────────────────────────────────
+// ─── PATCH: update fee status & lock in amounts ────────────────────────────────
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
     const validation = updateStatusSchema.safeParse(body);
+    if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
-    if (!validation.success) {
-      return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
+    const { id, status, paymentMethod, transactionId, discount, remarks } = validation.data;
+
+    const currentFee = await prisma.payment.findUnique({ where: { id } });
+    if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
+
+    // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED
+    let lateFine = currentFee.lateFine;
+    if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED')) {
+      lateFine = calculateLateFine(currentFee.dueDate, 'PENDING');
     }
 
-    const { id, status } = validation.data;
     const updated = await prisma.payment.update({
       where: { id },
       data: {
         status,
+        paymentMethod,
+        transactionId,
+        remarks,
+        discount: discount !== undefined ? discount : currentFee.discount,
+        lateFine,
+        paidAmount: status === 'PAID' || status === 'VERIFIED' ? (currentFee.amount + lateFine - (discount ?? currentFee.discount)) : 0,
         paidAt: status === 'PAID' || status === 'VERIFIED' ? new Date() : null,
       },
     });
     return NextResponse.json({ success: true, payment: updated });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: 'Failed to update fee status' }, { status: 500 });
   }
 }
@@ -152,9 +199,7 @@ export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
-
     await prisma.payment.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {

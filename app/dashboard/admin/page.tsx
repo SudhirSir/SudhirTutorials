@@ -66,6 +66,14 @@ function AdminDashboardContent() {
   const [feeBillingMonth, setFeeBillingMonth] = useState('April 2026');
   const [feeTitle, setFeeTitle] = useState('Monthly Fee');
   const [isAddingFee, setIsAddingFee] = useState(false);
+  const [finSummary, setFinSummary] = useState<{ totalRevenue: number, totalExpenses: number, totalPending: number, netProfit: number, monthlyData: any[] } | null>(null);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [newExpense, setNewExpense] = useState({ title: '', category: 'OTHER', amount: '', remarks: '' });
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [payingFee, setPayingFee] = useState<any>(null);
+  const [paymentDetails, setPaymentDetails] = useState({ paymentMethod: 'CASH', transactionId: '', discount: 0, remarks: '' });
 
   // Courses & Batches State
   const [courses, setCourses] = useState<any[]>([]);
@@ -184,7 +192,7 @@ function AdminDashboardContent() {
     }
   };
 
-  const updateFeeStatus = async (id: string, status: string) => {
+  const updateFeeStatus = async (id: string, status: string, details?: any) => {
     try {
       const res = await fetch('/api/admin/finances', {
         method: 'PATCH',
@@ -192,13 +200,64 @@ function AdminDashboardContent() {
         body: JSON.stringify({ 
           id, 
           status,
-          paidAt: status === 'PAID' ? new Date().toISOString() : undefined 
+          ...details
         })
       });
-      if (res.ok) fetchFinances();
+      if (res.ok) {
+        fetchFinances();
+        fetchFinSummary();
+        setShowPaymentModal(false);
+      }
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const fetchFinSummary = async () => {
+    try {
+      const res = await fetch('/api/admin/finances/summary');
+      if (res.ok) setFinSummary(await res.json());
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchExpenses = async () => {
+    try {
+      const res = await fetch('/api/admin/finances/expenses');
+      if (res.ok) {
+        const data = await res.json();
+        setExpenses(data.expenses || []);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAddingExpense(true);
+    try {
+      const res = await fetch('/api/admin/finances/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newExpense, amount: parseFloat(newExpense.amount) })
+      });
+      if (res.ok) {
+        setNewExpense({ title: '', category: 'OTHER', amount: '', remarks: '' });
+        fetchExpenses();
+        fetchFinSummary();
+        setShowExpenseModal(false);
+      }
+    } catch (err) { console.error(err); }
+    finally { setIsAddingExpense(false); }
+  };
+
+  const deleteExpense = async (id: string) => {
+    if (!confirm('Delete this expense?')) return;
+    try {
+      const res = await fetch(`/api/admin/finances/expenses?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchExpenses();
+        fetchFinSummary();
+      }
+    } catch (err) { console.error(err); }
   };
 
   const fetchCourses = async () => {
@@ -305,13 +364,20 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (activeTab === 'overview') fetchOverviewStats();
     if (activeTab === 'users') handleSearchDirectory();
-    if (activeTab === 'finances') fetchFinances();
+    if (activeTab === 'finances') {
+      fetchFinances();
+      fetchExpenses();
+      fetchFinSummary();
+    }
     if (activeTab === 'verifications') fetchPendingVerifications();
     if (activeTab === 'courses') {
       fetchCourses();
       fetchBatches();
     }
-    if (activeTab === 'analytics') fetchReports();
+    if (activeTab === 'analytics') {
+      fetchReports();
+      fetchFinSummary();
+    }
   }, [activeTab]);
 
   const fetchReports = async () => {
@@ -340,12 +406,24 @@ function AdminDashboardContent() {
     finally { setIsDeleting(false); }
   };
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, role: string) => {
     try {
-      const res = await fetch(`/api/admin/profiles?userId=${userId}`);
+      const endpoint = role === 'STUDENT' ? `/api/admin/students/${userId}` : `/api/admin/teachers/${userId}`;
+      const res = await fetch(endpoint);
       const data = await res.json();
-      setEditingProfile(data.profile || { userId, baseFee: 0 });
-      setShowProfileModal(true);
+      if (res.ok) {
+        const userData = role === 'STUDENT' ? data.student : data.teacher;
+        const profileData = role === 'STUDENT' ? userData.studentProfile : userData.teacherProfile;
+        
+        setEditingProfile({ 
+          userId: userData.id, 
+          role,
+          name: userData.name || '',
+          username: userData.username,
+          ...(profileData || {})
+        });
+        setShowProfileModal(true);
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -353,8 +431,12 @@ function AdminDashboardContent() {
     e.preventDefault();
     setIsSavingProfile(true);
     try {
-      const res = await fetch('/api/admin/profiles', {
-        method: 'PATCH',
+      const endpoint = editingProfile.role === 'STUDENT' 
+        ? `/api/admin/students/${editingProfile.userId}` 
+        : `/api/admin/teachers/${editingProfile.userId}`;
+
+      const res = await fetch(endpoint, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingProfile)
       });
@@ -363,7 +445,30 @@ function AdminDashboardContent() {
         setEditingProfile(null);
         handleSearchDirectory(); // Refresh directory
       } else {
-        alert('Failed to save profile');
+        const data = await res.json();
+        alert(data.error || 'Failed to save profile');
+      }
+    } catch (e) { console.error(e); }
+    finally { setIsSavingProfile(false); }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!editingProfile) return;
+    if (!confirm(`Are you sure you want to delete ${editingProfile.name}? This action cannot be undone.`)) return;
+    
+    setIsSavingProfile(true);
+    try {
+      const endpoint = editingProfile.role === 'STUDENT' 
+        ? `/api/admin/students/${editingProfile.userId}` 
+        : `/api/admin/teachers/${editingProfile.userId}`;
+        
+      const res = await fetch(endpoint, { method: 'DELETE' });
+      if (res.ok) {
+        setShowProfileModal(false);
+        setEditingProfile(null);
+        handleSearchDirectory();
+      } else {
+        alert('Failed to delete user');
       }
     } catch (e) { console.error(e); }
     finally { setIsSavingProfile(false); }
@@ -548,14 +653,12 @@ function AdminDashboardContent() {
                   </div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>ID: {u.username}</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {new Date(u.createdAt).toLocaleDateString()}</div>
-                  {u.role === 'STUDENT' && (
-                    <button 
-                      onClick={() => fetchProfile(u.id)}
-                      style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}
-                    >
-                      ✎ Edit Profile & Fee
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => fetchProfile(u.id, u.role)}
+                    style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    ✎ Edit Profile
+                  </button>
                 </div>
               ))
             )}
@@ -564,178 +667,202 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'finances' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
-
-          {/* ── Left: Ledger ────────────────────────────── */}
-          <div className="glass-card" style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Fee Ledger & Collections</h2>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Track and verify all student payments</p>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <input 
-                  type="text" 
-                  placeholder="Search Name or ID..." 
-                  value={feeSearchQuery}
-                  onChange={e => setFeeSearchQuery(e.target.value)}
-                  style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', color: 'white', fontSize: '0.85rem', width: '200px' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    <th style={{ padding: '0.75rem 0' }}>Student / ID</th>
-                    <th>Billing Details</th>
-                    <th>Payment Status</th>
-                    <th>Total Due</th>
-                    <th>Paid On</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const filteredFees = fees.filter(f => 
-                      f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
-                      f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
-                    );
-
-                    if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
-
-                    return filteredFees.map(fee => {
-                      const isOverdue = fee.status === 'PENDING' && fee.lateFine > 0;
-                      return (
-                        <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
-                          <td style={{ padding: '1rem 0' }}>
-                            <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.9rem' }}>{fee.billingMonth}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
-                          </td>
-                          <td>
-                            <span style={{
-                              padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                              background: fee.status === 'PAID' ? 'rgba(52,211,153,0.1)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
-                              color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
-                              border: `1px solid ${fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'}`
-                            }}>
-                              {fee.status}
-                            </span>
-                            {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
-                          </td>
-                          <td style={{ fontWeight: 700 }}>₹{fee.totalAmount.toFixed(0)}</td>
-                          <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            {fee.paidAt ? new Date(fee.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              {fee.status === 'PENDING' && (
-                                <button onClick={() => updateFeeStatus(fee.id, 'PAID')} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Mark Paid</button>
-                              )}
-                              {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
-                                <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
-                              )}
-                              {(fee.status !== 'PENDING') && (
-                                <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
-                              )}
-                              <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          {/* ── Top Level Stats: Smart Finance Overview ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+             {[
+               { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: '#10b981' },
+               { label: 'Total Expenses', value: `₹${(finSummary?.totalExpenses || 0).toLocaleString()}`, color: '#f59e0b' },
+               { label: 'Net Profit', value: `₹${(finSummary?.netProfit || 0).toLocaleString()}`, color: '#3b82f6' },
+               { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: '#ef4444' }
+             ].map((s, i) => (
+               <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}` }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>{s.value}</div>
+               </div>
+             ))}
           </div>
 
-          {/* ── Right: Quick Actions ───────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
+
+            {/* ── Left: Ledger ────────────────────────────── */}
             <div className="glass-card" style={{ padding: '2rem' }}>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem' }}>Assign New Fee</h3>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
-                <button 
-                  onClick={() => setAddFeeMode('INDIVIDUAL')}
-                  style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'INDIVIDUAL' ? 'var(--primary)' : 'transparent', color: 'white' }}
-                >
-                  Student
-                </button>
-                <button 
-                  onClick={() => setAddFeeMode('BATCH')}
-                  style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'BATCH' ? 'var(--primary)' : 'transparent', color: 'white' }}
-                >
-                  Batch
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Fee Ledger & Collections</h2>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Track and verify all student payments</p>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Search Name or ID..." 
+                    value={feeSearchQuery}
+                    onChange={e => setFeeSearchQuery(e.target.value)}
+                    style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', color: 'white', fontSize: '0.85rem', width: '200px' }}
+                  />
+                </div>
               </div>
 
-              <form onSubmit={handleAddFee} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {addFeeMode === 'INDIVIDUAL' ? (
-                  <div className="input-group">
-                    <label>Select Student</label>
-                    <select required value={feeStudentId} onChange={e => setFeeStudentId(e.target.value)}>
-                      <option value="">Choose...</option>
-                      {directoryUsers.filter(u => u.role === 'STUDENT').map(s => (
-                        <option key={s.id} value={s.username}>{s.name} ({s.username})</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="input-group">
-                    <label>Select Batch</label>
-                    <select required value={feeStudentId} onChange={e => setFeeStudentId(e.target.value)}>
-                      <option value="">Choose...</option>
-                      {batches.map(b => (
-                        <option key={b.id} value={b.id}>{b.name} ({b.className})</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                
-                <div className="input-group">
-                  <label>Amount (₹)</label>
-                  <input type="number" required placeholder="1500" value={feeAmount} onChange={e => setFeeAmount(e.target.value)} />
-                </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      <th style={{ padding: '0.75rem 0' }}>Student / ID</th>
+                      <th>Billing Details</th>
+                      <th>Status</th>
+                      <th>Amount Breakup</th>
+                      <th>Total Due</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const filteredFees = fees.filter(f => 
+                        f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
+                        f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
+                      );
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <div className="input-group">
-                    <label>Month</label>
-                    <input type="text" value={feeBillingMonth} onChange={e => setFeeBillingMonth(e.target.value)} />
-                  </div>
-                  <div className="input-group">
-                    <label>Category</label>
-                    <select value={feeTitle} onChange={e => setFeeTitle(e.target.value)}>
-                      <option value="Monthly Fee">Monthly</option>
-                      <option value="Registration">Registration</option>
-                      <option value="Exam Fee">Exam Fee</option>
-                      <option value="Books/Materials">Materials</option>
-                    </select>
-                  </div>
-                </div>
+                      if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
 
-                <button type="submit" disabled={isAddingFee} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-                  {isAddingFee ? 'Assigning...' : 'Assign Fee'}
-                </button>
-              </form>
+                      return filteredFees.map(fee => {
+                        const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
+                        return (
+                          <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
+                            <td style={{ padding: '1rem 0' }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '0.9rem' }}>{fee.billingMonth}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
+                            </td>
+                            <td>
+                              <span style={{
+                                padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
+                                background: fee.status === 'PAID' ? 'rgba(52,211,153,0.1)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
+                                color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
+                                border: `1px solid ${fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'}`
+                              }}>
+                                {fee.status}
+                              </span>
+                              {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
+                            </td>
+                            <td style={{ fontSize: '0.8rem' }}>
+                               <div>Base: ₹{fee.amount}</div>
+                               {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
+                               {fee.discount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{fee.discount}</div>}
+                            </td>
+                            <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {fee.status === 'PENDING' && (
+                                  <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({...paymentDetails, discount: fee.discount}); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
+                                )}
+                                {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
+                                  <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
+                                )}
+                                {(fee.status !== 'PENDING') && (
+                                  <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
+                                )}
+                                <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent)' }}>
-               <h4 style={{ fontSize: '0.9rem', color: '#10b981', marginBottom: '0.5rem' }}>Total Collected (Month)</h4>
-               <p style={{ fontSize: '1.8rem', fontWeight: 800 }}>₹{fees.filter(f => f.status !== 'PENDING').reduce((acc, f) => acc + f.totalAmount, 0).toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-      )}
+            {/* ── Right: Quick Actions ───────────────────── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div className="glass-card" style={{ padding: '2rem' }}>
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem' }}>Assign New Fee</h3>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
+                  <button 
+                    onClick={() => setAddFeeMode('INDIVIDUAL')}
+                    style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'INDIVIDUAL' ? 'var(--primary)' : 'transparent', color: 'white' }}
+                  >
+                    Student
+                  </button>
+                  <button 
+                    onClick={() => setAddFeeMode('BATCH')}
+                    style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'BATCH' ? 'var(--primary)' : 'transparent', color: 'white' }}
+                  >
+                    Batch
+                  </button>
+                </div>
 
+                <form onSubmit={handleAddFee} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {addFeeMode === 'INDIVIDUAL' ? (
+                    <div className="input-group">
+                      <label>Select Student</label>
+                      <select required value={feeStudentId} onChange={e => setFeeStudentId(e.target.value)}>
+                        <option value="">Choose...</option>
+                        {directoryUsers.filter(u => u.role === 'STUDENT').map(s => (
+                          <option key={s.id} value={s.username}>{s.name} ({s.username})</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="input-group">
+                      <label>Select Batch</label>
+                      <select required value={feeStudentId} onChange={e => setFeeStudentId(e.target.value)}>
+                        <option value="">Choose...</option>
+                        {batches.map(b => (
+                          <option key={b.id} value={b.id}>{b.name} ({b.className})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  
+                  <div className="input-group">
+                    <label>Amount (₹)</label>
+                    <input type="number" required placeholder="1500" value={feeAmount} onChange={e => setFeeAmount(e.target.value)} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="input-group">
+                      <label>Month</label>
+                      <input type="text" value={feeBillingMonth} onChange={e => setFeeBillingMonth(e.target.value)} />
+                    </div>
+                    <div className="input-group">
+                      <label>Category</label>
+                      <select value={feeTitle} onChange={e => setFeeTitle(e.target.value)}>
+                        <option value="Monthly Fee">Monthly</option>
+                        <option value="Registration">Registration</option>
+                        <option value="Exam Fee">Exam Fee</option>
+                        <option value="Books/Materials">Materials</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={isAddingFee} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+                    {isAddingFee ? 'Assigning...' : 'Assign Fee'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="glass-card" style={{ padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                   <h3 style={{ fontSize: '1.2rem', margin: 0 }}>Recent Expenses</h3>
+                   <button onClick={() => setShowExpenseModal(true)} style={{ background: 'var(--primary)', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}>+ Add</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                   {expenses.slice(0, 5).map(exp => (
+                     <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                        <div>
+                           <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{exp.title}</div>
+                           <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{exp.category} • {new Date(exp.date).toLocaleDateString()}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
       {/* ── Receipt Modal ───────────────────────────── */}
       {activeReceipt && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', background: '#fff', color: '#1a1a1a', borderRadius: '0' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', background: '#fff', color: '#1a1a1a', borderRadius: '0' }}>
             <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6' }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px' }}>SUDHIR TUTORIALS</h1>
@@ -763,11 +890,6 @@ function AdminDashboardContent() {
                   <span style={{ fontWeight: 700 }}>₹{activeReceipt.amount.toFixed(2)}</span>
                 </div>
                 {activeReceipt.lateFine > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
-                    <span>Late Fine ({activeReceipt.daysLate} Days)</span>
-                    <span style={{ fontWeight: 700 }}>+₹{activeReceipt.lateFine.toFixed(2)}</span>
-                  </div>
-                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
@@ -1083,55 +1205,116 @@ function AdminDashboardContent() {
       )}
       {showProfileModal && editingProfile && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '2rem' }}>
-          <div className="glass-card" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem' }}>
+          <div className="glass-card" style={{ width: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', border: '1px solid var(--primary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-               <h2 style={{ fontSize: '1.8rem', margin: 0 }}>Student Profile Editor</h2>
+               <div>
+                 <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : 'Teacher'} Profile Editor</h2>
+                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>ID: {editingProfile.username}</p>
+               </div>
                <button onClick={() => setShowProfileModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
 
             <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-               <div className="input-group">
-                 <label>Father's Name</label>
-                 <input type="text" value={editingProfile.fatherName || ''} onChange={e => setEditingProfile({...editingProfile, fatherName: e.target.value})} placeholder="Full Name" />
+               <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                 <label>Profile Picture URL</label>
+                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                   {editingProfile.photoUrl && (
+                     <img src={editingProfile.photoUrl} alt="Profile" style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} />
+                   )}
+                   <input type="text" value={editingProfile.photoUrl || ''} onChange={e => setEditingProfile({...editingProfile, photoUrl: e.target.value})} placeholder="https://example.com/photo.jpg" style={{ flex: 1 }} />
+                 </div>
                </div>
+
                <div className="input-group">
-                 <label>Monthly Fee (Base ₹)</label>
-                 <input type="number" value={editingProfile.baseFee || ''} onChange={e => setEditingProfile({...editingProfile, baseFee: parseFloat(e.target.value)})} placeholder="e.g. 2500" />
+                 <label>Full Name</label>
+                 <input type="text" value={editingProfile.name || ''} onChange={e => setEditingProfile({...editingProfile, name: e.target.value})} placeholder="Full Name" required />
                </div>
+
                <div className="input-group">
-                 <label>Class / Grade</label>
-                 <select 
-                   value={editingProfile.className || ''} 
-                   onChange={e => setEditingProfile({...editingProfile, className: e.target.value})}
-                   style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
-                 >
-                   <option value="">Select Class...</option>
-                   {["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th (Sci)", "11th (Com)", "12th (Sci)", "12th (Com)"].map(c => (
-                     <option key={c} value={c}>{c}</option>
-                   ))}
-                 </select>
+                 <label>Date of Birth</label>
+                 <input type="date" value={editingProfile.dob || ''} onChange={e => setEditingProfile({...editingProfile, dob: e.target.value})} />
                </div>
-               <div className="input-group">
-                 <label>Batch Name</label>
-                 <select 
-                   value={editingProfile.batch || ''} 
-                   onChange={e => setEditingProfile({...editingProfile, batch: e.target.value})}
-                   style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
-                 >
-                   <option value="">Select Batch...</option>
-                   {batches.map(b => (
-                     <option key={b.id} value={b.name}>{b.name}</option>
-                   ))}
-                 </select>
-               </div>
-               <div className="input-group">
-                 <label>School Name</label>
-                 <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
-               </div>
+
                <div className="input-group">
                  <label>Phone Number</label>
                  <input type="text" value={editingProfile.phone || ''} onChange={e => setEditingProfile({...editingProfile, phone: e.target.value})} placeholder="+91 ..." />
                </div>
+
+               <div className="input-group">
+                 <label>Email Address</label>
+                 <input type="email" value={editingProfile.email || ''} onChange={e => setEditingProfile({...editingProfile, email: e.target.value})} placeholder="mail@example.com" />
+               </div>
+
+               {editingProfile.role === 'STUDENT' ? (
+                 <>
+                   <div className="input-group">
+                     <label>Father's Name</label>
+                     <input type="text" value={editingProfile.fatherName || ''} onChange={e => setEditingProfile({...editingProfile, fatherName: e.target.value})} placeholder="Full Name" />
+                   </div>
+                   <div className="input-group">
+                     <label>Parent Contact</label>
+                     <input type="text" value={editingProfile.parentContact || ''} onChange={e => setEditingProfile({...editingProfile, parentContact: e.target.value})} placeholder="+91 ..." />
+                   </div>
+                   <div className="input-group">
+                     <label>Student ID / Roll No</label>
+                     <input type="text" value={editingProfile.rollNumber || ''} onChange={e => setEditingProfile({...editingProfile, rollNumber: e.target.value})} placeholder="STU-001" />
+                   </div>
+                   <div className="input-group">
+                     <label>Monthly Fee (Base ₹)</label>
+                     <input type="number" value={editingProfile.baseFee || ''} onChange={e => setEditingProfile({...editingProfile, baseFee: parseFloat(e.target.value)})} placeholder="e.g. 2500" />
+                   </div>
+                   <div className="input-group">
+                     <label>Class / Grade</label>
+                     <select 
+                       value={editingProfile.className || ''} 
+                       onChange={e => setEditingProfile({...editingProfile, className: e.target.value})}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
+                     >
+                       <option value="">Select Class...</option>
+                       {["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th (Sci)", "11th (Com)", "12th (Sci)", "12th (Com)"].map(c => (
+                         <option key={c} value={c}>{c}</option>
+                       ))}
+                     </select>
+                   </div>
+                   <div className="input-group">
+                     <label>Batch Name</label>
+                     <select 
+                       value={editingProfile.batch || ''} 
+                       onChange={e => setEditingProfile({...editingProfile, batch: e.target.value})}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
+                     >
+                       <option value="">Select Batch...</option>
+                       {batches.map(b => (
+                         <option key={b.id} value={b.name}>{b.name}</option>
+                       ))}
+                     </select>
+                   </div>
+                   <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                     <label>School Name</label>
+                     <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
+                   </div>
+                 </>
+               ) : (
+                 <>
+                   <div className="input-group">
+                     <label>Subject</label>
+                     <input type="text" value={editingProfile.subject || ''} onChange={e => setEditingProfile({...editingProfile, subject: e.target.value})} placeholder="e.g. Mathematics" />
+                   </div>
+                   <div className="input-group">
+                     <label>Salary (₹)</label>
+                     <input type="number" value={editingProfile.salary || ''} onChange={e => setEditingProfile({...editingProfile, salary: parseFloat(e.target.value)})} placeholder="e.g. 25000" />
+                   </div>
+                   <div className="input-group">
+                     <label>Qualification</label>
+                     <input type="text" value={editingProfile.qualification || ''} onChange={e => setEditingProfile({...editingProfile, qualification: e.target.value})} placeholder="e.g. M.Sc. B.Ed." />
+                   </div>
+                   <div className="input-group">
+                     <label>Experience</label>
+                     <input type="text" value={editingProfile.experience || ''} onChange={e => setEditingProfile({...editingProfile, experience: e.target.value})} placeholder="e.g. 5 Years" />
+                   </div>
+                 </>
+               )}
+
                <div className="input-group" style={{ gridColumn: 'span 2' }}>
                  <label>Residential Address</label>
                  <textarea 
@@ -1143,9 +1326,10 @@ function AdminDashboardContent() {
                </div>
                
                <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                 <button type="button" onClick={handleDeleteUser} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}>Delete Account</button>
                  <button type="button" onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: '#fff', cursor: 'pointer' }}>Cancel</button>
                  <button type="submit" className="btn-primary" disabled={isSavingProfile} style={{ flex: 2, padding: '1rem' }}>
-                    {isSavingProfile ? 'Saving Changes...' : 'Save Student Profile'}
+                    {isSavingProfile ? 'Saving Changes...' : 'Save Profile'}
                  </button>
                </div>
             </form>
@@ -1399,7 +1583,170 @@ function AdminDashboardContent() {
           </div>
         </div>
       )}
-    </div>
+      {/* ── Receipt Modal ───────────────────────────── */}
+      {activeReceipt && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', background: '#fff', color: '#1a1a1a', borderRadius: '0' }}>
+            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px' }}>SUDHIR TUTORIALS</h1>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>
+                <div style={{ height: '1px', background: '#e5e7eb', width: '60px', margin: '1rem auto' }}></div>
+                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: '#374151' }}>Payment Receipt</h2>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', fontSize: '0.85rem' }}>
+                <div>
+                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Student Name</div>
+                  <div style={{ fontWeight: 700 }}>{activeReceipt.student?.name}</div>
+                  <div style={{ color: '#6b7280' }}>ID: {activeReceipt.student?.username}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
+                  <div style={{ fontWeight: 700 }}>REC-{activeReceipt.id.slice(-6).toUpperCase()}</div>
+                  <div style={{ color: '#6b7280' }}>{new Date(activeReceipt.paidAt || Date.now()).toLocaleDateString()}</div>
+                </div>
+              </div>
+
+              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '1.5rem 0', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span style={{ color: '#6b7280' }}>{activeReceipt.title} ({activeReceipt.billingMonth})</span>
+                  <span style={{ fontWeight: 700 }}>₹{activeReceipt.amount.toFixed(2)}</span>
+                </div>
+                {activeReceipt.lateFine > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#ef4444' }}>
+                    <span>Late Fine</span>
+                    <span>+₹{activeReceipt.lateFine.toFixed(2)}</span>
+                  </div>
+                )}
+                {activeReceipt.discount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#10b981' }}>
+                    <span>Discount Applied</span>
+                    <span>-₹{activeReceipt.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e5e7eb' }}>
+                  <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0))).toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                <div style={{ marginBottom: '0.25rem' }}><strong>Method:</strong> {activeReceipt.paymentMethod || 'CASH'}</div>
+                {activeReceipt.transactionId && <div><strong>TXN ID:</strong> {activeReceipt.transactionId}</div>}
+              </div>
+
+              <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ width: '120px', height: '1px', background: '#e5e7eb', marginBottom: '0.5rem' }}></div>
+                  <div style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase' }}>Receiver Signature</div>
+                </div>
+                <button onClick={() => setActiveReceipt(null)} className="no-print" style={{ padding: '0.5rem 1rem', background: '#1a1a1a', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Expense Modal ───────────────────────── */}
+      {showExpenseModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Record New Expense</h2>
+            <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group">
+                <label>Title</label>
+                <input type="text" required placeholder="e.g. Electricity Bill" value={newExpense.title} onChange={e => setNewExpense({...newExpense, title: e.target.value})} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="input-group">
+                  <label>Category</label>
+                  <select value={newExpense.category} onChange={e => setNewExpense({...newExpense, category: e.target.value})}>
+                    <option value="SALARY">Salary</option>
+                    <option value="RENT">Rent</option>
+                    <option value="BILLS">Bills</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label>Amount (₹)</label>
+                  <input type="number" required placeholder="5000" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Remarks</label>
+                <textarea rows={2} value={newExpense.remarks} onChange={e => setNewExpense({...newExpense, remarks: e.target.value})} placeholder="Optional notes..."></textarea>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" disabled={isAddingExpense} className="btn-primary" style={{ flex: 1 }}>{isAddingExpense ? 'Saving...' : 'Save Expense'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Collect Payment Modal ───────────────────── */}
+      {showPaymentModal && payingFee && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Collect Payment</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Student: <strong>{payingFee.student?.name}</strong> • {payingFee.billingMonth}</p>
+            
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span>Base Fee:</span>
+                  <span>₹{payingFee.amount}</span>
+               </div>
+               {payingFee.currentLateFine > 0 && (
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
+                    <span>Late Fine:</span>
+                    <span>+₹{payingFee.currentLateFine}</span>
+                 </div>
+               )}
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981' }}>
+                  <span>Discount:</span>
+                  <input 
+                    type="number" 
+                    value={paymentDetails.discount} 
+                    onChange={e => setPaymentDetails({...paymentDetails, discount: parseFloat(e.target.value || '0')})}
+                    style={{ width: '80px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: '#10b981', textAlign: 'right' }}
+                  />
+               </div>
+               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
+                  <span>Total Payable:</span>
+                  <span>₹{Math.max(0, payingFee.amount + (payingFee.currentLateFine || 0) - paymentDetails.discount)}</span>
+               </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+               <div className="input-group">
+                 <label>Payment Method</label>
+                 <select value={paymentDetails.paymentMethod} onChange={e => setPaymentDetails({...paymentDetails, paymentMethod: e.target.value})}>
+                   <option value="CASH">Cash</option>
+                   <option value="UPI">UPI / QR Code</option>
+                   <option value="BANK">Bank Transfer</option>
+                   <option value="OTHER">Other</option>
+                 </select>
+               </div>
+               {paymentDetails.paymentMethod !== 'CASH' && (
+                 <div className="input-group">
+                   <label>Transaction ID / Ref #</label>
+                   <input type="text" placeholder="Optional" value={paymentDetails.transactionId} onChange={e => setPaymentDetails({...paymentDetails, transactionId: e.target.value})} />
+                 </div>
+               )}
+               <div className="input-group">
+                 <label>Remarks</label>
+                 <input type="text" placeholder="e.g. Paid by father" value={paymentDetails.remarks} onChange={e => setPaymentDetails({...paymentDetails, remarks: e.target.value})} />
+               </div>
+               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                 <button type="button" onClick={() => setShowPaymentModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', cursor: 'pointer' }}>Cancel</button>
+                 <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', paymentDetails)} className="btn-primary" style={{ flex: 1 }}>Confirm Payment</button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
   );
 }
 

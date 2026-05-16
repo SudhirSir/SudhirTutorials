@@ -73,23 +73,47 @@ model StudentProfile {
 }
 
 model TeacherProfile {
-  id      String  @id @default(cuid())
-  userId  String  @unique
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subject String?
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject           String?
+  email             String?
+  phone             String?
+  address           String?
+  dob               String?
+  photoUrl          String?
+  qualification     String?
+  experience        String?
+  salary            Float?  @default(0)
 }
 
 model Payment {
-  id           String   @id @default(cuid())
-  studentId    String
-  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  title        String   @default("Monthly Fee")
-  billingMonth String
-  dueDate      DateTime
-  amount       Float
-  status       String   @default("PENDING")
-  paidAt       DateTime?
-  createdAt    DateTime @default(now())
+  id            String    @id @default(cuid())
+  studentId     String
+  student       User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title         String    @default("Monthly Fee")
+  billingMonth  String
+  dueDate       DateTime
+  amount        Float     // Base amount
+  discount      Float     @default(0)
+  lateFine      Float     @default(0)
+  paidAmount    Float?    @default(0)
+  status        String    @default("PENDING")
+  paymentMethod String?   // CASH, UPI, BANK, etc.
+  transactionId String?
+  remarks       String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  category    String   // SALARY, RENT, BILLS, OTHER
+  amount      Float
+  date        DateTime @default(now())
+  remarks     String?
+  createdAt   DateTime @default(now())
 }
 
 model Course {

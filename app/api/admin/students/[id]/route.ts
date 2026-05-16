@@ -54,6 +54,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       email,
       phone,
       parentName,
+      fatherName,
       parentContact,
       address,
       dob,
@@ -95,6 +96,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(school !== undefined && { school }),
         ...(email !== undefined && { email }),
         ...(phone !== undefined && { phone }),
+        ...(fatherName !== undefined && { fatherName }),
         ...(parentName !== undefined && { fatherName: parentName }),
         ...(parentContact !== undefined && { parentContact }),
         ...(address !== undefined && { address }),
@@ -114,7 +116,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         school: school || null,
         email: email || null,
         phone: phone || null,
-        fatherName: parentName || null,
+        fatherName: fatherName || parentName || null,
         parentContact: parentContact || null,
         address: address || null,
         dob: dob || null,
@@ -128,6 +130,35 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ success: true, profile });
   } catch (error: any) {
     console.error('Error updating student profile:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// DELETE /api/admin/students/[id] — Delete student account
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+
+    // Find the user first
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ username: id }, { id }],
+        role: 'STUDENT',
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
+
+    // Delete the user (cascade will handle StudentProfile)
+    await prisma.user.delete({
+      where: { id: user.id },
+    });
+
+    return NextResponse.json({ success: true, message: 'Student deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting student:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
