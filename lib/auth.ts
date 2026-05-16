@@ -12,30 +12,32 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
+        try {
+          const user = await prisma.user.findUnique({ where: { username: credentials.username } });
+          if (!user) {
+            console.log(`Login failed: User not found - ${credentials.username}`);
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
+          if (!isPasswordValid) {
+            console.log(`Login failed: Invalid password - ${credentials.username}`);
+            return null;
+          }
+
+          return { 
+            id: user.id, 
+            name: user.name || user.username, 
+            username: user.username, 
+            role: user.role,
+            mustChangePassword: user.mustChangePassword,
+            onboardingCompleted: user.onboardingCompleted,
+            isProfileVerified: user.isProfileVerified
+          };
+        } catch (error: any) {
+          console.error("DATABASE CONNECTION ERROR DURING LOGIN:", error.message);
           return null;
         }
-
-        // TEMPORARY DIAGNOSTIC BYPASS
-        if (credentials.username === 'mastertest' && credentials.password === 'masterpassword123') {
-          return { id: 'test-admin', name: 'Master Test', username: 'mastertest', role: 'ADMIN', mustChangePassword: false, onboardingCompleted: true, isProfileVerified: true };
-        }
-
-        const user = await prisma.user.findUnique({ where: { username: credentials.username } });
-        if (!user) return null;
-
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!isPasswordValid) return null;
-
-        return { 
-          id: user.id, 
-          name: user.name || user.username, 
-          username: user.username, 
-          role: user.role,
-          mustChangePassword: user.mustChangePassword,
-          onboardingCompleted: user.onboardingCompleted,
-          isProfileVerified: user.isProfileVerified
-        };
       }
     })
   ],
