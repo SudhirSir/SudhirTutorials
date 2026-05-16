@@ -21,7 +21,8 @@ function AdminDashboardContent() {
       fetchCourses();
       fetchBatches();
       fetchTeachers();
-      handleSearchDirectory(); // to get students
+      // Fetch all students automatically for batch enrollment
+      fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []));
     }
   }, [searchParams]);
 
@@ -880,10 +881,22 @@ function AdminDashboardContent() {
               </div>
               
               <div className="input-group">
-                <label>Assign Teachers (Check all that apply)</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <label>Assign Teachers (Search & Select)</label>
+                <input 
+                  type="text" 
+                  placeholder="🔍 Search teacher name..." 
+                  style={{ marginBottom: '0.5rem', padding: '0.6rem', fontSize: '0.85rem' }} 
+                  onChange={e => {
+                    const q = e.target.value.toLowerCase();
+                    const els = document.querySelectorAll('.teacher-item');
+                    els.forEach((el: any) => {
+                      el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+                    });
+                  }}
+                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid var(--border)', maxHeight: '150px', overflowY: 'auto' }}>
                   {allTeachers.map(t => (
-                    <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '6px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer' }}>
+                    <label key={t.id} className="teacher-item" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '6px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer' }}>
                       <input 
                         type="checkbox" 
                         value={t.username} 
@@ -904,13 +917,25 @@ function AdminDashboardContent() {
               </div>
 
               <div className="input-group">
-                <label>Enroll Students (Select from Database)</label>
+                <label>Enroll Students (Search & Select)</label>
+                <input 
+                  type="text" 
+                  placeholder="🔍 Search student name or ID..." 
+                  style={{ marginBottom: '0.5rem', padding: '0.6rem', fontSize: '0.85rem' }} 
+                  onChange={e => {
+                    const q = e.target.value.toLowerCase();
+                    const els = document.querySelectorAll('.student-item');
+                    els.forEach((el: any) => {
+                      el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+                    });
+                  }}
+                />
                 <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                   {directoryUsers.filter(u => u.role === 'STUDENT').length === 0 ? (
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No students found in directory.</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No students found. Go to Directory to add students first.</p>
                   ) : (
                     directoryUsers.filter(u => u.role === 'STUDENT').map(s => (
-                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                      <label key={s.id} className="student-item" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                         <input 
                           type="checkbox" 
                           value={s.username}
