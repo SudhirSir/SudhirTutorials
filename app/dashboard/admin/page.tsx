@@ -486,6 +486,7 @@ function AdminDashboardContent() {
         <div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
             जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{session?.user?.name || 'Admin'}</span>
+            <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '10px' }}>v2.1-finance-pro</span>
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Welcome back, Admin. Manage your institute's members here.</p>
         </div>
