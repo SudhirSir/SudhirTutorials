@@ -31,17 +31,17 @@
   --surface: #ffffff; /* Crisp white surface */
   --surface-light: #f1f5f9; /* Slate 100 secondary surface */
   --text: #0f172a; /* Slate 900 primary text for top-tier contrast */
-  --text-muted: #475569; /* Slate 600 secondary text for excellent reading */
+  --text-muted: #334155; /* Darker Slate 700 text for superior visual contrast */
   --text-heading: #0f172a; /* Slate 900 headings */
-  --border: #e2e8f0; /* Slate 200 light grid borders */
-  --glass-bg: rgba(255, 255, 255, 0.85); /* Smooth milky glass */
-  --glass-border: rgba(15, 23, 42, 0.08);
-  --shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.02);
+  --border: #cbd5e1; /* Slightly darker Slate 300 borders for solid separation */
+  --glass-bg: rgba(255, 255, 255, 0.94); /* Smooth higher-opacity crisp white glass */
+  --glass-border: rgba(15, 23, 42, 0.12); /* More prominent borders for perfect card outlines */
+  --shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
   --logo-gradient: linear-gradient(135deg, #4f46e5, #7c3aed); /* Stunning vibrant brand logo */
   --card-bg-alt: #f1f5f9;
   --input-bg: #ffffff;
   --input-focus-bg: #ffffff;
-  --login-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.85) 0%, rgba(248, 250, 252, 0.5) 100%);
+  --login-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.93) 0%, rgba(248, 250, 252, 0.75) 100%);
 }
 
 * {

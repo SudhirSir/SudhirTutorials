@@ -59,12 +59,16 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
       {/* Left Form Section */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem' }}>
-        <div style={{ marginBottom: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem', position: 'relative' }}>
+        {/* Theme Toggle in top-right corner of login panel */}
+        <div style={{ position: 'absolute', top: '2rem', right: '2rem', zIndex: 100 }}>
+          <ThemeToggle />
+        </div>
+
+        <div style={{ marginBottom: 'auto' }}>
           <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-block' }}>
             <span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS
           </Link>
-          <ThemeToggle />
         </div>
 
         <div style={{ maxWidth: '420px', width: '100%', margin: '0 auto' }}>
@@ -74,7 +78,7 @@ export default function LoginPage() {
           </div>
 
           {/* Role Selection */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', background: 'var(--card-bg-alt)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
             {tabs.map(tab => (
               <button
                 key={tab.id}

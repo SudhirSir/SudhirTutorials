@@ -44,7 +44,7 @@ export default function Home() {
           
           <div style={{ position: 'relative', width: '100%', maxWidth: '500px', height: '400px' }}>
             <div className="glass-card" style={{ position: 'absolute', top: 0, right: 0, width: '280px', padding: '1.5rem', transform: 'perspective(1000px) rotateY(-15deg)', zIndex: 2 }}>
-               <h4 style={{ margin: 0, fontSize: '1rem', color: '#fff', marginBottom: '1rem' }}>JEE Mains 2025 Results</h4>
+               <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-heading)', marginBottom: '1rem' }}>JEE Mains 2025 Results</h4>
                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                  <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#34d399' }}>142</div>
                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Students Scored<br/>Above 99%ile</div>
@@ -52,12 +52,12 @@ export default function Home() {
             </div>
 
             <div className="glass-card" style={{ position: 'absolute', bottom: 0, left: 0, width: '300px', padding: '1.5rem', transform: 'perspective(1000px) rotateY(15deg) translateY(-20px)', zIndex: 3, borderTop: '4px solid var(--primary)' }}>
-               <h4 style={{ margin: 0, fontSize: '1rem', color: '#fff', marginBottom: '1rem' }}>Interactive Learning</h4>
+               <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-heading)', marginBottom: '1rem' }}>Interactive Learning</h4>
                <div style={{ display: 'flex', gap: '0.75rem', flexDirection: 'column' }}>
-                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
+                 <div style={{ background: 'var(--card-bg-alt)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
                    <span>Physics Doubt Class</span> <span style={{ color: '#60a5fa' }}>Live Now</span>
                  </div>
-                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
+                 <div style={{ background: 'var(--card-bg-alt)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
                    <span>Mock Test 04</span> <span style={{ color: '#10b981' }}>Completed</span>
                  </div>
                </div>
@@ -67,7 +67,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section style={{ padding: '4rem 6%', background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%)', borderTop: '1px solid var(--glass-border)' }}>
+      <section style={{ padding: '4rem 6%', background: 'linear-gradient(180deg, var(--card-bg-alt) 0%, transparent 100%)', borderTop: '1px solid var(--glass-border)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem', textAlign: 'center' }}>
           {[ 
             { label: 'Selections in JEE/NEET', value: '15,000+' },
@@ -92,9 +92,9 @@ export default function Home() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
           {[
-            { title: 'JEE Main & Advanced', subtitle: 'Class 11, 12 & Droppers', desc: 'Rigorous training program focusing on core concepts, advanced problem-solving, and time management.', color: '#3b82f6' },
-            { title: 'NEET (UG)', subtitle: 'Class 11, 12 & Droppers', desc: 'Comprehensive biology focus paired with intensive physics and chemistry modules for medical aspirants.', color: '#10b981' },
-            { title: 'Foundation Courses', subtitle: 'Class 8, 9 & 10', desc: 'Early start program to build a strong analytical foundation for competitive exams like NTSE and Olympiads.', color: '#8b5cf6' }
+            { title: 'JEE Main & Advanced', subtitle: 'Class 11, 12 & Droppers', desc: 'Rigorous training program focusing on core concepts, advanced problem-solving, and time management.', color: 'var(--primary)' },
+            { title: 'NEET (UG)', subtitle: 'Class 11, 12 & Droppers', desc: 'Comprehensive biology focus paired with intensive physics and chemistry modules for medical aspirants.', color: 'var(--success)' },
+            { title: 'Foundation Courses', subtitle: 'Class 8, 9 & 10', desc: 'Early start program to build a strong analytical foundation for competitive exams like NTSE and Olympiads.', color: 'var(--secondary)' }
           ].map((prog, i) => (
             <div key={i} className="glass-card" style={{ padding: '3rem 2rem', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: prog.color }}></div>
@@ -113,7 +113,7 @@ export default function Home() {
       </section>
 
       {/* Features Showcase */}
-      <section id="about" style={{ padding: '6rem 6%', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid var(--glass-border)', borderBottom: '1px solid var(--glass-border)' }}>
+      <section id="about" style={{ padding: '6rem 6%', background: 'var(--surface-bg)', borderTop: '1px solid var(--glass-border)', borderBottom: '1px solid var(--glass-border)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
           <div>
             <h2 style={{ fontSize: '3rem', marginBottom: '1.5rem', fontWeight: 800 }}>Why Sudhir Tutorials?</h2>
@@ -124,7 +124,7 @@ export default function Home() {
                 { title: 'Performance Analytics', desc: 'AI-driven insights into test scores to identify weak chapters and suggest targeted practice material.', icon: '📊' }
               ].map((feat, i) => (
                 <div key={i} style={{ display: 'flex', gap: '1.5rem' }}>
-                  <div style={{ fontSize: '2rem', background: 'rgba(255,255,255,0.05)', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', flexShrink: 0 }}>{feat.icon}</div>
+                  <div style={{ fontSize: '2rem', background: 'var(--card-bg-alt)', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', flexShrink: 0 }}>{feat.icon}</div>
                   <div>
                     <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{feat.title}</h3>
                     <p style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{feat.desc}</p>
@@ -147,7 +147,7 @@ export default function Home() {
             <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '300px' }}>Empowering students with knowledge, guidance, and the digital tools needed to conquer their academic goals.</p>
           </div>
           <div>
-            <h4 style={{ color: '#fff', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Programs</h4>
+            <h4 style={{ color: 'var(--text-heading)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Programs</h4>
             <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
               <li>JEE Mains & Adv</li>
               <li>NEET (UG)</li>
@@ -156,7 +156,7 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 style={{ color: '#fff', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Quick Links</h4>
+            <h4 style={{ color: 'var(--text-heading)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Quick Links</h4>
             <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
               <li>Student Login</li>
               <li>Teacher Portal</li>
@@ -165,7 +165,7 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 style={{ color: '#fff', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Contact</h4>
+            <h4 style={{ color: 'var(--text-heading)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Contact</h4>
             <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
               <li>📍 <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" className="footer-link">Haibowal, Ludhiana, Punjab</a></li>
               <li>📞 <a href="tel:9914287998" className="footer-link">99142-87998</a></li>
@@ -173,7 +173,7 @@ export default function Home() {
             </ul>
           </div>
         </div>
-        <div style={{ textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+        <div style={{ textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
           © 2026 Sudhir Tutorials Coaching Institute. All rights reserved.
         </div>
       </footer>

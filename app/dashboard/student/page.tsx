@@ -203,28 +203,28 @@ function StudentDashboardContent() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className={`glass-card ${(dashboard as any)?.feeHighlight?.isOverdue ? 'overdue-pulse' : ''}`} style={{ padding: '2rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))', border: (dashboard as any)?.feeHighlight?.isOverdue ? '1px solid rgba(239, 68, 68, 0.5)' : undefined }}>
-                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: (dashboard as any)?.feeHighlight?.isOverdue ? '#f87171' : '#fff' }}>Fee Status</h3>
+              <div className={`glass-card ${(dashboard as any)?.feeHighlight?.isOverdue ? 'overdue-pulse' : ''}`} style={{ padding: '2rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'linear-gradient(135deg, var(--primary), var(--accent))', border: (dashboard as any)?.feeHighlight?.isOverdue ? '1px solid rgba(239, 68, 68, 0.5)' : undefined }}>
+                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: (dashboard as any)?.feeHighlight?.isOverdue ? '#ef4444' : '#fff' }}>Fee Status</h3>
                  
                  {(dashboard as any)?.feeHighlight ? (
                    <>
-                     <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: (dashboard as any).feeHighlight.isOverdue ? '#f87171' : '#fff' }}>
+                     <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: (dashboard as any).feeHighlight.isOverdue ? '#ef4444' : '#fff' }}>
                        ₹{(dashboard as any).feeHighlight.amount.toFixed(0)}
                      </div>
-                     <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                     <p style={{ color: (dashboard as any)?.feeHighlight?.isOverdue ? 'var(--text)' : 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                        {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${new Date((dashboard as any).feeHighlight.dueDate).toLocaleDateString()}` : `Status: ${(dashboard as any).feeHighlight.status}`}
                      </p>
-                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem' }} onClick={() => setActiveTab('fees')}>Pay Online</button>
+                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : 'rgba(255,255,255,0.15)', color: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '#fff', border: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => setActiveTab('fees')}>Pay Online</button>
                    </>
                  ) : (
-                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No pending fees. You are all caught up!</p>
+                   <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>No pending fees. You are all caught up!</p>
                  )}
               </div>
 
               <div className="glass-card" style={{ padding: '2rem', background: 'rgba(16, 185, 129, 0.05)', cursor: 'pointer' }} onClick={() => setActiveTab('attendance')}>
                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Overall Attendance</h3>
                  <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10b981' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
-                 <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
+                 <div style={{ width: '100%', height: '8px', background: 'var(--border)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
                     <div style={{ width: `${(dashboard as any)?.attendance?.percentage || 0}%`, height: '100%', background: '#10b981', boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)' }}></div>
                  </div>
                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>{(dashboard as any)?.attendance?.present || 0} / {(dashboard as any)?.attendance?.total || 0} Days Present</p>
