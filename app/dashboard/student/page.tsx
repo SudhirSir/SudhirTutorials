@@ -25,9 +25,6 @@ function StudentDashboardContent() {
   const [tests, setTests] = useState<any[]>([]);
 
   const [selectedFee, setSelectedFee] = useState<any>(null);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<1|2|3>(1);
-  const [upiId, setUpiId] = useState('');
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
 
@@ -77,45 +74,11 @@ function StudentDashboardContent() {
 
   const handlePayOnline = (fee: any) => {
     setSelectedFee(fee);
-    setCheckoutStep(1);
-    setUpiId('');
-    setIsCheckoutOpen(true);
-  };
-
-  const initiatePayment = () => {
-    if (checkoutStep === 1) {
-      setCheckoutStep(2);
-    } else if (checkoutStep === 2) {
-      if (!upiId) return alert('Please enter your UPI ID');
-      setCheckoutStep(3);
-      setTimeout(() => {
-        processPayment();
-      }, 2500); // simulate 2.5s network delay for money transfer
-    }
-  };
-
-  const processPayment = async () => {
-    if (!selectedFee) return;
-    try {
-      const res = await fetch('/api/student/fees/pay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feeId: selectedFee.id })
-      });
-      if (res.ok) {
-        setIsCheckoutOpen(false);
-        fetchFees();
-        fetchDashboard();
-        viewReceipt(selectedFee.id);
-      } else {
-        alert('Payment failed');
-        setIsCheckoutOpen(false);
-      }
-    } catch (e) {
-      console.error(e);
-      alert('Error processing payment');
-      setIsCheckoutOpen(false);
-    }
+    // Directly open the official Razorpay link
+    window.open('https://razorpay.me/@sudhiir', '_blank');
+    
+    // Alert the user about the verification process
+    alert(`Redirecting to Secure Razorpay Portal!\n\nPlease complete your payment of ₹${fee.totalAmount}. Once the transaction is successful, the administration will verify it and issue your digital receipt within 24 hours.`);
   };
 
   const viewReceipt = async (feeId: string) => {
@@ -490,79 +453,7 @@ function StudentDashboardContent() {
         </div>
       )}
 
-      {isCheckoutOpen && selectedFee && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-card" style={{ padding: '2rem', width: '420px', maxWidth: '95%', background: '#fff', color: '#000' }}>
-            
-            {checkoutStep === 1 && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.5rem', margin: 0, color: '#000' }}>Confirm Payment</h3>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" style={{ height: '24px' }} />
-                </div>
-                <p style={{ color: '#4b5563', marginBottom: '1.5rem' }}>Payment for <strong>{selectedFee.title} ({selectedFee.billingMonth})</strong></p>
-                <div style={{ padding: '1rem', background: '#f3f4f6', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#374151' }}>
-                    <span>Base Amount</span>
-                    <span>₹{selectedFee.amount}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: selectedFee.lateFine > 0 ? '#ef4444' : '#374151' }}>
-                    <span>Late Fine</span>
-                    <span>₹{selectedFee.lateFine}</span>
-                  </div>
-                  <hr style={{ border: 'none', borderTop: '1px dashed #9ca3af', margin: '0.5rem 0' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem', color: '#111827' }}>
-                    <span>Total Payable</span>
-                    <span>₹{selectedFee.totalAmount}</span>
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button className="btn-secondary" style={{ flex: 1, borderColor: '#d1d5db', color: '#374151', background: '#fff' }} onClick={() => setIsCheckoutOpen(false)}>Cancel</button>
-                  <button className="btn-primary" style={{ flex: 2, background: '#10b981', boxShadow: 'none' }} onClick={initiatePayment}>Proceed to Pay</button>
-                </div>
-              </>
-            )}
 
-            {checkoutStep === 2 && (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.3rem', margin: '0 0 0.5rem 0', color: '#000' }}>Scan QR or Enter UPI</h3>
-                  <p style={{ color: '#4b5563', fontSize: '0.9rem' }}>Paying <strong>₹{selectedFee.totalAmount}</strong> to Sudhir Tutorials</p>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                  <div style={{ padding: '10px', background: '#fff', border: '2px solid #e5e7eb', borderRadius: '12px' }}>
-                     {/* Fake QR code using a generic placeholder */}
-                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=sudhirtutorials@okicici&pn=Sudhir%20Tutorials&am=${selectedFee.totalAmount}`} alt="QR Code" style={{ width: '150px', height: '150px' }} />
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>OR</div>
-
-                <div className="input-group" style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ color: '#374151' }}>Enter your UPI ID</label>
-                  <input type="text" placeholder="e.g. 9876543210@ybl" value={upiId} onChange={e => setUpiId(e.target.value)} style={{ background: '#f9fafb', color: '#000', border: '1px solid #d1d5db' }} />
-                </div>
-
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button className="btn-secondary" style={{ flex: 1, borderColor: '#d1d5db', color: '#374151', background: '#fff' }} onClick={() => setCheckoutStep(1)}>Back</button>
-                  <button className="btn-primary" style={{ flex: 2, background: '#10b981', boxShadow: 'none' }} onClick={initiatePayment}>Verify & Pay</button>
-                </div>
-              </>
-            )}
-
-            {checkoutStep === 3 && (
-              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                <div className="spinner" style={{ margin: '0 auto 1.5rem auto' }}></div>
-                <h3 style={{ fontSize: '1.3rem', color: '#000' }}>Processing Payment...</h3>
-                <p style={{ color: '#4b5563', fontSize: '0.9rem' }}>Please do not close this window or press back.</p>
-                <p style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '1rem' }}>Waiting for confirmation from your bank...</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {isReceiptOpen && receiptData && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
