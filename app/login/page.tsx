@@ -246,12 +246,12 @@ export default function LoginPage() {
       </div>
 
       {/* Right Image Section */}
-      <div style={{ flex: 1.2, position: 'relative', display: 'none' }} className="hide-on-mobile">
+      <div style={{ flex: 1.2, position: 'relative', display: 'none', flexDirection: 'column', justifyContent: 'center', padding: '2.5rem 3rem', gap: '1.5rem', overflowY: 'auto' }} className="hide-on-mobile">
         <div style={{ position: 'absolute', inset: 0, background: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop) center/cover', zIndex: 0 }}></div>
         <div style={{ position: 'absolute', inset: 0, background: 'var(--login-overlay)', zIndex: 1 }}></div>
         
         {/* News & Updates Section */}
-        <div style={{ position: 'absolute', top: '2.5rem', left: '3rem', right: '3rem', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+        <div style={{ position: 'relative', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)', marginTop: 'auto' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
              <span style={{ fontSize: '1.2rem' }}>📢</span>
              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
@@ -273,10 +273,10 @@ export default function LoginPage() {
         </div>
 
         {/* Smaller, Elegant Shilpy Quote Card */}
-        <div style={{ position: 'absolute', bottom: '2.5rem', left: '3rem', right: '3rem', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '0.85rem 1.25rem', borderRadius: '18px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+        <div style={{ position: 'relative', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '0.85rem 1.25rem', borderRadius: '18px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)', marginBottom: 'auto' }}>
            <div style={{ color: activeColor, fontSize: '1.2rem', marginBottom: '0.15rem' }}>❝</div>
            <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.4, marginBottom: '0.65rem', fontWeight: 500 }}>
-             "The integrated digital tools at Sudhir Tutorials changed the way I prepared for my exams. Everything from live classes to fee receipts is available in one click."
+             "Sudhir Tutorials didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
            </p>
            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '0.85rem' }}>S</div>
@@ -291,7 +291,7 @@ export default function LoginPage() {
       <style jsx>{`
         @media (min-width: 900px) {
           .hide-on-mobile {
-            display: block !important;
+            display: flex !important;
           }
         }
       `}</style>

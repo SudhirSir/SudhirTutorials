@@ -16,7 +16,7 @@ export function LiveClock() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', color: 'var(--text-muted)' }}>
-      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>
+      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-heading)' }}>
         {time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </div>
       <div style={{ fontSize: '0.85rem', fontWeight: 500, textTransform: 'capitalize' }}>
