@@ -183,10 +183,19 @@ export default function Home() {
           </div>
           <div>
             <h4 style={{ color: 'var(--text-heading)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Contact</h4>
-            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
-              <li>📍 <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" className="footer-link">Haibowal, Ludhiana, Punjab</a></li>
-              <li>📞 <a href="tel:9914287998" className="footer-link">99142-87998</a></li>
-              <li>✉️ <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" className="footer-link">sudhir.tutorials.ludhiana@gmail.com</a></li>
+            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'var(--text-muted)' }}>
+              <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                <span>📍</span> 
+                <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" className="footer-link">Haibowal, Ludhiana, Punjab</a>
+              </li>
+              <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span>📞</span> 
+                <a href="tel:9914287998" className="footer-link">99142-87998</a>
+              </li>
+              <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                <span>✉️</span> 
+                <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" className="footer-link" style={{ wordBreak: 'break-all' }}>sudhir.tutorials.ludhiana@gmail.com</a>
+              </li>
             </ul>
           </div>
         </div>
