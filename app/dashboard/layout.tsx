@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -58,6 +59,17 @@ const icons = {
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
+  ),
+  messages: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  ),
+  notifications: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    </svg>
   )
 };
 
@@ -66,6 +78,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const role = pathname.includes("admin") ? "Admin" : pathname.includes("teacher") ? "Teacher" : "Student";
   const isVerified = (session?.user as any)?.isProfileVerified;
+
+  const [badges, setBadges] = useState({ unreadMessages: 0, unreadNotifications: 0 });
+
+  useEffect(() => {
+    if (session?.user) {
+      const fetchBadges = async () => {
+        const res = await fetch('/api/user/badges');
+        if (res.ok) setBadges(await res.json());
+      };
+      fetchBadges();
+      const interval = setInterval(fetchBadges, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [session]);
 
   return (
     <div className="dashboard-container">
@@ -153,6 +179,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               </div>
             )}
+
+            <div className="nav-group">
+              <div className="nav-label">Communication</div>
+              <Link href={`/dashboard/${role.toLowerCase()}?tab=messages`} className="nav-link-modern">
+                <span className="icon" style={{ position: 'relative' }}>
+                  {icons.messages}
+                  {badges.unreadMessages > 0 && (
+                    <span style={{ position: 'absolute', top: '-6px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {badges.unreadMessages}
+                    </span>
+                  )}
+                </span>
+                Messages
+              </Link>
+              <Link href={`/dashboard/${role.toLowerCase()}?tab=notifications`} className="nav-link-modern">
+                <span className="icon" style={{ position: 'relative' }}>
+                  {icons.notifications}
+                  {badges.unreadNotifications > 0 && (
+                    <span style={{ position: 'absolute', top: '-6px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {badges.unreadNotifications}
+                    </span>
+                  )}
+                </span>
+                Notifications
+              </Link>
+            </div>
 
             <div className="nav-group">
               <div className="nav-label">Support</div>

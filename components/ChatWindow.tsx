@@ -31,15 +31,17 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
         const data = await res.json();
         setMessages(data.messages || []);
         
-        // Derive unique contacts from messages
-        const usersMap = new Map();
-        data.messages.forEach((m: any) => {
-          const other = m.senderId === currentUserId ? m.receiver : m.sender;
-          if (other && !usersMap.has(other.id)) {
-            usersMap.set(other.id, other);
-          }
+        // Derive unique contacts from messages and MERGE with existing contacts
+        setContacts(prev => {
+          const usersMap = new Map(prev.filter(u => u?.id).map(u => [u.id, u]));
+          (data.messages || []).forEach((m: any) => {
+            const other = m.senderId === currentUserId ? m.receiver : m.sender;
+            if (other?.id && !usersMap.has(other.id)) {
+              usersMap.set(other.id, other);
+            }
+          });
+          return Array.from(usersMap.values());
         });
-        setContacts(Array.from(usersMap.values()));
       }
     } catch (e) { console.error(e); }
   };

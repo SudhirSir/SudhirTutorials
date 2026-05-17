@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
+import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
-
-import { Suspense } from 'react';
 
 function TeacherDashboardContent() {
   const { data: session } = useSession();
@@ -291,7 +290,7 @@ function TeacherDashboardContent() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
-        {['classes', 'materials', 'students', 'attendance', 'tests', 'messages', 'profile'].map(tab => (
+        {['classes', 'materials', 'students', 'attendance', 'tests', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -786,6 +785,10 @@ function TeacherDashboardContent() {
 
       {activeTab === 'messages' && session?.user && (
         <ChatWindow currentUserId={(session.user as any).id} />
+      )}
+
+      {activeTab === 'notifications' && (
+        <NotificationsPanel />
       )}
     </div>
   );

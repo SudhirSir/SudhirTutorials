@@ -22,8 +22,8 @@ export async function GET() {
         ]
       },
       include: {
-        sender: { select: { name: true, username: true, role: true } },
-        receiver: { select: { name: true, username: true, role: true } }
+        sender: { select: { id: true, name: true, username: true, role: true } },
+        receiver: { select: { id: true, name: true, username: true, role: true } }
       },
       orderBy: { createdAt: 'desc' }
     });

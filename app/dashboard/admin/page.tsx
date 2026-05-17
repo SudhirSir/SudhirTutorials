@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
+import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
-
-import { Suspense } from 'react';
 
 function AdminDashboardContent() {
   const { data: session } = useSession();
@@ -495,7 +494,7 @@ function AdminDashboardContent() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
-        {['overview', 'users', 'verifications', 'finances', 'courses', 'analytics', 'messages'].map(tab => (
+        {['overview', 'users', 'verifications', 'finances', 'courses', 'analytics', 'messages', 'notifications'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -1139,6 +1138,10 @@ function AdminDashboardContent() {
 
       {activeTab === 'messages' && session?.user && (
         <ChatWindow currentUserId={(session.user as any).id} />
+      )}
+
+      {activeTab === 'notifications' && (
+        <NotificationsPanel />
       )}
       {showDelModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
