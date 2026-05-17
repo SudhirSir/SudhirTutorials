@@ -252,11 +252,11 @@ export default function LoginPage() {
              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
            </div>
            
-           <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--background)', border: '1px solid var(--glass-border)', height: '580px' }}>
+           <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--background)', border: '1px solid var(--glass-border)', height: '600px' }}>
               <iframe 
                 src="https://www.instagram.com/p/DYSZKfBKZkv/embed" 
                 width="100%" 
-                height="580" 
+                height="600" 
                 frameBorder="0" 
                 scrolling="no" 
                 style={{ border: 'none' }}
