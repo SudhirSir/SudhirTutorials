@@ -1383,16 +1383,45 @@ function AdminDashboardContent() {
                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '1.5rem', border: '1px dashed var(--border)' }}>👤</div>
                    )}
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
-                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Upload from device (Max 2MB):</span>
+                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Upload from device (Auto-compresses to small size):</span>
                      <input 
                        type="file" 
                        accept="image/*"
                        onChange={e => {
                          const file = e.target.files?.[0];
                          if (file) {
-                           if (file.size > 2 * 1024 * 1024) return alert("Please choose an image under 2MB.");
                            const reader = new FileReader();
-                           reader.onloadend = () => setEditingProfile({ ...editingProfile, photoUrl: reader.result as string });
+                           reader.onload = (event) => {
+                             const img = new Image();
+                             img.onload = () => {
+                               const canvas = document.createElement('canvas');
+                               const ctx = canvas.getContext('2d');
+                               if (!ctx) return;
+                               
+                               const MAX_SIZE = 400;
+                               let width = img.width;
+                               let height = img.height;
+
+                               if (width > height) {
+                                 if (width > MAX_SIZE) {
+                                   height *= MAX_SIZE / width;
+                                   width = MAX_SIZE;
+                                 }
+                               } else {
+                                 if (height > MAX_SIZE) {
+                                   width *= MAX_SIZE / height;
+                                   height = MAX_SIZE;
+                                 }
+                               }
+                               
+                               canvas.width = width;
+                               canvas.height = height;
+                               ctx.drawImage(img, 0, 0, width, height);
+                               const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                               setEditingProfile({ ...editingProfile, photoUrl: compressedDataUrl });
+                             };
+                             img.src = event.target?.result as string;
+                           };
                            reader.readAsDataURL(file);
                          }
                        }}
