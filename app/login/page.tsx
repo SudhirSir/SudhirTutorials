@@ -246,45 +246,54 @@ export default function LoginPage() {
       </div>
 
       {/* Right Image Section */}
-      <div style={{ flex: 1.2, position: 'relative', display: 'none', flexDirection: 'column', justifyContent: 'center', padding: '2.5rem 3rem', gap: '1.5rem', overflowY: 'auto' }} className="hide-on-mobile">
+      <div style={{ flex: 1.2, position: 'relative', display: 'none', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }} className="hide-on-mobile">
+        {/* Fixed Background Image and Overlay */}
         <div style={{ position: 'absolute', inset: 0, background: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop) center/cover', zIndex: 0 }}></div>
         <div style={{ position: 'absolute', inset: 0, background: 'var(--login-overlay)', zIndex: 1 }}></div>
         
-        {/* News & Updates Section */}
-        <div style={{ position: 'relative', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)', marginTop: 'auto' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-             <span style={{ fontSize: '1.2rem' }}>📢</span>
-             <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
-           </div>
-           
-           <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--background)', border: '1px solid var(--glass-border)', height: '620px' }}>
-              <iframe 
-                src="https://www.instagram.com/p/DYSZKfBKZkv/embed" 
-                width="100%" 
-                height="100%" 
-                frameBorder="0" 
-                scrolling="auto" 
-                style={{ border: 'none', width: '100%', height: '100%', display: 'block' }}
-              ></iframe>
-           </div>
-           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.75rem', textAlign: 'center' }}>
-             Stay updated with our latest achievements and announcements.
-           </p>
-        </div>
+        {/* Scrollable Content Wrapper */}
+        <div className="right-panel-scroll" style={{ position: 'relative', zIndex: 2, width: '100%', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '420px', margin: 'auto' }}>
+            
+            {/* News & Updates Section */}
+            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                 <span style={{ fontSize: '1.2rem' }}>📢</span>
+                 <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
+               </div>
+               
+               <div style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid var(--glass-border)', height: '500px', display: 'flex', justifyContent: 'center' }}>
+                  <iframe 
+                    src="https://www.instagram.com/p/DYSZKfBKZkv/embed" 
+                    width="400" 
+                    height="100%" 
+                    frameBorder="0" 
+                    scrolling="no" 
+                    style={{ border: 'none', width: '100%', maxWidth: '400px', height: '100%', display: 'block' }}
+                  ></iframe>
+               </div>
+               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.85rem', textAlign: 'center', fontWeight: 500 }}>
+                 Stay updated with our latest achievements and announcements.
+               </p>
+            </div>
 
-        {/* Smaller, Elegant Shilpy Quote Card */}
-        <div style={{ position: 'relative', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '0.85rem 1.25rem', borderRadius: '18px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)', marginBottom: 'auto' }}>
-           <div style={{ color: activeColor, fontSize: '1.2rem', marginBottom: '0.15rem' }}>❝</div>
-           <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.4, marginBottom: '0.65rem', fontWeight: 500 }}>
-             "Sudhir Tutorials didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
-           </p>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '0.85rem' }}>S</div>
-             <div>
-               <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.9rem' }}>Shilpy</div>
-               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>PSEB AIR 14</div>
-             </div>
-           </div>
+            {/* Smaller, Elegant Shilpy Quote Card */}
+            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+               <div style={{ color: activeColor, fontSize: '1.4rem', marginBottom: '0.25rem', lineHeight: 1 }}>❝</div>
+               <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.5, marginBottom: '0.85rem', fontWeight: 500 }}>
+                 "Sudhir Tutorials didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
+               </p>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                 <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '0.9rem' }}>S</div>
+                 <div>
+                   <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.95rem' }}>Shilpy</div>
+                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>PSEB AIR 14</div>
+                 </div>
+               </div>
+            </div>
+
+          </div>
         </div>
       </div>
       
@@ -293,6 +302,19 @@ export default function LoginPage() {
           .hide-on-mobile {
             display: flex !important;
           }
+        }
+        .right-panel-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .right-panel-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .right-panel-scroll::-webkit-scrollbar-thumb {
+          background: rgba(150, 150, 150, 0.3);
+          border-radius: 10px;
+        }
+        .right-panel-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(150, 150, 150, 0.5);
         }
       `}</style>
     </div>
