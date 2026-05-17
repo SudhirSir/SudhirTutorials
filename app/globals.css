@@ -119,7 +119,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
   font-family: var(--font-poppins, system-ui, sans-serif);
   letter-spacing: 0.5px;
-  background: linear-gradient(90deg, #fff, #a1a1aa);
+  background: var(--logo-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

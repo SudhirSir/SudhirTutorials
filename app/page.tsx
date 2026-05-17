@@ -76,7 +76,7 @@ export default function Home() {
             { label: 'Premium Study Materials', value: '2,500+' }
           ].map((stat, i) => (
             <div key={i} className="glass-card" style={{ padding: '2rem', background: 'transparent', border: 'none', boxShadow: 'none' }}>
-              <div style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '0.5rem', background: 'linear-gradient(135deg, #fff 0%, #a1a1aa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{stat.value}</div>
+              <div style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '0.5rem', background: 'var(--logo-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{stat.value}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>{stat.label}</div>
             </div>
           ))}
