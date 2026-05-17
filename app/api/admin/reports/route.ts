@@ -29,9 +29,9 @@ export async function GET() {
       }
     });
 
-    const enrollmentData = courseStats.map(c => ({
+    const enrollmentData = courseStats.map((c: any) => ({
       name: c.name,
-      students: c.batches.reduce((sum, b) => sum + b._count.students, 0)
+      students: c.batches.reduce((sum: number, b: any) => sum + b._count.students, 0)
     }));
 
     // 2. Revenue Trends (last 6 months)
@@ -53,7 +53,7 @@ export async function GET() {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const revenueTrend: Record<string, number> = {};
     
-    payments.forEach(p => {
+    payments.forEach((p: any) => {
       const m = months[new Date(p.createdAt).getMonth()];
       revenueTrend[m] = (revenueTrend[m] || 0) + p.amount;
     });

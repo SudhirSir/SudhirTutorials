@@ -24,7 +24,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const courseIds = userWithBatches.studentBatches.map(b => b.courseId);
+    const courseIds = userWithBatches.studentBatches.map((b: any) => b.courseId);
 
     if (courseIds.length === 0) {
       return NextResponse.json({ tests: [] });

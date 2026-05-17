@@ -18,7 +18,7 @@ export async function GET() {
       orderBy: { dueDate: 'desc' }
     });
 
-    const fees = rawFees.map(fee => {
+    const fees = rawFees.map((fee: any) => {
       const now = new Date();
       const due = new Date(fee.dueDate);
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());

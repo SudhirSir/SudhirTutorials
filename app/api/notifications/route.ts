@@ -59,14 +59,14 @@ export async function POST(req: Request) {
         where: { role: targetRole },
         select: { id: true },
       });
-      targetIds = users.map(u => u.id);
+      targetIds = users.map((u: any) => u.id);
     } else {
       // Broadcast to all students and teachers (not admins)
       const users = await prisma.user.findMany({
         where: { role: { in: ['STUDENT', 'TEACHER'] } },
         select: { id: true },
       });
-      targetIds = users.map(u => u.id);
+      targetIds = users.map((u: any) => u.id);
     }
 
     if (targetIds.length === 0) {

@@ -10,7 +10,38 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+    try {
+      const res = await fetch(`/api/messages?messageId=${messageId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteChat = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this entire chat? This action cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/messages?chatUserId=${userId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setSelectedUser(null);
+        setMessages(prev => prev.filter(m => m.senderId !== userId && m.receiverId !== userId));
+        setContacts(prev => prev.filter(c => c.id !== userId));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     fetchMessages();
@@ -123,9 +154,70 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
   });
 
   return (
-    <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: '70vh', minHeight: '600px', overflow: 'hidden', padding: 0, border: '1px solid var(--border)' }}>
+    <div className={`chat-window-container ${selectedUser ? 'has-selected-user' : ''}`}>
+      <style>{`
+        .chat-window-container {
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          height: 70vh;
+          min-height: 600px;
+          overflow: hidden;
+          padding: 0;
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          background: var(--glass-bg);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          box-shadow: var(--shadow);
+        }
+
+        .chat-sidebar {
+          border-right: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          background: var(--surface);
+        }
+
+        .chat-main-area {
+          display: flex;
+          flex-direction: column;
+          background: var(--background);
+        }
+
+        .chat-back-btn {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .chat-window-container {
+            grid-template-columns: 1fr;
+            height: 80vh;
+            min-height: 500px;
+          }
+
+          .chat-sidebar {
+            display: flex;
+          }
+
+          .chat-window-container.has-selected-user .chat-sidebar {
+            display: none !important;
+          }
+
+          .chat-main-area {
+            display: none;
+          }
+
+          .chat-window-container.has-selected-user .chat-main-area {
+            display: flex !important;
+          }
+
+          .chat-back-btn {
+            display: flex !important;
+          }
+        }
+      `}</style>
       {/* Sidebar Contacts */}
-      <div style={{ borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', background: 'var(--surface)' }}>
+      <div className="chat-sidebar">
         <div style={{ padding: '1.25rem 1.5rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff', letterSpacing: '0.5px' }}>Chats</span>
           <button 
@@ -218,7 +310,7 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
       </div>
 
       {/* Chat Area */}
-      <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--background)' }}>
+      <div className="chat-main-area">
         {!selectedUser ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.01)' }}>
              <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
@@ -229,12 +321,58 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
           </div>
         ) : (
           <>
-            <div style={{ padding: '1rem 2rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: '1rem', zIndex: 10 }}>
-               <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>{selectedUser.name ? selectedUser.name[0] : '?'}</div>
-               <div>
-                 <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>{selectedUser.name}</div>
-                 <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>● {selectedUser.role}</div>
+            <div style={{ padding: '1rem 2rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', zIndex: 10 }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <button 
+                    onClick={() => setSelectedUser(null)} 
+                    className="chat-back-btn"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                      padding: '8px 12px 8px 0',
+                      alignItems: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem',
+                    }}
+                  >
+                    ← Back
+                  </button>
+                 <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>{selectedUser.name ? selectedUser.name[0] : '?'}</div>
+                 <div>
+                   <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>{selectedUser.name}</div>
+                   <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>● {selectedUser.role}</div>
+                 </div>
                </div>
+               <button
+                 onClick={() => handleDeleteChat(selectedUser.id)}
+                 title="Delete Chat Thread"
+                 style={{
+                   background: 'transparent',
+                   color: '#f87171',
+                   cursor: 'pointer',
+                   display: 'flex',
+                   alignItems: 'center',
+                   gap: '0.5rem',
+                   padding: '0.5rem 0.75rem',
+                   borderRadius: '10px',
+                   fontSize: '0.85rem',
+                   fontWeight: 700,
+                   transition: 'all 0.2s',
+                   border: '1px solid rgba(239, 68, 68, 0.2)'
+                 }}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                   e.currentTarget.style.color = '#ef4444';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.background = 'transparent';
+                   e.currentTarget.style.color = '#f87171';
+                 }}
+               >
+                 🗑️ Delete Chat
+               </button>
             </div>
 
             <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column-reverse', gap: '0.5rem', background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.1))' }}>
@@ -244,25 +382,61 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
                  const isConsecutive = prevMsg && prevMsg.senderId === m.senderId;
 
                  return (
-                   <div key={m.id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '75%', marginTop: isConsecutive ? '2px' : '12px' }}>
-                      <div style={{ 
-                        padding: '0.65rem 1rem', 
-                        borderRadius: isMe 
-                          ? (isConsecutive ? '16px 4px 4px 16px' : '16px 16px 4px 16px') 
-                          : (isConsecutive ? '4px 16px 16px 4px' : '16px 16px 16px 4px'),
-                        background: isMe ? '#10b981' : '#27272a',
-                        color: isMe ? '#fff' : '#e4e4e7',
-                        fontSize: '0.95rem',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                        lineHeight: 1.4,
-                        position: 'relative',
-                        border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)'
-                      }}>
-                        {m.content}
-                        <span style={{ fontSize: '0.65rem', color: isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', float: 'right', marginTop: '10px', marginLeft: '15px', fontWeight: 600 }}>
-                          {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
+                   <div 
+                     key={m.id || i}
+                     onMouseEnter={() => setHoveredMessageId(m.id)}
+                     onMouseLeave={() => setHoveredMessageId(null)}
+                     style={{ 
+                       alignSelf: isMe ? 'flex-end' : 'flex-start', 
+                       maxWidth: '75%', 
+                       marginTop: isConsecutive ? '2px' : '12px',
+                       display: 'flex',
+                       alignItems: 'center',
+                       gap: '0.5rem',
+                       flexDirection: isMe ? 'row' : 'row-reverse'
+                     }}
+                   >
+                     {hoveredMessageId === m.id && (
+                       <button
+                         onClick={() => handleDeleteMessage(m.id)}
+                         title="Delete Message"
+                         style={{
+                           background: 'transparent',
+                           border: 'none',
+                           color: '#f87171',
+                           cursor: 'pointer',
+                           fontSize: '0.8rem',
+                           padding: '4px',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           opacity: 0.6,
+                           transition: 'all 0.2s'
+                         }}
+                         onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                         onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                       >
+                         🗑️
+                       </button>
+                     )}
+                     <div style={{ 
+                       padding: '0.65rem 1rem', 
+                       borderRadius: isMe 
+                         ? (isConsecutive ? '16px 4px 4px 16px' : '16px 16px 4px 16px') 
+                         : (isConsecutive ? '4px 16px 16px 4px' : '16px 16px 16px 4px'),
+                       background: isMe ? '#10b981' : '#27272a',
+                       color: isMe ? '#fff' : '#e4e4e7',
+                       fontSize: '0.95rem',
+                       boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                       lineHeight: 1.4,
+                       position: 'relative',
+                       border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)'
+                     }}>
+                       {m.content}
+                       <span style={{ fontSize: '0.65rem', color: isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', float: 'right', marginTop: '10px', marginLeft: '15px', fontWeight: 600 }}>
+                         {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                     </div>
                    </div>
                  );
                })}

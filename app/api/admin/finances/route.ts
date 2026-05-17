@@ -40,7 +40,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const enrichedFees = fees.map(fee => {
+    const enrichedFees = fees.map((fee: any) => {
       // For pending fees, show real-time calculated fine
       // For paid/verified fees, show the fine that was locked in at time of payment
       const currentFine = fee.status === 'PENDING' 

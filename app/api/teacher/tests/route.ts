@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
     if (!teacher) return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
 
-    const courseIds = teacher.teacherBatches.map(b => b.courseId);
+    const courseIds = teacher.teacherBatches.map((b: any) => b.courseId);
 
     const tests = await prisma.test.findMany({
       where: {

@@ -61,8 +61,8 @@ export async function POST(req: Request) {
         className,
         subjects,
         courseId,
-        teachers: { connect: teachers.map(t => ({ id: t.id })) },
-        students: { connect: students.map(s => ({ id: s.id })) }
+        teachers: { connect: teachers.map((t: any) => ({ id: t.id })) },
+        students: { connect: students.map((s: any) => ({ id: s.id })) }
       },
       include: {
         course: { select: { name: true } },
@@ -95,8 +95,8 @@ export async function PATCH(req: Request) {
         courseId,
         className,
         subjects,
-        teachers: { set: teachers.map(t => ({ id: t.id })) },
-        students: { set: students.map(s => ({ id: s.id })) }
+        teachers: { set: teachers.map((t: any) => ({ id: t.id })) },
+        students: { set: students.map((s: any) => ({ id: s.id })) }
       }
     });
 

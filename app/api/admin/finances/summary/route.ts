@@ -24,13 +24,13 @@ export async function GET() {
       where: { date: { gte: sixMonthsAgo } }
     });
 
-    const totalRevenue = payments.reduce((acc, p) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
-    const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
+    const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
+    const totalExpenses = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
     const pendingPayments = await prisma.payment.findMany({
       where: { status: 'PENDING' },
       select: { amount: true }
     });
-    const totalPending = pendingPayments.reduce((acc, p) => acc + p.amount, 0);
+    const totalPending = pendingPayments.reduce((acc: number, p: any) => acc + p.amount, 0);
 
     // Monthly breakdown (last 6 months)
     const monthlyData = [];
@@ -39,12 +39,12 @@ export async function GET() {
       const mName = d.toLocaleString('default', { month: 'long', year: 'numeric' });
       
       const mRevenue = payments
-        .filter(p => p.paidAt && new Date(p.paidAt).getMonth() === d.getMonth() && new Date(p.paidAt).getFullYear() === d.getFullYear())
-        .reduce((acc, p) => acc + (p.paidAmount || (p.amount + p.lateFine - p.discount)), 0);
+        .filter((p: any) => p.paidAt && new Date(p.paidAt).getMonth() === d.getMonth() && new Date(p.paidAt).getFullYear() === d.getFullYear())
+        .reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
 
       const mExpenses = expenses
-        .filter(e => new Date(e.date).getMonth() === d.getMonth() && new Date(e.date).getFullYear() === d.getFullYear())
-        .reduce((acc, e) => acc + e.amount, 0);
+        .filter((e: any) => new Date(e.date).getMonth() === d.getMonth() && new Date(e.date).getFullYear() === d.getFullYear())
+        .reduce((acc: number, e: any) => acc + e.amount, 0);
 
       monthlyData.push({
         name: d.toLocaleString('default', { month: 'short' }),

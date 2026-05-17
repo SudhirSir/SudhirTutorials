@@ -74,18 +74,30 @@ const icons = {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const role = pathname.includes("admin") ? "Admin" : pathname.includes("teacher") ? "Teacher" : "Student";
   const isVerified = (session?.user as any)?.isProfileVerified;
 
   const [badges, setBadges] = useState({ unreadMessages: 0, unreadNotifications: 0 });
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const handleNavLinkClick = () => {
+    setIsMobileSidebarOpen(false);
+  };
 
   useEffect(() => {
     if (session?.user) {
       const fetchBadges = async () => {
-        const res = await fetch('/api/user/badges');
-        if (res.ok) setBadges(await res.json());
+        try {
+          const res = await fetch('/api/user/badges');
+          if (res.ok) {
+            const data = await res.json();
+            setBadges(data);
+          }
+        } catch (error) {
+          console.warn("Soft warning: Badge update failed to fetch due to connection state", error);
+        }
       };
       fetchBadges();
       const interval = setInterval(fetchBadges, 5000);
@@ -93,18 +105,77 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [session]);
 
+  if (status === "loading") {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--background)',
+        color: 'var(--text)'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid rgba(16, 185, 129, 0.1)',
+          borderTop: '3px solid var(--primary)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1rem'
+        }}></div>
+        <p style={{ fontWeight: 600, color: 'var(--text-muted)' }}>जय सियाराम 🙏 Loading Dashboard...</p>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return null;
+  }
+
   return (
     <div className="dashboard-container">
-      {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side) */}
-      <div style={{ position: 'fixed', top: '1.5rem', right: '2.5rem', zIndex: 1000 }}>
+      {/* Mobile Top Header */}
+      <header className="mobile-header">
+        <button className="mobile-menu-btn" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open Menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <Link href="/" className="logo-small-mobile" onClick={handleNavLinkClick}>
+          SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span>
+        </Link>
+        <div style={{ transform: 'scale(0.85)', display: 'flex', alignItems: 'center' }}>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isMobileSidebarOpen && (
+        <div className="mobile-sidebar-overlay" onClick={() => setIsMobileSidebarOpen(false)} />
+      )}
+
+      {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side - Desktop Only) */}
+      <div style={{ position: 'fixed', top: '1.5rem', right: '2.5rem', zIndex: 1000 }} className="desktop-theme-toggle">
         <ThemeToggle />
       </div>
 
-      <aside className="sidebar">
+      <aside className={`sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-inner">
           <div className="sidebar-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <Link href="/" className="logo-small" style={{ margin: 0 }}>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></Link>
+              <Link href="/" className="logo-small" style={{ margin: 0 }} onClick={handleNavLinkClick}>
+                SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span>
+              </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>
@@ -120,7 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <nav className="sidebar-nav">
             <div className="nav-group">
               <div className="nav-label">Main Menu</div>
-              <Link href={`/dashboard/${role.toLowerCase()}?tab=${role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard'}`} className="nav-link-modern">
+              <Link href={`/dashboard/${role.toLowerCase()}?tab=${role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard'}`} className="nav-link-modern" onClick={handleNavLinkClick}>
                 <span className="icon">{icons.home}</span>
                 Dashboard Home
               </Link>
@@ -129,15 +200,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {role === "Admin" && (
               <div className="nav-group">
                 <div className="nav-label">Management</div>
-                <Link href="/dashboard/admin?tab=users" className="nav-link-modern">
+                <Link href="/dashboard/admin?tab=users" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.users}</span>
                   Manage Users
                 </Link>
-                <Link href="/dashboard/admin?tab=finances" className="nav-link-modern">
+                <Link href="/dashboard/admin?tab=finances" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.finances}</span>
                   Fee Ledger
                 </Link>
-                <Link href="/dashboard/admin?tab=courses" className="nav-link-modern">
+                <Link href="/dashboard/admin?tab=courses" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.courses}</span>
                   Courses & Batches
                 </Link>
@@ -147,15 +218,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {role === "Teacher" && (
               <div className="nav-group">
                 <div className="nav-label">Teaching</div>
-                <Link href="/dashboard/teacher?tab=classes" className="nav-link-modern">
+                <Link href="/dashboard/teacher?tab=classes" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.home}</span>
                   My Classes
                 </Link>
-                <Link href="/dashboard/teacher?tab=materials" className="nav-link-modern">
+                <Link href="/dashboard/teacher?tab=materials" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.materials}</span>
                   Materials
                 </Link>
-                <Link href="/dashboard/teacher?tab=students" className="nav-link-modern">
+                <Link href="/dashboard/teacher?tab=students" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.users}</span>
                   My Students
                 </Link>
@@ -165,15 +236,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {role === "Student" && (
               <div className="nav-group">
                 <div className="nav-label">Learning</div>
-                <Link href="/dashboard/student?tab=materials" className="nav-link-modern">
+                <Link href="/dashboard/student?tab=materials" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.materials}</span>
                   Study Materials
                 </Link>
-                <Link href="/dashboard/student?tab=fees" className="nav-link-modern">
+                <Link href="/dashboard/student?tab=fees" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.finances}</span>
                   Pay Fees
                 </Link>
-                <Link href="/dashboard/student?tab=tests" className="nav-link-modern">
+                <Link href="/dashboard/student?tab=tests" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.tests}</span>
                   Tests
                 </Link>
@@ -182,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="nav-group">
               <div className="nav-label">Communication</div>
-              <Link href={`/dashboard/${role.toLowerCase()}?tab=messages`} className="nav-link-modern">
+              <Link href={`/dashboard/${role.toLowerCase()}?tab=messages`} className="nav-link-modern" onClick={handleNavLinkClick}>
                 <span className="icon" style={{ position: 'relative' }}>
                   {icons.messages}
                   {badges.unreadMessages > 0 && (
@@ -193,7 +264,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </span>
                 Messages
               </Link>
-              <Link href={`/dashboard/${role.toLowerCase()}?tab=notifications`} className="nav-link-modern">
+              <Link href={`/dashboard/${role.toLowerCase()}?tab=notifications`} className="nav-link-modern" onClick={handleNavLinkClick}>
                 <span className="icon" style={{ position: 'relative' }}>
                   {icons.notifications}
                   {badges.unreadNotifications > 0 && (
@@ -208,7 +279,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="nav-group">
               <div className="nav-label">Support</div>
-              <Link href="/dashboard/settings" className="nav-link-modern">
+              <Link href="/dashboard/settings" className="nav-link-modern" onClick={handleNavLinkClick}>
                 <span className="icon">{icons.settings}</span>
                 Profile Settings
               </Link>
@@ -375,6 +446,89 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .sidebar-nav::-webkit-scrollbar { width: 4px; }
         .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
         .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+        /* Responsive Mobile Styles */
+        .mobile-header {
+          display: none;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.85rem 1.5rem;
+          background: var(--glass-bg);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-bottom: 1px solid var(--glass-border);
+          position: sticky;
+          top: 0;
+          z-index: 90;
+        }
+
+        .mobile-menu-btn {
+          background: transparent;
+          border: none;
+          color: var(--text);
+          cursor: pointer;
+          padding: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .logo-small-mobile {
+          font-weight: 900;
+          font-size: 1.15rem;
+          color: var(--text-heading);
+          letter-spacing: -0.03em;
+        }
+
+        .mobile-sidebar-overlay {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 95;
+        }
+
+        @media (max-width: 1024px) {
+          .dashboard-container {
+            flex-direction: column;
+          }
+
+          .desktop-theme-toggle {
+            display: none !important;
+          }
+
+          .mobile-header {
+            display: flex;
+          }
+
+          .mobile-sidebar-overlay {
+            display: block;
+          }
+
+          .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            height: 100vh;
+            width: 290px;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            padding: 1rem;
+          }
+
+          .sidebar.mobile-open {
+            transform: translateX(0);
+          }
+
+          .dashboard-main {
+            padding: 1.75rem 1.25rem;
+            min-height: calc(100vh - 60px);
+          }
+        }
       `}</style>
     </div>
   );

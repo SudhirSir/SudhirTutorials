@@ -492,6 +492,27 @@ function AdminDashboardContent() {
 
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
+      <style>{`
+        .finances-layout-grid {
+          display: grid;
+          grid-template-columns: 1fr 340px;
+        }
+
+        .courses-layout-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+        }
+
+        @media (max-width: 1024px) {
+          .finances-layout-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .courses-layout-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
       <div className="bg-glow" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
       <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
@@ -701,7 +722,7 @@ function AdminDashboardContent() {
              ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
+          <div className="finances-layout-grid" style={{ gap: '2rem' }}>
 
             {/* ── Left: Ledger ────────────────────────────── */}
             <div className="glass-card" style={{ padding: '2rem' }}>
@@ -949,7 +970,7 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'courses' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+        <div className="courses-layout-grid" style={{ gap: '2rem' }}>
           
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Courses</h2>

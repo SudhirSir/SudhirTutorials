@@ -26,7 +26,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    const courseIds = studentWithBatches.studentBatches.map(b => b.courseId);
+    const courseIds = studentWithBatches.studentBatches.map((b: any) => b.courseId);
 
     // Fetch materials for those courses
     const materials = await prisma.material.findMany({

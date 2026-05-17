@@ -55,7 +55,7 @@ export async function GET() {
       where: { studentId },
     });
     const totalDays = attendanceRecords.length;
-    const presentDays = attendanceRecords.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length;
+    const presentDays = attendanceRecords.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE').length;
     const attendancePercent = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
 
     // Fetch dynamic test results
@@ -64,8 +64,8 @@ export async function GET() {
       include: { test: true }
     });
     const totalTests = testResults.length;
-    const totalObtained = testResults.reduce((acc, r) => acc + r.marks, 0);
-    const totalMax = testResults.reduce((acc, r) => acc + r.totalMarks, 0);
+    const totalObtained = testResults.reduce((acc: number, r: any) => acc + r.marks, 0);
+    const totalMax = testResults.reduce((acc: number, r: any) => acc + r.totalMarks, 0);
     const averageScore = totalMax > 0 ? Math.round((totalObtained / totalMax) * 100) : null;
 
     return NextResponse.json({ 

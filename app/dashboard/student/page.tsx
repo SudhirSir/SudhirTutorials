@@ -553,16 +553,31 @@ function StudentDashboardContent() {
                   <span>Tuition Fees</span>
                   <span style={{ fontWeight: 600 }}>₹{receiptData.amount.toFixed(2)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#6b7280', fontSize: '0.9rem' }}>
-                  <span>Late Fee Applied</span>
-                  <span>₹0.00</span>
-                </div>
+                {receiptData.lateFine > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#dc2626', fontSize: '0.95rem' }}>
+                    <span>Late Fee Applied</span>
+                    <span style={{ fontWeight: 600 }}>+₹{receiptData.lateFine.toFixed(2)}</span>
+                  </div>
+                )}
+                {receiptData.discount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#16a34a', fontSize: '0.95rem' }}>
+                    <span>Discount Applied</span>
+                    <span style={{ fontWeight: 600 }}>-₹{receiptData.discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div style={{ height: '1px', background: '#e5e7eb', margin: '1rem 0' }}></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.4rem', color: '#111' }}>
                   <span>Grand Total</span>
-                  <span>₹{receiptData.amount.toFixed(2)}</span>
+                  <span>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
                 </div>
               </div>
+
+              {(receiptData.paymentMethod || receiptData.transactionId) && (
+                <div style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: '2rem', background: '#f3f4f6', borderRadius: '12px', padding: '1rem', textAlign: 'left' }}>
+                  {receiptData.paymentMethod && <div style={{ marginBottom: '0.25rem' }}><strong>Payment Method:</strong> {receiptData.paymentMethod}</div>}
+                  {receiptData.transactionId && <div><strong>Transaction ID:</strong> {receiptData.transactionId}</div>}
+                </div>
+              )}
 
               <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem', marginBottom: '2.5rem', fontStyle: 'italic' }}>
                 This is a computer-generated receipt and does not require a physical signature.
