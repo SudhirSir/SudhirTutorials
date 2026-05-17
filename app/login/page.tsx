@@ -243,20 +243,20 @@ export default function LoginPage() {
       {/* Right Image Section */}
       <div style={{ flex: 1.2, position: 'relative', display: 'none' }} className="hide-on-mobile">
         <div style={{ position: 'absolute', inset: 0, background: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop) center/cover', zIndex: 0 }}></div>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(9,9,11,0.8) 0%, rgba(9,9,11,0.2) 100%)', zIndex: 1 }}></div>
+        <div style={{ position: 'absolute', inset: 0, background: 'var(--login-overlay)', zIndex: 1 }}></div>
         
         {/* News & Updates Section */}
-        <div style={{ position: 'absolute', top: '4rem', left: '4rem', right: '4rem', zIndex: 2, background: 'rgba(9, 9, 11, 0.7)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ position: 'absolute', top: '2.5rem', left: '3rem', right: '3rem', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
              <span style={{ fontSize: '1.2rem' }}>📢</span>
-             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: '#fff' }}>INSTITUTE NEWS</h3>
+             <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
            </div>
            
-           <div style={{ borderRadius: '16px', overflow: 'hidden', background: '#000', border: '1px solid rgba(255,255,255,0.1)', height: '500px' }}>
+           <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--background)', border: '1px solid var(--glass-border)', height: '580px' }}>
               <iframe 
                 src="https://www.instagram.com/p/DYSZKfBKZkv/embed" 
                 width="100%" 
-                height="500" 
+                height="580" 
                 frameBorder="0" 
                 scrolling="no" 
                 style={{ border: 'none' }}
@@ -267,15 +267,16 @@ export default function LoginPage() {
            </p>
         </div>
 
-        <div style={{ position: 'absolute', bottom: '4rem', left: '4rem', right: '4rem', zIndex: 2, background: 'rgba(9, 9, 11, 0.7)', backdropFilter: 'blur(20px)', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
-           <div style={{ color: activeColor, fontSize: '2rem', marginBottom: '1rem' }}>❝</div>
-           <p style={{ fontSize: '1.25rem', color: '#fff', lineHeight: 1.6, marginBottom: '1.5rem', fontWeight: 500 }}>
+        {/* Smaller, Elegant Shreya Sharma Quote Card */}
+        <div style={{ position: 'absolute', bottom: '2.5rem', left: '3rem', right: '3rem', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '20px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+           <div style={{ color: activeColor, fontSize: '1.5rem', marginBottom: '0.25rem' }}>❝</div>
+           <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.5, marginBottom: '1rem', fontWeight: 500 }}>
              "The integrated digital tools at Sudhir Tutorials changed the way I prepared for my exams. Everything from live classes to fee receipts is available in one click."
            </p>
            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff' }}>S</div>
              <div>
-               <div style={{ fontWeight: 600, color: '#fff' }}>Shreya Sharma</div>
+               <div style={{ fontWeight: 600, color: 'var(--text)' }}>Shreya Sharma</div>
                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>JEE Rank 142</div>
              </div>
            </div>

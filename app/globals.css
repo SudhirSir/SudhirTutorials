@@ -23,23 +23,25 @@
   --card-bg-alt: rgba(255, 255, 255, 0.03);
   --input-bg: rgba(9, 9, 11, 0.5);
   --input-focus-bg: rgba(9, 9, 11, 0.8);
+  --login-overlay: linear-gradient(135deg, rgba(9, 9, 11, 0.8) 0%, rgba(9, 9, 11, 0.3) 100%);
 }
 
 [data-theme="light"] {
-  --background: #f8fafc; /* Slate 50 */
-  --surface: #ffffff; /* White */
-  --surface-light: #f1f5f9; /* Slate 100 */
-  --text: #0f172a; /* Slate 900 */
-  --text-muted: #64748b; /* Slate 500 */
-  --text-heading: #0f172a; /* Slate 900 */
-  --border: #e2e8f0; /* Slate 200 */
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(15, 23, 42, 0.06);
-  --shadow: 0 10px 45px -10px rgba(15, 23, 42, 0.08);
-  --logo-gradient: linear-gradient(90deg, #0f172a, #475569);
-  --card-bg-alt: rgba(15, 23, 42, 0.04);
-  --input-bg: rgba(15, 23, 42, 0.02);
+  --background: #f8fafc; /* Beautiful clean slate gray background */
+  --surface: #ffffff; /* Crisp white surface */
+  --surface-light: #f1f5f9; /* Slate 100 secondary surface */
+  --text: #0f172a; /* Slate 900 primary text for top-tier contrast */
+  --text-muted: #475569; /* Slate 600 secondary text for excellent reading */
+  --text-heading: #0f172a; /* Slate 900 headings */
+  --border: #e2e8f0; /* Slate 200 light grid borders */
+  --glass-bg: rgba(255, 255, 255, 0.85); /* Smooth milky glass */
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.02);
+  --logo-gradient: linear-gradient(135deg, #4f46e5, #7c3aed); /* Stunning vibrant brand logo */
+  --card-bg-alt: #f1f5f9;
+  --input-bg: #ffffff;
   --input-focus-bg: #ffffff;
+  --login-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.85) 0%, rgba(248, 250, 252, 0.5) 100%);
 }
 
 * {
