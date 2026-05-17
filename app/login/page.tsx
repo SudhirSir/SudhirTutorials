@@ -64,15 +64,15 @@ export default function LoginPage() {
       </div>
 
       {/* Left Form Section */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3rem', position: 'relative' }}>
 
-        <div style={{ marginBottom: 'auto' }}>
+        <div style={{ marginBottom: '3rem' }}>
           <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-block' }}>
             <span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS
           </Link>
         </div>
 
-        <div style={{ maxWidth: '420px', width: '100%', margin: '0 auto' }}>
+        <div style={{ maxWidth: '420px', width: '100%', margin: '0' }}>
           <div style={{ marginBottom: '2.5rem' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>Welcome Back</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Enter your credentials to access your account.</p>
@@ -240,55 +240,55 @@ export default function LoginPage() {
           )}
         </div>
 
-        <div style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+        <div style={{ marginTop: 'auto', paddingTop: '3rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           © 2026 Sudhir Tutorials
         </div>
       </div>
 
       {/* Right Image Section */}
-      <div style={{ flex: 1.2, position: 'relative', display: 'none', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }} className="hide-on-mobile">
+      <div style={{ flex: 1.2, position: 'relative', display: 'none' }} className="hide-on-mobile">
         {/* Fixed Background Image and Overlay */}
         <div style={{ position: 'absolute', inset: 0, background: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop) center/cover', zIndex: 0 }}></div>
         <div style={{ position: 'absolute', inset: 0, background: 'var(--login-overlay)', zIndex: 1 }}></div>
         
         {/* Scrollable Content Wrapper */}
-        <div className="right-panel-scroll" style={{ position: 'relative', zIndex: 2, width: '100%', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+        <div className="right-panel-scroll" style={{ position: 'absolute', inset: 0, zIndex: 2, overflowY: 'auto', padding: '3rem' }}>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '420px', margin: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%', maxWidth: '650px', margin: '0 auto' }}>
             
             {/* News & Updates Section */}
-            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                 <span style={{ fontSize: '1.2rem' }}>📢</span>
-                 <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
+            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                 <span style={{ fontSize: '1.3rem' }}>📢</span>
+                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
                </div>
                
-               <div style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid var(--glass-border)', height: '500px', display: 'flex', justifyContent: 'center' }}>
+               <div style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid var(--glass-border)', height: '620px', display: 'flex', justifyContent: 'center' }}>
                   <iframe 
                     src="https://www.instagram.com/p/DYSZKfBKZkv/embed" 
-                    width="400" 
+                    width="100%" 
                     height="100%" 
                     frameBorder="0" 
-                    scrolling="no" 
-                    style={{ border: 'none', width: '100%', maxWidth: '400px', height: '100%', display: 'block' }}
+                    scrolling="auto" 
+                    style={{ border: 'none', width: '100%', height: '100%', display: 'block' }}
                   ></iframe>
                </div>
-               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.85rem', textAlign: 'center', fontWeight: 500 }}>
+               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '1rem', textAlign: 'center', fontWeight: 500 }}>
                  Stay updated with our latest achievements and announcements.
                </p>
             </div>
 
             {/* Smaller, Elegant Shilpy Quote Card */}
-            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
-               <div style={{ color: activeColor, fontSize: '1.4rem', marginBottom: '0.25rem', lineHeight: 1 }}>❝</div>
-               <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.5, marginBottom: '0.85rem', fontWeight: 500 }}>
+            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+               <div style={{ color: activeColor, fontSize: '1.5rem', marginBottom: '0.25rem', lineHeight: 1 }}>❝</div>
+               <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: '1rem', fontWeight: 500 }}>
                  "Sudhir Tutorials didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
                </p>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                 <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '0.9rem' }}>S</div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '1rem' }}>S</div>
                  <div>
-                   <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.95rem' }}>Shilpy</div>
-                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>PSEB AIR 14</div>
+                   <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '1rem' }}>Shilpy</div>
+                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>PSEB AIR 14</div>
                  </div>
                </div>
             </div>
@@ -300,7 +300,7 @@ export default function LoginPage() {
       <style jsx>{`
         @media (min-width: 900px) {
           .hide-on-mobile {
-            display: flex !important;
+            display: block !important;
           }
         }
         .right-panel-scroll::-webkit-scrollbar {
