@@ -187,6 +187,24 @@ export async function PATCH(req: Request) {
         paidAt: status === 'PAID' || status === 'VERIFIED' ? new Date() : null,
       },
     });
+
+    // Notify the student that their payment has been verified & recorded in ledger
+    if (status === 'VERIFIED' || status === 'PAID') {
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: currentFee.studentId,
+            title: '✅ Fee Payment Verified',
+            message: `Your payment of ₹${(currentFee.amount + lateFine - (discount ?? currentFee.discount)).toFixed(0)} for ${currentFee.title} (${currentFee.billingMonth}) has been verified by the admin and updated in the ledger. You can now download your receipt!`,
+            type: 'FEE',
+            isRead: false
+          }
+        });
+      } catch (err) {
+        console.error('Failed to send notification to student:', err);
+      }
+    }
+
     return NextResponse.json({ success: true, payment: updated });
   } catch (error) {
     console.error(error);
