@@ -37,6 +37,17 @@ function TeacherDashboardContent() {
   const [matUrl, setMatUrl] = useState('');
   const [matCourseId, setMatCourseId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Test States
+  const [tests, setTests] = useState<any[]>([]);
+  const [selectedTest, setSelectedTest] = useState<any>(null);
+  const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
+  const [isSavingMarks, setIsSavingMarks] = useState(false);
+  const [isCreatingTest, setIsCreatingTest] = useState(false);
+  const [newTest, setNewTest] = useState({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+  
+  // Profile State
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     fetchClasses();
@@ -44,6 +55,12 @@ function TeacherDashboardContent() {
     
     if (activeTab === 'students') {
       fetchStudents();
+    }
+    if (activeTab === 'tests') {
+      fetchTests();
+    }
+    if (activeTab === 'profile') {
+      fetchProfile();
     }
   }, [activeTab]);
 
@@ -63,6 +80,26 @@ function TeacherDashboardContent() {
     } catch (e) {
       console.error(e);
     }
+  };
+  
+  const fetchTests = async () => {
+    try {
+      const res = await fetch('/api/teacher/tests');
+      if (res.ok) {
+        const data = await res.json();
+        setTests(data.tests || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch('/api/teacher/profile');
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(data.profile);
+      }
+    } catch (e) { console.error(e); }
   };
 
   const fetchMaterials = async () => {
@@ -168,6 +205,71 @@ function TeacherDashboardContent() {
     }
   };
 
+  const handleCreateTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingTest(true);
+    try {
+      const res = await fetch('/api/teacher/tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTest)
+      });
+      if (res.ok) {
+        setNewTest({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+        fetchTests();
+        alert('Test created successfully!');
+      } else alert('Failed to create test');
+    } catch (e) { console.error(e); }
+    finally { setIsCreatingTest(false); }
+  };
+
+  const handleEnterMarks = async (test: any) => {
+    setSelectedTest(test);
+    try {
+      // Fetch students for the course
+      const res = await fetch(`/api/teacher/students?courseId=${test.courseId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const initialMarks: any = {};
+        data.students.forEach((s: any) => {
+          const existingResult = test.results?.find((r: any) => r.studentId === s.id);
+          initialMarks[s.id] = {
+            marks: existingResult?.marks?.toString() || '',
+            totalMarks: existingResult?.totalMarks?.toString() || '100',
+            remarks: existingResult?.remarks || ''
+          };
+        });
+        setTestMarks(initialMarks);
+        setStudents(data.students); // reuse students state for mark entry
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSaveMarks = async () => {
+    if (!selectedTest) return;
+    setIsSavingMarks(true);
+    try {
+      const results = Object.entries(testMarks).map(([studentId, data]) => ({
+        studentId,
+        marks: parseFloat(data.marks),
+        totalMarks: parseFloat(data.totalMarks),
+        remarks: data.remarks
+      })).filter(r => !isNaN(r.marks));
+
+      const res = await fetch('/api/teacher/test-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testId: selectedTest.id, results })
+      });
+      if (res.ok) {
+        alert('Marks saved successfully!');
+        setSelectedTest(null);
+        fetchTests();
+      } else alert('Failed to save marks');
+    } catch (e) { console.error(e); }
+    finally { setIsSavingMarks(false); }
+  };
+
   // Get unique courses from assigned batches for the dropdown
   const uniqueCourses = Array.from(new Set(classes.map(c => c.courseId))).map(id => {
     return classes.find(c => c.courseId === id)?.course;
@@ -188,8 +290,8 @@ function TeacherDashboardContent() {
       </header>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem' }}>
-        {['classes', 'materials', 'students', 'attendance', 'messages'].map(tab => (
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
+        {['classes', 'materials', 'students', 'attendance', 'tests', 'messages', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -200,6 +302,7 @@ function TeacherDashboardContent() {
               color: activeTab === tab ? '#10b981' : 'var(--text-muted)', 
               borderBottom: activeTab === tab ? '2px solid #10b981' : '2px solid transparent', 
               fontWeight: 600, 
+              whiteSpace: 'nowrap',
               textTransform: 'capitalize',
               cursor: 'pointer' 
             }}
@@ -216,6 +319,9 @@ function TeacherDashboardContent() {
               <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Quick Actions</h3>
               <button onClick={() => setActiveTab('attendance')} style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', color: '#34d399', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '1.2rem' }}>📝</span> Mark Attendance
+              </button>
+              <button onClick={() => setActiveTab('tests')} style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', color: '#fbbf24', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.2rem' }}>🎯</span> Manage Tests & Marks
               </button>
               <button onClick={() => setActiveTab('materials')} style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3b82f6', color: '#60a5fa', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '1.2rem' }}>📚</span> Upload Materials
@@ -497,6 +603,184 @@ function TeacherDashboardContent() {
                 </div>
               )}
            </div>
+        </div>
+      )}
+      {activeTab === 'tests' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+          {/* Tests List */}
+          <div className="glass-card" style={{ padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Test Schedule & Results</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {tests.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>No tests scheduled yet.</p>
+              ) : (
+                tests.map(test => (
+                  <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Course: <strong>{test.course?.name}</strong> • Date: {new Date(test.date).toLocaleDateString()}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
+                         Results recorded: {test.results?.length || 0} students
+                      </div>
+                    </div>
+                    <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                       Enter Marks →
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Schedule New Test Form */}
+          <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Schedule New Test</h3>
+            <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="input-group">
+                <label>Test Title</label>
+                <input type="text" required placeholder="e.g. Chemistry Unit 1 Test" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>Course</label>
+                <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: '#000', color: '#fff', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <option value="">Select a course...</option>
+                  {uniqueCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
+                <label>Test Date</label>
+                <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
+              </div>
+              <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: '#10b981', boxShadow: 'none' }}>
+                {isCreatingTest ? 'Creating...' : 'Schedule Test'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Marks Entry Modal */}
+      {selectedTest && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '700px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Enter Marks: {selectedTest.title}</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Course: {selectedTest.course?.name}</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              {students.map(s => {
+                const data = testMarks[s.id] || { marks: '', totalMarks: '100', remarks: '' };
+                return (
+                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{s.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</div>
+                    </div>
+                    <div className="input-group" style={{ margin: 0 }}>
+                      <input 
+                        type="number" 
+                        placeholder="Marks" 
+                        value={data.marks} 
+                        onChange={e => setTestMarks({
+                          ...testMarks,
+                          [s.id]: { ...data, marks: e.target.value }
+                        })}
+                        style={{ padding: '6px 12px' }}
+                      />
+                    </div>
+                    <div className="input-group" style={{ margin: 0 }}>
+                      <input 
+                        type="number" 
+                        placeholder="Total" 
+                        value={data.totalMarks} 
+                        onChange={e => setTestMarks({
+                          ...testMarks,
+                          [s.id]: { ...data, totalMarks: e.target.value }
+                        })}
+                        style={{ padding: '6px 12px' }}
+                      />
+                    </div>
+                    <div className="input-group" style={{ margin: 0 }}>
+                      <input 
+                        type="text" 
+                        placeholder="Remarks" 
+                        value={data.remarks} 
+                        onChange={e => setTestMarks({
+                          ...testMarks,
+                          [s.id]: { ...data, remarks: e.target.value }
+                        })}
+                        style={{ padding: '6px 12px' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedTest(null)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, background: '#10b981', boxShadow: 'none' }} onClick={handleSaveMarks} disabled={isSavingMarks}>
+                {isSavingMarks ? 'Saving...' : 'Save Marks'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'profile' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
+          <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
+            <div style={{ width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', margin: '0 auto 1.5rem auto', overflow: 'hidden', border: '4px solid #10b981' }}>
+               { profile?.photoUrl ? (
+                 <img src={profile.photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+               ) : (
+                 <div style={{ fontSize: '4rem', lineHeight: '150px' }}>👤</div>
+               )}
+            </div>
+            <h2 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0' }}>{session?.user?.name || 'Teacher'}</h2>
+            <div style={{ color: '#10b981', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px' }}>
+              {profile?.subject || 'Instructor'}
+            </div>
+            <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Assigned Classes: <strong>{classes.length} Batches</strong></div>
+               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Qualification: <strong>{profile?.qualification || 'N/A'}</strong></div>
+            </div>
+          </div>
+
+          <div className="glass-card" style={{ padding: '2rem' }}>
+             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>Faculty details</h3>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Date of Birth</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.dob || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Mobile Number</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.phone || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Email Address</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.email || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Experience</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.experience || 'Not provided'}</div>
+                </div>
+                <div className="profile-field" style={{ gridColumn: 'span 2' }}>
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Residential Address</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.address || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Subject Expertise</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.subject || 'N/A'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Salary Scale</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>₹{profile?.salary || '0'} / month</div>
+                </div>
+             </div>
+          </div>
         </div>
       )}
 

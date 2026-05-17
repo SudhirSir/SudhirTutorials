@@ -221,7 +221,7 @@ export default function LoginPage() {
                 height="500" 
                 frameBorder="0" 
                 scrolling="no" 
-                allowTransparency={true}
+                allowtransparency="true"
                 style={{ border: 'none' }}
               ></iframe>
            </div>

@@ -34,6 +34,7 @@ model User {
   teacherBatches     Batch[]        @relation("TeacherBatches")
   studentBatches     Batch[]        @relation("StudentBatches")
   attendance         Attendance[]   @relation("StudentAttendance")
+  testResults        TestResult[]   @relation("StudentTestResults")
   materials          Material[]
   notifications      Notification[]
 }
@@ -178,6 +179,21 @@ model Test {
   courseId  String
   course    Course   @relation(fields: [courseId], references: [id])
   date      DateTime
+  results   TestResult[]
+}
+
+model TestResult {
+  id         String   @id @default(cuid())
+  testId     String
+  test       Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User     @relation("StudentTestResults", fields: [studentId], references: [id], onDelete: Cascade)
+  marks      Float
+  totalMarks Float
+  remarks    String?
+  createdAt  DateTime @default(now())
+
+  @@unique([testId, studentId])
 }
 
 model Attendance {

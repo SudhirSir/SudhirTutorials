@@ -14,6 +14,7 @@ export default function OnboardingPage() {
   const [phone, setPhone] = useState("");
   const [parentName, setParentName] = useState(""); // Only for students
   const [parentContact, setParentContact] = useState(""); // Only for students
+  const [recoveryPin, setRecoveryPin] = useState("");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

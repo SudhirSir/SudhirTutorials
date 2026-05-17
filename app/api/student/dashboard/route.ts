@@ -24,6 +24,7 @@ export async function GET() {
             schedules: true
           }
         },
+        studentProfile: true,
         payments: {
           orderBy: { dueDate: 'asc' },
           take: 1, // Get the most urgent or recent fee
@@ -49,10 +50,40 @@ export async function GET() {
       };
     }
 
+    // Calculate dynamic attendance stats
+    const attendanceRecords = await prisma.attendance.findMany({
+      where: { studentId },
+    });
+    const totalDays = attendanceRecords.length;
+    const presentDays = attendanceRecords.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length;
+    const attendancePercent = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
+
+    // Fetch dynamic test results
+    const testResults = await prisma.testResult.findMany({
+      where: { studentId },
+      include: { test: true }
+    });
+    const totalTests = testResults.length;
+    const totalObtained = testResults.reduce((acc, r) => acc + r.marks, 0);
+    const totalMax = testResults.reduce((acc, r) => acc + r.totalMarks, 0);
+    const averageScore = totalMax > 0 ? Math.round((totalObtained / totalMax) * 100) : null;
+
     return NextResponse.json({ 
       name: user.name,
       batches: user.studentBatches,
-      feeHighlight
+      profile: user.studentProfile,
+      feeHighlight,
+      attendance: {
+        percentage: attendancePercent,
+        total: totalDays,
+        present: presentDays,
+        history: attendanceRecords.slice(-10) // return last 10 records for history view
+      },
+      testStats: {
+        totalTests,
+        averageScore,
+        results: testResults
+      }
     });
   } catch (error) {
     console.error('Error fetching student dashboard:', error);

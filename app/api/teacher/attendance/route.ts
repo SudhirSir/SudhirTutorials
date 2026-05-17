@@ -62,6 +62,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const body = await req.json();
+    const validation = attendanceSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: 'Invalid data', details: validation.error.format() }, { status: 400 });
+    }
+
     const { batchId, date: dateStr, records } = validation.data;
 
     // RBAC: Ensure teacher is assigned to this batch

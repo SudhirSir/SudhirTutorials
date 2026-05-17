@@ -143,8 +143,8 @@ function StudentDashboardContent() {
       </header>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem' }}>
-        {['dashboard', 'materials', 'tests', 'fees', 'messages'].map(tab => (
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
+        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'messages', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -155,6 +155,7 @@ function StudentDashboardContent() {
               color: activeTab === tab ? 'var(--primary)' : 'var(--text-muted)', 
               borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent', 
               fontWeight: 600, 
+              whiteSpace: 'nowrap',
               textTransform: 'capitalize',
               cursor: 'pointer' 
             }}
@@ -202,16 +203,16 @@ function StudentDashboardContent() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className={`glass-card ${dashboard?.feeHighlight?.isOverdue ? 'overdue-pulse' : ''}`} style={{ padding: '2rem', background: dashboard?.feeHighlight?.isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))', border: dashboard?.feeHighlight?.isOverdue ? '1px solid rgba(239, 68, 68, 0.5)' : undefined }}>
-                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: dashboard?.feeHighlight?.isOverdue ? '#f87171' : '#fff' }}>Fee Status</h3>
+              <div className={`glass-card ${(dashboard as any)?.feeHighlight?.isOverdue ? 'overdue-pulse' : ''}`} style={{ padding: '2rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))', border: (dashboard as any)?.feeHighlight?.isOverdue ? '1px solid rgba(239, 68, 68, 0.5)' : undefined }}>
+                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: (dashboard as any)?.feeHighlight?.isOverdue ? '#f87171' : '#fff' }}>Fee Status</h3>
                  
-                 {dashboard?.feeHighlight ? (
+                 {(dashboard as any)?.feeHighlight ? (
                    <>
-                     <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: dashboard.feeHighlight.isOverdue ? '#f87171' : '#fff' }}>
-                       ₹{dashboard.feeHighlight.amount.toFixed(0)}
+                     <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: (dashboard as any).feeHighlight.isOverdue ? '#f87171' : '#fff' }}>
+                       ₹{(dashboard as any).feeHighlight.amount.toFixed(0)}
                      </div>
                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                       {dashboard.feeHighlight.status === 'PENDING' ? `Due by ${new Date(dashboard.feeHighlight.dueDate).toLocaleDateString()}` : `Status: ${dashboard.feeHighlight.status}`}
+                       {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${new Date((dashboard as any).feeHighlight.dueDate).toLocaleDateString()}` : `Status: ${(dashboard as any).feeHighlight.status}`}
                      </p>
                      <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem' }} onClick={() => setActiveTab('fees')}>Pay Online</button>
                    </>
@@ -220,16 +221,70 @@ function StudentDashboardContent() {
                  )}
               </div>
 
-              <div className="glass-card" style={{ padding: '2rem', background: 'rgba(16, 185, 129, 0.05)' }}>
+              <div className="glass-card" style={{ padding: '2rem', background: 'rgba(16, 185, 129, 0.05)', cursor: 'pointer' }} onClick={() => setActiveTab('attendance')}>
                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Overall Attendance</h3>
-                 <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10b981' }}>94%</div>
+                 <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10b981' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
-                    <div style={{ width: '94%', height: '100%', background: '#10b981', boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)' }}></div>
+                    <div style={{ width: `${(dashboard as any)?.attendance?.percentage || 0}%`, height: '100%', background: '#10b981', boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)' }}></div>
                  </div>
+                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>{(dashboard as any)?.attendance?.present || 0} / {(dashboard as any)?.attendance?.total || 0} Days Present</p>
               </div>
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === 'attendance' && (
+        <div className="glass-card animate-scale-up" style={{ padding: '2rem' }}>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Attendance Record</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Attendance Rate</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10b981' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
+             </div>
+             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Sessions</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800 }}>{(dashboard as any)?.attendance?.total || 0}</div>
+             </div>
+             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Days Present</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)' }}>{(dashboard as any)?.attendance?.present || 0}</div>
+             </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  <th style={{ padding: '1rem' }}>Date</th>
+                  <th>Batch</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(dashboard as any)?.attendance?.history?.length > 0 ? (
+                  (dashboard as any).attendance.history.map((a: any) => (
+                    <tr key={a.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '1rem' }}>{new Date(a.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                      <td>Batch assigned</td>
+                      <td>
+                        <span style={{ 
+                          padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700,
+                          background: a.status === 'PRESENT' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                          color: a.status === 'PRESENT' ? '#10b981' : '#ef4444'
+                        }}>
+                          {a.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No attendance history recorded yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {activeTab === 'materials' && (
@@ -332,7 +387,15 @@ function StudentDashboardContent() {
 
       {activeTab === 'tests' && (
         <div className="glass-card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Upcoming Tests</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+             <h2 style={{ fontSize: '1.5rem', margin: 0 }}>My Test Performance</h2>
+             {(dashboard as any)?.testStats?.averageScore !== null && (
+                <div style={{ background: 'var(--primary)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}>
+                   Avg. Score: {(dashboard as any).testStats.averageScore}%
+                </div>
+             )}
+          </div>
+
           <div style={{ display: 'grid', gap: '1rem' }}>
             {tests.length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No tests are scheduled for your courses at the moment.</p>
@@ -340,12 +403,19 @@ function StudentDashboardContent() {
               tests.map(test => {
                 const testDate = new Date(test.date);
                 const isUpcoming = testDate > new Date();
+                const result = (dashboard as any)?.testStats?.results?.find((r: any) => r.testId === test.id);
                 
                 return (
                   <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: `1px solid ${isUpcoming ? 'var(--primary)' : 'var(--border)'}`, borderRadius: '12px', background: isUpcoming ? 'rgba(79, 70, 229, 0.05)' : 'rgba(255,255,255,0.02)' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.25rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Course: <strong>{test.course?.name}</strong></div>
+                      {result && (
+                        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>Score: {result.marks} / {result.totalMarks}</span>
+                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{result.remarks}</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: 'bold', color: isUpcoming ? '#fff' : 'var(--text-muted)' }}>
@@ -354,11 +424,68 @@ function StudentDashboardContent() {
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {testDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </div>
+                      {isUpcoming && <div style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 800, marginTop: '4px' }}>UPCOMING</div>}
                     </div>
                   </div>
                 );
               })
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'profile' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
+          <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
+            <div style={{ width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', margin: '0 auto 1.5rem auto', overflow: 'hidden', border: '4px solid var(--primary)' }}>
+               { (dashboard as any)?.profile?.photoUrl ? (
+                 <img src={(dashboard as any).profile.photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+               ) : (
+                 <div style={{ fontSize: '4rem', lineHeight: '150px' }}>👤</div>
+               )}
+            </div>
+            <h2 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0' }}>{dashboard?.name}</h2>
+            <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px' }}>
+              {(dashboard as any)?.profile?.className} Student
+            </div>
+            <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Roll No: <strong>{(dashboard as any)?.profile?.rollNumber || 'N/A'}</strong></div>
+               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Batch: <strong>{(dashboard as any)?.profile?.batch || 'N/A'}</strong></div>
+            </div>
+          </div>
+
+          <div className="glass-card" style={{ padding: '2rem' }}>
+             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>Personal Details</h3>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Date of Birth</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.dob || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Mobile Number</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.phone || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Email Address</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.email || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Father's Name</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.fatherName || 'Not provided'}</div>
+                </div>
+                <div className="profile-field" style={{ gridColumn: 'span 2' }}>
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Residential Address</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.address || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>School Name</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.school || 'Not provided'}</div>
+                </div>
+                <div className="profile-field">
+                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Academic Grade</label>
+                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.grade || (dashboard as any)?.profile?.className || 'N/A'}</div>
+                </div>
+             </div>
           </div>
         </div>
       )}
