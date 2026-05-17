@@ -167,9 +167,9 @@ export default function Home() {
           <div>
             <h4 style={{ color: '#fff', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Contact</h4>
             <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
-              <li>📍 123 Education Hub, New Delhi</li>
-              <li>📞 +91 98765 43210</li>
-              <li>✉️ info@sudhirtutorials.com</li>
+              <li>📍 <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={e => e.currentTarget.style.color = 'inherit'}>Haibowal, Ludhiana, Punjab</a></li>
+              <li>📞 <a href="tel:9914287998" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={e => e.currentTarget.style.color = 'inherit'}>99142-87998</a></li>
+              <li>✉️ <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={e => e.currentTarget.style.color = 'inherit'}>sudhir.tutorials.ludhiana@gmail.com</a></li>
             </ul>
           </div>
         </div>

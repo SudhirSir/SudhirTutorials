@@ -267,17 +267,17 @@ export default function LoginPage() {
            </p>
         </div>
 
-        {/* Smaller, Elegant Shreya Sharma Quote Card */}
-        <div style={{ position: 'absolute', bottom: '2.5rem', left: '3rem', right: '3rem', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.25rem', borderRadius: '20px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
-           <div style={{ color: activeColor, fontSize: '1.5rem', marginBottom: '0.25rem' }}>❝</div>
-           <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.5, marginBottom: '1rem', fontWeight: 500 }}>
+        {/* Smaller, Elegant Shilpy Quote Card */}
+        <div style={{ position: 'absolute', bottom: '2.5rem', left: '3rem', right: '3rem', zIndex: 2, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '0.85rem 1.25rem', borderRadius: '18px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+           <div style={{ color: activeColor, fontSize: '1.2rem', marginBottom: '0.15rem' }}>❝</div>
+           <p style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: 1.4, marginBottom: '0.65rem', fontWeight: 500 }}>
              "The integrated digital tools at Sudhir Tutorials changed the way I prepared for my exams. Everything from live classes to fee receipts is available in one click."
            </p>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff' }}>S</div>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '0.85rem' }}>S</div>
              <div>
-               <div style={{ fontWeight: 600, color: 'var(--text)' }}>Shreya Sharma</div>
-               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>JEE Rank 142</div>
+               <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.9rem' }}>Shilpy</div>
+               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>PSEB AIR 14</div>
              </div>
            </div>
         </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const icons = {
   home: (
@@ -71,11 +72,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="sidebar">
         <div className="sidebar-inner">
           <div className="sidebar-header">
-            <Link href="/" className="logo-small">SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></Link>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <Link href="/" className="logo-small" style={{ margin: 0 }}>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></Link>
+              <ThemeToggle />
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {session?.user?.name || 'User'}
                 </span>
                 {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.9rem' }}>🔵</span>}
@@ -172,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .dashboard-container {
           display: flex;
           min-height: 100vh;
-          background: #000;
+          background: var(--background);
         }
 
         .sidebar {
@@ -185,10 +189,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         .sidebar-inner {
-          background: rgba(24, 24, 27, 0.4);
+          background: var(--glass-bg);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--glass-border);
           height: 100%;
           border-radius: 24px;
           display: flex;
@@ -203,7 +207,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .logo-small {
           font-weight: 900;
           font-size: 1.4rem;
-          color: white;
+          color: var(--text-heading);
           display: block;
           margin-bottom: 0.75rem;
           letter-spacing: -0.03em;
@@ -255,7 +259,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           gap: 1rem;
           padding: 0.85rem 1rem;
           border-radius: 14px;
-          color: #d1d5db;
+          color: var(--text-muted);
           font-weight: 600;
           font-size: 0.9rem;
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -267,8 +271,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         .nav-link-modern:hover {
-          color: white;
-          background: rgba(255, 255, 255, 0.05);
+          color: var(--text);
+          background: var(--card-bg-alt);
           transform: translateX(4px);
         }
 
