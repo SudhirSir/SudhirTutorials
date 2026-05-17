@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
+import { ProfileEditor } from '@/components/ProfileEditor';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
@@ -728,59 +729,7 @@ function TeacherDashboardContent() {
       )}
 
       {activeTab === 'profile' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
-          <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', margin: '0 auto 1.5rem auto', overflow: 'hidden', border: '4px solid #10b981' }}>
-               { profile?.photoUrl ? (
-                 <img src={profile.photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-               ) : (
-                 <div style={{ fontSize: '4rem', lineHeight: '150px' }}>👤</div>
-               )}
-            </div>
-            <h2 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0' }}>{session?.user?.name || 'Teacher'}</h2>
-            <div style={{ color: '#10b981', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px' }}>
-              {profile?.subject || 'Instructor'}
-            </div>
-            <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Assigned Classes: <strong>{classes.length} Batches</strong></div>
-               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Qualification: <strong>{profile?.qualification || 'N/A'}</strong></div>
-            </div>
-          </div>
-
-          <div className="glass-card" style={{ padding: '2rem' }}>
-             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>Faculty details</h3>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Date of Birth</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.dob || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Mobile Number</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.phone || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Email Address</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.email || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Experience</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.experience || 'Not provided'}</div>
-                </div>
-                <div className="profile-field" style={{ gridColumn: 'span 2' }}>
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Residential Address</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.address || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Subject Expertise</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{profile?.subject || 'N/A'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Salary Scale</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>₹{profile?.salary || '0'} / month</div>
-                </div>
-             </div>
-          </div>
-        </div>
+        <ProfileEditor role="TEACHER" />
       )}
 
       {activeTab === 'messages' && session?.user && (

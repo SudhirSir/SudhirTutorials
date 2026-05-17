@@ -11,7 +11,8 @@ export async function GET(req: Request) {
     name: true,
     role: true,
     createdAt: true,
-    studentProfile: { select: { baseFee: true } },
+    studentProfile: { select: { baseFee: true, photoUrl: true } },
+    teacherProfile: { select: { photoUrl: true } },
   };
 
   try {
@@ -36,7 +37,20 @@ export async function GET(req: Request) {
       });
     }
 
-    return NextResponse.json({ users });
+    const mappedUsers = users.map((u: any) => {
+      const photo = u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl;
+      return {
+        id: u.id,
+        username: u.username,
+        name: u.name,
+        role: u.role,
+        createdAt: u.createdAt,
+        photoUrl: photo || null,
+        studentProfile: u.studentProfile
+      };
+    });
+
+    return NextResponse.json({ users: mappedUsers });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch directory" }, { status: 500 });
   }

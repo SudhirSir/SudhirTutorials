@@ -30,12 +30,25 @@ export async function GET(req: Request) {
         name: true,
         username: true,
         role: true,
+        studentProfile: { select: { photoUrl: true } },
+        teacherProfile: { select: { photoUrl: true } }
       },
       orderBy: { name: 'asc' },
       take: 30,
     });
 
-    return NextResponse.json({ users });
+    const mappedUsers = users.map((u: any) => {
+      const photo = u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl;
+      return {
+        id: u.id,
+        name: u.name,
+        username: u.username,
+        role: u.role,
+        photoUrl: photo || null
+      };
+    });
+
+    return NextResponse.json({ users: mappedUsers });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch directory' }, { status: 500 });

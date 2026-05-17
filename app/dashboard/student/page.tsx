@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
+import { ProfileEditor } from '@/components/ProfileEditor';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
@@ -822,6 +823,10 @@ function StudentDashboardContent() {
 
       {activeTab === 'notifications' && (
         <NotificationsPanel />
+      )}
+
+      {activeTab === 'profile' && (
+        <ProfileEditor role="STUDENT" />
       )}
     </div>
   );

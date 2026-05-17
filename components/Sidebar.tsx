@@ -10,9 +10,10 @@ interface SidebarProps {
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
   name: string;
   isVerified?: boolean;
+  photoUrl?: string;
 }
 
-export function Sidebar({ activeTab, setActiveTab, role, name, isVerified }: SidebarProps) {
+export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photoUrl }: SidebarProps) {
   const adminLinks = [
     { id: 'overview', label: 'Dashboard', icon: '📊' },
     { id: 'courses', label: 'Batches & Fees', icon: '🎓' },
@@ -119,17 +120,23 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified }: Sid
             <div style={{ 
               width: '40px', 
               height: '40px', 
-              borderRadius: '10px', 
+              borderRadius: '50%', 
               background: 'var(--card-bg-alt)', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
               fontSize: '1rem',
               fontWeight: 800,
-              border: '1px solid var(--border)',
-              color: 'var(--text)'
+              border: '2px solid var(--primary)',
+              color: 'var(--text)',
+              overflow: 'hidden',
+              flexShrink: 0
             }}>
-              {name.charAt(0)}
+              {photoUrl ? (
+                <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                name.charAt(0)
+              )}
             </div>
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text)' }}>

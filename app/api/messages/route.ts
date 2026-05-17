@@ -22,13 +22,54 @@ export async function GET() {
         ]
       },
       include: {
-        sender: { select: { id: true, name: true, username: true, role: true } },
-        receiver: { select: { id: true, name: true, username: true, role: true } }
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            role: true,
+            studentProfile: { select: { photoUrl: true } },
+            teacherProfile: { select: { photoUrl: true } }
+          }
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            role: true,
+            studentProfile: { select: { photoUrl: true } },
+            teacherProfile: { select: { photoUrl: true } }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json({ messages });
+    const mappedMessages = messages.map((m: any) => {
+      const senderPhoto = m.sender.role === 'STUDENT' ? m.sender.studentProfile?.photoUrl : m.sender.teacherProfile?.photoUrl;
+      const receiverPhoto = m.receiver.role === 'STUDENT' ? m.receiver.studentProfile?.photoUrl : m.receiver.teacherProfile?.photoUrl;
+
+      return {
+        ...m,
+        sender: {
+          id: m.sender.id,
+          name: m.sender.name,
+          username: m.sender.username,
+          role: m.sender.role,
+          photoUrl: senderPhoto || null
+        },
+        receiver: {
+          id: m.receiver.id,
+          name: m.receiver.name,
+          username: m.receiver.username,
+          role: m.receiver.role,
+          photoUrl: receiverPhoto || null
+        }
+      };
+    });
+
+    return NextResponse.json({ messages: mappedMessages });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

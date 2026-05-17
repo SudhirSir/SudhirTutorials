@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
+import { ProfileEditor } from '@/components/ProfileEditor';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
@@ -733,13 +734,24 @@ function AdminDashboardContent() {
             ) : (
               directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).map(u => (
                 <div key={u.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{u.name || 'Unnamed'}</span>
-                    <span style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '20px', background: u.role === 'TEACHER' ? 'rgba(16,185,129,0.2)' : 'rgba(99,102,241,0.2)', color: u.role === 'TEACHER' ? '#34d399' : '#818cf8' }}>
-                      {u.role}
-                    </span>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold', border: '2px solid var(--primary)', flexShrink: 0 }}>
+                      {u.photoUrl ? (
+                        <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        (u.name || 'U').charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div style={{ overflow: 'hidden', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Unnamed'}</span>
+                        <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '20px', background: u.role === 'TEACHER' ? 'rgba(16,185,129,0.2)' : 'rgba(99,102,241,0.2)', color: u.role === 'TEACHER' ? '#34d399' : '#818cf8', flexShrink: 0 }}>
+                          {u.role}
+                        </span>
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>@{u.username}</div>
+                    </div>
                   </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>ID: {u.username}</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {new Date(u.createdAt).toLocaleDateString()}</div>
                   <button 
                     onClick={() => fetchProfile(u.id, u.role)}
@@ -1967,6 +1979,10 @@ function AdminDashboardContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'profile' && (
+        <ProfileEditor role="ADMIN" />
       )}
     </div>
   );

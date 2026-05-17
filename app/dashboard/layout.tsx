@@ -81,6 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const [badges, setBadges] = useState({ unreadMessages: 0, unreadNotifications: 0 });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   const handleNavLinkClick = () => {
     setIsMobileSidebarOpen(false);
@@ -101,6 +102,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       };
       fetchBadges();
       const interval = setInterval(fetchBadges, 5000);
+
+      // Fetch profile photo for sidebar
+      const fetchPhoto = async () => {
+        try {
+          const res = await fetch('/api/user/profile');
+          if (res.ok) {
+            const data = await res.json();
+            const photo = data.profile?.photoUrl || null;
+            if (photo) setProfilePhoto(photo);
+          }
+        } catch {}
+      };
+      fetchPhoto();
+
       return () => clearInterval(interval);
     }
   }, [session]);
@@ -179,11 +194,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {session?.user?.name || 'User'}
-                </span>
-                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.9rem' }}>🔵</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', marginTop: '0.25rem' }}>
+                {/* Profile Photo in Sidebar */}
+                <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
+                  {profilePhoto ? (
+                    <img src={profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    (session?.user?.name || 'U').charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div style={{ overflow: 'hidden', flex: 1 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {session?.user?.name || 'User'}
+                    {isVerified && <span title="Verified" style={{ color: '#3b82f6', fontSize: '0.75rem' }}>🔵</span>}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: isVerified ? '#10b981' : 'var(--text-muted)' }}>
+                    {isVerified ? 'Verified' : 'Online'}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -278,10 +306,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             <div className="nav-group">
-              <div className="nav-label">Support</div>
+              <div className="nav-label">Account</div>
+              <Link href={`/dashboard/${role.toLowerCase()}?tab=profile`} className="nav-link-modern" onClick={handleNavLinkClick}>
+                <span className="icon">{icons.users}</span>
+                My Profile
+              </Link>
               <Link href="/dashboard/settings" className="nav-link-modern" onClick={handleNavLinkClick}>
                 <span className="icon">{icons.settings}</span>
-                Profile Settings
+                Settings
               </Link>
             </div>
           </nav>

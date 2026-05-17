@@ -241,7 +241,13 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Directory</div>
               {searchResults.filter(u => u && u.id && u.id !== currentUserId).map((u, idx) => (
                 <div key={u.id || `search-${idx}`} onClick={() => startChat(u)} style={{ padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{u.name ? u.name[0] : '?'}</div>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', overflow: 'hidden', border: '1px solid var(--primary)' }}>
+                    {u.photoUrl ? (
+                      <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      u.name ? u.name[0] : '?'
+                    )}
+                  </div>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff' }}>{u.name || 'Anonymous'}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.username || 'N/A'} • {u.role}</div>
@@ -272,8 +278,12 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
                     gap: '1rem'
                   }}
                 >
-                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--surface-light), var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0, fontSize: '1.2rem' }}>
-                    {u.name ? u.name[0] : '?'}
+                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--surface-light), var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0, fontSize: '1.2rem', overflow: 'hidden', border: '2px solid var(--primary)' }}>
+                    {u.photoUrl ? (
+                      <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      u.name ? u.name[0] : '?'
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
@@ -339,7 +349,13 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
                   >
                     ← Back
                   </button>
-                 <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>{selectedUser.name ? selectedUser.name[0] : '?'}</div>
+                 <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '2px solid var(--primary)' }}>
+                   {selectedUser.photoUrl ? (
+                     <img src={selectedUser.photoUrl} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                   ) : (
+                     selectedUser.name ? selectedUser.name[0] : '?'
+                   )}
+                 </div>
                  <div>
                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>{selectedUser.name}</div>
                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>● {selectedUser.role}</div>
