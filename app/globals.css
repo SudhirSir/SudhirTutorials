@@ -13,11 +13,33 @@
   --surface-light: #27272a; /* Zinc 800 */
   --text: #fafafa;
   --text-muted: #a1a1aa;
+  --text-heading: #ffffff;
   --border: #3f3f46;
   --glass-bg: rgba(24, 24, 27, 0.6);
   --glass-border: rgba(255, 255, 255, 0.08);
   --radius: 16px;
   --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  --logo-gradient: linear-gradient(90deg, #ffffff, #a1a1aa);
+  --card-bg-alt: rgba(255, 255, 255, 0.03);
+  --input-bg: rgba(9, 9, 11, 0.5);
+  --input-focus-bg: rgba(9, 9, 11, 0.8);
+}
+
+[data-theme="light"] {
+  --background: #f8fafc; /* Slate 50 */
+  --surface: #ffffff; /* White */
+  --surface-light: #f1f5f9; /* Slate 100 */
+  --text: #0f172a; /* Slate 900 */
+  --text-muted: #64748b; /* Slate 500 */
+  --text-heading: #0f172a; /* Slate 900 */
+  --border: #e2e8f0; /* Slate 200 */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(15, 23, 42, 0.06);
+  --shadow: 0 10px 45px -10px rgba(15, 23, 42, 0.08);
+  --logo-gradient: linear-gradient(90deg, #0f172a, #475569);
+  --card-bg-alt: rgba(15, 23, 42, 0.04);
+  --input-bg: rgba(15, 23, 42, 0.02);
+  --input-focus-bg: #ffffff;
 }
 
 * {
@@ -45,7 +67,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-poppins, system-ui, sans-serif);
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--text-heading);
 }
 
 .text-gradient {
@@ -185,9 +207,9 @@ input[type="email"],
 input[type="password"] {
   padding: 0.85rem 1.25rem;
   border-radius: 12px;
-  background: rgba(9, 9, 11, 0.5);
+  background: var(--input-bg);
   border: 1px solid var(--border);
-  color: white;
+  color: var(--text);
   font-family: var(--font-inter, system-ui, sans-serif);
   font-size: 0.95rem;
   transition: all 0.2s;
@@ -196,7 +218,7 @@ input[type="password"] {
 input:focus {
   outline: none;
   border-color: var(--primary);
-  background: rgba(9, 9, 11, 0.8);
+  background: var(--input-focus-bg);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 

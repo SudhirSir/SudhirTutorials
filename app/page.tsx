@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Home() {
   return (
@@ -6,15 +7,15 @@ export default function Home() {
       <div className="bg-glow"></div>
       
       {/* Navbar */}
-      <header className="header" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(9, 9, 11, 0.8)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--glass-border)' }}>
+      <header className="header" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--glass-bg)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--glass-border)' }}>
         <div className="logo" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
           <span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS
         </div>
-        <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+        <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <Link href="#programs" style={{ color: 'var(--text-muted)', fontWeight: 500, transition: 'color 0.2s' }}>Programs</Link>
           <Link href="#about" style={{ color: 'var(--text-muted)', fontWeight: 500, transition: 'color 0.2s' }}>About Us</Link>
-          <Link href="#testimonials" style={{ color: 'var(--text-muted)', fontWeight: 500, transition: 'color 0.2s' }}>Testimonials</Link>
           <Link href="/login" className="btn-primary" style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem' }}>Login Portal</Link>
+          <ThemeToggle />
         </nav>
       </header>
 

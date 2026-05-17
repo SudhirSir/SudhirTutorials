@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { signOut } from 'next-auth/react';
+import { ThemeToggle } from './ThemeToggle';
 
 interface SidebarProps {
   activeTab: string;
@@ -45,9 +46,9 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified }: Sid
       height: 'calc(100vh - 2rem)',
       margin: '1rem',
       borderRadius: '24px',
-      background: 'rgba(24, 24, 27, 0.4)',
+      background: 'var(--glass-bg)',
       backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
+      border: '1px solid var(--glass-border)',
       display: 'flex',
       flexDirection: 'column',
       padding: '2rem 1.5rem',
@@ -55,7 +56,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified }: Sid
       left: 0,
       top: 0,
       zIndex: 100,
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+      boxShadow: 'var(--shadow)'
     }}>
       {/* Brand */}
       <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
@@ -91,7 +92,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified }: Sid
               borderRadius: '14px',
               border: 'none',
               background: activeTab === link.id ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-              color: activeTab === link.id ? 'var(--primary)' : '#d1d5db',
+              color: activeTab === link.id ? 'var(--primary)' : 'var(--text-muted)',
               fontWeight: 600,
               fontSize: '0.95rem',
               cursor: 'pointer',
@@ -112,31 +113,35 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified }: Sid
       </nav>
 
       {/* User & Logout */}
-      <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '10px', 
-            background: 'rgba(255,255,255,0.05)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            fontSize: '1rem',
-            fontWeight: 800,
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            {name.charAt(0)}
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {name}
-              {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.8rem' }}>🔵</span>}
+      <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflow: 'hidden' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              borderRadius: '10px', 
+              background: 'var(--card-bg-alt)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              fontSize: '1rem',
+              fontWeight: 800,
+              border: '1px solid var(--border)',
+              color: 'var(--text)'
+            }}>
+              {name.charAt(0)}
             </div>
-            <div style={{ fontSize: '0.75rem', color: isVerified ? '#10b981' : 'var(--text-muted)' }}>
-              {isVerified ? 'Verified Account' : 'Online'}
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text)' }}>
+                {name}
+                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.8rem' }}>🔵</span>}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: isVerified ? '#10b981' : 'var(--text-muted)' }}>
+                {isVerified ? 'Verified Account' : 'Online'}
+              </div>
             </div>
           </div>
+          <ThemeToggle />
         </div>
         
         <button 

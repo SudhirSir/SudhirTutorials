@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Role = "student" | "teacher" | "admin";
 
@@ -59,10 +60,11 @@ export default function LoginPage() {
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
       {/* Left Form Section */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem' }}>
-        <div style={{ marginBottom: 'auto' }}>
+        <div style={{ marginBottom: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-block' }}>
             <span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS
           </Link>
+          <ThemeToggle />
         </div>
 
         <div style={{ maxWidth: '420px', width: '100%', margin: '0 auto' }}>
