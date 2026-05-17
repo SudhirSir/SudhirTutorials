@@ -25,19 +25,36 @@ export async function POST(req: Request) {
     const password = require('crypto').randomBytes(4).toString('hex').toUpperCase();
 
 
-    // Generate specific ID
-    const randomDigits = Math.floor(10000 + Math.random() * 90000).toString(); // 5 digits
+    // Generate specific ID sequentially
     let username = '';
     
     if (role === 'TEACHER') {
-      username = `FAC${randomDigits}`;
+      const lastTeacher = await prisma.user.findFirst({
+        where: { role: 'TEACHER', username: { startsWith: 'FAC' } },
+        orderBy: { username: 'desc' } // Gets the highest FAC string
+      });
+      let nextNumber = 10100;
+      if (lastTeacher && lastTeacher.username) {
+        const num = parseInt(lastTeacher.username.replace('FAC', ''), 10);
+        if (!isNaN(num)) nextNumber = num + 1;
+      }
+      username = `FAC${nextNumber}`;
     } else if (role === 'STUDENT') {
-      username = `STU${randomDigits}`;
+      const lastStudent = await prisma.user.findFirst({
+        where: { role: 'STUDENT', username: { startsWith: 'STU' } },
+        orderBy: { username: 'desc' }
+      });
+      let nextNumber = 101;
+      if (lastStudent && lastStudent.username) {
+        const num = parseInt(lastStudent.username.replace('STU', ''), 10);
+        if (!isNaN(num)) nextNumber = num + 1;
+      }
+      username = `STU${nextNumber.toString().padStart(5, '0')}`;
     } else {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
-    // Check if uniquely generated exists (rare but possible)
+    // Check if uniquely generated exists (rare but possible in race conditions)
     const existing = await prisma.user.findUnique({ where: { username } });
     if (existing) {
       return NextResponse.json({ error: "ID collision, please try again." }, { status: 500 });

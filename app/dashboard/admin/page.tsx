@@ -55,6 +55,7 @@ function AdminDashboardContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [directoryUsers, setDirectoryUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER'>('ALL');
 
   // Finance State
   const [fees, setFees] = useState<any[]>([]);
@@ -624,6 +625,12 @@ function AdminDashboardContent() {
       {activeTab === 'users' && (
         <div className="glass-card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>User Directory</h2>
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem', overflowX: 'auto' }}>
+            <button onClick={() => setDirectoryFilter('ALL')} style={{ padding: '0.6rem 1.2rem', background: directoryFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: directoryFilter === 'ALL' ? '#fff' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>All Users</button>
+            <button onClick={() => setDirectoryFilter('STUDENT')} style={{ padding: '0.6rem 1.2rem', background: directoryFilter === 'STUDENT' ? 'var(--primary)' : 'transparent', color: directoryFilter === 'STUDENT' ? '#fff' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>View Students</button>
+            <button onClick={() => setDirectoryFilter('TEACHER')} style={{ padding: '0.6rem 1.2rem', background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', color: directoryFilter === 'TEACHER' ? '#fff' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>View Educators</button>
+          </div>
           
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
             <input 
@@ -640,10 +647,10 @@ function AdminDashboardContent() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            {directoryUsers.length === 0 ? (
+            {directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No users found.</p>
             ) : (
-              directoryUsers.map(u => (
+              directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).map(u => (
                 <div key={u.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{u.name || 'Unnamed'}</span>
