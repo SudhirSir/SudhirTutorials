@@ -5,6 +5,15 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('q');
 
+  const selectFields = {
+    id: true,
+    username: true,
+    name: true,
+    role: true,
+    createdAt: true,
+    studentProfile: { select: { baseFee: true } },
+  };
+
   try {
     let users;
     if (search) {
@@ -16,26 +25,14 @@ export async function GET(req: Request) {
             { username: { contains: search, mode: 'insensitive' } }
           ]
         },
-        select: {
-          id: true,
-          username: true,
-          name: true,
-          role: true,
-          createdAt: true
-        }
+        select: selectFields
       });
     } else {
       users = await prisma.user.findMany({
         where: { role: { in: ['STUDENT', 'TEACHER', 'ADMIN'] } },
-        select: {
-          id: true,
-          username: true,
-          name: true,
-          role: true,
-          createdAt: true
-        },
-        take: 20,
-        orderBy: { createdAt: 'desc' }
+        select: selectFields,
+        take: 100,
+        orderBy: { name: 'asc' }
       });
     }
 

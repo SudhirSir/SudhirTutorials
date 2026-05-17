@@ -62,6 +62,7 @@ function AdminDashboardContent() {
   const [activeReceipt, setActiveReceipt] = useState<any>(null);
   const [addFeeMode, setAddFeeMode] = useState<'INDIVIDUAL' | 'BATCH'>('INDIVIDUAL');
   const [feeStudentId, setFeeStudentId] = useState('');
+  const [feeStudentSearch, setFeeStudentSearch] = useState(''); // for combobox display text
   const [feeAmount, setFeeAmount] = useState('');
   const [feeBillingMonth, setFeeBillingMonth] = useState('April 2026');
   const [feeTitle, setFeeTitle] = useState('Monthly Fee');
@@ -185,6 +186,7 @@ function AdminDashboardContent() {
       });
       if (res.ok) {
         setFeeStudentId('');
+        setFeeStudentSearch('');
         setFeeAmount('');
         fetchFinances();
         alert('Fee(s) successfully assigned!');
@@ -815,12 +817,58 @@ function AdminDashboardContent() {
                   {addFeeMode === 'INDIVIDUAL' ? (
                     <div className="input-group">
                       <label>Select Student</label>
-                      <select required value={feeStudentId} onChange={e => setFeeStudentId(e.target.value)}>
-                        <option value="">Choose...</option>
-                        {directoryUsers.filter(u => u.role === 'STUDENT').map(s => (
-                          <option key={s.id} value={s.username}>{s.name} ({s.username})</option>
-                        ))}
-                      </select>
+                      {/* Combobox: type to filter OR click dropdown arrow to browse */}
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          list="student-list"
+                          required
+                          placeholder="Type name or ID to search..."
+                          value={feeStudentSearch}
+                          onChange={e => {
+                            setFeeStudentSearch(e.target.value);
+                            // Match by username or full display text
+                            const students = directoryUsers.filter(u => u.role === 'STUDENT');
+                            const matched = students.find(
+                              s => s.username === e.target.value ||
+                                   `${s.name} (${s.username})` === e.target.value
+                            );
+                            if (matched) {
+                              setFeeStudentId(matched.username);
+                              // Auto-fill base fee
+                              const base = matched.studentProfile?.baseFee;
+                              if (base && base > 0) setFeeAmount(String(base));
+                            } else {
+                              setFeeStudentId('');
+                            }
+                          }}
+                          style={{
+                            width: '100%', padding: '0.85rem 1.25rem',
+                            borderRadius: '12px',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${feeStudentId ? '#10b981' : 'var(--border)'}`,
+                            color: 'white', fontSize: '0.95rem'
+                          }}
+                        />
+                        <datalist id="student-list">
+                          {directoryUsers
+                            .filter(u => u.role === 'STUDENT')
+                            .map(s => (
+                              <option key={s.id} value={`${s.name} (${s.username})`} />
+                            ))}
+                        </datalist>
+                        {feeStudentId && (
+                          <span style={{
+                            position: 'absolute', right: '1rem', top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#10b981', fontSize: '1rem'
+                          }}>✓</span>
+                        )}
+                      </div>
+                      {!feeStudentId && feeStudentSearch && (
+                        <p style={{ fontSize: '0.75rem', color: '#f87171', marginTop: '4px' }}>
+                          No match found. Pick from the list.
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="input-group">
@@ -835,8 +883,21 @@ function AdminDashboardContent() {
                   )}
                   
                   <div className="input-group">
-                    <label>Amount (₹)</label>
-                    <input type="number" required placeholder="1500" value={feeAmount} onChange={e => setFeeAmount(e.target.value)} />
+                    <label>
+                      Amount (₹)
+                      {feeStudentId && directoryUsers.find(u => u.username === feeStudentId)?.studentProfile?.baseFee > 0 && (
+                        <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                          Base: ₹{directoryUsers.find(u => u.username === feeStudentId)?.studentProfile?.baseFee} (auto-filled)
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="Enter amount or auto-filled from base fee"
+                      value={feeAmount}
+                      onChange={e => setFeeAmount(e.target.value)}
+                    />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
