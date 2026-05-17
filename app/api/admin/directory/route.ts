@@ -12,8 +12,8 @@ export async function GET(req: Request) {
         where: {
           role: { in: ['STUDENT', 'TEACHER', 'ADMIN'] },
           OR: [
-            { name: { contains: search } }, // Case insensitive in sqlite is limited, but prisma handles it or we can just lowercase
-            { username: { contains: search } }
+            { name: { contains: search, mode: 'insensitive' } },
+            { username: { contains: search, mode: 'insensitive' } }
           ]
         },
         select: {

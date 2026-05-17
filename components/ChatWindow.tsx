@@ -49,7 +49,7 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
   const handleSearchUsers = async (q: string) => {
     setSearchQuery(q);
     try {
-      const res = await fetch(`/api/admin/directory?q=${q}`);
+      const res = await fetch(`/api/messages/directory?q=${encodeURIComponent(q)}`);
       const data = await res.json();
       setSearchResults(data.users || []);
     } catch (e) { console.error(e); }

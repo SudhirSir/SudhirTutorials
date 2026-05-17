@@ -165,16 +165,23 @@ function AdminDashboardContent() {
     e.preventDefault();
     setIsAddingFee(true);
     try {
+      const payload: any = {
+        type: addFeeMode,
+        amount: feeAmount,
+        billingMonth: feeBillingMonth,
+        title: feeTitle
+      };
+
+      if (addFeeMode === 'INDIVIDUAL') {
+        payload.studentId = feeStudentId; // username
+      } else {
+        payload.batchId = feeStudentId; // batch id
+      }
+
       const res = await fetch('/api/admin/finances', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: addFeeMode,
-          studentId: addFeeMode === 'INDIVIDUAL' ? feeStudentId : undefined,
-          amount: feeAmount,
-          billingMonth: feeBillingMonth,
-          title: feeTitle
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         setFeeStudentId('');
@@ -368,6 +375,8 @@ function AdminDashboardContent() {
       fetchFinances();
       fetchExpenses();
       fetchFinSummary();
+      handleSearchDirectory(); // populate student dropdown
+      fetchBatches();          // populate batch dropdown
     }
     if (activeTab === 'verifications') fetchPendingVerifications();
     if (activeTab === 'courses') {
