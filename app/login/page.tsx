@@ -58,12 +58,13 @@ export default function LoginPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
+      {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side) */}
+      <div style={{ position: 'fixed', top: '2rem', right: '2rem', zIndex: 1000 }}>
+        <ThemeToggle />
+      </div>
+
       {/* Left Form Section */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem', position: 'relative' }}>
-        {/* Theme Toggle in top-right corner of login panel */}
-        <div style={{ position: 'absolute', top: '2rem', right: '2rem', zIndex: 100 }}>
-          <ThemeToggle />
-        </div>
 
         <div style={{ marginBottom: 'auto' }}>
           <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-block' }}>

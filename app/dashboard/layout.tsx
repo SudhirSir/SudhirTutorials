@@ -69,12 +69,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="dashboard-container">
+      {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side) */}
+      <div style={{ position: 'fixed', top: '1.5rem', right: '2.5rem', zIndex: 1000 }}>
+        <ThemeToggle />
+      </div>
+
       <aside className="sidebar">
         <div className="sidebar-inner">
           <div className="sidebar-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <Link href="/" className="logo-small" style={{ margin: 0 }}>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></Link>
-              <ThemeToggle />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>

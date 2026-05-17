@@ -4,6 +4,10 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 export default function Home() {
   return (
     <main className="landing-page" style={{ overflowX: 'hidden' }}>
+      {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side) */}
+      <div style={{ position: 'fixed', top: '1.25rem', right: '2.5rem', zIndex: 1000 }}>
+        <ThemeToggle />
+      </div>
       <div className="bg-glow"></div>
       
       {/* Navbar */}
@@ -15,7 +19,6 @@ export default function Home() {
           <Link href="#programs" style={{ color: 'var(--text-muted)', fontWeight: 500, transition: 'color 0.2s' }}>Programs</Link>
           <Link href="#about" style={{ color: 'var(--text-muted)', fontWeight: 500, transition: 'color 0.2s' }}>About Us</Link>
           <Link href="/login" className="btn-primary" style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem' }}>Login Portal</Link>
-          <ThemeToggle />
         </nav>
       </header>
 
