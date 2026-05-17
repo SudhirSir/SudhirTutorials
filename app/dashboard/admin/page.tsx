@@ -92,6 +92,12 @@ function AdminDashboardContent() {
   const [isAddingBatch, setIsAddingBatch] = useState(false);
   const [allTeachers, setAllTeachers] = useState<any[]>([]);
 
+  // Course Edit State
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [editingCourseName, setEditingCourseName] = useState('');
+  const [editingCourseDesc, setEditingCourseDesc] = useState('');
+  const [isSavingCourse, setIsSavingCourse] = useState(false);
+
   // Advanced Batch Edit State
   const [showBatchEditModal, setShowBatchEditModal] = useState(false);
   const [editingBatch, setEditingBatch] = useState<any>(null);
@@ -312,6 +318,49 @@ function AdminDashboardContent() {
     } catch(e) {} finally { setIsAddingCourse(false); }
   };
 
+  const handleSaveCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourseId) return;
+    setIsSavingCourse(true);
+    try {
+      const res = await fetch('/api/admin/courses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingCourseId, name: editingCourseName, description: editingCourseDesc })
+      });
+      if (res.ok) {
+        setEditingCourseId(null);
+        fetchCourses();
+        fetchBatches(); // Refresh batches too
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update course');
+      }
+    } catch (err) {
+      console.error("Error updating course:", err);
+    } finally {
+      setIsSavingCourse(false);
+    }
+  };
+
+  const handleDeleteCourse = async (courseId: string, courseName: string) => {
+    if (!confirm(`Are you sure you want to delete course "${courseName}"? This will permanently delete all associated batches, schedules, materials, and test records!`)) return;
+    try {
+      const res = await fetch(`/api/admin/courses?id=${courseId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchCourses();
+        fetchBatches(); // Refresh batches list too
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete course');
+      }
+    } catch (err) {
+      console.error("Error deleting course:", err);
+    }
+  };
+
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAddingBatch(true);
@@ -431,7 +480,8 @@ function AdminDashboardContent() {
           role,
           name: userData.name || '',
           username: userData.username,
-          ...(profileData || {})
+          ...(profileData || {}),
+          ...(role === 'TEACHER' && userData.teacherBatches?.length > 0 && { batch: userData.teacherBatches[0].name })
         });
         setShowProfileModal(true);
       }
@@ -980,9 +1030,63 @@ function AdminDashboardContent() {
             </form>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {courses.map(course => (
-                <div key={course.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontWeight: 'bold' }}>{course.name}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Batches: {course._count?.batches || 0}</span>
+                <div key={course.id} style={{ display: 'flex', flexDirection: 'column', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)', gap: '0.5rem' }}>
+                  {editingCourseId === course.id ? (
+                    <form onSubmit={handleSaveCourse} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div className="input-group">
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Course Name</label>
+                        <input 
+                          type="text" 
+                          required 
+                          value={editingCourseName} 
+                          onChange={e => setEditingCourseName(e.target.value)} 
+                          style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', width: '100%' }} 
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Description</label>
+                        <input 
+                          type="text" 
+                          placeholder="Description (optional)" 
+                          value={editingCourseDesc} 
+                          onChange={e => setEditingCourseDesc(e.target.value)} 
+                          style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', width: '100%' }} 
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button type="button" onClick={() => setEditingCourseId(null)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Cancel</button>
+                        <button type="submit" className="btn-primary" disabled={isSavingCourse} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                          {isSavingCourse ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontWeight: 'bold', display: 'block', fontSize: '1.05rem' }}>{course.name}</span>
+                        {course.description && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>{course.description}</span>}
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.4rem', fontWeight: 600 }}>Batches: {course._count?.batches || 0}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button 
+                          onClick={() => {
+                            setEditingCourseId(course.id);
+                            setEditingCourseName(course.name);
+                            setEditingCourseDesc(course.description || '');
+                          }} 
+                          style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                        >
+                          ✎ Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteCourse(course.id, course.name)} 
+                          style={{ padding: '6px 10px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                        >
+                          🗑 Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1271,12 +1375,32 @@ function AdminDashboardContent() {
 
             <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                 <label>Profile Picture URL</label>
+                 <label>Profile Picture</label>
                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                   {editingProfile.photoUrl && (
-                     <img src={editingProfile.photoUrl} alt="Profile" style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} />
+                   {editingProfile.photoUrl ? (
+                     <img src={editingProfile.photoUrl} alt="Profile" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} />
+                   ) : (
+                     <div style={{ width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '1.5rem', border: '1px dashed var(--border)' }}>👤</div>
                    )}
-                   <input type="text" value={editingProfile.photoUrl || ''} onChange={e => setEditingProfile({...editingProfile, photoUrl: e.target.value})} placeholder="https://example.com/photo.jpg" style={{ flex: 1 }} />
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Upload from device (Max 2MB):</span>
+                     <input 
+                       type="file" 
+                       accept="image/*"
+                       onChange={e => {
+                         const file = e.target.files?.[0];
+                         if (file) {
+                           if (file.size > 2 * 1024 * 1024) return alert("Please choose an image under 2MB.");
+                           const reader = new FileReader();
+                           reader.onloadend = () => setEditingProfile({ ...editingProfile, photoUrl: reader.result as string });
+                           reader.readAsDataURL(file);
+                         }
+                       }}
+                       style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer' }}
+                     />
+                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Or enter Image URL:</span>
+                     <input type="text" value={editingProfile.photoUrl && !editingProfile.photoUrl.startsWith('data:') ? editingProfile.photoUrl : ''} onChange={e => setEditingProfile({...editingProfile, photoUrl: e.target.value})} placeholder="https://example.com/photo.jpg" style={{ width: '100%' }} />
+                   </div>
                  </div>
                </div>
 
@@ -1356,6 +1480,19 @@ function AdminDashboardContent() {
                      <input type="text" value={editingProfile.subject || ''} onChange={e => setEditingProfile({...editingProfile, subject: e.target.value})} placeholder="e.g. Mathematics" />
                    </div>
                    <div className="input-group">
+                     <label>Assigned Batch</label>
+                     <select 
+                       value={editingProfile.batch || ''} 
+                       onChange={e => setEditingProfile({...editingProfile, batch: e.target.value})}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
+                     >
+                       <option value="">Select Batch...</option>
+                       {batches.map(b => (
+                         <option key={b.id} value={b.name}>{b.name}</option>
+                       ))}
+                     </select>
+                   </div>
+                   <div className="input-group">
                      <label>Salary (₹)</label>
                      <input type="number" value={editingProfile.salary || ''} onChange={e => setEditingProfile({...editingProfile, salary: parseFloat(e.target.value)})} placeholder="e.g. 25000" />
                    </div>
@@ -1363,7 +1500,7 @@ function AdminDashboardContent() {
                      <label>Qualification</label>
                      <input type="text" value={editingProfile.qualification || ''} onChange={e => setEditingProfile({...editingProfile, qualification: e.target.value})} placeholder="e.g. M.Sc. B.Ed." />
                    </div>
-                   <div className="input-group">
+                   <div className="input-group" style={{ gridColumn: 'span 2' }}>
                      <label>Experience</label>
                      <input type="text" value={editingProfile.experience || ''} onChange={e => setEditingProfile({...editingProfile, experience: e.target.value})} placeholder="e.g. 5 Years" />
                    </div>

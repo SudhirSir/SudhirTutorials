@@ -28,6 +28,12 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
+          const activeToken = require('crypto').randomBytes(16).toString('hex');
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { activeToken }
+          });
+
           return { 
             id: user.id, 
             name: user.name || user.username, 
@@ -35,7 +41,8 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             mustChangePassword: user.mustChangePassword,
             onboardingCompleted: user.onboardingCompleted,
-            isProfileVerified: user.isProfileVerified
+            isProfileVerified: user.isProfileVerified,
+            activeToken
           };
         } catch (error: any) {
           console.error("DATABASE CONNECTION ERROR DURING LOGIN:", error.message);
@@ -53,11 +60,13 @@ export const authOptions: NextAuthOptions = {
         token.mustChangePassword = (user as any).mustChangePassword;
         token.onboardingCompleted = (user as any).onboardingCompleted;
         token.isProfileVerified = (user as any).isProfileVerified;
+        token.activeToken = (user as any).activeToken;
       }
       if (trigger === 'update' && session) {
         if (session.mustChangePassword !== undefined) token.mustChangePassword = session.mustChangePassword;
         if (session.onboardingCompleted !== undefined) token.onboardingCompleted = session.onboardingCompleted;
         if (session.isProfileVerified !== undefined) token.isProfileVerified = session.isProfileVerified;
+        if (session.activeToken !== undefined) token.activeToken = session.activeToken;
       }
       return token;
     },
@@ -69,6 +78,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).mustChangePassword = token.mustChangePassword;
         (session.user as any).onboardingCompleted = token.onboardingCompleted;
         (session.user as any).isProfileVerified = token.isProfileVerified;
+        (session.user as any).activeToken = token.activeToken;
       }
       return session;
     }

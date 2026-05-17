@@ -84,6 +84,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       });
     }
 
+    if (batch !== undefined) {
+      // Clear previous batches
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { studentBatches: { set: [] } }
+      });
+      
+      if (batch) {
+        const matchedBatch = await prisma.batch.findFirst({
+          where: { OR: [{ name: batch }, { id: batch }] }
+        });
+        if (matchedBatch) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { studentBatches: { connect: { id: matchedBatch.id } } }
+          });
+        }
+      }
+    }
+
     // Upsert the StudentProfile
     const profile = await prisma.studentProfile.upsert({
       where: { userId: user.id },

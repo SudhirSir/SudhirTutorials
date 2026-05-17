@@ -45,7 +45,7 @@ export default function OnboardingPage() {
 
       if (res.ok) {
         // Update session via NextAuth
-        await update({ onboardingCompleted: true, isProfileVerified: false });
+        await update({ onboardingCompleted: true, isProfileVerified: false, mustChangePassword: false });
         router.push("/waiting-verification");
       } else {
         const data = await res.json();

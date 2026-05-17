@@ -9,10 +9,21 @@ export default function WaitingVerificationPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Poll for verification status every 10 seconds
+    // Poll for verification status every 5 seconds
     const interval = setInterval(async () => {
-       await update();
-    }, 10000);
+       try {
+         const res = await fetch('/api/auth/check-session');
+         if (res.ok) {
+           const data = await res.json();
+           if (data.valid && data.isProfileVerified) {
+             // Admin has verified them! Update local session which will trigger redirect
+             await update({ isProfileVerified: true });
+           }
+         }
+       } catch (err) {
+         console.error('Failed to poll status', err);
+       }
+    }, 5000);
     
     return () => clearInterval(interval);
   }, [update]);

@@ -95,16 +95,13 @@ function StudentDashboardContent() {
     await new Promise(resolve => setTimeout(resolve, 1800));
 
     try {
-      const transactionId = `pay_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      setRazorpayTxId(transactionId);
-      
       const res = await fetch('/api/student/fees/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           feeId: razorpayFee.id,
-          transactionId,
-          paymentMethod: `${razorpayMethod} (${razorpayUpiApp})`
+          transactionId: razorpayTxId,
+          paymentMethod: 'Razorpay Direct Link'
         })
       });
 
@@ -653,95 +650,54 @@ function StudentDashboardContent() {
                 </div>
               </div>
 
-              {/* Right Side Panel: Interactive Payment Gateways */}
-              <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              {/* Right Side Panel: Razorpay Direct Payment Gateway */}
+              <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 
                 <div>
-                  <h4 style={{ margin: '0 0 1.25rem 0', fontSize: '1.05rem', fontWeight: 600 }}>Select Payment Method</h4>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>Official Razorpay Gateway</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+                    Please click the button below to complete your payment of <strong style={{ color: '#fff' }}>₹{razorpayFee.totalAmount.toFixed(0)}</strong> securely via Razorpay's official portal.
+                  </p>
                   
-                  {/* Category Tabs */}
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
-                    {['UPI', 'CARD', 'NETBANKING'].map(method => (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => setRazorpayMethod(method)}
-                        style={{
-                          flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none',
-                          fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                          background: razorpayMethod === method ? '#3b82f6' : 'transparent',
-                          color: '#fff', transition: 'all 0.2s'
-                        }}
-                      >
-                        {method}
-                      </button>
-                    ))}
+                  {/* Step 1: Open Link */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Step 1: Complete Payment</span>
+                    <a
+                      href="https://razorpay.me/@sudhiir"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                        width: '100%', padding: '1rem', borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: '#fff',
+                        fontWeight: 700, fontSize: '0.95rem', textDecoration: 'none',
+                        boxShadow: '0 4px 15px rgba(59,130,246,0.3)', transition: 'all 0.2s',
+                        textAlign: 'center'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      💳 Open https://razorpay.me/@sudhiir
+                    </a>
                   </div>
 
-                  {/* UPI Tab View */}
-                  {razorpayMethod === 'UPI' && (
-                    <div>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Select your preferred UPI app:</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
-                        {[
-                          { id: 'GPay', name: 'Google Pay', color: '#4285F4', icon: '📲' },
-                          { id: 'PhonePe', name: 'PhonePe UPI', color: '#5f259f', icon: '🟣' },
-                          { id: 'Paytm', name: 'Paytm UPI', color: '#00baf2', icon: '🔵' },
-                          { id: 'BHIM', name: 'BHIM App', color: '#e05c2b', icon: '🇮🇳' }
-                        ].map(app => (
-                          <button
-                            key={app.id}
-                            type="button"
-                            onClick={() => setRazorpayUpiApp(app.id)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: '0.75rem',
-                              padding: '0.75rem 1rem', borderRadius: '12px',
-                              background: razorpayUpiApp === app.id ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
-                              border: `1px solid ${razorpayUpiApp === app.id ? '#3b82f6' : 'rgba(255,255,255,0.05)'}`,
-                              color: '#fff', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left'
-                            }}
-                          >
-                            <span style={{ fontSize: '1.2rem' }}>{app.icon}</span>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{app.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cards Tab View */}
-                  {razorpayMethod === 'CARD' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      <div className="input-group">
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Card Number</label>
-                        <input type="text" disabled placeholder="4321 •••• •••• 9876" style={{ background: 'rgba(255,255,255,0.02)', color: 'var(--text-muted)' }} />
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                        <div className="input-group">
-                          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Expiry</label>
-                          <input type="text" disabled placeholder="12 / 29" style={{ background: 'rgba(255,255,255,0.02)', color: 'var(--text-muted)' }} />
-                        </div>
-                        <div className="input-group">
-                          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>CVV</label>
-                          <input type="password" disabled placeholder="•••" style={{ background: 'rgba(255,255,255,0.02)', color: 'var(--text-muted)' }} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Netbanking Tab View */}
-                  {razorpayMethod === 'NETBANKING' && (
+                  {/* Step 2: Verification Details */}
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Step 2: Submit Verification Reference</span>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                      After successful transfer, enter the payment transaction ID or Reference ID below:
+                    </p>
                     <div className="input-group">
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Select Bank</label>
-                      <select style={{ width: '100%', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <option value="SBI">State Bank of India</option>
-                        <option value="HDFC">HDFC Bank</option>
-                        <option value="ICICI">ICICI Bank</option>
-                        <option value="AXIS">Axis Bank</option>
-                      </select>
+                      <input 
+                        type="text" 
+                        required
+                        value={razorpayTxId} 
+                        onChange={e => setRazorpayTxId(e.target.value)} 
+                        placeholder="e.g. pay_N23sd9fX87 or UPI Txn Ref No" 
+                        style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: '#fff', padding: '0.85rem' }} 
+                      />
                     </div>
-                  )}
-
+                  </div>
                 </div>
 
                 {/* Confirm Pay Button */}
@@ -762,11 +718,12 @@ function StudentDashboardContent() {
                   </button>
                   <button
                     type="button"
+                    disabled={!razorpayTxId.trim()}
                     onClick={handleRazorpaySubmit}
                     className="btn-primary"
-                    style={{ flex: 2, padding: '0.85rem', background: '#3b82f6', color: '#fff', border: 'none' }}
+                    style={{ flex: 2, padding: '0.85rem', background: '#10b981', color: '#fff', border: 'none', opacity: razorpayTxId.trim() ? 1 : 0.5, cursor: razorpayTxId.trim() ? 'pointer' : 'not-allowed' }}
                   >
-                    Pay ₹{razorpayFee.totalAmount.toFixed(0)} Securely
+                    Confirm & Submit Details
                   </button>
                 </div>
 

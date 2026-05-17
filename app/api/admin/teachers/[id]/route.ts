@@ -16,6 +16,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
       include: {
         teacherProfile: true,
+        teacherBatches: {
+          select: { name: true, id: true }
+        }
       },
     });
 
@@ -47,6 +50,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       qualification,
       experience,
       salary,
+      batch
     } = body;
 
     const user = await prisma.user.findFirst({
@@ -65,6 +69,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         where: { id: user.id },
         data: { name },
       });
+    }
+
+    if (batch !== undefined) {
+      // Clear previous batches
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { teacherBatches: { set: [] } }
+      });
+      
+      if (batch) {
+        const matchedBatch = await prisma.batch.findFirst({
+          where: { OR: [{ name: batch }, { id: batch }] }
+        });
+        if (matchedBatch) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { teacherBatches: { connect: { id: matchedBatch.id } } }
+          });
+        }
+      }
     }
 
     const profile = await prisma.teacherProfile.upsert({
