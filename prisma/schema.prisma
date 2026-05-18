@@ -50,6 +50,10 @@ model Message {
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   isRead     Boolean  @default(false)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
 }
 
 model StudentProfile {
@@ -107,6 +111,10 @@ model Payment {
   remarks       String?
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
+
+  @@index([studentId])
+  @@index([status])
+  @@index([billingMonth])
 }
 
 model Expense {
@@ -117,6 +125,8 @@ model Expense {
   date        DateTime @default(now())
   remarks     String?
   createdAt   DateTime @default(now())
+
+  @@index([date])
 }
 
 model Course {
@@ -151,6 +161,8 @@ model Schedule {
   endTime   String   // e.g., "11:30"
   room      String?
   subject   String?
+
+  @@index([batchId])
 }
 
 model Material {
@@ -163,6 +175,9 @@ model Material {
   teacherId String
   teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@index([courseId])
+  @@index([teacherId])
 }
 
 model Notification {
@@ -174,6 +189,10 @@ model Notification {
   type      String   // SYSTEM, FEE, ALERT
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model Test {

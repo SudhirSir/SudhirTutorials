@@ -52,9 +52,12 @@ function TeacherDashboardContent() {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    fetchClasses();
-    fetchMaterials();
-    
+    if (activeTab === 'classes') {
+      fetchClasses();
+    }
+    if (activeTab === 'materials') {
+      fetchMaterials();
+    }
     if (activeTab === 'students') {
       fetchStudents();
     }
