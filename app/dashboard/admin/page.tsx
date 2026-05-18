@@ -438,6 +438,8 @@ function AdminDashboardContent() {
     if (activeTab === 'courses') {
       fetchCourses();
       fetchBatches();
+      fetchTeachers();
+      fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []));
     }
     if (activeTab === 'analytics') {
       fetchReports();
@@ -580,15 +582,15 @@ function AdminDashboardContent() {
       <style>{`
         .finances-layout-grid {
           display: grid;
-          grid-template-columns: 1fr 340px;
+          grid-template-columns: minmax(0, 1fr) 350px;
         }
 
         .courses-layout-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         }
 
-        @media (max-width: 1024px) {
+        @media (max-width: 1280px) {
           .finances-layout-grid {
             grid-template-columns: 1fr !important;
           }
@@ -1000,7 +1002,12 @@ function AdminDashboardContent() {
                   ) : (
                     <div className="input-group">
                       <label>Select Batch</label>
-                      <select required value={feeStudentId} onChange={e => setFeeStudentId(e.target.value)}>
+                      <select 
+                        required 
+                        value={feeStudentId} 
+                        onChange={e => setFeeStudentId(e.target.value)}
+                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
                         <option value="">Choose...</option>
                         {batches.map(b => (
                           <option key={b.id} value={b.id}>{b.name} ({b.className})</option>
@@ -1034,7 +1041,11 @@ function AdminDashboardContent() {
                     </div>
                     <div className="input-group">
                       <label>Category</label>
-                      <select value={feeTitle} onChange={e => setFeeTitle(e.target.value)}>
+                      <select 
+                        value={feeTitle} 
+                        onChange={e => setFeeTitle(e.target.value)}
+                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
                         <option value="Monthly Fee">Monthly</option>
                         <option value="Registration">Registration</option>
                         <option value="Exam Fee">Exam Fee</option>
