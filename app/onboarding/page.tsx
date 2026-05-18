@@ -64,7 +64,7 @@ export default function OnboardingPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: 'var(--background)' }}>
       <div className="bg-glow"></div>
       
-      <div className="glass-card" style={{ width: '100%', maxWidth: '550px', padding: '3rem', zIndex: 10 }}>
+      <div className="glass-card onboarding-card" style={{ width: '100%', maxWidth: '550px', padding: '3rem', zIndex: 10 }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: 800 }}>Complete Your Profile</h2>
           <p style={{ color: 'var(--text-muted)' }}>Welcome! Please update your default password and complete your profile before proceeding to the dashboard.</p>
@@ -83,11 +83,11 @@ export default function OnboardingPage() {
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#fff' }}>1. Set New Password</h3>
               <div className="input-group">
                 <label>New Password</label>
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} />
+                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%' }} />
               </div>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label>Confirm Password</label>
-                <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={{ width: '100%' }} />
               </div>
             </div>
           )}
@@ -95,26 +95,26 @@ export default function OnboardingPage() {
           {!(session.user as any)?.isProfileVerified && (
             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#fff' }}>2. Contact Information</h3>
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="onboarding-form-row">
                 <div className="input-group" style={{ flex: 1 }}>
                   <label>Email Address</label>
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%' }} />
                 </div>
                 <div className="input-group" style={{ flex: 1 }}>
                   <label>Phone Number</label>
-                  <input type="text" required value={phone} onChange={e => setPhone(e.target.value)} />
+                  <input type="text" required value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%' }} />
                 </div>
               </div>
               
               {role === 'STUDENT' && (
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="onboarding-form-row" style={{ marginTop: '1.25rem' }}>
                   <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                     <label>Parent/Guardian Name</label>
-                    <input type="text" required value={parentName} onChange={e => setParentName(e.target.value)} />
+                    <input type="text" required value={parentName} onChange={e => setParentName(e.target.value)} style={{ width: '100%' }} />
                   </div>
                   <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                     <label>Parent/Guardian Contact</label>
-                    <input type="text" required value={parentContact} onChange={e => setParentContact(e.target.value)} />
+                    <input type="text" required value={parentContact} onChange={e => setParentContact(e.target.value)} style={{ width: '100%' }} />
                   </div>
                 </div>
               )}
@@ -133,7 +133,7 @@ export default function OnboardingPage() {
                 required 
                 value={recoveryPin} 
                 onChange={e => setRecoveryPin(e.target.value.replace(/\D/g, ''))} 
-                style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center' }}
+                style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center', width: '100%' }}
               />
             </div>
           </div>
@@ -152,6 +152,26 @@ export default function OnboardingPage() {
       <style jsx>{`
         .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .onboarding-form-row {
+          display: flex;
+          gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+          .onboarding-card {
+            padding: 1.75rem 1.25rem !important;
+            margin: 1rem !important;
+            border-radius: 18px !important;
+          }
+          .onboarding-form-row {
+            flex-direction: column;
+            gap: 1.25rem;
+          }
+          h2 {
+            font-size: 1.6rem !important;
+          }
+        }
       `}</style>
     </div>
   );
