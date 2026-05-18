@@ -4,15 +4,15 @@ import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id: userId } = await params;
+
     // 1. Authenticate and check if the current user is an ADMIN
     const session = await getServerSession(authOptions);
     if (!session || (session.user as any).role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized. Admin rights required.' }, { status: 403 });
     }
-
-    const userId = params.id;
 
     // 2. Find target user
     const targetUser = await prisma.user.findUnique({
