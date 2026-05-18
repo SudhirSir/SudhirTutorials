@@ -760,6 +760,33 @@ function AdminDashboardContent() {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         }
 
+        .batch-control-grid {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr;
+          gap: 3rem;
+        }
+
+        .batch-modal-card {
+          width: 1000px;
+          max-width: 98%;
+          max-height: 95vh;
+          overflow-y: auto;
+          padding: 3rem;
+          position: relative;
+          border: 1px solid var(--primary);
+        }
+
+        @media (max-width: 1024px) {
+          .batch-control-grid {
+            grid-template-columns: 1fr !important;
+            gap: 2rem !important;
+          }
+
+          .batch-modal-card {
+            padding: 1.5rem !important;
+          }
+        }
+
         @media (max-width: 1280px) {
           .finances-layout-grid {
             grid-template-columns: 1fr !important;
@@ -2009,8 +2036,8 @@ function AdminDashboardContent() {
         </div>
       )}
       {showBatchEditModal && editingBatch && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '2rem' }}>
-          <div className="glass-card" style={{ width: '1000px', maxHeight: '95vh', overflowY: 'auto', padding: '3rem', position: 'relative', border: '1px solid var(--primary)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '1rem' }}>
+          <div className="glass-card batch-modal-card">
             <button onClick={() => setShowBatchEditModal(false)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
 
             <div style={{ marginBottom: '2.5rem' }}>
@@ -2018,33 +2045,33 @@ function AdminDashboardContent() {
                <p style={{ color: 'var(--text-muted)' }}>Configuring <strong>{editingBatch.name}</strong> • {editingBatch.course?.name}</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '3rem' }}>
+            <div className="batch-control-grid">
               
               {/* ── LEFT COLUMN: INFO & ROSTER ───────────────── */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                 
                 <section>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⚙️ General Configuration</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <div className="input-group">
                       <label>Batch Name</label>
-                      <input type="text" value={editingBatch.name} onChange={e => setEditingBatch({...editingBatch, name: e.target.value})} />
+                      <input type="text" value={editingBatch.name} onChange={e => setEditingBatch({...editingBatch, name: e.target.value})} style={{ width: '100%' }} />
                     </div>
                     <div className="input-group">
                       <label>Class</label>
-                      <select value={editingBatch.className || ''} onChange={e => setEditingBatch({...editingBatch, className: e.target.value})}>
+                      <select value={editingBatch.className || ''} onChange={e => setEditingBatch({...editingBatch, className: e.target.value})} style={{ width: '100%' }}>
                         {["6th", "7th", "8th", "9th", "10th", "11th Sci", "11th Com", "12th Sci", "12th Com"].map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                     <div className="input-group">
                       <label>Subjects</label>
-                      <input type="text" value={editingBatch.subjects || ''} onChange={e => setEditingBatch({...editingBatch, subjects: e.target.value})} />
+                      <input type="text" value={editingBatch.subjects || ''} onChange={e => setEditingBatch({...editingBatch, subjects: e.target.value})} style={{ width: '100%' }} />
                     </div>
                     <div className="input-group">
                       <label>Default Fee (₹)</label>
-                      <input type="number" value={editingBatch.defaultFee || 0} onChange={e => setEditingBatch({...editingBatch, defaultFee: parseFloat(e.target.value)})} />
+                      <input type="number" value={editingBatch.defaultFee || 0} onChange={e => setEditingBatch({...editingBatch, defaultFee: parseFloat(e.target.value)})} style={{ width: '100%' }} />
                     </div>
                   </div>
                 </section>
@@ -2053,7 +2080,7 @@ function AdminDashboardContent() {
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>👨‍🏫 Teaching Staff</h3>
                   <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     {allTeachers.map(t => (
-                      <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                      <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)', flexWrap: 'wrap' }}>
                         <input 
                           type="checkbox" 
                           checked={editingBatch.teachers?.some((te:any) => te.id === t.id)}
@@ -2074,7 +2101,7 @@ function AdminDashboardContent() {
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎓 Student Roster ({editingBatch.students?.length || 0})</h3>
                   <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     {directoryUsers.filter(u => u.role === 'STUDENT').map(s => (
-                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)', flexWrap: 'wrap' }}>
                         <input 
                           type="checkbox" 
                           checked={editingBatch.students?.some((st:any) => st.id === s.id)}
@@ -2084,8 +2111,8 @@ function AdminDashboardContent() {
                             setEditingBatch({...editingBatch, students: newStudents});
                           }}
                         />
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{s.name}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 600, wordBreak: 'break-word' }}>{s.name}</span>
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.username}</span>
                         </div>
                       </label>
@@ -2099,15 +2126,15 @@ function AdminDashboardContent() {
                 
                 <section>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⏰ Weekly Timings</h3>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                      <select value={newSchedule.dayOfWeek} onChange={e => setNewSchedule({...newSchedule, dayOfWeek: e.target.value})}>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '20px', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <select value={newSchedule.dayOfWeek} onChange={e => setNewSchedule({...newSchedule, dayOfWeek: e.target.value})} style={{ width: '100%' }}>
                         {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, i) => <option key={i} value={i+1}>{d}</option>)}
                       </select>
-                      <input type="text" placeholder="Room (e.g. Hall A)" value={newSchedule.room} onChange={e => setNewSchedule({...newSchedule, room: e.target.value})} />
-                      <input type="text" placeholder="Subject (e.g. Physics)" value={newSchedule.subject || ''} onChange={e => setNewSchedule({...newSchedule, subject: e.target.value})} style={{ gridColumn: 'span 2' }} />
-                      <input type="time" value={newSchedule.startTime} onChange={e => setNewSchedule({...newSchedule, startTime: e.target.value})} />
-                      <input type="time" value={newSchedule.endTime} onChange={e => setNewSchedule({...newSchedule, endTime: e.target.value})} />
+                      <input type="text" placeholder="Room (e.g. Hall A)" value={newSchedule.room} onChange={e => setNewSchedule({...newSchedule, room: e.target.value})} style={{ width: '100%' }} />
+                      <input type="text" placeholder="Subject (e.g. Physics)" value={newSchedule.subject || ''} onChange={e => setNewSchedule({...newSchedule, subject: e.target.value})} style={{ gridColumn: 'span 2', width: '100%' }} />
+                      <input type="time" value={newSchedule.startTime} onChange={e => setNewSchedule({...newSchedule, startTime: e.target.value})} style={{ width: '100%' }} />
+                      <input type="time" value={newSchedule.endTime} onChange={e => setNewSchedule({...newSchedule, endTime: e.target.value})} style={{ width: '100%' }} />
                     </div>
                     <button 
                       onClick={async () => {
@@ -2131,45 +2158,49 @@ function AdminDashboardContent() {
 
                     <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>Current Schedule</div>
-                      {editingBatch.schedules && editingBatch.schedules.length > 0 ? (
-                        [...editingBatch.schedules].sort((a:any, b:any) => parseInt(a.dayOfWeek) - parseInt(b.dayOfWeek)).map((s:any) => (
-                          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', fontSize: '0.85rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <div style={{ width: '45px', textAlign: 'center', fontWeight: 800, color: 'var(--primary)', background: 'rgba(99, 102, 241, 0.1)', padding: '4px', borderRadius: '6px' }}>
-                                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][s.dayOfWeek-1]}
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
+                        {editingBatch.schedules && editingBatch.schedules.length > 0 ? (
+                          [...editingBatch.schedules].sort((a:any, b:any) => parseInt(a.dayOfWeek) - parseInt(b.dayOfWeek)).map((s:any) => (
+                            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', fontSize: '0.85rem', border: '1px solid rgba(255,255,255,0.05)', gap: '0.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                                <div style={{ width: '45px', textAlign: 'center', fontWeight: 800, color: 'var(--primary)', background: 'rgba(99, 102, 241, 0.1)', padding: '4px', borderRadius: '6px', flexShrink: 0 }}>
+                                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][s.dayOfWeek-1]}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                                  <span style={{ fontWeight: 700, wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                                    {s.startTime} - {s.endTime} {s.subject && <span style={{ color: 'var(--primary)', fontSize: '0.8rem', display: 'block', marginTop: '2px' }}>📚 {s.subject}</span>}
+                                  </span>
+                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Room: {s.room || 'TBA'}</span>
+                                </div>
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontWeight: 700 }}>{s.startTime} - {s.endTime} {s.subject && `(${s.subject})`}</span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Room: {s.room || 'TBA'}</span>
-                              </div>
+                              <button 
+                                onClick={async () => {
+                                  const res = await fetch(`/api/admin/batches/${editingBatch.id}/schedules?id=${s.id}`, { method: 'DELETE' });
+                                  if (res.ok) {
+                                    setEditingBatch({...editingBatch, schedules: editingBatch.schedules.filter((x:any) => x.id !== s.id)});
+                                    fetchBatches();
+                                  }
+                                }}
+                                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', flexShrink: 0 }}
+                              >
+                                🗑
+                              </button>
                             </div>
-                            <button 
-                              onClick={async () => {
-                                const res = await fetch(`/api/admin/batches/${editingBatch.id}/schedules?id=${s.id}`, { method: 'DELETE' });
-                                if (res.ok) {
-                                  setEditingBatch({...editingBatch, schedules: editingBatch.schedules.filter((x:any) => x.id !== s.id)});
-                                  fetchBatches();
-                                }
-                              }}
-                              style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}
-                            >
-                              🗑
-                            </button>
+                          ))
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: '2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', color: 'var(--text-muted)', fontSize: '0.85rem', border: '1px dashed var(--border)' }}>
+                            No timings added yet. Use the form above to add slots.
                           </div>
-                        ))
-                      ) : (
-                        <div style={{ textAlign: 'center', padding: '2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', color: 'var(--text-muted)', fontSize: '0.85rem', border: '1px dashed var(--border)' }}>
-                          No timings added yet. Use the form above to add slots.
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </section>
 
                 <section>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💸 Batch Billing</h3>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '1.5rem', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '1.25rem', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', wordBreak: 'break-word', lineHeight: 1.4 }}>
                       One-click assign a fee of <strong>₹{editingBatch.defaultFee || 0}</strong> to all <strong>{editingBatch.students?.length || 0}</strong> students in this batch.
                     </p>
                     <button 

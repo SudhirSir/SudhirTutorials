@@ -228,92 +228,102 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {showUserSearch ? (
-            <div style={{ padding: '1rem' }}>
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', gap: '0.75rem' }}>
               <input 
                 type="text" 
                 placeholder="Search name or ID..." 
                 value={searchQuery}
                 onChange={e => handleSearchUsers(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', fontSize: '0.9rem', marginBottom: '1rem', outline: 'none' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', fontSize: '0.9rem', outline: 'none', flexShrink: 0 }}
               />
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Directory</div>
-              {searchResults.filter(u => u && u.id && u.id !== currentUserId).map((u, idx) => (
-                <div key={u.id || `search-${idx}`} onClick={() => startChat(u)} style={{ padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', overflow: 'hidden', border: '1px solid var(--primary)' }}>
-                    {u.photoUrl ? (
-                      <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      u.name ? u.name[0] : '?'
-                    )}
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', flexShrink: 0, marginTop: '0.25rem' }}>Directory</div>
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
+                {searchResults.filter(u => u && u.id && u.id !== currentUserId).length > 0 ? (
+                  searchResults.filter(u => u && u.id && u.id !== currentUserId).map((u, idx) => (
+                    <div key={u.id || `search-${idx}`} onClick={() => startChat(u)} style={{ padding: '0.75rem', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', overflow: 'hidden', border: '1px solid var(--primary)', flexShrink: 0 }}>
+                        {u.photoUrl ? (
+                          <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          u.name ? u.name[0] : '?'
+                        )}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Anonymous'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username || 'N/A'} • {u.role}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    No users found matching query.
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff' }}>{u.name || 'Anonymous'}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.username || 'N/A'} • {u.role}</div>
-                  </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           ) : (
-            sortedContacts.filter(u => u && u.id).map((u, idx) => {
-              const unreadCount = messages.filter(m => m.senderId === u.id && m.receiverId === currentUserId && !m.isRead).length;
-              
-              const chatMessages = messages.filter(m => (m.senderId === u.id && m.receiverId === currentUserId) || (m.senderId === currentUserId && m.receiverId === u.id));
-              const latestMessage = chatMessages.length > 0 ? chatMessages[0] : null;
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {sortedContacts.filter(u => u && u.id).map((u, idx) => {
+                const unreadCount = messages.filter(m => m.senderId === u.id && m.receiverId === currentUserId && !m.isRead).length;
+                
+                const chatMessages = messages.filter(m => (m.senderId === u.id && m.receiverId === currentUserId) || (m.senderId === currentUserId && m.receiverId === u.id));
+                const latestMessage = chatMessages.length > 0 ? chatMessages[0] : null;
 
-              return (
-                <div 
-                  key={u.id || `contact-${idx}`} 
-                  onClick={() => { setSelectedUser(u); markAsRead(u.id); }}
-                  style={{ 
-                    padding: '1rem 1.5rem', 
-                    cursor: 'pointer', 
-                    background: selectedUser?.id === u.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                    borderLeft: selectedUser?.id === u.id ? '4px solid var(--primary)' : '4px solid transparent',
-                    transition: 'all 0.2s',
-                    borderBottom: '1px solid rgba(255,255,255,0.02)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}
-                >
-                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--surface-light), var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0, fontSize: '1.2rem', overflow: 'hidden', border: '2px solid var(--primary)' }}>
-                    {u.photoUrl ? (
-                      <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      u.name ? u.name[0] : '?'
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '1rem', color: selectedUser?.id === u.id ? 'white' : '#d1d5db', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Anonymous'}</span>
-                      {latestMessage && (
-                        <span style={{ fontSize: '0.7rem', color: unreadCount > 0 ? '#10b981' : 'var(--text-muted)', flexShrink: 0 }}>
-                          {new Date(latestMessage.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                return (
+                  <div 
+                    key={u.id || `contact-${idx}`} 
+                    onClick={() => { setSelectedUser(u); markAsRead(u.id); }}
+                    style={{ 
+                      padding: '1rem 1.5rem', 
+                      cursor: 'pointer', 
+                      background: selectedUser?.id === u.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                      borderLeft: selectedUser?.id === u.id ? '4px solid var(--primary)' : '4px solid transparent',
+                      transition: 'all 0.2s',
+                      borderBottom: '1px solid rgba(255,255,255,0.02)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem'
+                    }}
+                  >
+                    <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--surface-light), var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0, fontSize: '1.2rem', overflow: 'hidden', border: '2px solid var(--primary)' }}>
+                      {u.photoUrl ? (
+                        <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        u.name ? u.name[0] : '?'
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '1rem', color: selectedUser?.id === u.id ? 'white' : '#d1d5db', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Anonymous'}</span>
+                        {latestMessage && (
+                          <span style={{ fontSize: '0.7rem', color: unreadCount > 0 ? '#10b981' : 'var(--text-muted)', flexShrink: 0 }}>
+                            {new Date(latestMessage.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80%' }}>
+                          {latestMessage ? (latestMessage.senderId === currentUserId ? 'You: ' + latestMessage.content : latestMessage.content) : u.role}
                         </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80%' }}>
-                        {latestMessage ? (latestMessage.senderId === currentUserId ? 'You: ' + latestMessage.content : latestMessage.content) : u.role}
-                      </span>
-                      {unreadCount > 0 && (
-                        <div style={{ background: '#10b981', color: 'white', fontSize: '0.65rem', fontWeight: 900, minWidth: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>
-                          {unreadCount}
-                        </div>
-                      )}
+                        {unreadCount > 0 && (
+                          <div style={{ background: '#10b981', color: 'white', fontSize: '0.65rem', fontWeight: 900, minWidth: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>
+                            {unreadCount}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+              {!showUserSearch && contacts.length === 0 && (
+                <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📭</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '0.5rem' }}>Your inbox is empty</div>
+                  <div style={{ fontSize: '0.85rem' }}>Click "New Chat" to find teachers or students to message.</div>
                 </div>
-              );
-            })
-          )}
-          {!showUserSearch && contacts.length === 0 && (
-            <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📭</div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '0.5rem' }}>Your inbox is empty</div>
-              <div style={{ fontSize: '0.85rem' }}>Click "New Chat" to find teachers or students to message.</div>
+              )}
             </div>
           )}
         </div>
