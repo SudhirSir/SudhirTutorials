@@ -117,6 +117,17 @@ function AdminDashboardContent() {
   const [otpValue, setOtpValue] = useState("");
   const [otpGenerating, setOtpGenerating] = useState(false);
 
+  // Fee Edit State
+  const [editingFeeRecord, setEditingFeeRecord] = useState<any>(null);
+  const [showEditFeeModal, setShowEditFeeModal] = useState(false);
+  const [isSavingFeeRecord, setIsSavingFeeRecord] = useState(false);
+  
+  // Auto-Billing Control Panel State
+  const [autoBillingMonth, setAutoBillingMonth] = useState("");
+  const [autoBillingPreview, setAutoBillingPreview] = useState<any>(null);
+  const [loadingAutoBillingPreview, setLoadingAutoBillingPreview] = useState(false);
+  const [runningAutoBilling, setRunningAutoBilling] = useState(false);
+
   // --- Handlers ---
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -439,6 +450,11 @@ function AdminDashboardContent() {
       fetchFinSummary();
       handleSearchDirectory(); // populate student dropdown
       fetchBatches();          // populate batch dropdown
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const now = new Date();
+      const currentMonth = `${months[now.getMonth()]} ${now.getFullYear()}`;
+      setAutoBillingMonth(currentMonth);
+      fetchAutoBillingPreview(currentMonth);
     }
     if (activeTab === 'verifications') fetchPendingVerifications();
     if (activeTab === 'courses') {
@@ -460,6 +476,81 @@ function AdminDashboardContent() {
       if (res.ok) setReportData(await res.json());
     } catch (e) { console.error(e); }
     finally { setIsReportsLoading(false); }
+  };
+
+  const fetchAutoBillingPreview = async (monthVal?: string) => {
+    const targetMonth = monthVal || autoBillingMonth;
+    if (!targetMonth) return;
+    setLoadingAutoBillingPreview(true);
+    try {
+      const res = await fetch(`/api/admin/finances/auto-assign?billingMonth=${encodeURIComponent(targetMonth)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAutoBillingPreview(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAutoBillingPreview(false);
+    }
+  };
+
+  const runAutoBillingEngine = async () => {
+    if (!autoBillingMonth) {
+      alert("Please select or enter a billing month first.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to run automated fee billing for ${autoBillingMonth}? This will generate fee records for all active students with auto-calculated base fees.`)) return;
+    setRunningAutoBilling(true);
+    try {
+      const res = await fetch('/api/admin/finances/auto-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billingMonth: autoBillingMonth })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Billing generated successfully!\nProcessed: ${data.totalProcessed}\nCreated: ${data.createdCount}\nSkipped: ${data.skippedCount}`);
+        fetchFinances();
+        fetchFinSummary();
+        fetchAutoBillingPreview(autoBillingMonth);
+      } else {
+        alert(data.error || 'Failed to trigger automated billing');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error while running auto billing');
+    } finally {
+      setRunningAutoBilling(false);
+    }
+  };
+
+  const saveFeeRecordEdits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFeeRecord || !editingFeeRecord.id) return;
+    setIsSavingFeeRecord(true);
+    try {
+      const res = await fetch('/api/admin/finances', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingFeeRecord)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Fee record updated successfully!');
+        setShowEditFeeModal(false);
+        setEditingFeeRecord(null);
+        fetchFinances();
+        fetchFinSummary();
+      } else {
+        alert(data.error || 'Failed to update fee record');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error updating fee record');
+    } finally {
+      setIsSavingFeeRecord(false);
+    }
   };
 
   const deleteFee = async () => {
@@ -925,6 +1016,7 @@ function AdminDashboardContent() {
                                 {(fee.status !== 'PENDING') && (
                                   <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
                                 )}
+                                <button onClick={() => { setEditingFeeRecord(fee); setShowEditFeeModal(true); }} style={{ padding: '6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }} title="Edit Fee Record">✎</button>
                                 <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
                               </div>
                             </td>
@@ -1096,6 +1188,111 @@ function AdminDashboardContent() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ── Bottom Section: Automated Monthly Billing Control Engine ── */}
+          <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--primary)', borderRadius: '20px', background: 'var(--card-bg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)' }}>
+                  ⚙️ Automated Monthly Billing Control Engine
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Generate monthly student bills automatically based on individual profile base fees</p>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input 
+                  type="text" 
+                  placeholder="e.g. May 2026" 
+                  value={autoBillingMonth}
+                  onChange={e => {
+                    setAutoBillingMonth(e.target.value);
+                    if (e.target.value.length >= 6) fetchAutoBillingPreview(e.target.value);
+                  }}
+                  style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', width: '180px', fontWeight: 600 }}
+                />
+                
+                <button 
+                  onClick={() => fetchAutoBillingPreview()} 
+                  disabled={loadingAutoBillingPreview}
+                  className="btn-secondary" 
+                  style={{ padding: '0.75rem 1.25rem', fontWeight: 700 }}
+                >
+                  {loadingAutoBillingPreview ? 'Calculating...' : '🔍 Preview Billing'}
+                </button>
+
+                <button 
+                  onClick={runAutoBillingEngine}
+                  disabled={runningAutoBilling}
+                  className="btn-primary" 
+                  style={{ padding: '0.75rem 1.5rem', fontWeight: 800 }}
+                >
+                  {runningAutoBilling ? 'Generating Invoices...' : '🚀 Run Auto-Billing'}
+                </button>
+              </div>
+            </div>
+
+            {loadingAutoBillingPreview && (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                Simulating billing preview and calculating base fees...
+              </div>
+            )}
+
+            {!loadingAutoBillingPreview && autoBillingPreview && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'rgba(255,255,255,0.01)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                
+                {/* Statistics Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                  <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Active Students</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text)' }}>{autoBillingPreview.totalActiveStudents}</div>
+                  </div>
+                  <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)', textAlign: 'center', color: '#10b981' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Already Billed</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem' }}>{autoBillingPreview.alreadyBilledCount}</div>
+                  </div>
+                  <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)', textAlign: 'center', color: '#f59e0b' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 600 }}>Pending Assignment</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem' }}>{autoBillingPreview.pendingBillingCount}</div>
+                  </div>
+                </div>
+
+                {/* Preview Table */}
+                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                    <thead style={{ background: 'var(--card-bg-alt)', position: 'sticky', top: 0, zIndex: 10 }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                        <th style={{ padding: '0.75rem 1rem' }}>Student Name</th>
+                        <th>User ID</th>
+                        <th>Class</th>
+                        <th>Calculated Base Fee</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {autoBillingPreview.preview?.map((p: any) => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text)' }}>{p.name}</td>
+                          <td style={{ color: 'var(--text)' }}>{p.username}</td>
+                          <td style={{ color: 'var(--text)' }}>{p.class}</td>
+                          <td style={{ fontWeight: 700, color: '#10b981' }}>₹{p.baseFee}</td>
+                          <td>
+                            <span style={{ 
+                              padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800,
+                              background: p.alreadyBilled ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                              color: p.alreadyBilled ? '#10b981' : '#f59e0b'
+                            }}>
+                              {p.alreadyBilled ? 'BILLED ✓' : 'READY'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2138,6 +2335,135 @@ function AdminDashboardContent() {
                  <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', paymentDetails)} className="btn-primary" style={{ flex: 1 }}>Confirm Payment</button>
                </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Fee Record Modal (Admin corrective editing) ───────────────── */}
+      {showEditFeeModal && editingFeeRecord && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', margin: 'auto', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
+            <h2 style={{ fontSize: '1.6rem', margin: '0 0 0.5rem', fontWeight: 800, color: 'var(--text)' }}>✎ Edit Fee Record</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
+              Student: <strong>{editingFeeRecord.student?.name}</strong> (@{editingFeeRecord.student?.username})
+            </p>
+
+            <form onSubmit={saveFeeRecordEdits} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              <div className="input-group">
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Billing Month</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="e.g. May 2026"
+                  value={editingFeeRecord.billingMonth || ''} 
+                  onChange={e => setEditingFeeRecord({...editingFeeRecord, billingMonth: e.target.value})} 
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                />
+              </div>
+
+              <div className="input-group">
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Invoice Title / Description</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="e.g. Monthly Tuition Fee"
+                  value={editingFeeRecord.title || ''} 
+                  onChange={e => setEditingFeeRecord({...editingFeeRecord, title: e.target.value})} 
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="input-group">
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Base Amount (₹)</label>
+                  <input 
+                    type="number" 
+                    required 
+                    value={editingFeeRecord.amount ?? 0} 
+                    onChange={e => setEditingFeeRecord({...editingFeeRecord, amount: parseFloat(e.target.value || '0')})} 
+                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  />
+                </div>
+                <div className="input-group">
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Discount Applied (₹)</label>
+                  <input 
+                    type="number" 
+                    required 
+                    value={editingFeeRecord.discount ?? 0} 
+                    onChange={e => setEditingFeeRecord({...editingFeeRecord, discount: parseFloat(e.target.value || '0')})} 
+                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="input-group">
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Late Fine Charged (₹)</label>
+                  <input 
+                    type="number" 
+                    required 
+                    value={editingFeeRecord.lateFine ?? 0} 
+                    onChange={e => setEditingFeeRecord({...editingFeeRecord, lateFine: parseFloat(e.target.value || '0')})} 
+                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  />
+                </div>
+                <div className="input-group">
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Due Date</label>
+                  <input 
+                    type="date" 
+                    required 
+                    value={editingFeeRecord.dueDate ? new Date(editingFeeRecord.dueDate).toISOString().split('T')[0] : ''} 
+                    onChange={e => setEditingFeeRecord({...editingFeeRecord, dueDate: e.target.value})} 
+                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Payment Status</label>
+                <select 
+                  value={editingFeeRecord.status || 'PENDING'} 
+                  onChange={e => setEditingFeeRecord({...editingFeeRecord, status: e.target.value})}
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="PAID">Paid (Offline)</option>
+                  <option value="PAID_ONLINE">Paid (Online)</option>
+                  <option value="VERIFIED">Verified</option>
+                  <option value="FAILED">Failed</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Administrative Remarks</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Corrected manual calculation error"
+                  value={editingFeeRecord.remarks || ''} 
+                  onChange={e => setEditingFeeRecord({...editingFeeRecord, remarks: e.target.value})} 
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setShowEditFeeModal(false); setEditingFeeRecord(null); }} 
+                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSavingFeeRecord}
+                  className="btn-primary" 
+                  style={{ flex: 1, padding: '0.85rem' }}
+                >
+                  {isSavingFeeRecord ? 'Saving Changes...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -28,6 +28,7 @@ function StudentDashboardContent() {
   const [selectedFee, setSelectedFee] = useState<any>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
 
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [razorpayFee, setRazorpayFee] = useState<any>(null);
@@ -141,6 +142,48 @@ function StudentDashboardContent() {
     } catch (e) {
       console.error(e);
       alert('Network error. Failed to load receipt.');
+    }
+  };
+
+  const downloadReceiptPDF = async (receiptId: string) => {
+    setDownloadingPDF(true);
+    try {
+      const loadHtml2Pdf = () => {
+        return new Promise<void>((resolve, reject) => {
+          if ((window as any).html2pdf) {
+            resolve();
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load html2pdf script.'));
+          document.head.appendChild(script);
+        });
+      };
+
+      await loadHtml2Pdf();
+      const element = document.querySelector('.receipt-print-area');
+      if (!element) {
+        alert('Receipt area not found!');
+        return;
+      }
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Receipt_REC_${receiptId.slice(-6).toUpperCase()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2.5, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await (window as any).html2pdf().from(element).set(opt).save();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate PDF. Please try print option.');
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
@@ -464,10 +507,10 @@ function StudentDashboardContent() {
 
 
       {isReceiptOpen && receiptData && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
             width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
-            background: '#fff', color: '#1a1a1a', borderRadius: '0',
+            background: '#fff', color: '#1a1a1a', borderRadius: '12px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: 'auto'
           }}>
             {/* PAID Stamp Overlay */}
@@ -542,13 +585,13 @@ function StudentDashboardContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.5rem' }} className="no-print">
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '2.5rem', flexWrap: 'wrap' }} className="no-print">
                 <button 
                   onClick={() => setIsReceiptOpen(false)}
                   style={{ 
-                    flex: 1, padding: '0.8rem 1.5rem', borderRadius: '12px', 
+                    flex: 1, minWidth: '80px', padding: '0.8rem 1rem', borderRadius: '12px', 
                     background: '#374151', color: '#fff', border: 'none', 
-                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem'
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
                   onMouseLeave={(e) => e.currentTarget.style.background = '#374151'}
@@ -558,15 +601,29 @@ function StudentDashboardContent() {
                 <button 
                   onClick={() => window.print()}
                   style={{ 
-                    flex: 2, padding: '0.8rem 1.5rem', borderRadius: '12px', 
-                    background: 'linear-gradient(135deg, var(--primary), var(--accent))', color: '#fff', border: 'none', 
-                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem',
-                    boxShadow: '0 4px 15px rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                    flex: 1.5, minWidth: '120px', padding: '0.8rem 1rem', borderRadius: '12px', 
+                    background: 'transparent', border: '2px solid var(--primary)', color: 'var(--primary)',
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; }}
+                >
+                  🖨 Print
+                </button>
+                <button 
+                  onClick={() => downloadReceiptPDF(receiptData.id)}
+                  disabled={downloadingPDF}
+                  style={{ 
+                    flex: 2, minWidth: '150px', padding: '0.8rem 1.25rem', borderRadius: '12px', 
+                    background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', 
+                    fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem',
+                    boxShadow: '0 4px 15px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
                   onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
                 >
-                  📥 Download PDF / Print
+                  {downloadingPDF ? 'Generating...' : '📥 Download PDF'}
                 </button>
               </div>
 
@@ -802,10 +859,44 @@ function StudentDashboardContent() {
         }
 
         @media print {
-          body * { visibility: hidden; }
-          .receipt-print-area, .receipt-print-area * { visibility: visible; }
-          .receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; }
-          .no-print { display: none !important; }
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body > * {
+            display: none !important;
+          }
+          body > .receipt-modal-backdrop {
+            display: block !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            z-index: 9999 !important;
+          }
+          .receipt-print-area {
+            display: block !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 1.5rem !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          .receipt-print-area * {
+            color: #000000 !important;
+            background: transparent !important;
+          }
+          .no-print {
+            display: none !important;
+          }
         }
       `}</style>
       {activeTab === 'messages' && session?.user && (

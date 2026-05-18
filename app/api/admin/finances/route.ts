@@ -220,6 +220,57 @@ export async function PATCH(req: Request) {
   }
 }
 
+// ─── PUT: edit any payment/fee record details (admin corrective editing) ───────
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks } = body;
+    if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
+
+    const existing = await prisma.payment.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
+
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (billingMonth !== undefined) updateData.billingMonth = billingMonth;
+    if (amount !== undefined) updateData.amount = parseFloat(String(amount));
+    if (discount !== undefined) updateData.discount = parseFloat(String(discount));
+    if (lateFine !== undefined) updateData.lateFine = parseFloat(String(lateFine));
+    if (status !== undefined) updateData.status = status;
+    if (remarks !== undefined) updateData.remarks = remarks;
+    if (dueDate !== undefined) {
+      const parsedDate = new Date(dueDate);
+      if (!isNaN(parsedDate.getTime())) {
+        updateData.dueDate = parsedDate;
+      }
+    }
+
+    // If status is being updated, handle paidAmount and paidAt logic
+    if (status !== undefined && status !== existing.status) {
+      if (status === 'PAID' || status === 'VERIFIED') {
+        const finalAmount = (updateData.amount ?? existing.amount);
+        const finalFine = (updateData.lateFine ?? existing.lateFine);
+        const finalDiscount = (updateData.discount ?? existing.discount);
+        updateData.paidAmount = Math.max(0, finalAmount + finalFine - finalDiscount);
+        updateData.paidAt = new Date();
+      } else if (status === 'PENDING') {
+        updateData.paidAmount = 0;
+        updateData.paidAt = null;
+      }
+    }
+
+    const updated = await prisma.payment.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json({ success: true, payment: updated });
+  } catch (error) {
+    console.error('Error updating payment:', error);
+    return NextResponse.json({ error: 'Failed to update payment details' }, { status: 500 });
+  }
+}
+
 // ─── DELETE: remove incorrect fee entry ──────────────────────────────────────
 export async function DELETE(req: Request) {
   try {
