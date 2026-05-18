@@ -17,7 +17,7 @@ export async function GET() {
     const batches = await prisma.batch.findMany({
       where: { teachers: { some: { id: teacherId } } },
       include: {
-        course: { select: { name: true } },
+        course: { select: { id: true, name: true } },
         schedules: true,
         _count: { select: { students: true } }
       }

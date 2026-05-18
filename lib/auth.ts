@@ -10,22 +10,57 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
+        role: { label: "Role", type: "text" }
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
-          return null;
+          throw new Error("MISSING_CREDENTIALS");
         }
         try {
           const user = await prisma.user.findUnique({ where: { username: credentials.username } });
           if (!user) {
             console.log(`Login failed: User not found - ${credentials.username}`);
-            return null;
+            throw new Error("USER_NOT_FOUND");
           }
 
           const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
           if (!isPasswordValid) {
             console.log(`Login failed: Invalid password - ${credentials.username}`);
-            return null;
+            throw new Error("INVALID_PASSWORD");
+          }
+
+          // Role Validation
+          const requestedRole = credentials.role ? credentials.role.toUpperCase() : null;
+          let sessionRole = user.role;
+
+          if (requestedRole) {
+            if (requestedRole === "STUDENT") {
+              if (user.role !== "STUDENT") {
+                throw new Error("ROLE_MISMATCH");
+              }
+            } else if (requestedRole === "TEACHER") {
+              if (user.role !== "TEACHER" && user.role !== "ADMIN") {
+                throw new Error("ROLE_MISMATCH");
+              }
+              // Admins can act as teachers if they are assigned as teacher to any batch
+              if (user.role === "ADMIN") {
+                const adminIsTeacher = await prisma.batch.findFirst({
+                  where: {
+                    teachers: {
+                      some: { id: user.id }
+                    }
+                  }
+                });
+                if (!adminIsTeacher) {
+                  throw new Error("ADMIN_NOT_TEACHER");
+                }
+                sessionRole = "TEACHER"; // Allow Admin to act as Teacher
+              }
+            } else if (requestedRole === "ADMIN") {
+              if (user.role !== "ADMIN") {
+                throw new Error("ROLE_MISMATCH");
+              }
+            }
           }
 
           const activeToken = require('crypto').randomBytes(16).toString('hex');
@@ -38,15 +73,18 @@ export const authOptions: NextAuthOptions = {
             id: user.id, 
             name: user.name || user.username, 
             username: user.username, 
-            role: user.role,
+            role: sessionRole,
             mustChangePassword: user.mustChangePassword,
             onboardingCompleted: user.onboardingCompleted,
             isProfileVerified: user.isProfileVerified,
             activeToken
           };
         } catch (error: any) {
+          if (["USER_NOT_FOUND", "INVALID_PASSWORD", "ROLE_MISMATCH", "ADMIN_NOT_TEACHER", "MISSING_CREDENTIALS"].includes(error.message)) {
+            throw error;
+          }
           console.error("DATABASE CONNECTION ERROR DURING LOGIN:", error.message);
-          return null;
+          throw new Error("DB_ERROR");
         }
       }
     })

@@ -204,6 +204,7 @@ function StudentDashboardContent() {
                         daySchedules.map(ds => (
                           <div key={ds.id} style={{ background: 'var(--primary)', color: 'white', fontSize: '0.65rem', padding: '6px', borderRadius: '6px', marginBottom: '6px', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)' }}>
                             <div style={{ fontWeight: 800 }}>{ds.startTime}</div>
+                            {ds.subject && <div style={{ fontWeight: 700, fontSize: '0.6rem', background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', margin: '2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ds.subject}</div>}
                             <div style={{ opacity: 0.9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ds.batchName}</div>
                           </div>
                         ))
@@ -442,7 +443,7 @@ function StudentDashboardContent() {
                               }}>
                                 {fee.status.replace('_', ' ')}
                               </span>
-                              {fee.status === 'VERIFIED' && (
+                              {['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(fee.status) && (
                                 <button onClick={() => viewReceipt(fee.id)} className="btn-secondary" style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Receipt</button>
                               )}
                             </div>
@@ -512,18 +513,17 @@ function StudentDashboardContent() {
 
 
       {isReceiptOpen && receiptData && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
-            padding: '3rem', width: '550px', maxWidth: '90%', 
-            background: '#fff', color: '#111', 
-            borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-            position: 'relative', overflow: 'hidden'
+            width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
+            background: '#fff', color: '#1a1a1a', borderRadius: '0',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: 'auto'
           }}>
             {/* PAID Stamp Overlay */}
             {(receiptData.status === 'PAID' || receiptData.status === 'VERIFIED' || receiptData.status === 'PAID_ONLINE') && (
               <div style={{
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)',
-                border: '6px solid rgba(16, 185, 129, 0.2)', color: 'rgba(16, 185, 129, 0.2)',
+                border: '6px solid rgba(16, 185, 129, 0.15)', color: 'rgba(16, 185, 129, 0.15)',
                 fontSize: '6rem', fontWeight: 900, padding: '1rem 2rem', borderRadius: '1rem',
                 pointerEvents: 'none', zIndex: 0, textTransform: 'uppercase', letterSpacing: '10px'
               }}>
@@ -531,77 +531,94 @@ function StudentDashboardContent() {
               </div>
             )}
 
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ textAlign: 'center', marginBottom: '2rem', borderBottom: '2px solid #f3f4f6', paddingBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, color: '#000', letterSpacing: '-0.5px' }}>SUDHIR TUTORIALS</h2>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px' }}>Official Fee Payment Receipt</p>
+            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6', position: 'relative', zIndex: 1 }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}>SUDHIR TUTORIALS</h1>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>
+                <div style={{ height: '1px', background: '#e5e7eb', width: '60px', margin: '1rem auto' }}></div>
+                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: '#374151' }}>Payment Receipt</h2>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem', fontSize: '0.95rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', fontSize: '0.85rem' }}>
                 <div>
-                  <label style={{ color: '#9ca3af', fontSize: '0.75rem', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Receipt No.</label>
-                  <div style={{ fontWeight: 600 }}>#{receiptData.id.slice(-8).toUpperCase()}</div>
+                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Student Name</div>
+                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{receiptData.student?.name}</div>
+                  <div style={{ color: '#6b7280' }}>ID: {receiptData.student?.username}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <label style={{ color: '#9ca3af', fontSize: '0.75rem', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Date Issued</label>
-                  <div style={{ fontWeight: 600 }}>
+                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
+                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>REC-{receiptData.id.slice(-6).toUpperCase()}</div>
+                  <div style={{ color: '#6b7280' }}>
                     {receiptData.paidAt 
                       ? `${new Date(receiptData.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}, ${new Date(receiptData.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
-                      : 'N/A'}
+                      : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
                   </div>
-                </div>
-                <div>
-                  <label style={{ color: '#9ca3af', fontSize: '0.75rem', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Student Name</label>
-                  <div style={{ fontWeight: 600 }}>{receiptData.student?.name}</div>
-                  <div style={{ color: '#6b7280', fontSize: '0.85rem' }}>ID: {receiptData.student?.username}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <label style={{ color: '#9ca3af', fontSize: '0.75rem', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Billing Period</label>
-                  <div style={{ fontWeight: 600 }}>{receiptData.billingMonth}</div>
                 </div>
               </div>
 
-              <div style={{ background: '#f9fafb', borderRadius: '16px', padding: '1.5rem', marginBottom: '2rem' }}>
+              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '1.5rem 0', marginBottom: '2rem', fontSize: '0.9rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#374151' }}>
-                  <span>Tuition Fees</span>
-                  <span style={{ fontWeight: 600 }}>₹{receiptData.amount.toFixed(2)}</span>
+                  <span>{receiptData.title} ({receiptData.billingMonth})</span>
+                  <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{receiptData.amount.toFixed(2)}</span>
                 </div>
                 {receiptData.lateFine > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#dc2626', fontSize: '0.95rem' }}>
-                    <span>Late Fee Applied</span>
-                    <span style={{ fontWeight: 600 }}>+₹{receiptData.lateFine.toFixed(2)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#ef4444' }}>
+                    <span>Late Fine</span>
+                    <span style={{ fontWeight: 700 }}>+₹{receiptData.lateFine.toFixed(2)}</span>
                   </div>
                 )}
                 {receiptData.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#16a34a', fontSize: '0.95rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#10b981' }}>
                     <span>Discount Applied</span>
-                    <span style={{ fontWeight: 600 }}>-₹{receiptData.discount.toFixed(2)}</span>
+                    <span style={{ fontWeight: 700 }}>-₹{receiptData.discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ height: '1px', background: '#e5e7eb', margin: '1rem 0' }}></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.4rem', color: '#111' }}>
-                  <span>Grand Total</span>
-                  <span>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
+                  <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
                 </div>
               </div>
 
-              {(receiptData.paymentMethod || receiptData.transactionId) && (
-                <div style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: '2rem', background: '#f3f4f6', borderRadius: '12px', padding: '1rem', textAlign: 'left' }}>
-                  {receiptData.paymentMethod && <div style={{ marginBottom: '0.25rem' }}><strong>Payment Method:</strong> {receiptData.paymentMethod}</div>}
-                  {receiptData.transactionId && <div><strong>Transaction ID:</strong> {receiptData.transactionId}</div>}
-                </div>
-              )}
-
-              <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem', marginBottom: '2.5rem', fontStyle: 'italic' }}>
-                This is a computer-generated receipt and does not require a physical signature.
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '2rem' }}>
+                <div style={{ marginBottom: '0.25rem' }}><strong>Method:</strong> {receiptData.paymentMethod || 'ONLINE'}</div>
+                {receiptData.transactionId && <div><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }} className="no-print">
-                <button className="btn-secondary" style={{ padding: '0.8rem 2rem', color: '#111', borderColor: '#e5e7eb' }} onClick={() => setIsReceiptOpen(false)}>Close</button>
-                <button className="btn-primary" style={{ padding: '0.8rem 2.5rem', background: '#000', color: '#fff', border: 'none' }} onClick={() => window.print()}>
-                  🖨️ Print Receipt
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '3rem' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ width: '120px', height: '1px', background: '#e5e7eb', marginBottom: '0.5rem' }}></div>
+                  <div style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase' }}>Receiver Signature</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.5rem' }} className="no-print">
+                <button 
+                  onClick={() => setIsReceiptOpen(false)}
+                  style={{ 
+                    flex: 1, padding: '0.8rem 1.5rem', borderRadius: '12px', 
+                    background: '#374151', color: '#fff', border: 'none', 
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#374151'}
+                >
+                  ❌ Close
+                </button>
+                <button 
+                  onClick={() => window.print()}
+                  style={{ 
+                    flex: 2, padding: '0.8rem 1.5rem', borderRadius: '12px', 
+                    background: 'linear-gradient(135deg, var(--primary), var(--accent))', color: '#fff', border: 'none', 
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem',
+                    boxShadow: '0 4px 15px rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
+                >
+                  📥 Download PDF / Print
                 </button>
               </div>
+
             </div>
           </div>
         </div>
@@ -609,12 +626,12 @@ function StudentDashboardContent() {
 
       {/* 💳 SIMULATED RAZORPAY GATEWAY OVERLAY */}
       {isRazorpayOpen && razorpayFee && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="animate-scale-up" style={{ 
-            width: '680px', maxWidth: '95%', 
+            width: '680px', maxWidth: '100%', 
             background: '#0b132b', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '24px', boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
-            position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+            position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', margin: 'auto'
           }}>
             {/* Header: Razorpay Secured */}
             <div style={{ 
@@ -633,7 +650,7 @@ function StudentDashboardContent() {
             </div>
 
             {/* Inner Content Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', minHeight: '380px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', minHeight: '380px' }}>
               
               {/* Left Side Panel: Merchant and Amount (Locked) */}
               <div style={{ 
@@ -660,7 +677,7 @@ function StudentDashboardContent() {
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem', marginTop: '1rem' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem', marginTop: '1.5rem' }}>
                   <div><strong>Student ID:</strong> {session?.user?.name}</div>
                   <div><strong>Email:</strong> {(session?.user as any)?.email || 'student@sudhirtutorials.com'}</div>
                 </div>
@@ -684,16 +701,22 @@ function StudentDashboardContent() {
                       rel="noreferrer"
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-                        width: '100%', padding: '1rem', borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: '#fff',
-                        fontWeight: 700, fontSize: '0.95rem', textDecoration: 'none',
-                        boxShadow: '0 4px 15px rgba(59,130,246,0.3)', transition: 'all 0.2s',
-                        textAlign: 'center'
+                        width: '100%', padding: '1.1rem', borderRadius: '16px',
+                        background: 'linear-gradient(135deg, #0070f3, #00df00)', color: '#fff',
+                        fontWeight: 800, fontSize: '1rem', textDecoration: 'none',
+                        boxShadow: '0 4px 20px rgba(0, 112, 243, 0.4)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        textAlign: 'center', letterSpacing: '0.5px'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+                        e.currentTarget.style.boxShadow = '0 8px 30px rgba(0, 223, 0, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                        e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 112, 243, 0.4)';
+                      }}
                     >
-                      💳 Open https://razorpay.me/@sudhiir
+                      🔒 Click to Pay Securely
                     </a>
                   </div>
 
@@ -726,9 +749,11 @@ function StudentDashboardContent() {
                     }}
                     style={{
                       flex: 1, padding: '0.85rem', borderRadius: '12px',
-                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#fff', cursor: 'pointer', fontWeight: 600
+                      background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                      color: 'var(--text)', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s'
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                   >
                     Cancel
                   </button>
@@ -737,7 +762,7 @@ function StudentDashboardContent() {
                     disabled={!razorpayTxId.trim()}
                     onClick={handleRazorpaySubmit}
                     className="btn-primary"
-                    style={{ flex: 2, padding: '0.85rem', background: '#10b981', color: '#fff', border: 'none', opacity: razorpayTxId.trim() ? 1 : 0.5, cursor: razorpayTxId.trim() ? 'pointer' : 'not-allowed' }}
+                    style={{ flex: 2, padding: '0.85rem', background: '#10b981', color: '#fff', border: 'none', opacity: razorpayTxId.trim() ? 1 : 0.5, cursor: razorpayTxId.trim() ? 'pointer' : 'not-allowed', fontWeight: 700 }}
                   >
                     Confirm & Submit Details
                   </button>

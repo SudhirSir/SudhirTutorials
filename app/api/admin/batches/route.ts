@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     // Connect teachers
 
     const teachers = teacherUsernames?.length
-      ? await prisma.user.findMany({ where: { username: { in: teacherUsernames }, role: 'TEACHER' } })
+      ? await prisma.user.findMany({ where: { username: { in: teacherUsernames }, role: { in: ['TEACHER', 'ADMIN'] } } })
       : [];
 
     // Connect students

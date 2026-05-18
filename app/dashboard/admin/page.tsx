@@ -8,6 +8,7 @@ import { ProfileEditor } from '@/components/ProfileEditor';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
+import { StudentLedger } from '@/components/StudentLedger';
 
 function AdminDashboardContent() {
   const { data: session } = useSession();
@@ -103,7 +104,7 @@ function AdminDashboardContent() {
   const [showBatchEditModal, setShowBatchEditModal] = useState(false);
   const [editingBatch, setEditingBatch] = useState<any>(null);
   const [isUpdatingBatch, setIsUpdatingBatch] = useState(false);
-  const [newSchedule, setNewSchedule] = useState({ dayOfWeek: '1', startTime: '16:00', endTime: '17:00', room: '' });
+  const [newSchedule, setNewSchedule] = useState({ dayOfWeek: '1', startTime: '16:00', endTime: '17:00', room: '', subject: '' });
 
   // Profile Edit State
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -1666,6 +1667,12 @@ function AdminDashboardContent() {
                  />
                </div>
                
+               {editingProfile.role === 'STUDENT' && (
+                 <div style={{ gridColumn: 'span 2', marginTop: '1rem', marginBottom: '1.5rem' }}>
+                   <StudentLedger studentId={editingProfile.id} />
+                 </div>
+               )}
+
                <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                  <button type="button" onClick={handleDeleteUser} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}>Delete Account</button>
                  <button type="button" onClick={() => { setShowProfileModal(false); setOtpValue(""); }} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer' }}>Cancel</button>
@@ -1774,6 +1781,7 @@ function AdminDashboardContent() {
                         {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, i) => <option key={i} value={i+1}>{d}</option>)}
                       </select>
                       <input type="text" placeholder="Room (e.g. Hall A)" value={newSchedule.room} onChange={e => setNewSchedule({...newSchedule, room: e.target.value})} />
+                      <input type="text" placeholder="Subject (e.g. Physics)" value={newSchedule.subject || ''} onChange={e => setNewSchedule({...newSchedule, subject: e.target.value})} style={{ gridColumn: 'span 2' }} />
                       <input type="time" value={newSchedule.startTime} onChange={e => setNewSchedule({...newSchedule, startTime: e.target.value})} />
                       <input type="time" value={newSchedule.endTime} onChange={e => setNewSchedule({...newSchedule, endTime: e.target.value})} />
                     </div>
@@ -1787,7 +1795,7 @@ function AdminDashboardContent() {
                         if (res.ok) {
                           const data = await res.json();
                           setEditingBatch({...editingBatch, schedules: [...(editingBatch.schedules || []), data.schedule]});
-                          setNewSchedule({ dayOfWeek: '1', startTime: '16:00', endTime: '17:00', room: '' });
+                          setNewSchedule({ dayOfWeek: '1', startTime: '16:00', endTime: '17:00', room: '', subject: '' });
                           fetchBatches();
                         }
                       }}
@@ -1807,7 +1815,7 @@ function AdminDashboardContent() {
                                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][s.dayOfWeek-1]}
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontWeight: 700 }}>{s.startTime} - {s.endTime}</span>
+                                <span style={{ fontWeight: 700 }}>{s.startTime} - {s.endTime} {s.subject && `(${s.subject})`}</span>
                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Room: {s.room || 'TBA'}</span>
                               </div>
                             </div>
@@ -1926,8 +1934,8 @@ function AdminDashboardContent() {
       )}
       {/* ── Receipt Modal ───────────────────────────── */}
       {activeReceipt && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', background: '#fff', color: '#1a1a1a', borderRadius: '0' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', background: '#fff', color: '#1a1a1a', borderRadius: '0', margin: 'auto' }}>
             <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6' }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px' }}>SUDHIR TUTORIALS</h1>
@@ -1986,8 +1994,36 @@ function AdminDashboardContent() {
                   <div style={{ width: '120px', height: '1px', background: '#e5e7eb', marginBottom: '0.5rem' }}></div>
                   <div style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase' }}>Receiver Signature</div>
                 </div>
-                <button onClick={() => setActiveReceipt(null)} className="no-print" style={{ padding: '0.5rem 1rem', background: '#1a1a1a', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>Close</button>
               </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.5rem' }} className="no-print">
+                <button 
+                  onClick={() => setActiveReceipt(null)}
+                  style={{ 
+                    flex: 1, padding: '0.8rem 1.5rem', borderRadius: '12px', 
+                    background: '#374151', color: '#fff', border: 'none', 
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#374151'}
+                >
+                  ❌ Close
+                </button>
+                <button 
+                  onClick={() => window.print()}
+                  style={{ 
+                    flex: 2, padding: '0.8rem 1.5rem', borderRadius: '12px', 
+                    background: 'linear-gradient(135deg, var(--primary), var(--accent))', color: '#fff', border: 'none', 
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem',
+                    boxShadow: '0 4px 15px rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
+                >
+                  📥 Download PDF / Print
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1995,8 +2031,8 @@ function AdminDashboardContent() {
 
       {/* ── Add Expense Modal ───────────────────────── */}
       {showExpenseModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem', margin: 'auto' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Record New Expense</h2>
             <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div className="input-group">
@@ -2023,7 +2059,7 @@ function AdminDashboardContent() {
                 <textarea rows={2} value={newExpense.remarks} onChange={e => setNewExpense({...newExpense, remarks: e.target.value})} placeholder="Optional notes..."></textarea>
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', cursor: 'pointer' }}>Cancel</button>
+                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
                 <button type="submit" disabled={isAddingExpense} className="btn-primary" style={{ flex: 1 }}>{isAddingExpense ? 'Saving...' : 'Save Expense'}</button>
               </div>
             </form>
@@ -2033,8 +2069,8 @@ function AdminDashboardContent() {
 
       {/* ── Collect Payment Modal ───────────────────── */}
       {showPaymentModal && payingFee && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem', margin: 'auto' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Collect Payment</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Student: <strong>{payingFee.student?.name}</strong> • {payingFee.billingMonth}</p>
             
@@ -2085,7 +2121,7 @@ function AdminDashboardContent() {
                  <input type="text" placeholder="e.g. Paid by father" value={paymentDetails.remarks} onChange={e => setPaymentDetails({...paymentDetails, remarks: e.target.value})} />
                </div>
                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                 <button type="button" onClick={() => setShowPaymentModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', cursor: 'pointer' }}>Cancel</button>
+                 <button type="button" onClick={() => setShowPaymentModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
                  <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', paymentDetails)} className="btn-primary" style={{ flex: 1 }}>Confirm Payment</button>
                </div>
             </div>

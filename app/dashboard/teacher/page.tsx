@@ -359,7 +359,9 @@ function TeacherDashboardContent() {
                   return todaysClasses.sort((a,b) => a.startTime.localeCompare(b.startTime)).map(c => (
                     <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{c.batchName}</div>
+                        <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                          {c.batchName} {c.subject && <span style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600 }}>{c.subject}</span>}
+                        </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.courseName} • Room {c.room || 'TBA'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
@@ -396,7 +398,7 @@ function TeacherDashboardContent() {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                             {batch.schedules.map((s: any) => (
                               <div key={s.id} style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                <span style={{ fontWeight: 800 }}>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]}</span> • {s.startTime}
+                                <span style={{ fontWeight: 800 }}>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]}</span> • {s.startTime} {s.subject && `(${s.subject})`}
                               </div>
                             ))}
                           </div>

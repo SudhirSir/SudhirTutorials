@@ -145,11 +145,12 @@ model Batch {
 model Schedule {
   id        String   @id @default(cuid())
   batchId   String
-  batch     Batch    @relation(fields: [batchId], references: [id])
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
   dayOfWeek Int      // 0-6 (Sunday-Saturday)
   startTime String   // e.g., "10:00"
   endTime   String   // e.g., "11:30"
   room      String?
+  subject   String?
 }
 
 model Material {
@@ -158,16 +159,16 @@ model Material {
   type      String   // PDF, VIDEO, LINK
   url       String
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacherId String
-  teacher   User     @relation(fields: [teacherId], references: [id])
+  teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   message   String
   type      String   // SYSTEM, FEE, ALERT

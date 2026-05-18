@@ -63,6 +63,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, material });
   } catch (error) {
+    console.error("ERROR UPLOADING STUDY MATERIAL:", error);
     return NextResponse.json({ error: 'Failed to upload material' }, { status: 500 });
   }
 }

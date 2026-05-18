@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { StudentLedger } from './StudentLedger';
 
 interface ProfileEditorProps {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
@@ -369,6 +370,12 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           </div>
         </form>
       </div>
+
+      {role === 'STUDENT' && (
+        <div style={{ gridColumn: 'span 2', marginTop: '2rem' }}>
+          <StudentLedger />
+        </div>
+      )}
 
       <style jsx>{`
         .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }

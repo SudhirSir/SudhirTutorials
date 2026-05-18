@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -14,12 +14,33 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photoUrl }: SidebarProps) {
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  const fetchBadgeCounts = async () => {
+    try {
+      const res = await fetch('/api/user/badges');
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadMessages(data.unreadMessages || 0);
+        setUnreadNotifications(data.unreadNotifications || 0);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchBadgeCounts();
+    const interval = setInterval(fetchBadgeCounts, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const adminLinks = [
     { id: 'overview', label: 'Dashboard', icon: '📊' },
     { id: 'courses', label: 'Batches & Fees', icon: '🎓' },
     { id: 'finances', label: 'Revenue', icon: '💰' },
     { id: 'directory', label: 'Directory', icon: '👥' },
     { id: 'messages', label: 'Messages', icon: '💬' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔' },
     { id: 'settings', label: 'System Settings', icon: '⚙️' },
   ];
 
@@ -29,6 +50,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
     { id: 'students', label: 'Student Roster', icon: '👨‍🎓' },
     { id: 'attendance', label: 'Attendance', icon: '📝' },
     { id: 'messages', label: 'Messages', icon: '💬' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔' },
   ];
 
   const studentLinks = [
@@ -37,6 +59,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
     { id: 'tests', label: 'My Tests', icon: '🧪' },
     { id: 'fees', label: 'Fee Portal', icon: '💳' },
     { id: 'messages', label: 'Messages', icon: '💬' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔' },
   ];
 
   const links = role === 'ADMIN' ? adminLinks : role === 'TEACHER' ? teacherLinks : studentLinks;
@@ -81,36 +104,59 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
 
       {/* Navigation */}
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {links.map(link => (
-          <button
-            key={link.id}
-            onClick={() => setActiveTab(link.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '1rem 1.25rem',
-              borderRadius: '14px',
-              border: 'none',
-              background: activeTab === link.id ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-              color: activeTab === link.id ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: 600,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              textAlign: 'left',
-              width: '100%',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            {activeTab === link.id && (
-              <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: '4px', background: 'var(--primary)', borderRadius: '0 4px 4px 0' }} />
-            )}
-            <span style={{ fontSize: '1.2rem' }}>{link.icon}</span>
-            {link.label}
-          </button>
-        ))}
+        {links.map(link => {
+          let badgeCount = 0;
+          if (link.id === 'messages') badgeCount = unreadMessages;
+          if (link.id === 'notifications') badgeCount = unreadNotifications;
+
+          return (
+            <button
+              key={link.id}
+              onClick={() => setActiveTab(link.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem 1.25rem',
+                borderRadius: '14px',
+                border: 'none',
+                background: activeTab === link.id ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                color: activeTab === link.id ? 'var(--primary)' : 'var(--text-muted)',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                textAlign: 'left',
+                width: '100%',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {activeTab === link.id && (
+                <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: '4px', background: 'var(--primary)', borderRadius: '0 4px 4px 0' }} />
+              )}
+              <span style={{ fontSize: '1.2rem' }}>{link.icon}</span>
+              {link.label}
+              {badgeCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  right: '1.25rem',
+                  background: link.id === 'messages' ? 'var(--primary)' : '#ef4444',
+                  color: '#fff',
+                  borderRadius: '50px',
+                  padding: '2px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  boxShadow: link.id === 'messages' 
+                    ? '0 0 10px rgba(99, 102, 241, 0.4)' 
+                    : '0 0 10px rgba(239, 68, 68, 0.4)'
+                }}>
+                  {badgeCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       {/* User & Logout */}

@@ -29,10 +29,18 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const month = searchParams.get('month');
-
+    const studentId = searchParams.get('studentId');
+    const studentUsername = searchParams.get('studentUsername');
+ 
     const where: any = {};
     if (status) where.status = status;
     if (month) where.billingMonth = month;
+    if (studentId) {
+      where.studentId = studentId;
+    } else if (studentUsername) {
+      const u = await prisma.user.findUnique({ where: { username: studentUsername } });
+      if (u) where.studentId = u.id;
+    }
 
     const fees = await prisma.payment.findMany({
       where,

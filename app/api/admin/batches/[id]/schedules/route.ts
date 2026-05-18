@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { dayOfWeek, startTime, endTime, room } = await req.json();
+    const { dayOfWeek, startTime, endTime, room, subject } = await req.json();
     const { id } = await params;
     const batchId = id;
 
@@ -16,7 +16,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         dayOfWeek: parseInt(dayOfWeek),
         startTime,
         endTime,
-        room
+        room,
+        subject
       }
     });
 

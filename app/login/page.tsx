@@ -71,11 +71,24 @@ export default function LoginPage() {
       const res = await signIn("credentials", {
         redirect: false,
         username,
-        password
+        password,
+        role: activeTab
       });
 
       if (res?.error) {
-        setError("Invalid ID or Password.");
+        if (res.error === "USER_NOT_FOUND") {
+          setError("This ID / Username is not registered.");
+        } else if (res.error === "INVALID_PASSWORD") {
+          setError("Invalid password. Please try again.");
+        } else if (res.error === "ROLE_MISMATCH") {
+          setError(`Role mismatch: This account is not registered as a ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}.`);
+        } else if (res.error === "ADMIN_NOT_TEACHER") {
+          setError("This Admin account has not been assigned to any batch as a Teacher.");
+        } else if (res.error === "DB_ERROR") {
+          setError("Database connection problem. Please click Sign In again.");
+        } else {
+          setError("Invalid ID or Password.");
+        }
         setLoading(false);
       } else {
         router.push(`/dashboard/${activeTab}`);
