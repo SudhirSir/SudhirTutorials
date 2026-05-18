@@ -148,7 +148,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '0.85rem 1rem', borderRadius: '12px',
-    background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+    background: 'var(--input-bg)', border: '1px solid var(--border)',
     color: 'var(--text)', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box'
   };
   const labelStyle: React.CSSProperties = {

@@ -164,10 +164,10 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '1rem 1.25rem',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--input-bg)',
                   border: '1px solid var(--border)',
                   borderRadius: '12px',
-                  color: '#fff',
+                  color: 'var(--text)',
                   fontSize: '1rem',
                   transition: 'border-color 0.2s'
                 }}
@@ -196,10 +196,10 @@ export default function LoginPage() {
                   style={{
                     width: '100%',
                     padding: '1rem 3.5rem 1rem 1.25rem',
-                    background: 'rgba(255,255,255,0.03)',
+                    background: 'var(--input-bg)',
                     border: '1px solid var(--border)',
                     borderRadius: '12px',
-                    color: '#fff',
+                    color: 'var(--text)',
                     fontSize: '1rem',
                     transition: 'border-color 0.2s'
                   }}

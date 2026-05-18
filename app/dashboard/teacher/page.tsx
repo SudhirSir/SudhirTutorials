@@ -455,7 +455,7 @@ function TeacherDashboardContent() {
 
               <div className="input-group">
                 <label>Type</label>
-                <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: '#000', color: '#fff', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
                   <option value="PDF">PDF Document</option>
                   <option value="VIDEO">Video Link</option>
                   <option value="LINK">External Link</option>
@@ -464,7 +464,7 @@ function TeacherDashboardContent() {
 
               <div className="input-group">
                 <label>Course</label>
-                <select required value={matCourseId} onChange={e => setMatCourseId(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: '#000', color: '#fff', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                <select required value={matCourseId} onChange={e => setMatCourseId(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
                   <option value="">Select a course...</option>
                   {uniqueCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -607,7 +607,7 @@ function TeacherDashboardContent() {
               
               <div className="input-group">
                 <label>Select Batch</label>
-                <select value={attBatchId} onChange={e => setAttBatchId(e.target.value)} style={{ padding: '0.85rem', background: '#000', color: '#fff', border: '1px solid var(--border)', borderRadius: '12px', width: '100%' }}>
+                <select value={attBatchId} onChange={e => setAttBatchId(e.target.value)} style={{ padding: '0.85rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', width: '100%' }}>
                   <option value="">Select Batch...</option>
                   {classes.map(b => <option key={b.id} value={b.id}>{b.name} ({b.course.name})</option>)}
                 </select>
@@ -615,7 +615,7 @@ function TeacherDashboardContent() {
 
               <div className="input-group">
                 <label>Select Date</label>
-                <input type="date" value={attDate} onChange={e => setAttDate(e.target.value)} style={{ padding: '0.85rem', background: '#000', color: '#fff', border: '1px solid var(--border)', borderRadius: '12px', width: '100%' }} />
+                <input type="date" value={attDate} onChange={e => setAttDate(e.target.value)} style={{ padding: '0.85rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', width: '100%' }} />
               </div>
 
               <button 
@@ -723,7 +723,7 @@ function TeacherDashboardContent() {
               </div>
               <div className="input-group">
                 <label>Course</label>
-                <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: '#000', color: '#fff', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
                   <option value="">Select a course...</option>
                   {uniqueCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>

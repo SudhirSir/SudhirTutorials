@@ -1507,7 +1507,7 @@ function AdminDashboardContent() {
                      <select 
                        value={editingProfile.className || ''} 
                        onChange={e => setEditingProfile({...editingProfile, className: e.target.value})}
-                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                      >
                        <option value="">Select Class...</option>
                        {["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th (Sci)", "11th (Com)", "12th (Sci)", "12th (Com)"].map(c => (
@@ -1520,7 +1520,7 @@ function AdminDashboardContent() {
                      <select 
                        value={editingProfile.batch || ''} 
                        onChange={e => setEditingProfile({...editingProfile, batch: e.target.value})}
-                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                      >
                        <option value="">Select Batch...</option>
                        {batches.map(b => (
@@ -1544,7 +1544,7 @@ function AdminDashboardContent() {
                      <select 
                        value={editingProfile.batch || ''} 
                        onChange={e => setEditingProfile({...editingProfile, batch: e.target.value})}
-                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff' }}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                      >
                        <option value="">Select Batch...</option>
                        {batches.map(b => (
@@ -1573,13 +1573,13 @@ function AdminDashboardContent() {
                    value={editingProfile.address || ''} 
                    onChange={e => setEditingProfile({...editingProfile, address: e.target.value})} 
                    placeholder="Street, City, Pin"
-                   style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: '#fff', minHeight: '80px' }}
+                   style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', minHeight: '80px' }}
                  />
                </div>
                
                <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                  <button type="button" onClick={handleDeleteUser} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}>Delete Account</button>
-                 <button type="button" onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: '#fff', cursor: 'pointer' }}>Cancel</button>
+                 <button type="button" onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer' }}>Cancel</button>
                  <button type="submit" className="btn-primary" disabled={isSavingProfile} style={{ flex: 2, padding: '1rem' }}>
                     {isSavingProfile ? 'Saving Changes...' : 'Save Profile'}
                  </button>
