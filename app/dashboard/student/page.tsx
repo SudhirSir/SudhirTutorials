@@ -164,21 +164,51 @@ function StudentDashboardContent() {
       };
 
       await loadHtml2Pdf();
-      const element = document.querySelector('.receipt-print-area');
-      if (!element) {
+      const original = document.querySelector('.receipt-print-area');
+      if (!original) {
         alert('Receipt area not found!');
         return;
       }
+
+      // Create a clean clone to prevent partial/mobile clipping or layout squishing
+      const clone = original.cloneNode(true) as HTMLElement;
+      
+      // Strip action buttons/elements from the clone
+      const noPrintElements = clone.querySelectorAll('.no-print');
+      noPrintElements.forEach(el => el.remove());
+
+      // Absolute position off-screen rendering to ensure perfect, unclipped layout
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.width = '500px';
+      clone.style.maxWidth = '500px';
+      clone.style.height = 'auto';
+      clone.style.margin = '0';
+      clone.style.padding = '2rem';
+      clone.style.display = 'block';
+      clone.style.background = '#ffffff';
+      clone.style.color = '#1a1a1a';
+      clone.style.zIndex = '-9999';
+      
+      document.body.appendChild(clone);
 
       const opt = {
         margin: [10, 10, 10, 10],
         filename: `Receipt_REC_${receiptId.slice(-6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2.5, useCORS: true, letterRendering: true },
+        html2canvas: {
+          scale: 2.5,
+          useCORS: true,
+          letterRendering: true,
+          scrollY: 0,
+          scrollX: 0
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      await (window as any).html2pdf().from(element).set(opt).save();
+      await (window as any).html2pdf().from(clone).set(opt).save();
+      document.body.removeChild(clone);
     } catch (err) {
       console.error(err);
       alert('Failed to generate PDF. Please try print option.');
@@ -517,7 +547,7 @@ function StudentDashboardContent() {
             {(receiptData.status === 'PAID' || receiptData.status === 'VERIFIED' || receiptData.status === 'PAID_ONLINE') && (
               <div style={{
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)',
-                border: '6px solid rgba(16, 185, 129, 0.15)', color: 'rgba(16, 185, 129, 0.15)',
+                border: '6px solid rgba(16, 185, 129, 0.04)', color: 'rgba(16, 185, 129, 0.04)',
                 fontSize: '6rem', fontWeight: 900, padding: '1rem 2rem', borderRadius: '1rem',
                 pointerEvents: 'none', zIndex: 0, textTransform: 'uppercase', letterSpacing: '10px'
               }}>
@@ -525,7 +555,7 @@ function StudentDashboardContent() {
               </div>
             )}
 
-            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6', position: 'relative', zIndex: 1 }}>
+            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6', position: 'relative', zIndex: 2 }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}>SUDHIR TUTORIALS</h1>
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>

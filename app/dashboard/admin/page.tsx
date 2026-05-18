@@ -62,6 +62,7 @@ function AdminDashboardContent() {
   const [fees, setFees] = useState<any[]>([]);
   const [feeSearchQuery, setFeeSearchQuery] = useState('');
   const [activeReceipt, setActiveReceipt] = useState<any>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [addFeeMode, setAddFeeMode] = useState<'INDIVIDUAL' | 'BATCH'>('INDIVIDUAL');
   const [feeStudentId, setFeeStudentId] = useState('');
   const [feeStudentSearch, setFeeStudentSearch] = useState(''); // for combobox display text
@@ -295,6 +296,78 @@ function AdminDashboardContent() {
         fetchFinSummary();
       }
     } catch (err) { console.error(err); }
+  };
+
+  const downloadReceiptPDF = async (receiptId: string) => {
+    setDownloadingPDF(true);
+    try {
+      const loadHtml2Pdf = () => {
+        return new Promise<void>((resolve, reject) => {
+          if ((window as any).html2pdf) {
+            resolve();
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load html2pdf script.'));
+          document.head.appendChild(script);
+        });
+      };
+
+      await loadHtml2Pdf();
+      const original = document.querySelector('.receipt-print-area');
+      if (!original) {
+        alert('Receipt area not found!');
+        return;
+      }
+
+      // Create a clean clone to prevent partial/mobile clipping or layout squishing
+      const clone = original.cloneNode(true) as HTMLElement;
+      
+      // Strip action buttons/elements from the clone
+      const noPrintElements = clone.querySelectorAll('.no-print');
+      noPrintElements.forEach(el => el.remove());
+
+      // Absolute position off-screen rendering to ensure perfect, unclipped layout
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.width = '500px';
+      clone.style.maxWidth = '500px';
+      clone.style.height = 'auto';
+      clone.style.margin = '0';
+      clone.style.padding = '2rem';
+      clone.style.display = 'block';
+      clone.style.background = '#ffffff';
+      clone.style.color = '#1a1a1a';
+      clone.style.zIndex = '-9999';
+      
+      document.body.appendChild(clone);
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Receipt_REC_${receiptId.slice(-6).toUpperCase()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2.5,
+          useCORS: true,
+          letterRendering: true,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await (window as any).html2pdf().from(clone).set(opt).save();
+      document.body.removeChild(clone);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate PDF. Please use the Print option.');
+    } finally {
+      setDownloadingPDF(false);
+    }
   };
 
   const fetchCourses = async () => {
@@ -694,6 +767,47 @@ function AdminDashboardContent() {
 
           .courses-layout-grid {
             grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media print {
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body > * {
+            display: none !important;
+          }
+          body > .receipt-modal-backdrop {
+            display: block !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            z-index: 9999 !important;
+          }
+          .receipt-print-area {
+            display: block !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 1.5rem !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          .receipt-print-area * {
+            color: #000000 !important;
+            background: transparent !important;
+          }
+          .no-print {
+            display: none !important;
           }
         }
       `}</style>
@@ -2144,11 +2258,27 @@ function AdminDashboardContent() {
       )}
       {/* ── Receipt Modal ───────────────────────────── */}
       {activeReceipt && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', background: '#fff', color: '#1a1a1a', borderRadius: '0', margin: 'auto' }}>
-            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card receipt-print-area" style={{ 
+            width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
+            background: '#fff', color: '#1a1a1a', borderRadius: '12px', 
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: 'auto' 
+          }}>
+            {/* PAID Stamp Overlay */}
+            {(activeReceipt.status === 'PAID' || activeReceipt.status === 'VERIFIED' || activeReceipt.status === 'PAID_ONLINE') && (
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)',
+                border: '6px solid rgba(16, 185, 129, 0.04)', color: 'rgba(16, 185, 129, 0.04)',
+                fontSize: '6rem', fontWeight: 900, padding: '1rem 2rem', borderRadius: '1rem',
+                pointerEvents: 'none', zIndex: 0, textTransform: 'uppercase', letterSpacing: '10px'
+              }}>
+                PAID
+              </div>
+            )}
+
+            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6', position: 'relative', zIndex: 2 }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px' }}>SUDHIR TUTORIALS</h1>
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}>SUDHIR TUTORIALS</h1>
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>
                 <div style={{ height: '1px', background: '#e5e7eb', width: '60px', margin: '1rem auto' }}></div>
                 <h2 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: '#374151' }}>Payment Receipt</h2>
@@ -2157,12 +2287,12 @@ function AdminDashboardContent() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', fontSize: '0.85rem' }}>
                 <div>
                   <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Student Name</div>
-                  <div style={{ fontWeight: 700 }}>{activeReceipt.student?.name}</div>
+                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{activeReceipt.student?.name}</div>
                   <div style={{ color: '#6b7280' }}>ID: {activeReceipt.student?.username}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
-                  <div style={{ fontWeight: 700 }}>REC-{activeReceipt.id.slice(-6).toUpperCase()}</div>
+                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>REC-{activeReceipt.id.slice(-6).toUpperCase()}</div>
                   <div style={{ color: '#6b7280' }}>
                     {activeReceipt.paidAt 
                       ? `${new Date(activeReceipt.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
@@ -2171,48 +2301,48 @@ function AdminDashboardContent() {
                 </div>
               </div>
 
-              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '1.5rem 0', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ color: '#6b7280' }}>{activeReceipt.title} ({activeReceipt.billingMonth})</span>
-                  <span style={{ fontWeight: 700 }}>₹{activeReceipt.amount.toFixed(2)}</span>
+              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '1.5rem 0', marginBottom: '2rem', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#374151' }}>
+                  <span>{activeReceipt.title} ({activeReceipt.billingMonth})</span>
+                  <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{activeReceipt.amount.toFixed(2)}</span>
                 </div>
                 {activeReceipt.lateFine > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#ef4444' }}>
                     <span>Late Fine</span>
-                    <span>+₹{activeReceipt.lateFine.toFixed(2)}</span>
+                    <span style={{ fontWeight: 700 }}>+₹{activeReceipt.lateFine.toFixed(2)}</span>
                   </div>
                 )}
                 {activeReceipt.discount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#10b981' }}>
                     <span>Discount Applied</span>
-                    <span>-₹{activeReceipt.discount.toFixed(2)}</span>
+                    <span style={{ fontWeight: 700 }}>-₹{activeReceipt.discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
                   <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0))).toFixed(2)}</span>
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '2rem' }}>
                 <div style={{ marginBottom: '0.25rem' }}><strong>Method:</strong> {activeReceipt.paymentMethod || 'CASH'}</div>
                 {activeReceipt.transactionId && <div><strong>TXN ID:</strong> {activeReceipt.transactionId}</div>}
               </div>
 
-              <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '3rem' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ width: '120px', height: '1px', background: '#e5e7eb', marginBottom: '0.5rem' }}></div>
                   <div style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase' }}>Receiver Signature</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.5rem' }} className="no-print">
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '2.5rem', flexWrap: 'wrap' }} className="no-print">
                 <button 
                   onClick={() => setActiveReceipt(null)}
                   style={{ 
-                    flex: 1, padding: '0.8rem 1.5rem', borderRadius: '12px', 
+                    flex: 1, minWidth: '80px', padding: '0.8rem 1rem', borderRadius: '12px', 
                     background: '#374151', color: '#fff', border: 'none', 
-                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem'
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
                   onMouseLeave={(e) => e.currentTarget.style.background = '#374151'}
@@ -2222,15 +2352,29 @@ function AdminDashboardContent() {
                 <button 
                   onClick={() => window.print()}
                   style={{ 
-                    flex: 2, padding: '0.8rem 1.5rem', borderRadius: '12px', 
-                    background: 'linear-gradient(135deg, var(--primary), var(--accent))', color: '#fff', border: 'none', 
-                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem',
-                    boxShadow: '0 4px 15px rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                    flex: 1.5, minWidth: '120px', padding: '0.8rem 1rem', borderRadius: '12px', 
+                    background: 'transparent', border: '2px solid var(--primary)', color: 'var(--primary)',
+                    fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; }}
+                >
+                  🖨 Print
+                </button>
+                <button 
+                  onClick={() => downloadReceiptPDF(activeReceipt.id)}
+                  disabled={downloadingPDF}
+                  style={{ 
+                    flex: 2, minWidth: '150px', padding: '0.8rem 1.25rem', borderRadius: '12px', 
+                    background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', 
+                    fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem',
+                    boxShadow: '0 4px 15px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
                   onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
                 >
-                  📥 Download PDF / Print
+                  {downloadingPDF ? 'Generating...' : '📥 Download PDF'}
                 </button>
               </div>
 
