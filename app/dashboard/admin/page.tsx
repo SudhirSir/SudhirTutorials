@@ -791,7 +791,7 @@ function AdminDashboardContent() {
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {new Date(u.createdAt).toLocaleDateString()}</div>
                   <button 
                     onClick={() => fetchProfile(u.id, u.role)}
-                    style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}
+                    style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
                   >
                     ✎ Edit Profile
                   </button>
@@ -1426,7 +1426,7 @@ function AdminDashboardContent() {
                  <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : editingProfile.role === 'TEACHER' ? 'Teacher' : 'Admin'} Profile Editor</h2>
                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>ID: {editingProfile.username}</p>
                </div>
-               <button onClick={() => { setShowProfileModal(false); setOtpValue(""); }} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+               <button onClick={() => { setShowProfileModal(false); setOtpValue(""); }} style={{ background: 'none', border: 'none', color: 'var(--text)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
 
             <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -1483,8 +1483,6 @@ function AdminDashboardContent() {
                        }}
                        style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer' }}
                      />
-                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Or enter Image URL:</span>
-                     <input type="text" value={editingProfile.photoUrl && !editingProfile.photoUrl.startsWith('data:') ? editingProfile.photoUrl : ''} onChange={e => setEditingProfile({...editingProfile, photoUrl: e.target.value})} placeholder="https://example.com/photo.jpg" style={{ width: '100%' }} />
                    </div>
                  </div>
                </div>
