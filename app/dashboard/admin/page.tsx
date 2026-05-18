@@ -109,6 +109,10 @@ function AdminDashboardContent() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<any>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  
+  // One-Time Password State
+  const [otpValue, setOtpValue] = useState("");
+  const [otpGenerating, setOtpGenerating] = useState(false);
 
   // --- Handlers ---
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -543,6 +547,27 @@ function AdminDashboardContent() {
       }
     } catch (e) { console.error(e); }
     finally { setIsSavingProfile(false); }
+  };
+
+  const handleGenerateOTP = async () => {
+    if (!editingProfile || !editingProfile.userId) return;
+    if (!confirm("Are you sure you want to generate a one-time temporary password? The student's current password will be replaced, and they will be forced to change it at next login.")) return;
+    setOtpGenerating(true);
+    try {
+      const res = await fetch(`/api/admin/users/${editingProfile.userId}/one-time-password`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setOtpValue(data.oneTimePassword);
+      } else {
+        alert(data.error || "Failed to generate temporary password.");
+      }
+    } catch (e) {
+      alert("Network error occurred.");
+    } finally {
+      setOtpGenerating(false);
+    }
   };
 
   const openDelModal = (id: string) => {
@@ -1401,7 +1426,7 @@ function AdminDashboardContent() {
                  <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : editingProfile.role === 'TEACHER' ? 'Teacher' : 'Admin'} Profile Editor</h2>
                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>ID: {editingProfile.username}</p>
                </div>
-               <button onClick={() => setShowProfileModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+               <button onClick={() => { setShowProfileModal(false); setOtpValue(""); }} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
 
             <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -1532,6 +1557,60 @@ function AdminDashboardContent() {
                      <label>School Name</label>
                      <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
                    </div>
+
+                   <div className="input-group" style={{ gridColumn: 'span 2', marginTop: '0.75rem', background: 'rgba(245,158,11,0.05)', padding: '1.25rem', borderRadius: '12px', border: '1px dashed rgba(245,158,11,0.3)' }}>
+                     <label style={{ color: '#f59e0b', fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                       🔑 Security: One-Time Temporary Password
+                     </label>
+                     <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                       If a student forgets their password, you can generate a one-time temporary password. They will be forced to set a new password upon logging in.
+                     </p>
+                     
+                     {otpValue ? (
+                       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--input-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)' }}>
+                         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Generated Pass:</span>
+                         <code style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '2px', background: 'rgba(245,158,11,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#f59e0b' }}>
+                           {otpValue}
+                         </code>
+                         <button 
+                           type="button"
+                           onClick={() => {
+                             navigator.clipboard.writeText(otpValue);
+                             alert("One-Time Password copied to clipboard!");
+                           }}
+                           style={{ padding: '6px 12px', background: '#f59e0b', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s' }}
+                           onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
+                           onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                         >
+                           Copy Password
+                         </button>
+                       </div>
+                     ) : (
+                       <button
+                         type="button"
+                         onClick={handleGenerateOTP}
+                         disabled={otpGenerating}
+                         style={{
+                           padding: '0.75rem 1.25rem',
+                           borderRadius: '8px',
+                           background: 'rgba(245,158,11,0.1)',
+                           border: '1px solid #f59e0b',
+                           color: '#f59e0b',
+                           fontWeight: 700,
+                           cursor: 'pointer',
+                           fontSize: '0.85rem',
+                           display: 'flex',
+                           alignItems: 'center',
+                           gap: '0.5rem',
+                           transition: 'all 0.2s'
+                         }}
+                         onMouseOver={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.2)'; }}
+                         onMouseOut={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.05)'; }}
+                       >
+                         {otpGenerating ? 'Generating Temporary Pass...' : '🔑 Generate One-Time Password'}
+                       </button>
+                     )}
+                   </div>
                  </>
                ) : editingProfile.role === 'TEACHER' ? (
                  <>
@@ -1573,13 +1652,13 @@ function AdminDashboardContent() {
                    value={editingProfile.address || ''} 
                    onChange={e => setEditingProfile({...editingProfile, address: e.target.value})} 
                    placeholder="Street, City, Pin"
-                   style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', minHeight: '80px' }}
+                style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', minHeight: '80px' }}
                  />
                </div>
                
                <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                  <button type="button" onClick={handleDeleteUser} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}>Delete Account</button>
-                 <button type="button" onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer' }}>Cancel</button>
+                 <button type="button" onClick={() => { setShowProfileModal(false); setOtpValue(""); }} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer' }}>Cancel</button>
                  <button type="submit" className="btn-primary" disabled={isSavingProfile} style={{ flex: 2, padding: '1rem' }}>
                     {isSavingProfile ? 'Saving Changes...' : 'Save Profile'}
                  </button>
