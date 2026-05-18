@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 
 interface StudentLedgerProps {
   studentId?: string; // Optional: if provided, fetches as admin. If omitted, fetches own student ledger.
+  refreshTrigger?: number; // Optional: trigger to force-refresh from parent components
+  onPayOnline?: (fee: any) => void; // Callback for online payments (for student portal integration)
+  onViewReceipt?: (feeId: string) => void; // Callback for viewing receipts
 }
 
 const MONTHS_LIST = [
@@ -11,7 +14,7 @@ const MONTHS_LIST = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-export function StudentLedger({ studentId }: StudentLedgerProps) {
+export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewReceipt }: StudentLedgerProps) {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewType, setViewType] = useState<'month' | 'year'>('month');
@@ -19,7 +22,7 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
 
   useEffect(() => {
     fetchLedger();
-  }, [studentId]);
+  }, [studentId, refreshTrigger]);
 
   const fetchLedger = async () => {
     setLoading(true);
@@ -30,7 +33,6 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        // In admin response it is { fees: [...] }, in student response it is also { fees: [...] }
         setFees(data.fees || []);
       }
     } catch (e) {
@@ -40,10 +42,14 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
     }
   };
 
-  // Group fees by year & month
-  // We can parse the year from either billingMonth (e.g. "April 2026") or dueDate
   const getParsedFeeDetails = (fee: any) => {
-    let year = new Date(fee.dueDate).getFullYear();
+    let year = new Date().getFullYear();
+    if (fee.dueDate) {
+      const parsedDate = new Date(fee.dueDate);
+      if (!isNaN(parsedDate.getTime())) {
+        year = parsedDate.getFullYear();
+      }
+    }
     let monthName = "";
 
     if (fee.billingMonth) {
@@ -55,7 +61,7 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
       }
     }
 
-    if (!monthName) {
+    if (!monthName && fee.dueDate) {
       monthName = MONTHS_LIST[new Date(fee.dueDate).getMonth()];
     }
 
@@ -106,38 +112,43 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-        <div className="spinner" style={{ margin: '0 auto 1rem' }} />
-        Fetching ledger records...
+      <div className="glass-card" style={{ padding: '2.5rem', marginTop: '1.5rem', border: '1px solid var(--border)', minHeight: '350px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'rgba(255,255,255,0.01)' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="spinner" style={{ margin: '0 auto 1.5rem', width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontSize: '1rem', fontWeight: 600, letterSpacing: '0.5px' }}>Loading Financial Ledger...</div>
+        </div>
+        <style jsx>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="glass-card" style={{ padding: '2rem', marginTop: '1.5rem', border: '1px solid var(--border)' }}>
+    <div className="glass-card" style={{ padding: '2rem', marginTop: '1.5rem', border: '1px solid var(--border)', background: 'var(--card-bg)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)' }}>
             💳 Financial Fee Ledger
           </h3>
           <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Complete historical transactions and billing overview</p>
         </div>
 
         {/* View Controls */}
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Year Dropdown */}
           {viewType === 'month' && (
             <select 
               value={selectedYear} 
               onChange={e => setSelectedYear(parseInt(e.target.value))}
-              style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600 }}
+              style={{ padding: '0.5rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, fontSize: '0.85rem' }}
             >
               {years.map(y => <option key={y} value={y}>{y} Academic Year</option>)}
             </select>
           )}
 
           {/* Toggle Type */}
-          <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '10px', display: 'flex', border: '1px solid var(--border)' }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', display: 'flex', border: '1px solid var(--border)' }}>
             <button 
               onClick={() => setViewType('month')}
               style={{
@@ -166,7 +177,7 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
 
       {/* 12-MONTH GRID VIEW */}
       {viewType === 'month' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
           {monthlyLedger.map(({ month, record }) => {
             const hasRecord = !!record;
             const status = record?.status || 'NO RECORD';
@@ -176,64 +187,69 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
             let statusBg = 'rgba(255,255,255,0.02)';
             let statusColor = 'var(--text-muted)';
             let statusText = 'Not Assigned';
+            let leftBorderColor = 'rgba(255,255,255,0.05)';
 
             if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') {
               statusBg = 'rgba(16, 185, 129, 0.1)';
               statusColor = '#10b981';
               statusText = status === 'VERIFIED' ? 'Verified ✓' : 'Paid';
+              leftBorderColor = '#10b981';
             } else if (isOverdue) {
               statusBg = 'rgba(239, 68, 68, 0.1)';
               statusColor = '#ef4444';
               statusText = 'Overdue';
+              leftBorderColor = '#ef4444';
             } else if (status === 'PENDING') {
               statusBg = 'rgba(245, 158, 11, 0.1)';
               statusColor = '#f59e0b';
               statusText = 'Pending';
+              leftBorderColor = '#f59e0b';
             }
 
             return (
               <div 
                 key={month} 
+                className="ledger-month-card"
                 style={{ 
-                  padding: '1.25rem', 
+                  padding: '1.5rem', 
                   borderRadius: '16px', 
-                  background: hasRecord ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.005)', 
-                  border: `1px solid ${hasRecord ? 'var(--border)' : 'rgba(255,255,255,0.02)'}`,
-                  opacity: hasRecord ? 1 : 0.5,
+                  background: hasRecord ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.002)', 
+                  border: `1px solid var(--border)`,
+                  borderLeft: `4px solid ${leftBorderColor}`,
+                  opacity: hasRecord ? 1 : 0.6,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  minHeight: '180px',
-                  transition: 'transform 0.2s',
+                  minHeight: '210px',
+                  transition: 'all 0.2s',
+                  boxShadow: hasRecord ? '0 4px 15px rgba(0,0,0,0.05)' : 'none'
                 }}
-                onMouseEnter={e => { if (hasRecord) e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { if (hasRecord) e.currentTarget.style.transform = 'translateY(0)'; }}
               >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{month}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--text)' }}>{month}</span>
                     <span style={{ 
-                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                      background: statusBg, color: statusColor, textTransform: 'uppercase'
+                      padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800,
+                      background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.5px'
                     }}>
                       {statusText}
                     </span>
                   </div>
 
                   {hasRecord ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         <span>Base Fee:</span>
                         <span style={{ fontWeight: 600, color: 'var(--text)' }}>₹{record.amount}</span>
                       </div>
                       {record.discount > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#10b981' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>
                           <span>Discount:</span>
                           <span>-₹{record.discount}</span>
                         </div>
                       )}
                       {(record.lateFine > 0 || record.currentLateFine > 0) && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#ef4444' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#ef4444', fontWeight: 600 }}>
                           <span>Late Fine:</span>
                           <span>+₹{record.lateFine || record.currentLateFine}</span>
                         </div>
@@ -241,21 +257,45 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
                     </div>
                   ) : (
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.5rem 0' }}>
-                      No bills generated for this billing cycle.
+                      No bills generated.
                     </div>
                   )}
                 </div>
 
                 {hasRecord && (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.85rem', marginTop: '0.85rem' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total:</span>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 800, color: statusColor }}>
-                        ₹{Math.max(0, record.amount + (record.lateFine || record.currentLateFine || 0) - record.discount)}
-                      </span>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Total Amount:</span>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)' }}>
+                          ₹{Math.max(0, record.amount + (record.lateFine || record.currentLateFine || 0) - record.discount)}
+                        </span>
+                      </div>
+                      
+                      {/* Action buttons inside monthly card */}
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        {status === 'PENDING' && onPayOnline && (
+                          <button 
+                            onClick={() => onPayOnline(record)}
+                            className="btn-primary" 
+                            style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}
+                          >
+                            Pay
+                          </button>
+                        )}
+                        {['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) && onViewReceipt && (
+                          <button 
+                            onClick={() => onViewReceipt(record.id)}
+                            className="btn-secondary" 
+                            style={{ padding: '6px 10px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
+                          >
+                            🧾 Receipt
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {record.paidAt && (
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'right' }}>
                         Paid on {new Date(record.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                       </div>
                     )}
@@ -289,20 +329,21 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
             </thead>
             <tbody>
               {allYearsSummary.map(yr => (
-                <tr key={yr.year} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.95rem' }}>
-                  <td style={{ padding: '1.25rem 0.5rem', fontWeight: 800 }}>{yr.year}</td>
-                  <td>₹{yr.totalBilled}</td>
-                  <td style={{ color: yr.totalDiscounts > 0 ? '#10b981' : undefined }}>-₹{yr.totalDiscounts}</td>
-                  <td style={{ color: yr.totalFines > 0 ? '#ef4444' : undefined }}>+₹{yr.totalFines}</td>
+                <tr key={yr.year} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.95rem' }}>
+                  <td style={{ padding: '1.25rem 0.5rem', fontWeight: 800, color: 'var(--text)' }}>{yr.year}</td>
+                  <td style={{ color: 'var(--text)' }}>₹{yr.totalBilled}</td>
+                  <td style={{ color: '#10b981', fontWeight: 600 }}>-₹{yr.totalDiscounts}</td>
+                  <td style={{ color: yr.totalFines > 0 ? '#ef4444' : 'var(--text-muted)', fontWeight: 600 }}>+₹{yr.totalFines}</td>
                   <td style={{ fontWeight: 700, color: '#10b981' }}>₹{yr.totalPaid}</td>
-                  <td style={{ color: yr.totalOutstanding > 0 ? '#f59e0b' : 'var(--text-muted)', fontWeight: yr.totalOutstanding > 0 ? 700 : 400 }}>
+                  <td style={{ color: yr.totalOutstanding > 0 ? '#f59e0b' : 'var(--text-muted)', fontWeight: yr.totalOutstanding > 0 ? 800 : 400 }}>
                     {yr.totalOutstanding > 0 ? `₹${yr.totalOutstanding}` : 'Settled ✓'}
                   </td>
                   <td>
                     <span style={{ 
-                      padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800,
+                      padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800,
                       background: yr.totalOutstanding === 0 && yr.recordsCount > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
-                      color: yr.totalOutstanding === 0 && yr.recordsCount > 0 ? '#10b981' : 'var(--text-muted)'
+                      color: yr.totalOutstanding === 0 && yr.recordsCount > 0 ? '#10b981' : 'var(--text-muted)',
+                      textTransform: 'uppercase'
                     }}>
                       {yr.recordsCount === 0 ? 'No Data' : yr.totalOutstanding === 0 ? 'COMPLETELY PAID' : 'PENDING DUES'}
                     </span>
@@ -313,6 +354,13 @@ export function StudentLedger({ studentId }: StudentLedgerProps) {
           </table>
         </div>
       )}
+
+      <style jsx>{`
+        .ledger-month-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(99, 102, 241, 0.05);
+        }
+      `}</style>
     </div>
   );
 }

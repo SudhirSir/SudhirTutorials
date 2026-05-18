@@ -8,6 +8,7 @@ import { ProfileEditor } from '@/components/ProfileEditor';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
+import { StudentLedger } from '@/components/StudentLedger';
 
 function StudentDashboardContent() {
   const { data: session } = useSession();
@@ -388,74 +389,24 @@ function StudentDashboardContent() {
       )}
 
       {activeTab === 'fees' && (
-        <div className="glass-card" style={{ padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Fee History & Ledger</h2>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Late fine applies automatically on overdue payments.</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  <th style={{ padding: '0.75rem 0' }}>Title</th>
-                  <th>Month</th>
-                  <th>Due Date</th>
-                  <th>Base Amount</th>
-                  <th>Late Fine</th>
-                  <th>Total Due</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fees.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No fee records found.</td></tr>
-                ) : (
-                  fees.map(fee => {
-                    const isOverdue = fee.status === 'PENDING' && fee.lateFine > 0;
-                    return (
-                      <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.05)' : 'transparent' }}>
-                        <td style={{ padding: '1rem 0', fontWeight: 600 }}>{fee.title}</td>
-                        <td>{fee.billingMonth}</td>
-                        <td style={{ color: isOverdue ? '#f87171' : 'var(--text-muted)' }}>
-                          {new Date(fee.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td>₹{fee.amount.toFixed(0)}</td>
-                        <td style={{ color: fee.lateFine > 0 ? '#f87171' : 'var(--text-muted)', fontSize: '0.8rem' }}>
-                          {fee.lateFine > 0 ? (
-                            <div>
-                               <div style={{ fontWeight: 700 }}>+₹{fee.lateFine}</div>
-                               <div style={{ fontSize: '0.7rem' }}>
-                                 {fee.daysLate > 10 ? `(${Math.floor((fee.daysLate-1)/30)+1} mo. x ₹100)` : `(${fee.daysLate} days x ₹10)`}
-                               </div>
-                            </div>
-                          ) : '—'}
-                        </td>
-                        <td style={{ fontWeight: 'bold' }}>₹{fee.totalAmount.toFixed(0)}</td>
-                        <td>
-                          {fee.status === 'PENDING' ? (
-                            <button onClick={() => handlePayOnline(fee)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600 }}>Pay Online</button>
-                          ) : (
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                              <span style={{
-                                padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
-                                background: fee.status === 'PAID' ? 'rgba(52,211,153,0.2)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.2)' : fee.status === 'PAID_ONLINE' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-                                color: fee.status === 'PAID' ? '#34d399' : fee.status === 'VERIFIED' ? '#60a5fa' : fee.status === 'PAID_ONLINE' ? '#10b981' : '#f87171'
-                              }}>
-                                {fee.status.replace('_', ' ')}
-                              </span>
-                              {['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(fee.status) && (
-                                <button onClick={() => viewReceipt(fee.id)} className="btn-secondary" style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Receipt</button>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Beautiful warning banner if there are any pending invoices */}
+          {fees.some(f => f.status === 'PENDING') && (
+            <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(245,158,11,0.05)', border: '1px solid #f59e0b', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#f59e0b' }}>⚠️ Outstanding Invoice Alert</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Please settle your pending balance online to avoid automatic late fines.</p>
+              </div>
+              <button onClick={() => {
+                const pending = fees.find(f => f.status === 'PENDING');
+                if (pending) handlePayOnline(pending);
+              }} className="btn-primary" style={{ padding: '0.75rem 1.5rem' }}>
+                Pay Outstanding Now
+              </button>
+            </div>
+          )}
+          
+          <StudentLedger onPayOnline={handlePayOnline} onViewReceipt={viewReceipt} />
         </div>
       )}
 

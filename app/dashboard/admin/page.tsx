@@ -29,7 +29,7 @@ function AdminDashboardContent() {
 
   const fetchTeachers = async () => {
     try {
-      const res = await fetch('/api/admin/directory?role=TEACHER');
+      const res = await fetch('/api/admin/directory?role=TEACHER_OR_ADMIN');
       const data = await res.json();
       setAllTeachers(data.users || []);
     } catch (e) {}
@@ -108,6 +108,8 @@ function AdminDashboardContent() {
 
   // Profile Edit State
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState<any>(null);
+  const [financeRefreshTrigger, setFinanceRefreshTrigger] = useState(0);
   const [editingProfile, setEditingProfile] = useState<any>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   
@@ -168,7 +170,10 @@ function AdminDashboardContent() {
     try {
       const res = await fetch('/api/admin/finances');
       const data = await res.json();
-      if (res.ok) setFees(data.fees || []);
+      if (res.ok) {
+        setFees(data.fees || []);
+        setFinanceRefreshTrigger(prev => prev + 1);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -683,7 +688,7 @@ function AdminDashboardContent() {
                 <select 
                   value={newUserRole} 
                   onChange={e => setNewUserRole(e.target.value as any)}
-                  style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'rgba(9, 9, 11, 0.5)', border: '1px solid var(--border)', color: 'white' }}
+                  style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 >
                   <option value="STUDENT">Student</option>
                   <option value="TEACHER">Teacher</option>
@@ -760,7 +765,7 @@ function AdminDashboardContent() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
-              style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white' }}
+              style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
             />
             <button onClick={handleSearchDirectory} className="btn-primary" disabled={isSearching} style={{ padding: '0 2rem' }}>
               {isSearching ? "Searching..." : "Search"}
@@ -792,12 +797,20 @@ function AdminDashboardContent() {
                     </div>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {new Date(u.createdAt).toLocaleDateString()}</div>
-                  <button 
-                    onClick={() => fetchProfile(u.id, u.role)}
-                    style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                  >
-                    ✎ Edit Profile
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button 
+                      onClick={() => setSelectedUserDetail(u)}
+                      style={{ flex: 1, padding: '0.5rem', background: 'var(--primary)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
+                    >
+                      🔍 Details
+                    </button>
+                    <button 
+                      onClick={() => fetchProfile(u.id, u.role)}
+                      style={{ flex: 1, padding: '0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
+                    >
+                      ✎ Edit
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -839,7 +852,7 @@ function AdminDashboardContent() {
                     value={feeSearchQuery}
                     onChange={e => setFeeSearchQuery(e.target.value)}
                     list="ledger-student-search-list"
-                    style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', color: 'white', fontSize: '0.85rem', width: '200px' }}
+                    style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
                   />
                   <datalist id="ledger-student-search-list">
                     {directoryUsers
@@ -974,9 +987,9 @@ function AdminDashboardContent() {
                           style={{
                             width: '100%', padding: '0.85rem 1.25rem',
                             borderRadius: '12px',
-                            background: 'rgba(255,255,255,0.03)',
+                            background: 'var(--input-bg)',
                             border: `1px solid ${feeStudentId ? '#10b981' : 'var(--border)'}`,
-                            color: 'white', fontSize: '0.95rem'
+                            color: 'var(--text)', fontSize: '0.95rem'
                           }}
                         />
                         <datalist id="student-list">
@@ -1669,7 +1682,7 @@ function AdminDashboardContent() {
                
                {editingProfile.role === 'STUDENT' && (
                  <div style={{ gridColumn: 'span 2', marginTop: '1rem', marginBottom: '1.5rem' }}>
-                   <StudentLedger studentId={editingProfile.id} />
+                   <StudentLedger studentId={editingProfile.userId} refreshTrigger={financeRefreshTrigger} />
                  </div>
                )}
 
@@ -2131,6 +2144,184 @@ function AdminDashboardContent() {
 
       {activeTab === 'profile' && (
         <ProfileEditor role="ADMIN" />
+      )}
+
+      {/* ── View User Details Modal ─────────────────── */}
+      {selectedUserDetail && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 3000, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '550px', padding: '2.5rem', margin: 'auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
+            <button 
+              onClick={() => setSelectedUserDetail(null)} 
+              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ×
+            </button>
+
+            {/* Profile Header */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', border: '3px solid var(--primary)', marginBottom: '1rem', boxShadow: '0 8px 25px rgba(99,102,241,0.2)' }}>
+                {selectedUserDetail.photoUrl ? (
+                  <img src={selectedUserDetail.photoUrl} alt={selectedUserDetail.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  (selectedUserDetail.name || 'U').charAt(0).toUpperCase()
+                )}
+              </div>
+              <h2 style={{ fontSize: '1.8rem', margin: 0, fontWeight: 800, color: 'var(--text)' }}>{selectedUserDetail.name || 'Unnamed User'}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>@{selectedUserDetail.username}</span>
+                <span style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: '100px', fontWeight: 800, background: selectedUserDetail.role === 'ADMIN' ? 'rgba(239,68,68,0.15)' : selectedUserDetail.role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)', color: selectedUserDetail.role === 'ADMIN' ? '#f87171' : selectedUserDetail.role === 'TEACHER' ? '#34d399' : '#818cf8' }}>
+                  {selectedUserDetail.role}
+                </span>
+              </div>
+            </div>
+
+            {/* Profile Info Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', color: 'var(--text)' }}>
+              
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.25rem' }}>
+                📇 Contact & Registration Details
+              </div>
+
+              {selectedUserDetail.role === 'STUDENT' && selectedUserDetail.studentProfile && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Roll Number</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.rollNumber || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Registration No</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.registrationNo || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Grade/Class</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.className || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>School</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.school || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Base Fee (Monthly)</div>
+                      <div style={{ fontWeight: 800, color: '#10b981' }}>₹{selectedUserDetail.studentProfile.baseFee || 0}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.dob || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Personal Email</div>
+                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.email || 'N/A'}</div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Student Phone</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.phone || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Parent Contact</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.parentContact || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Father Name</div>
+                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.fatherName || 'N/A'}</div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
+                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.address || 'N/A'}</div>
+                  </div>
+                </>
+              )}
+
+              {selectedUserDetail.role === 'TEACHER' && selectedUserDetail.teacherProfile && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Subject Expertise</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.subject || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Qualification</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.qualification || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Experience</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.experience || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Monthly Salary</div>
+                      <div style={{ fontWeight: 800, color: '#ef4444' }}>₹{selectedUserDetail.teacherProfile.salary || 0}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Email</div>
+                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.email || 'N/A'}</div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Phone</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.phone || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.dob || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
+                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.address || 'N/A'}</div>
+                  </div>
+                </>
+              )}
+
+              {selectedUserDetail.role === 'ADMIN' && (
+                <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  💼 Admin profiles have full system-wide permissions and do not maintain restricted student or teacher records.
+                </div>
+              )}
+
+              <div style={{ height: '1px', background: 'var(--border)', margin: '1rem 0' }}></div>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                  onClick={() => {
+                    const u = selectedUserDetail;
+                    setSelectedUserDetail(null);
+                    fetchProfile(u.id, u.role);
+                  }}
+                  className="btn-primary" 
+                  style={{ flex: 1, padding: '0.85rem' }}
+                >
+                  ✎ Edit User Profile
+                </button>
+                <button 
+                  onClick={() => setSelectedUserDetail(null)} 
+                  style={{ flex: 1, padding: '0.85rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Close Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

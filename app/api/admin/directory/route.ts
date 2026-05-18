@@ -12,14 +12,18 @@ export async function GET(req: Request) {
     name: true,
     role: true,
     createdAt: true,
-    studentProfile: { select: { baseFee: true, photoUrl: true } },
-    teacherProfile: { select: { photoUrl: true } },
+    studentProfile: true,
+    teacherProfile: true,
   };
 
   try {
     const where: any = {};
     if (role) {
-      where.role = role;
+      if (role === 'TEACHER_OR_ADMIN') {
+        where.role = { in: ['TEACHER', 'ADMIN'] };
+      } else {
+        where.role = role;
+      }
     } else {
       where.role = { in: ['STUDENT', 'TEACHER', 'ADMIN'] };
     }
@@ -47,7 +51,8 @@ export async function GET(req: Request) {
         role: u.role,
         createdAt: u.createdAt,
         photoUrl: photo || null,
-        studentProfile: u.studentProfile
+        studentProfile: u.studentProfile,
+        teacherProfile: u.teacherProfile
       };
     });
 
