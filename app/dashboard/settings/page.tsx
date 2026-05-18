@@ -12,11 +12,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPass, setIsChangingPass] = useState(false);
 
-  // Profile state
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
 
   useEffect(() => {
     fetchSettings();
@@ -28,9 +24,6 @@ export default function SettingsPage() {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
-        setName(data.user.name || '');
-        setEmail(data.user.email || '');
-        setPhone(data.user.phone || '');
       }
     } catch (e) { console.error(e); }
     finally { setIsLoading(false); }
@@ -60,25 +53,7 @@ export default function SettingsPage() {
     finally { setIsChangingPass(false); }
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUpdatingProfile(true);
-    try {
-      const res = await fetch('/api/user/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'PROFILE', name, email, phone })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert('Profile updated successfully!');
-        fetchSettings();
-      } else {
-        alert(data.error || 'Failed to update profile');
-      }
-    } catch (e) { alert('Error updating profile'); }
-    finally { setIsUpdatingProfile(false); }
-  };
+
 
   if (isLoading) return <div className="loading-container"><div className="spinner"></div></div>;
 
@@ -140,27 +115,7 @@ export default function SettingsPage() {
           </form>
         </div>
 
-        {/* Update Profile Card */}
-        <div className="glass-card" style={{ padding: '2rem' }}>
-          <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Personal Information</h3>
-          <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-             <div className="input-group">
-                <label>Full Name</label>
-                <input type="text" required value={name} onChange={e => setName(e.target.value)} />
-             </div>
-             <div className="input-group">
-                <label>Email Address</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
-             </div>
-             <div className="input-group">
-                <label>Phone Number</label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 ..." />
-             </div>
-             <button type="submit" className="btn-primary" disabled={isUpdatingProfile} style={{ background: '#10b981' }}>
-                {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
-             </button>
-          </form>
-        </div>
+
 
       </div>
 
