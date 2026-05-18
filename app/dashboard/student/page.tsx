@@ -133,8 +133,14 @@ function StudentDashboardContent() {
         const data = await res.json();
         setReceiptData(data.fee);
         setIsReceiptOpen(true);
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to open receipt.');
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      alert('Network error. Failed to load receipt.');
+    }
   };
 
   return (
@@ -207,8 +213,67 @@ function StudentDashboardContent() {
                     </div>
                   );
                 })}
-              </div>
             </div>
+
+            {/* My Batches & Teachers */}
+            <div className="glass-card" style={{ padding: '2rem', marginTop: '2rem' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🎒 My Batches & Instructors
+              </h3>
+              {dashboard?.batches && dashboard.batches.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+                  {dashboard.batches.map((b: any) => (
+                    <div key={b.id} style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--border)', gap: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>{b.name}</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>Course: {b.course?.name} | Grade: {b.className || 'N/A'}</span>
+                        </div>
+                        {b.subjects && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {b.subjects.split(',').map((subj: string) => (
+                              <span key={subj} style={{ fontSize: '0.7rem', padding: '4px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', borderRadius: '100px', fontWeight: 700 }}>
+                                {subj.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ height: '1px', background: 'var(--border)' }}></div>
+
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          👨‍🏫 Assigned Instructors
+                        </div>
+                        {b.teachers && b.teachers.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                            {b.teachers.map((t: any, idx: number) => (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '0.85rem' }}>
+                                  {t.name?.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{t.name}</div>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Instructor</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No teachers assigned yet for this batch.</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.01)', borderRadius: '16px', border: '1px dashed var(--border)' }}>
+                  Not enrolled in any academic batches yet. Please contact the administrator.
+                </div>
+              )}
+            </div>
+          </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div className={`glass-card ${(dashboard as any)?.feeHighlight?.isOverdue ? 'overdue-pulse' : ''}`} style={{ padding: '2rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'linear-gradient(135deg, var(--primary), var(--accent))', border: (dashboard as any)?.feeHighlight?.isOverdue ? '1px solid rgba(239, 68, 68, 0.5)' : undefined }}>
@@ -377,7 +442,7 @@ function StudentDashboardContent() {
                               }}>
                                 {fee.status.replace('_', ' ')}
                               </span>
-                              {(fee.status === 'PAID_ONLINE' || fee.status === 'VERIFIED' || fee.status === 'PAID') && (
+                              {fee.status === 'VERIFIED' && (
                                 <button onClick={() => viewReceipt(fee.id)} className="btn-secondary" style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Receipt</button>
                               )}
                             </div>
@@ -442,61 +507,7 @@ function StudentDashboardContent() {
         </div>
       )}
 
-      {activeTab === 'profile' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
-          <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', margin: '0 auto 1.5rem auto', overflow: 'hidden', border: '4px solid var(--primary)' }}>
-               { (dashboard as any)?.profile?.photoUrl ? (
-                 <img src={(dashboard as any).profile.photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-               ) : (
-                 <div style={{ fontSize: '4rem', lineHeight: '150px' }}>👤</div>
-               )}
-            </div>
-            <h2 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0' }}>{dashboard?.name}</h2>
-            <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px' }}>
-              {(dashboard as any)?.profile?.className} Student
-            </div>
-            <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Roll No: <strong>{(dashboard as any)?.profile?.rollNumber || 'N/A'}</strong></div>
-               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Batch: <strong>{(dashboard as any)?.profile?.batch || 'N/A'}</strong></div>
-            </div>
-          </div>
 
-          <div className="glass-card" style={{ padding: '2rem' }}>
-             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>Personal Details</h3>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Date of Birth</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.dob || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Mobile Number</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.phone || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Email Address</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.email || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Father's Name</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.fatherName || 'Not provided'}</div>
-                </div>
-                <div className="profile-field" style={{ gridColumn: 'span 2' }}>
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Residential Address</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.address || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>School Name</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.school || 'Not provided'}</div>
-                </div>
-                <div className="profile-field">
-                   <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Academic Grade</label>
-                   <div style={{ fontSize: '1.1rem', marginTop: '4px' }}>{(dashboard as any)?.profile?.grade || (dashboard as any)?.profile?.className || 'N/A'}</div>
-                </div>
-             </div>
-          </div>
-        </div>
-      )}
 
 
 
@@ -533,7 +544,11 @@ function StudentDashboardContent() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <label style={{ color: '#9ca3af', fontSize: '0.75rem', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Date Issued</label>
-                  <div style={{ fontWeight: 600 }}>{receiptData.paidAt ? new Date(receiptData.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {receiptData.paidAt 
+                      ? `${new Date(receiptData.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}, ${new Date(receiptData.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                      : 'N/A'}
+                  </div>
                 </div>
                 <div>
                   <label style={{ color: '#9ca3af', fontSize: '0.75rem', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Student Name</label>

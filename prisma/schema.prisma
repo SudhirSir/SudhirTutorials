@@ -16,6 +16,7 @@ model User {
   username           String   @unique
   passwordHash       String
   recoveryPinHash    String?
+  photoUrl           String?
 
   role               String   @default("STUDENT")
 

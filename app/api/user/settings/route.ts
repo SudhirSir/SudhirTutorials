@@ -76,6 +76,28 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: true, message: 'Password updated successfully' });
     }
 
+    if (action === 'RECOVERY_PIN') {
+      const { currentPassword, newPin } = body;
+      if (!currentPassword || !newPin) {
+        return NextResponse.json({ error: 'Missing current password or new PIN' }, { status: 400 });
+      }
+      if (newPin.length !== 6 || isNaN(Number(newPin))) {
+        return NextResponse.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
+      }
+
+      const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+      const isMatch = await bcrypt.compare(currentPassword, user!.passwordHash);
+      if (!isMatch) return NextResponse.json({ error: 'Password incorrect' }, { status: 400 });
+
+      const recoveryPinHash = await bcrypt.hash(newPin, 10);
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { recoveryPinHash }
+      });
+
+      return NextResponse.json({ success: true, message: 'Secret PIN updated successfully' });
+    }
+
     if (action === 'PROFILE') {
       const validation = profileSchema.safeParse(body);
       if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });

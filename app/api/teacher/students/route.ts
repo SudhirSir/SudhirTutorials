@@ -12,14 +12,37 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const batchId = searchParams.get('batchId');
+    const q = searchParams.get('q');
+    const batchName = searchParams.get('batch');
 
-    // Base filter: Students in teacher's batches
+    // Base filter: Role is Student
     const where: any = {
       role: 'STUDENT',
-      studentBatches: {
-        some: batchId ? { id: batchId, teachers: { some: { id: session.user.id } } } : { teachers: { some: { id: session.user.id } } }
-      }
     };
+
+    if (batchId) {
+      where.studentBatches = {
+        some: { id: batchId }
+      };
+    } else if (batchName) {
+      where.studentBatches = {
+        some: { name: { contains: batchName, mode: 'insensitive' } }
+      };
+    }
+
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { username: { contains: q, mode: 'insensitive' } }
+      ];
+    }
+
+    // If no search filter is applied, default to only showing students in the teacher's own batches
+    if (!q && !batchName && !batchId) {
+      where.studentBatches = {
+        some: { teachers: { some: { id: session.user.id } } }
+      };
+    }
 
     const students = await prisma.user.findMany({
       where,
@@ -30,9 +53,6 @@ export async function GET(req: Request) {
         role: true,
         studentProfile: true,
         studentBatches: {
-          where: {
-            teachers: { some: { id: session.user.id } }
-          },
           select: {
             name: true,
             course: { select: { name: true } }

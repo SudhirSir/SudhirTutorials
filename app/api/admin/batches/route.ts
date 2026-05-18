@@ -10,6 +10,7 @@ const batchSchema = z.object({
   name: z.string().min(3, "Batch name too short").max(50),
   className: z.string().optional(),
   subjects: z.string().optional(),
+  defaultFee: z.number().optional(),
   courseId: z.string().min(1, "Course is required"),
   teacherUsernames: z.array(z.string()).optional(),
   studentUsernames: z.array(z.string()).optional(),
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
 
-    const { name, courseId, teacherUsernames, studentUsernames, className, subjects } = validation.data;
+    const { name, courseId, teacherUsernames, studentUsernames, className, subjects, defaultFee } = validation.data;
 
     // Connect teachers
 
@@ -60,6 +61,7 @@ export async function POST(req: Request) {
         name,
         className,
         subjects,
+        defaultFee: defaultFee || 0,
         courseId,
         teachers: { connect: teachers.map((t: any) => ({ id: t.id })) },
         students: { connect: students.map((s: any) => ({ id: s.id })) }
@@ -81,7 +83,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { id, name, courseId, teacherUsernames, studentUsernames, className, subjects } = body;
+    const { id, name, courseId, teacherUsernames, studentUsernames, className, subjects, defaultFee } = body;
     if (!id) return NextResponse.json({ error: 'Missing batch ID' }, { status: 400 });
 
     // Find teachers and students
@@ -95,6 +97,7 @@ export async function PATCH(req: Request) {
         courseId,
         className,
         subjects,
+        defaultFee: defaultFee ? Number(defaultFee) : 0,
         teachers: { set: teachers.map((t: any) => ({ id: t.id })) },
         students: { set: students.map((s: any) => ({ id: s.id })) }
       }

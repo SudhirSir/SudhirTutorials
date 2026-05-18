@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
 const userSchema = z.object({
-  role: z.enum(['STUDENT', 'TEACHER']),
+  role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
   name: z.string().min(2, "Name must be at least 2 characters").max(50),
 });
 
@@ -50,6 +50,17 @@ export async function POST(req: Request) {
         if (!isNaN(num)) nextNumber = num + 1;
       }
       username = `STU${nextNumber.toString().padStart(5, '0')}`;
+    } else if (role === 'ADMIN') {
+      const lastAdmin = await prisma.user.findFirst({
+        where: { role: 'ADMIN', username: { startsWith: 'ADM' } },
+        orderBy: { username: 'desc' }
+      });
+      let nextNumber = 101;
+      if (lastAdmin && lastAdmin.username) {
+        const num = parseInt(lastAdmin.username.replace('ADM', ''), 10);
+        if (!isNaN(num)) nextNumber = num + 1;
+      }
+      username = `ADM${nextNumber}`;
     } else {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }

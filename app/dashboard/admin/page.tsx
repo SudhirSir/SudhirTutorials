@@ -28,15 +28,15 @@ function AdminDashboardContent() {
 
   const fetchTeachers = async () => {
     try {
-      const res = await fetch('/api/admin/directory?q=');
+      const res = await fetch('/api/admin/directory?role=TEACHER');
       const data = await res.json();
-      setAllTeachers(data.users?.filter((u:any) => u.role === 'TEACHER') || []);
+      setAllTeachers(data.users || []);
     } catch (e) {}
   };
   
   // User Creation State
   const [overviewStats, setOverviewStats] = useState<{ totalStudents: number, totalTeachers: number, revenueThisMonth: number, pendingDues: number } | null>(null);
-  const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER'>('STUDENT');
+  const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
   const [newUserName, setNewUserName] = useState('');
   const [createdUser, setCreatedUser] = useState<{username: string, password: string, role: string} | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -55,7 +55,7 @@ function AdminDashboardContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [directoryUsers, setDirectoryUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER'>('ALL');
+  const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'>('ALL');
 
   // Finance State
   const [fees, setFees] = useState<any[]>([]);
@@ -469,12 +469,16 @@ function AdminDashboardContent() {
 
   const fetchProfile = async (userId: string, role: string) => {
     try {
-      const endpoint = role === 'STUDENT' ? `/api/admin/students/${userId}` : `/api/admin/teachers/${userId}`;
+      const endpoint = role === 'STUDENT' 
+        ? `/api/admin/students/${userId}` 
+        : role === 'TEACHER'
+        ? `/api/admin/teachers/${userId}`
+        : `/api/admin/admins/${userId}`;
       const res = await fetch(endpoint);
       const data = await res.json();
       if (res.ok) {
-        const userData = role === 'STUDENT' ? data.student : data.teacher;
-        const profileData = role === 'STUDENT' ? userData.studentProfile : userData.teacherProfile;
+        const userData = role === 'STUDENT' ? data.student : role === 'TEACHER' ? data.teacher : data.admin;
+        const profileData = role === 'STUDENT' ? userData.studentProfile : role === 'TEACHER' ? userData.teacherProfile : {};
         
         setEditingProfile({ 
           userId: userData.id, 
@@ -495,7 +499,9 @@ function AdminDashboardContent() {
     try {
       const endpoint = editingProfile.role === 'STUDENT' 
         ? `/api/admin/students/${editingProfile.userId}` 
-        : `/api/admin/teachers/${editingProfile.userId}`;
+        : editingProfile.role === 'TEACHER'
+        ? `/api/admin/teachers/${editingProfile.userId}`
+        : `/api/admin/admins/${editingProfile.userId}`;
 
       const res = await fetch(endpoint, {
         method: 'PUT',
@@ -522,7 +528,9 @@ function AdminDashboardContent() {
     try {
       const endpoint = editingProfile.role === 'STUDENT' 
         ? `/api/admin/students/${editingProfile.userId}` 
-        : `/api/admin/teachers/${editingProfile.userId}`;
+        : editingProfile.role === 'TEACHER'
+        ? `/api/admin/teachers/${editingProfile.userId}`
+        : `/api/admin/admins/${editingProfile.userId}`;
         
       const res = await fetch(endpoint, { method: 'DELETE' });
       if (res.ok) {
@@ -530,7 +538,8 @@ function AdminDashboardContent() {
         setEditingProfile(null);
         handleSearchDirectory();
       } else {
-        alert('Failed to delete user');
+        const data = await res.json();
+        alert(data.error || 'Failed to delete user');
       }
     } catch (e) { console.error(e); }
     finally { setIsSavingProfile(false); }
@@ -650,6 +659,7 @@ function AdminDashboardContent() {
                 >
                   <option value="STUDENT">Student</option>
                   <option value="TEACHER">Teacher</option>
+                  <option value="ADMIN">Admin</option>
                 </select>
               </div>
               
@@ -712,6 +722,7 @@ function AdminDashboardContent() {
             <button onClick={() => setDirectoryFilter('ALL')} style={{ padding: '0.6rem 1.2rem', background: directoryFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: directoryFilter === 'ALL' ? '#fff' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>All Users</button>
             <button onClick={() => setDirectoryFilter('STUDENT')} style={{ padding: '0.6rem 1.2rem', background: directoryFilter === 'STUDENT' ? 'var(--primary)' : 'transparent', color: directoryFilter === 'STUDENT' ? '#fff' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>View Students</button>
             <button onClick={() => setDirectoryFilter('TEACHER')} style={{ padding: '0.6rem 1.2rem', background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', color: directoryFilter === 'TEACHER' ? '#fff' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>View Educators</button>
+            <button onClick={() => setDirectoryFilter('ADMIN')} style={{ padding: '0.6rem 1.2rem', background: directoryFilter === 'ADMIN' ? '#f59e0b' : 'transparent', color: directoryFilter === 'ADMIN' ? '#fff' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>View Admins</button>
           </div>
           
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
@@ -799,8 +810,16 @@ function AdminDashboardContent() {
                     placeholder="Search Name or ID..." 
                     value={feeSearchQuery}
                     onChange={e => setFeeSearchQuery(e.target.value)}
+                    list="ledger-student-search-list"
                     style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', color: 'white', fontSize: '0.85rem', width: '200px' }}
                   />
+                  <datalist id="ledger-student-search-list">
+                    {directoryUsers
+                      .filter(u => u.role === 'STUDENT')
+                      .map(s => (
+                        <option key={s.id} value={s.name} label={s.username} />
+                      ))}
+                  </datalist>
                 </div>
               </div>
 
@@ -1379,7 +1398,7 @@ function AdminDashboardContent() {
           <div className="glass-card" style={{ width: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', border: '1px solid var(--primary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                <div>
-                 <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : 'Teacher'} Profile Editor</h2>
+                 <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : editingProfile.role === 'TEACHER' ? 'Teacher' : 'Admin'} Profile Editor</h2>
                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>ID: {editingProfile.username}</p>
                </div>
                <button onClick={() => setShowProfileModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
@@ -1514,7 +1533,7 @@ function AdminDashboardContent() {
                      <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
                    </div>
                  </>
-               ) : (
+               ) : editingProfile.role === 'TEACHER' ? (
                  <>
                    <div className="input-group">
                      <label>Subject</label>
@@ -1546,7 +1565,7 @@ function AdminDashboardContent() {
                      <input type="text" value={editingProfile.experience || ''} onChange={e => setEditingProfile({...editingProfile, experience: e.target.value})} placeholder="e.g. 5 Years" />
                    </div>
                  </>
-               )}
+               ) : null}
 
                <div className="input-group" style={{ gridColumn: 'span 2' }}>
                  <label>Residential Address</label>
@@ -1837,7 +1856,11 @@ function AdminDashboardContent() {
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
                   <div style={{ fontWeight: 700 }}>REC-{activeReceipt.id.slice(-6).toUpperCase()}</div>
-                  <div style={{ color: '#6b7280' }}>{new Date(activeReceipt.paidAt || Date.now()).toLocaleDateString()}</div>
+                  <div style={{ color: '#6b7280' }}>
+                    {activeReceipt.paidAt 
+                      ? `${new Date(activeReceipt.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                      : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </div>
                 </div>
               </div>
 

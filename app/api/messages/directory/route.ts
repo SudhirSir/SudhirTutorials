@@ -30,6 +30,7 @@ export async function GET(req: Request) {
         name: true,
         username: true,
         role: true,
+        photoUrl: true,
         studentProfile: { select: { photoUrl: true } },
         teacherProfile: { select: { photoUrl: true } }
       },
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
     });
 
     const mappedUsers = users.map((u: any) => {
-      const photo = u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl;
+      const photo = u.photoUrl || (u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl);
       return {
         id: u.id,
         name: u.name,

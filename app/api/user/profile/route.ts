@@ -27,6 +27,7 @@ export async function GET() {
       username: user.username,
       role: user.role,
       isProfileVerified: user.isProfileVerified,
+      photoUrl: user.photoUrl,
       profile
     });
   } catch (e) {
@@ -45,9 +46,15 @@ export async function PUT(req: Request) {
     const { name, email, phone, address, dob, photoUrl, subject, qualification, experience,
             fatherName, parentContact, school, className } = body;
 
-    // Update name on User
-    if (name !== undefined) {
-      await prisma.user.update({ where: { id: session.user.id }, data: { name } });
+    // Update name and photoUrl on User
+    if (name !== undefined || photoUrl !== undefined) {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(photoUrl !== undefined && { photoUrl }),
+        }
+      });
     }
 
     if (session.user.role === 'STUDENT') {

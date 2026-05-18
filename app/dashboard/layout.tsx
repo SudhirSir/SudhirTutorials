@@ -109,7 +109,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const res = await fetch('/api/user/profile');
           if (res.ok) {
             const data = await res.json();
-            const photo = data.profile?.photoUrl || null;
+            const photo = data.photoUrl || data.profile?.photoUrl || null;
             if (photo) setProfilePhoto(photo);
           }
         } catch {}

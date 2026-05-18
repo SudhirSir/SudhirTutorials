@@ -23,6 +23,8 @@ function TeacherDashboardContent() {
   const [classes, setClasses] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [studentBatchQuery, setStudentBatchQuery] = useState('');
   
   // Attendance States
   const [attBatchId, setAttBatchId] = useState('');
@@ -63,6 +65,12 @@ function TeacherDashboardContent() {
       fetchProfile();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'students') {
+      fetchStudents();
+    }
+  }, [studentSearchQuery, studentBatchQuery]);
 
   useEffect(() => {
     if (attBatchId) {
@@ -116,7 +124,10 @@ function TeacherDashboardContent() {
 
   const fetchStudents = async () => {
     try {
-      const res = await fetch('/api/teacher/students');
+      const params = new URLSearchParams();
+      if (studentSearchQuery) params.append('q', studentSearchQuery);
+      if (studentBatchQuery) params.append('batch', studentBatchQuery);
+      const res = await fetch(`/api/teacher/students?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setStudents(data.students || []);
@@ -475,7 +486,75 @@ function TeacherDashboardContent() {
 
       {activeTab === 'students' && (
         <div className="glass-card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>My Enrolled Students</h2>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Search & Check Enrolled Students</h2>
+          
+          {/* Dynamic Full-Directory Search Filters */}
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="🔍 Search Student Name or ID (e.g. STU00001)..."
+                value={studentSearchQuery}
+                onChange={e => setStudentSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem 0.75rem 2.5rem',
+                  borderRadius: '12px',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid var(--border)',
+                  color: 'white',
+                  fontSize: '0.9rem'
+                }}
+              />
+              {studentSearchQuery && (
+                <button 
+                  onClick={() => setStudentSearchQuery('')}
+                  style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem' }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            
+            <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="🎒 Search by Batch Name..."
+                value={studentBatchQuery}
+                onChange={e => setStudentBatchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem 0.75rem 2.5rem',
+                  borderRadius: '12px',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid var(--border)',
+                  color: 'white',
+                  fontSize: '0.9rem'
+                }}
+              />
+              {studentBatchQuery && (
+                <button 
+                  onClick={() => setStudentBatchQuery('')}
+                  style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem' }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {(studentSearchQuery || studentBatchQuery) && (
+              <button
+                onClick={() => {
+                  setStudentSearchQuery('');
+                  setStudentBatchQuery('');
+                }}
+                className="btn-secondary"
+                style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontSize: '0.9rem', color: 'white', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>

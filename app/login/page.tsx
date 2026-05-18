@@ -96,14 +96,14 @@ export default function LoginPage() {
   const activeColor = tabs.find(t => t.id === activeTab)?.color || "var(--primary)";
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
+    <div className="login-container-parent" style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
       {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side) */}
       <div style={{ position: 'fixed', top: '2rem', right: '2rem', zIndex: 1000 }}>
         <ThemeToggle />
       </div>
 
       {/* Left Form Section */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3rem', position: 'relative' }}>
+      <div className="login-form-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3rem', position: 'relative' }}>
 
         <div style={{ marginBottom: '3rem' }}>
           <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-block' }}>
@@ -113,12 +113,12 @@ export default function LoginPage() {
 
         <div style={{ maxWidth: '420px', width: '100%', margin: '0' }}>
           <div style={{ marginBottom: '2.5rem' }}>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>Welcome Back</h1>
+            <h1 className="login-title-h1" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>Welcome Back</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Enter your credentials to access your account.</p>
           </div>
 
           {/* Role Selection */}
-          <div style={{ display: 'flex', background: 'var(--card-bg-alt)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
+          <div className="login-tabs-header" style={{ display: 'flex', background: 'var(--card-bg-alt)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
             {tabs.map(tab => (
               <button
                 key={tab.id}

@@ -23,9 +23,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     if (!fee) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
 
-    // Allow admin to see any receipt, students can only see their own
-    if ((session.user as any).role === 'STUDENT' && fee.studentId !== (session.user as any).id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Allow admin to see any receipt, students can only see their own and only after admin verification
+    if ((session.user as any).role === 'STUDENT') {
+      if (fee.studentId !== (session.user as any).id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      if (fee.status !== 'VERIFIED') {
+        return NextResponse.json({ error: 'Receipt is pending verification from the Admin.' }, { status: 403 });
+      }
     }
 
     // Include lateFine dynamically even if it's past

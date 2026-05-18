@@ -28,6 +28,7 @@ export async function GET() {
             name: true,
             username: true,
             role: true,
+            photoUrl: true,
             studentProfile: { select: { photoUrl: true } },
             teacherProfile: { select: { photoUrl: true } }
           }
@@ -38,6 +39,7 @@ export async function GET() {
             name: true,
             username: true,
             role: true,
+            photoUrl: true,
             studentProfile: { select: { photoUrl: true } },
             teacherProfile: { select: { photoUrl: true } }
           }
@@ -47,8 +49,8 @@ export async function GET() {
     });
 
     const mappedMessages = messages.map((m: any) => {
-      const senderPhoto = m.sender.role === 'STUDENT' ? m.sender.studentProfile?.photoUrl : m.sender.teacherProfile?.photoUrl;
-      const receiverPhoto = m.receiver.role === 'STUDENT' ? m.receiver.studentProfile?.photoUrl : m.receiver.teacherProfile?.photoUrl;
+      const senderPhoto = m.sender.photoUrl || (m.sender.role === 'STUDENT' ? m.sender.studentProfile?.photoUrl : m.sender.teacherProfile?.photoUrl);
+      const receiverPhoto = m.receiver.photoUrl || (m.receiver.role === 'STUDENT' ? m.receiver.studentProfile?.photoUrl : m.receiver.teacherProfile?.photoUrl);
 
       return {
         ...m,
