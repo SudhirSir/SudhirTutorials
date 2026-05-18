@@ -7,6 +7,29 @@ interface ProfileEditorProps {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
 }
 
+// Canvas compressor — resizes to 400x400, 70% JPEG quality (~30KB output)
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 400;
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+        else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function ProfileEditor({ role }: ProfileEditorProps) {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<any>(null);
@@ -37,6 +60,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           phone: data.profile?.phone || '',
           address: data.profile?.address || '',
           dob: data.profile?.dob || '',
+          photoUrl: data.photoUrl || data.profile?.photoUrl || '',
           subject: data.profile?.subject || '',
           qualification: data.profile?.qualification || '',
           experience: data.profile?.experience || '',
@@ -115,6 +139,13 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
     finally { setPinSaving(false); }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const compressed = await compressImage(file);
+    setForm((f: any) => ({ ...f, photoUrl: compressed }));
+  };
+
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '0.85rem 1rem', borderRadius: '12px',
     background: 'var(--input-bg)', border: '1px solid var(--border)',
@@ -138,11 +169,29 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
       {/* LEFT: Avatar Card */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
-          {/* Profile Photo - Initials Only */}
-          <div style={{ position: 'relative', width: '130px', margin: '0 auto 1.5rem' }}>
-            <div style={{ width: '130px', height: '130px', borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--primary)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', fontWeight: 800 }}>
-              {(form.name || 'U').charAt(0).toUpperCase()}
+          {/* Profile Photo */}
+          <div style={{ position: 'relative', width: '130px', margin: '0 auto 1.5rem', cursor: 'pointer' }}>
+            <div style={{ width: '130px', height: '130px', borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--primary)', background: 'rgba(255,255,255,0.05)' }}>
+              {form.photoUrl ? (
+                <img src={form.photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
+                  {(form.name || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
             </div>
+            {/* Camera overlay */}
+            <label htmlFor="photo-upload" style={{
+              position: 'absolute', bottom: '4px', right: '4px',
+              width: '34px', height: '34px', borderRadius: '50%',
+              background: 'var(--primary)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', border: '2px solid var(--background)',
+              fontSize: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+            }}>
+              📷
+            </label>
+            <input id="photo-upload" type="file" accept="image/*" onChange={handleFileUpload}
+              style={{ display: 'none' }} />
           </div>
 
           <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{profile.name}</div>

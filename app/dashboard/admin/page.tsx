@@ -1442,6 +1442,63 @@ function AdminDashboardContent() {
 
             <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
 
+               <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                 <label>Profile Picture</label>
+                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                   {editingProfile.photoUrl ? (
+                     <img src={editingProfile.photoUrl} alt="Profile" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} />
+                   ) : (
+                     <div style={{ width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '1.5rem', border: '1px dashed var(--border)' }}>👤</div>
+                   )}
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Upload from device (Auto-compresses to small size):</span>
+                     <input 
+                       type="file" 
+                       accept="image/*"
+                       onChange={e => {
+                         const file = e.target.files?.[0];
+                         if (file) {
+                           const reader = new FileReader();
+                           reader.onload = (event) => {
+                             const img = new Image();
+                             img.onload = () => {
+                               const canvas = document.createElement('canvas');
+                               const ctx = canvas.getContext('2d');
+                               if (!ctx) return;
+                               
+                               const MAX_SIZE = 400;
+                               let width = img.width;
+                               let height = img.height;
+
+                               if (width > height) {
+                                 if (width > MAX_SIZE) {
+                                   height *= MAX_SIZE / width;
+                                   width = MAX_SIZE;
+                                 }
+                               } else {
+                                 if (height > MAX_SIZE) {
+                                   width *= MAX_SIZE / height;
+                                   height = MAX_SIZE;
+                                 }
+                               }
+                               
+                               canvas.width = width;
+                               canvas.height = height;
+                               ctx.drawImage(img, 0, 0, width, height);
+                               const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                               setEditingProfile({ ...editingProfile, photoUrl: compressedDataUrl });
+                             };
+                             img.src = event.target?.result as string;
+                           };
+                           reader.readAsDataURL(file);
+                         }
+                       }}
+                       style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer' }}
+                     />
+                   </div>
+                 </div>
+               </div>
+
                <div className="input-group">
                  <label>Full Name</label>
                  <input type="text" value={editingProfile.name || ''} onChange={e => setEditingProfile({...editingProfile, name: e.target.value})} placeholder="Full Name" required />
