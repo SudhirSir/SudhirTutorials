@@ -149,7 +149,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
     printWindow.document.write(`
       <html>
         <head>
-          <title>Sudhir Tutorials - Academic Fee Passbook Ledger</title>
+          <title>Sudhir Tutorials - Student Fee Statement</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
             .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
@@ -174,10 +174,10 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           <div class="header">
             <div>
               <h1>SUDHIR TUTORIALS</h1>
-              <p>Academic Fee Ledger & Transaction Statement</p>
+              <p>Official Student Fee Statement</p>
             </div>
             <div style="text-align: right;">
-              <p style="font-weight: bold; color: #4f46e5; margin: 0 0 5px 0;">OFFICIAL BANK LEDGER PASSBOOK</p>
+              <p style="font-weight: bold; color: #4f46e5; margin: 0 0 5px 0;">OFFICIAL STUDENT FEE STATEMENT</p>
               <p style="margin: 0;">Generated: ${new Date().toLocaleDateString('en-GB')}</p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
             </div>
             <div class="meta-card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div>
-                <h3>Total Debited (Charged)</h3>
+                <h3>Total Debited (Charges)</h3>
                 <p class="debit">₹${totalDebit.toFixed(2)}</p>
               </div>
               <div>
@@ -200,7 +200,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
               <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
                 <h3>Current Outstanding Balance</h3>
                 <p style="color: ${finalBalance >= 0 ? '#16a34a' : '#dc2626'}">
-                  ${finalBalance >= 0 ? 'Settled ✓' : '₹' + Math.abs(finalBalance).toFixed(2)}
+                  ${finalBalance >= 0 ? 'Settled ✓' : '₹' + Math.abs(finalBalance).toFixed(2) + ' Dr'}
                 </p>
               </div>
             </div>
@@ -209,24 +209,24 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           <table>
             <thead>
               <tr>
-                <th>Value Date</th>
-                <th>Transaction Reference</th>
-                <th>Narrative / Particulars</th>
-                <th>Debit (Charged)</th>
-                <th>Credit (Payments)</th>
-                <th>Running Balance</th>
+                <th>Transaction Date</th>
+                <th>Description / Narrative</th>
+                <th>Cheque/Ref No.</th>
+                <th style="text-align: right;">Withdrawal / Debit (Dr)</th>
+                <th style="text-align: right;">Deposit / Credit (Cr)</th>
+                <th style="text-align: right;">Balance (Dr/Cr)</th>
               </tr>
             </thead>
             <tbody>
               ${postings.map(p => `
                 <tr>
                   <td>${new Date(p.date).toLocaleDateString('en-GB')}</td>
-                  <td style="font-family: monospace;">${p.reference}</td>
                   <td>${p.description}</td>
-                  <td class="debit">${p.debit > 0 ? '₹' + p.debit.toFixed(2) : '-'}</td>
-                  <td class="credit">${p.credit > 0 ? '₹' + p.credit.toFixed(2) : '-'}</td>
-                  <td class="balance" style="color: ${p.balance >= 0 ? '#16a34a' : '#dc2626'}">
-                    ${p.balance >= 0 ? '₹' + p.balance.toFixed(2) : '-₹' + Math.abs(p.balance).toFixed(2)}
+                  <td style="font-family: monospace;">${p.reference}</td>
+                  <td class="debit" style="text-align: right;">${p.debit > 0 ? '₹' + p.debit.toFixed(2) : '-'}</td>
+                  <td class="credit" style="text-align: right;">${p.credit > 0 ? '₹' + p.credit.toFixed(2) : '-'}</td>
+                  <td class="balance" style="text-align: right; color: ${p.balance >= 0 ? '#16a34a' : '#dc2626'}">
+                    ${p.balance >= 0 ? '₹' + p.balance.toFixed(2) + ' Cr' : '₹' + Math.abs(p.balance).toFixed(2) + ' Dr'}
                   </td>
                 </tr>
               `).join('')}
@@ -337,6 +337,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           {/* Toggle Type */}
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', display: 'flex', border: '1px solid var(--border)', flexWrap: 'wrap', gap: '4px' }}>
             <button 
+              type="button"
               onClick={() => setViewType('month')}
               style={{
                 padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
@@ -348,6 +349,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
               📅 12 Months
             </button>
             <button 
+              type="button"
               onClick={() => setViewType('year')}
               style={{
                 padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
@@ -359,6 +361,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
               📊 Year-wise
             </button>
             <button 
+              type="button"
               onClick={() => setViewType('statement')}
               style={{
                 padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
@@ -367,7 +370,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                 fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
-              🏦 Bank Passbook Statement
+              🏦 Student Fee Statement
             </button>
           </div>
         </div>
@@ -474,6 +477,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
                         {status === 'PENDING' && onPayOnline && (
                           <button 
+                            type="button"
                             onClick={() => onPayOnline(record)}
                             className="btn-primary" 
                             style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}
@@ -483,6 +487,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                         )}
                         {['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) && onViewReceipt && (
                           <button 
+                            type="button"
                             onClick={() => onViewReceipt(record.id)}
                             className="btn-secondary" 
                             style={{ padding: '6px 10px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
@@ -548,6 +553,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                 Showing all chronological credit/debit transaction postings
               </span>
               <button 
+                type="button"
                 onClick={handlePrintStatement}
                 className="btn-secondary"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '20px', fontWeight: 700, fontSize: '0.85rem' }}

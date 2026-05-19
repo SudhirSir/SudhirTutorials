@@ -12,6 +12,8 @@ const feeSchema = z.object({
   batchId: z.string().optional(), // For batch-specific assignment
   discount: z.number().optional().default(0),
   remarks: z.string().optional(),
+  dueDate: z.string().optional(),
+  createdAt: z.string().optional(),
 });
 
 const updateStatusSchema = z.object({
@@ -112,13 +114,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
     }
 
-    const { type, amount, billingMonth, title, studentId, batchId, discount, remarks } = validation.data;
+    const { type, amount, billingMonth, title, studentId, batchId, discount, remarks, dueDate, createdAt } = validation.data;
 
     const parsed = new Date(`${billingMonth} 12`);
     if (isNaN(parsed.getTime())) {
       return NextResponse.json({ error: 'Invalid billingMonth format. Use e.g. "April 2026"' }, { status: 400 });
     }
-    const dueDate = new Date(parsed.getFullYear(), parsed.getMonth(), 12);
+    
+    const finalDueDate = dueDate ? new Date(dueDate) : new Date(parsed.getFullYear(), parsed.getMonth(), 12);
+    const finalCreatedAt = createdAt ? new Date(createdAt) : new Date();
 
     if (type === 'BATCH') {
       const where: any = { role: 'STUDENT' };
@@ -148,7 +152,8 @@ export async function POST(req: Request) {
             studentId: s.id,
             amount: amount || s.studentProfile?.baseFee || 0,
             billingMonth,
-            dueDate,
+            dueDate: finalDueDate,
+            createdAt: finalCreatedAt,
             title: title || 'Monthly Fee',
             status: 'PENDING',
             discount: discount || 0,
@@ -178,7 +183,8 @@ export async function POST(req: Request) {
           studentId: student.id,
           amount: amount || student.studentProfile?.baseFee || 0,
           billingMonth,
-          dueDate,
+          dueDate: finalDueDate,
+          createdAt: finalCreatedAt,
           title: title || 'Monthly Fee',
           status: 'PENDING',
           discount: discount || 0,

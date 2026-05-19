@@ -22,7 +22,17 @@ export async function GET() {
       include: {
         course: { select: { name: true } },
         teachers: { select: { name: true, username: true } },
-        students: { select: { name: true, username: true } },
+        students: { 
+          select: { 
+            name: true, 
+            username: true,
+            studentProfile: {
+              select: {
+                baseFee: true
+              }
+            }
+          } 
+        },
         schedules: true,
         _count: { select: { students: true } }
       },

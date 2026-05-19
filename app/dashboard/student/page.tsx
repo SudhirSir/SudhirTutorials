@@ -68,8 +68,17 @@ function StudentDashboardContent() {
   const [guruSubject, setGuruSubject] = useState('Mathematics');
   const [guruLanguage, setGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
   const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([
-    { role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal AI tutor. I am here to clarify all your doubts completely. Select your preferred subject and explanatory language (English, Hindi, or Hinglish), then ask your doubt!' }
+    { role: 'guru', content: 'Greetings, dear student! 👋 I am Digital Guru Ji, your virtual personal AI tutor. Let\'s conquer your academic doubts today! Choose a subject, select your preferred language, and ask away.' }
   ]);
+
+  useEffect(() => {
+    if (session?.user?.name) {
+      setGuruHistory([
+        { role: 'guru', content: `Hello, ${session.user.name}! 👋 I am Digital Guru Ji, your personal AI tutor. Let's conquer your academic doubts today! Choose a subject, select your preferred language, and ask away.` }
+      ]);
+    }
+  }, [session?.user?.name]);
+
   const [guruLoading, setGuruLoading] = useState(false);
 
   // High performance formatting engine to render clean unicode mathematics and science equations beautifully
@@ -334,7 +343,17 @@ function StudentDashboardContent() {
             {tab === 'notifications' && unreadNotifications > 0 && (
               <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
-            {tab === 'lectures' ? '📺 Live Classes' : tab === 'guru-ji' ? '✨ Digital Guru Ji' : tab}
+            {tab === 'dashboard' ? '📊 Dashboard' :
+             tab === 'attendance' ? '✏️ My Attendance' :
+             tab === 'materials' ? '📚 Study Materials' :
+             tab === 'tests' ? '📝 Tests & Marks' :
+             tab === 'fees' ? '🧾 Student Fee Statement' :
+             tab === 'lectures' ? '📺 Live Classes' :
+             tab === 'guru-ji' ? '✨ Digital Guru Ji' :
+             tab === 'messages' ? '💬 Messages' :
+             tab === 'notifications' ? '🔔 Notifications' :
+             tab === 'profile' ? '👤 My Profile' :
+             tab}
           </button>
         ))}
       </div>
@@ -1169,6 +1188,7 @@ function StudentDashboardContent() {
                   boxShadow: '0 4px 15px rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                 }}
               >
+                {guruLoading ? 'Thinking...' : '✨ Ask Guru Ji'}
               </button>
             </div>
 
@@ -1177,7 +1197,7 @@ function StudentDashboardContent() {
               <div style={{ background: 'var(--surface-light)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: '0.9rem' }}>📖 STUDY DESK & GUIDANCE</span>
                 <button 
-                  onClick={() => setGuruHistory([{ role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal AI tutor. I am here to clarify all your doubts completely. Select your preferred subject and explanatory language (English, Hindi, or Hinglish), then ask your doubt!' }])}
+                  onClick={() => setGuruHistory([{ role: 'guru', content: `Hello, ${session?.user?.name || 'student'}! 👋 I am Digital Guru Ji, your personal AI tutor. Let's conquer your academic doubts today! Choose a subject, select your preferred language, and ask away.` }])}
                   style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                 >
                   🧹 Clear Board

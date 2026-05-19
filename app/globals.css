@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --primary: #6366f1; /* Indigo */
-  --primary-hover: #4f46e5;
-  --secondary: #10b981; /* Emerald */
-  --accent: #8b5cf6; /* Violet */
-  --accent-hover: #7c3aed;
+  --primary: #ef4444; /* Premium Vibrant Red */
+  --primary-hover: #dc2626; /* Darker Red on hover */
+  --secondary: #0ea5e9; /* Sky Blue */
+  --accent: #38bdf8; /* Lighter Sky Blue */
+  --accent-hover: #0284c7;
   --background: #09090b; /* Zinc 950 */
   --surface: #18181b; /* Zinc 900 */
   --surface-light: #27272a; /* Zinc 800 */
@@ -19,7 +19,7 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --radius: 16px;
   --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
-  --logo-gradient: linear-gradient(90deg, #ffffff, #a1a1aa);
+  --logo-gradient: linear-gradient(90deg, #ef4444, #0ea5e9);
   --card-bg-alt: rgba(255, 255, 255, 0.03);
   --input-bg: rgba(9, 9, 11, 0.5);
   --input-focus-bg: rgba(9, 9, 11, 0.8);
@@ -37,7 +37,7 @@
   --glass-bg: rgba(255, 255, 255, 0.94); /* Smooth higher-opacity crisp white glass */
   --glass-border: rgba(15, 23, 42, 0.12); /* More prominent borders for perfect card outlines */
   --shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
-  --logo-gradient: linear-gradient(135deg, #4f46e5, #7c3aed); /* Stunning vibrant brand logo */
+  --logo-gradient: linear-gradient(135deg, #ef4444, #0ea5e9); /* Stunning vibrant brand logo */
   --card-bg-alt: #f1f5f9;
   --input-bg: #ffffff;
   --input-focus-bg: #ffffff;
@@ -73,7 +73,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #a78bfa, #818cf8, #34d399);
+  background: linear-gradient(135deg, #ef4444, #38bdf8, #0ea5e9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
@@ -84,14 +84,14 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 60%);
   filter: blur(80px);
   z-index: -1;
   border-radius: 50%;
   pointer-events: none;
 }
 .bg-glow.accent {
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, transparent 60%);
 }
 
 /* Base Layout & Header */
