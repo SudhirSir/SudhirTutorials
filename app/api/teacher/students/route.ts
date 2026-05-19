@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!session || !session.user || session.user.role !== 'TEACHER') {
+    if (!session || !session.user || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -39,9 +39,11 @@ export async function GET(req: Request) {
 
     // If no search filter is applied, default to only showing students in the teacher's own batches
     if (!q && !batchName && !batchId) {
-      where.studentBatches = {
-        some: { teachers: { some: { id: session.user.id } } }
-      };
+      if (session.user.role === 'TEACHER') {
+        where.studentBatches = {
+          some: { teachers: { some: { id: session.user.id } } }
+        };
+      }
     }
 
     const students = await prisma.user.findMany({

@@ -52,6 +52,277 @@ function AdminDashboardContent() {
   const [delTargetId, setDelTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Security Verification State
+  const [securityConfirm, setSecurityConfirm] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onVerified: () => void;
+    isProcessing: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    onVerified: () => {},
+    isProcessing: false
+  });
+  const [securityPassword, setSecurityPassword] = useState('');
+
+  const requestSecurityVerification = (title: string, description: string, onVerified: () => void) => {
+    setSecurityPassword('');
+    setSecurityConfirm({
+      isOpen: true,
+      title,
+      description,
+      onVerified,
+      isProcessing: false
+    });
+  };
+
+  const handleSecurityVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityConfirm(prev => ({ ...prev, isProcessing: true }));
+    try {
+      const res = await fetch('/api/admin/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: securityPassword })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSecurityConfirm(prev => ({ ...prev, isOpen: false }));
+        securityConfirm.onVerified();
+      } else {
+        alert(data.error || 'Incorrect password. Verification failed.');
+      }
+    } catch (e) {
+      alert('Error verifying credentials.');
+    } finally {
+      setSecurityConfirm(prev => ({ ...prev, isProcessing: false }));
+    }
+  };
+
+  // ── Teacher Features in Admin States ──────────
+  // Attendance
+  const [attBatchId, setAttBatchId] = useState('');
+  const [attDate, setAttDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attStudents, setAttStudents] = useState<any[]>([]);
+  const [attRecords, setAttRecords] = useState<Record<string, string>>({});
+  const [isSavingAtt, setIsSavingAtt] = useState(false);
+
+  const fetchAttendance = async (batchIdVal = attBatchId, dateVal = attDate) => {
+    if (!batchIdVal) return;
+    try {
+      // Fetch students for selected batch using admin-compatible URL
+      const batchRes = await fetch(`/api/teacher/students?batchId=${batchIdVal}`);
+      if (batchRes.ok) {
+        const bData = await batchRes.json();
+        setAttStudents(bData.students || []);
+        
+        // Fetch existing attendance records
+        const attRes = await fetch(`/api/teacher/attendance?batchId=${batchIdVal}&date=${dateVal}`);
+        if (attRes.ok) {
+          const aData = await attRes.json();
+          const records: Record<string, string> = {};
+          aData.attendance.forEach((r: any) => {
+            records[r.studentId] = r.status;
+          });
+          setAttRecords(records);
+        }
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSaveAttendance = async () => {
+    if (!attBatchId) return;
+    setIsSavingAtt(true);
+    try {
+      const records = attStudents.map(s => ({
+        studentId: s.id,
+        status: attRecords[s.id] || 'PRESENT'
+      }));
+
+      const res = await fetch('/api/teacher/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchId: attBatchId, date: attDate, records })
+      });
+
+      if (res.ok) alert('Attendance saved successfully!');
+      else alert('Failed to save attendance');
+    } catch (e) { console.error(e); }
+    finally { setIsSavingAtt(false); }
+  };
+
+  const markAll = (status: string) => {
+    const records: Record<string, string> = {};
+    attStudents.forEach(s => { records[s.id] = status; });
+    setAttRecords(records);
+  };
+
+  // Study Materials
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [matTitle, setMatTitle] = useState('');
+  const [matType, setMatType] = useState('PDF');
+  const [matUrl, setMatUrl] = useState('');
+  const [matCourseId, setMatCourseId] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fetchMaterials = async () => {
+    try {
+      const res = await fetch('/api/teacher/materials');
+      if (res.ok) {
+        const data = await res.json();
+        setMaterials(data.materials || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleUploadMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matTitle || !matUrl || !matCourseId) {
+      alert("Please fill all material fields!");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const res = await fetch('/api/teacher/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: matTitle,
+          type: matType,
+          url: matUrl,
+          courseId: matCourseId
+        })
+      });
+
+      if (res.ok) {
+        setMatTitle('');
+        setMatUrl('');
+        fetchMaterials();
+        alert('Material uploaded successfully!');
+      } else {
+        alert('Failed to upload material');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this material?')) return;
+    try {
+      const res = await fetch(`/api/teacher/materials?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchMaterials();
+      } else {
+        alert('Failed to delete material');
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  // Tests & Examinations
+  const [tests, setTests] = useState<any[]>([]);
+  const [selectedTest, setSelectedTest] = useState<any>(null);
+  const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
+  const [isSavingMarks, setIsSavingMarks] = useState(false);
+  const [isCreatingTest, setIsCreatingTest] = useState(false);
+  const [newTest, setNewTest] = useState({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+  const [testStudents, setTestStudents] = useState<any[]>([]);
+
+  const fetchTests = async () => {
+    try {
+      const res = await fetch('/api/teacher/tests');
+      if (res.ok) {
+        const data = await res.json();
+        setTests(data.tests || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleCreateTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTest.title || !newTest.courseId) {
+      alert("Please fill all test fields!");
+      return;
+    }
+    setIsCreatingTest(true);
+    try {
+      const res = await fetch('/api/teacher/tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTest)
+      });
+      if (res.ok) {
+        setNewTest({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+        fetchTests();
+        alert('Test created successfully!');
+      } else alert('Failed to create test');
+    } catch (e) { console.error(e); }
+    finally { setIsCreatingTest(false); }
+  };
+
+  const handleEnterMarks = async (test: any) => {
+    setSelectedTest(test);
+    try {
+      const res = await fetch(`/api/teacher/students?courseId=${test.courseId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const initialMarks: any = {};
+        data.students.forEach((s: any) => {
+          const existingResult = test.results?.find((r: any) => r.studentId === s.id);
+          initialMarks[s.id] = {
+            marks: existingResult?.marks?.toString() || '',
+            totalMarks: existingResult?.totalMarks?.toString() || '100',
+            remarks: existingResult?.remarks || ''
+          };
+        });
+        setTestMarks(initialMarks);
+        setTestStudents(data.students || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSaveMarks = async () => {
+    if (!selectedTest) return;
+    setIsSavingMarks(true);
+    try {
+      const results = Object.entries(testMarks).map(([studentId, data]) => ({
+        studentId,
+        marks: parseFloat(data.marks),
+        totalMarks: parseFloat(data.totalMarks),
+        remarks: data.remarks
+      })).filter(r => !isNaN(r.marks));
+
+      const res = await fetch('/api/teacher/test-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testId: selectedTest.id, results })
+      });
+      if (res.ok) {
+        alert('Marks saved successfully!');
+        setSelectedTest(null);
+        fetchTests();
+      } else alert('Failed to save marks');
+    } catch (e) { console.error(e); }
+    finally { setIsSavingMarks(false); }
+  };
+
+  const handleDeleteTest = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this test and all marks?')) return;
+    try {
+      const res = await fetch(`/api/teacher/tests?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchTests();
+      } else {
+        alert('Failed to delete test');
+      }
+    } catch (e) { console.error(e); }
+  };
+
   // Directory State
   const [searchQuery, setSearchQuery] = useState('');
   const [directoryUsers, setDirectoryUsers] = useState<any[]>([]);
@@ -288,14 +559,19 @@ function AdminDashboardContent() {
   };
 
   const deleteExpense = async (id: string) => {
-    if (!confirm('Delete this expense?')) return;
-    try {
-      const res = await fetch(`/api/admin/finances/expenses?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchExpenses();
-        fetchFinSummary();
+    requestSecurityVerification(
+      "Delete Expense Record",
+      "You are deleting an expense record. This will adjust your institute's net cashflow balance. Enter your admin password to authorize.",
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/finances/expenses?id=${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            fetchExpenses();
+            fetchFinSummary();
+          }
+        } catch (err) { console.error(err); }
       }
-    } catch (err) { console.error(err); }
+    );
   };
 
   const downloadReceiptPDF = async (receiptId: string) => {
@@ -317,41 +593,22 @@ function AdminDashboardContent() {
       };
 
       await loadHtml2Pdf();
-      const original = document.querySelector('.receipt-print-area');
+      const original = document.querySelector('.receipt-print-area') as HTMLElement;
       if (!original) {
         alert('Receipt area not found!');
         return;
       }
 
-      // Create a clean clone to prevent partial/mobile clipping or layout squishing
-      const clone = original.cloneNode(true) as HTMLElement;
-      
-      // Strip action buttons/elements from the clone
-      const noPrintElements = clone.querySelectorAll('.no-print');
-      noPrintElements.forEach(el => el.remove());
-
-      // Absolute position off-screen rendering to ensure perfect, unclipped layout
-      clone.style.position = 'absolute';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      clone.style.width = '500px';
-      clone.style.maxWidth = '500px';
-      clone.style.height = 'auto';
-      clone.style.margin = '0';
-      clone.style.padding = '2rem';
-      clone.style.display = 'block';
-      clone.style.background = '#ffffff';
-      clone.style.color = '#1a1a1a';
-      clone.style.zIndex = '-9999';
-      
-      document.body.appendChild(clone);
+      // Temporarily hide the no-print action buttons
+      const buttons = original.querySelector('.no-print') as HTMLElement;
+      if (buttons) buttons.style.display = 'none';
 
       const opt = {
         margin: [10, 10, 10, 10],
         filename: `Receipt_REC_${receiptId.slice(-6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-          scale: 2.5,
+          scale: 2,
           useCORS: true,
           letterRendering: true,
           scrollY: 0,
@@ -360,8 +617,10 @@ function AdminDashboardContent() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      await (window as any).html2pdf().from(clone).set(opt).save();
-      document.body.removeChild(clone);
+      await (window as any).html2pdf().from(original).set(opt).save();
+      
+      // Restore the buttons
+      if (buttons) buttons.style.display = 'flex';
     } catch (err) {
       console.error(err);
       alert('Failed to generate PDF. Please use the Print option.');
@@ -439,21 +698,26 @@ function AdminDashboardContent() {
   };
 
   const handleDeleteCourse = async (courseId: string, courseName: string) => {
-    if (!confirm(`Are you sure you want to delete course "${courseName}"? This will permanently delete all associated batches, schedules, materials, and test records!`)) return;
-    try {
-      const res = await fetch(`/api/admin/courses?id=${courseId}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        fetchCourses();
-        fetchBatches(); // Refresh batches list too
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete course');
+    requestSecurityVerification(
+      `Delete Course: ${courseName}`,
+      `You are deleting the course "${courseName}". This will permanently delete all associated batches, schedules, materials, and test records! Enter your admin password to authorize.`,
+      async () => {
+        try {
+          const res = await fetch(`/api/admin/courses?id=${courseId}`, {
+            method: 'DELETE'
+          });
+          if (res.ok) {
+            fetchCourses();
+            fetchBatches(); // Refresh batches list too
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete course');
+          }
+        } catch (err) {
+          console.error("Error deleting course:", err);
+        }
       }
-    } catch (err) {
-      console.error("Error deleting course:", err);
-    }
+    );
   };
 
   const handleCreateBatch = async (e: React.FormEvent) => {
@@ -535,6 +799,17 @@ function AdminDashboardContent() {
       fetchBatches();
       fetchTeachers();
       fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []));
+    }
+    if (activeTab === 'attendance') {
+      fetchBatches();
+    }
+    if (activeTab === 'materials') {
+      fetchMaterials();
+      fetchCourses();
+    }
+    if (activeTab === 'tests') {
+      fetchTests();
+      fetchCourses();
     }
     if (activeTab === 'analytics') {
       fetchReports();
@@ -628,19 +903,26 @@ function AdminDashboardContent() {
 
   const deleteFee = async () => {
     if (!delTargetId) return;
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/finances?id=${delTargetId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setShowDelModal(false);
-        setDelTargetId(null);
-        fetchFinances();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete');
+    
+    requestSecurityVerification(
+      "Delete Student Fee Record",
+      "You are deleting this student's fee record. This will permanently remove all billing and transaction logs for this entry. Enter your admin password to authorize.",
+      async () => {
+        setIsDeleting(true);
+        try {
+          const res = await fetch(`/api/admin/finances?id=${delTargetId}`, { method: 'DELETE' });
+          if (res.ok) {
+            setShowDelModal(false);
+            setDelTargetId(null);
+            fetchFinances();
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete');
+          }
+        } catch (e) { console.error(e); }
+        finally { setIsDeleting(false); }
       }
-    } catch (e) { console.error(e); }
-    finally { setIsDeleting(false); }
+    );
   };
 
   const fetchProfile = async (userId: string, role: string) => {
@@ -698,27 +980,32 @@ function AdminDashboardContent() {
 
   const handleDeleteUser = async () => {
     if (!editingProfile) return;
-    if (!confirm(`Are you sure you want to delete ${editingProfile.name}? This action cannot be undone.`)) return;
     
-    setIsSavingProfile(true);
-    try {
-      const endpoint = editingProfile.role === 'STUDENT' 
-        ? `/api/admin/students/${editingProfile.userId}` 
-        : editingProfile.role === 'TEACHER'
-        ? `/api/admin/teachers/${editingProfile.userId}`
-        : `/api/admin/admins/${editingProfile.userId}`;
-        
-      const res = await fetch(endpoint, { method: 'DELETE' });
-      if (res.ok) {
-        setShowProfileModal(false);
-        setEditingProfile(null);
-        handleSearchDirectory();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete user');
+    requestSecurityVerification(
+      `Delete User Profile: ${editingProfile.name}`,
+      `You are deleting the account and all associated profile details of student/teacher/admin "${editingProfile.name}". Enter your admin password to authorize this action.`,
+      async () => {
+        setIsSavingProfile(true);
+        try {
+          const endpoint = editingProfile.role === 'STUDENT' 
+            ? `/api/admin/students/${editingProfile.userId}` 
+            : editingProfile.role === 'TEACHER'
+            ? `/api/admin/teachers/${editingProfile.userId}`
+            : `/api/admin/admins/${editingProfile.userId}`;
+            
+          const res = await fetch(endpoint, { method: 'DELETE' });
+          if (res.ok) {
+            setShowProfileModal(false);
+            setEditingProfile(null);
+            handleSearchDirectory();
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete user');
+          }
+        } catch (e) { console.error(e); }
+        finally { setIsSavingProfile(false); }
       }
-    } catch (e) { console.error(e); }
-    finally { setIsSavingProfile(false); }
+    );
   };
 
   const handleGenerateOTP = async () => {
@@ -798,25 +1085,35 @@ function AdminDashboardContent() {
         }
 
         @media print {
-          body {
+          html, body {
             background: #ffffff !important;
             color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
           }
-          body > * {
+          header, footer, nav, button, .bg-glow, .no-print {
             display: none !important;
           }
-          body > .receipt-modal-backdrop {
-            display: block !important;
+          .animate-fade-in > *:not(.receipt-modal-backdrop) {
+            display: none !important;
+          }
+          .receipt-modal-backdrop {
             position: absolute !important;
             inset: 0 !important;
-            background: transparent !important;
-            backdrop-filter: none !important;
+            display: flex !important;
+            align-items: flex-start !important;
+            justify-content: center !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             padding: 0 !important;
             margin: 0 !important;
             overflow: visible !important;
-            z-index: 9999 !important;
+            z-index: 99999 !important;
+            width: 100% !important;
+            backdrop-filter: none !important;
           }
           .receipt-print-area {
             display: block !important;
@@ -833,9 +1130,6 @@ function AdminDashboardContent() {
             color: #000000 !important;
             background: transparent !important;
           }
-          .no-print {
-            display: none !important;
-          }
         }
       `}</style>
       <div className="bg-glow" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
@@ -850,8 +1144,8 @@ function AdminDashboardContent() {
       </header>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
-        {['overview', 'users', 'verifications', 'finances', 'courses', 'analytics', 'messages', 'notifications'].map(tab => (
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
+        {['overview', 'users', 'verifications', 'finances', 'courses', 'attendance', 'materials', 'tests', 'analytics', 'messages', 'notifications'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -870,7 +1164,10 @@ function AdminDashboardContent() {
             {tab === 'verifications' && pendingVerifications.length > 0 && (
               <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', marginRight: '6px' }}>{pendingVerifications.length}</span>
             )}
-            {tab}
+            {tab === 'attendance' ? '✏️ Attendance' : 
+             tab === 'materials' ? '📚 Study Materials' : 
+             tab === 'tests' ? '📝 Tests & Marks' : 
+             tab}
           </button>
         ))}
       </div>
@@ -1750,6 +2047,318 @@ function AdminDashboardContent() {
         </div>
       )}
 
+      {activeTab === 'attendance' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '2rem' }} className="animate-scale-up">
+            <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
+               <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>✏️ Attendance Control</h3>
+               
+               <div className="input-group">
+                 <label style={{ fontWeight: 600 }}>Select Batch</label>
+                 <select 
+                   value={attBatchId} 
+                   onChange={e => {
+                     setAttBatchId(e.target.value);
+                     fetchAttendance(e.target.value, attDate);
+                   }} 
+                   style={{ padding: '0.85rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', width: '100%' }}
+                 >
+                   <option value="">Select Batch...</option>
+                   {batches.map(b => <option key={b.id} value={b.id}>{b.name} ({b.course?.name})</option>)}
+                 </select>
+               </div>
+
+               <div className="input-group" style={{ marginTop: '1rem' }}>
+                 <label style={{ fontWeight: 600 }}>Select Date</label>
+                 <input 
+                   type="date" 
+                   value={attDate} 
+                   onChange={e => {
+                     setAttDate(e.target.value);
+                     fetchAttendance(attBatchId, e.target.value);
+                   }} 
+                   style={{ padding: '0.85rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', width: '100%' }} 
+                 />
+               </div>
+
+               <button 
+                 className="btn-primary" 
+                 onClick={handleSaveAttendance} 
+                 disabled={isSavingAtt || !attBatchId || attStudents.length === 0}
+                 style={{ width: '100%', background: '#10b981', marginTop: '1.5rem', border: 'none' }}
+               >
+                 {isSavingAtt ? 'Saving...' : '💾 Save Attendance'}
+               </button>
+            </div>
+
+            <div className="glass-card" style={{ padding: '2rem' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                 <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700 }}>Student Roll Call</h3>
+                 <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button onClick={() => markAll('PRESENT')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 12px' }}>Mark All Present</button>
+                    <button onClick={() => markAll('ABSENT')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 12px', color: '#ef4444', borderColor: '#ef4444' }}>Mark All Absent</button>
+                 </div>
+               </div>
+
+               {!attBatchId ? (
+                 <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    Please select a batch from the sidebar control panel.
+                 </div>
+               ) : attStudents.length === 0 ? (
+                 <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No students currently enrolled in this batch.
+                 </div>
+               ) : (
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {attStudents.map(s => {
+                      const status = attRecords[s.id] || 'PRESENT';
+                      return (
+                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', flexWrap: 'wrap', gap: '1rem' }}>
+                           <div>
+                              <div style={{ fontWeight: 600 }}>{s.name}</div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>@{s.username}</div>
+                           </div>
+                           
+                           <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              {['PRESENT', 'ABSENT', 'LATE'].map(st => (
+                                <button 
+                                  key={st}
+                                  onClick={() => setAttRecords(prev => ({ ...prev, [s.id]: st }))}
+                                  style={{ 
+                                    padding: '6px 12px', 
+                                    fontSize: '0.75rem', 
+                                    borderRadius: '6px', 
+                                    border: '1px solid',
+                                    cursor: 'pointer',
+                                    background: status === st ? (st === 'PRESENT' ? '#10b981' : st === 'ABSENT' ? '#ef4444' : '#f59e0b') : 'transparent',
+                                    borderColor: status === st ? (st === 'PRESENT' ? '#10b981' : st === 'ABSENT' ? '#ef4444' : '#f59e0b') : 'var(--border)',
+                                    color: status === st ? '#fff' : 'var(--text-muted)',
+                                    fontWeight: 700
+                                  }}
+                                >
+                                  {st}
+                                </button>
+                              ))}
+                           </div>
+                        </div>
+                      );
+                    })}
+                 </div>
+               )}
+            </div>
+        </div>
+      )}
+
+      {activeTab === 'materials' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }} className="animate-scale-up materials-grid">
+          <style>{`
+            @media (max-width: 900px) {
+              .materials-grid {
+                grid-template-columns: 1fr !important;
+              }
+            }
+          `}</style>
+          {/* Uploaded Materials List */}
+          <div className="glass-card" style={{ padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 700 }}>📚 Uploaded Materials</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {materials.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>No study materials published yet.</p>
+              ) : (
+                materials.map(mat => (
+                  <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: '#4f46e5', fontWeight: 800 }}>{mat.type}</span>
+                        {mat.title}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Course: {mat.course?.name} • Published by: {mat.teacher?.name || 'Admin'}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <a href={mat.url} target="_blank" rel="noreferrer" style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Open File</a>
+                      <button onClick={() => handleDeleteMaterial(mat.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* New Material Form */}
+          <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>Publish Study Material</h3>
+            <form onSubmit={handleUploadMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Title / Description</label>
+                <input type="text" required placeholder="e.g. Physics Chapter 1 Notes" value={matTitle} onChange={e => setMatTitle(e.target.value)} />
+              </div>
+
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Material Type</label>
+                <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <option value="PDF">📄 PDF Document</option>
+                  <option value="VIDEO">🎥 Video Tutorial Link</option>
+                  <option value="LINK">🔗 External Web Link</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Course Category</label>
+                <select required value={matCourseId} onChange={e => setMatCourseId(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <option value="">Select a Course...</option>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Public File URL</label>
+                <input type="url" required placeholder="https://drive.google.com/..." value={matUrl} onChange={e => setMatUrl(e.target.value)} />
+              </div>
+
+              <button type="submit" className="btn-primary" disabled={isUploading} style={{ background: '#10b981', border: 'none', marginTop: '0.5rem' }}>
+                {isUploading ? 'Publishing...' : '🚀 Publish Material'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'tests' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }} className="animate-scale-up tests-grid">
+          <style>{`
+            @media (max-width: 900px) {
+              .tests-grid {
+                grid-template-columns: 1fr !important;
+              }
+            }
+          `}</style>
+          {/* Tests List */}
+          <div className="glass-card" style={{ padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 700 }}>📝 Scheduled Tests & Marks</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {tests.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>No tests scheduled yet.</p>
+              ) : (
+                tests.map(test => (
+                  <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Course: <strong>{test.course?.name}</strong> • Date: {new Date(test.date).toLocaleDateString()}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
+                         Marks recorded: {test.results?.length || 0} students
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                         Enter Marks →
+                      </button>
+                      <button onClick={() => handleDeleteTest(test.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Schedule New Test Form */}
+          <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>Schedule New Test</h3>
+            <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Title / Subject</label>
+                <input type="text" required placeholder="e.g. Chemistry Unit 1 Test" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Course Category</label>
+                <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <option value="">Select a Course...</option>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Date</label>
+                <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
+              </div>
+              <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: '#10b981', border: 'none' }}>
+                {isCreatingTest ? 'Scheduling...' : '📝 Schedule Test'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selectedTest && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '750px', padding: '2.5rem', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--primary)' }}>
+            <h2 style={{ fontSize: '1.6rem', marginBottom: '0.5rem', fontWeight: 800 }}>Enter Student Marks: {selectedTest.title}</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Course: {selectedTest.course?.name}</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              {testStudents.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No students found in this course.</div>
+              ) : (
+                testStudents.map(s => {
+                  const data = testMarks[s.id] || { marks: '', totalMarks: '100', remarks: '' };
+                  return (
+                    <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{s.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>@{s.username}</div>
+                      </div>
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <input 
+                          type="number" 
+                          placeholder="Marks" 
+                          value={data.marks} 
+                          onChange={e => setTestMarks({
+                            ...testMarks,
+                            [s.id]: { ...data, marks: e.target.value }
+                          })}
+                          style={{ padding: '8px 12px' }}
+                        />
+                      </div>
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <input 
+                          type="number" 
+                          placeholder="Total" 
+                          value={data.totalMarks} 
+                          onChange={e => setTestMarks({
+                            ...testMarks,
+                            [s.id]: { ...data, totalMarks: e.target.value }
+                          })}
+                          style={{ padding: '8px 12px' }}
+                        />
+                      </div>
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <input 
+                          type="text" 
+                          placeholder="Remarks" 
+                          value={data.remarks} 
+                          onChange={e => setTestMarks({
+                            ...testMarks,
+                            [s.id]: { ...data, remarks: e.target.value }
+                          })}
+                          style={{ padding: '8px 12px' }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedTest(null)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, background: '#10b981', border: 'none' }} onClick={handleSaveMarks} disabled={isSavingMarks || testStudents.length === 0}>
+                {isSavingMarks ? 'Saving...' : '💾 Save Marks'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'messages' && session?.user && (
         <ChatWindow currentUserId={(session.user as any).id} />
       )}
@@ -2270,13 +2879,18 @@ function AdminDashboardContent() {
               </button>
               
               <button 
-                onClick={async () => {
-                  if (!confirm('Are you sure? This will delete the batch and all schedules.')) return;
-                  const res = await fetch(`/api/admin/batches?id=${editingBatch.id}`, { method: 'DELETE' });
-                  if (res.ok) {
-                    setShowBatchEditModal(false);
-                    fetchBatches();
-                  }
+                onClick={() => {
+                  requestSecurityVerification(
+                    `Delete Batch: ${editingBatch.name}`,
+                    `You are deleting the batch "${editingBatch.name}" and all of its schedules. Enter your admin password to authorize this action.`,
+                    async () => {
+                      const res = await fetch(`/api/admin/batches?id=${editingBatch.id}`, { method: 'DELETE' });
+                      if (res.ok) {
+                        setShowBatchEditModal(false);
+                        fetchBatches();
+                      }
+                    }
+                  );
                 }}
                 className="btn-secondary"
                 style={{ padding: '0 2rem', color: '#ef4444', border: '1px solid #ef4444' }}
@@ -2821,6 +3435,53 @@ function AdminDashboardContent() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Security / Password Verification Backdrop Modal ─────────────────── */}
+      {securityConfirm.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }} className="no-print">
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '420px', padding: '2.5rem', border: '2px solid #ef4444', background: '#111', borderRadius: '24px', boxShadow: '0 10px 40px rgba(239, 68, 68, 0.2)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', marginBottom: '1rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                🔒
+              </div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f87171', margin: 0 }}>{securityConfirm.title || 'Security Authorization'}</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '8px', lineHeight: '1.4' }}>{securityConfirm.description || 'To continue with this sensitive operation, please verify your login password.'}</p>
+            </div>
+
+            <form onSubmit={handleSecurityVerification} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label style={{ color: '#f87171', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Enter Admin Password</label>
+                <input 
+                  type="password" 
+                  required 
+                  placeholder="••••••••" 
+                  value={securityPassword} 
+                  onChange={e => setSecurityPassword(e.target.value)} 
+                  style={{ width: '100%', padding: '1rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#fff', fontSize: '1.1rem', textAlign: 'center' }} 
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setSecurityConfirm(prev => ({ ...prev, isOpen: false }))} 
+                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: '#222', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={securityConfirm.isProcessing || !securityPassword} 
+                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  {securityConfirm.isProcessing ? 'Authorizing...' : 'Authorize ✔'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

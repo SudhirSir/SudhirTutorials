@@ -38,6 +38,48 @@ function StudentDashboardContent() {
   const [razorpayUpiApp, setRazorpayUpiApp] = useState('GPay');
   const [razorpayTxId, setRazorpayTxId] = useState('');
 
+  // Digital Guru Ji AI states
+  const [guruQuestion, setGuruQuestion] = useState('');
+  const [guruSubject, setGuruSubject] = useState('Mathematics');
+  const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([
+    { role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal tutor. I can solve any academic problem and explain key concepts step-by-step. Select a subject and ask your doubt, or choose one of the examples below!' }
+  ]);
+  const [guruLoading, setGuruLoading] = useState(false);
+
+  const askGuruJi = async () => {
+    if (!guruQuestion.trim()) return;
+    const q = guruQuestion;
+    const subj = guruSubject;
+    setGuruQuestion('');
+    
+    // Add user message to history
+    setGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj }]);
+    setGuruLoading(true);
+
+    try {
+      const res = await fetch('/api/student/guru-ji', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, subject: subj })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setGuruHistory(prev => [...prev, { role: 'guru', content: data.solution }]);
+      } else {
+        setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry dear child, I encountered a connection issue. Please try seeking my guidance again.' }]);
+      }
+    } catch (e) {
+      setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.' }]);
+    } finally {
+      setGuruLoading(false);
+      // Scroll to bottom of chat feed
+      setTimeout(() => {
+        const feed = document.getElementById('guru-chat-feed');
+        if (feed) feed.scrollTop = feed.scrollHeight;
+      }, 100);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'dashboard') fetchDashboard();
     if (activeTab === 'materials') fetchMaterials();
@@ -164,41 +206,22 @@ function StudentDashboardContent() {
       };
 
       await loadHtml2Pdf();
-      const original = document.querySelector('.receipt-print-area');
+      const original = document.querySelector('.receipt-print-area') as HTMLElement;
       if (!original) {
         alert('Receipt area not found!');
         return;
       }
 
-      // Create a clean clone to prevent partial/mobile clipping or layout squishing
-      const clone = original.cloneNode(true) as HTMLElement;
-      
-      // Strip action buttons/elements from the clone
-      const noPrintElements = clone.querySelectorAll('.no-print');
-      noPrintElements.forEach(el => el.remove());
-
-      // Absolute position off-screen rendering to ensure perfect, unclipped layout
-      clone.style.position = 'absolute';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      clone.style.width = '500px';
-      clone.style.maxWidth = '500px';
-      clone.style.height = 'auto';
-      clone.style.margin = '0';
-      clone.style.padding = '2rem';
-      clone.style.display = 'block';
-      clone.style.background = '#ffffff';
-      clone.style.color = '#1a1a1a';
-      clone.style.zIndex = '-9999';
-      
-      document.body.appendChild(clone);
+      // Temporarily hide the no-print action buttons
+      const buttons = original.querySelector('.no-print') as HTMLElement;
+      if (buttons) buttons.style.display = 'none';
 
       const opt = {
         margin: [10, 10, 10, 10],
         filename: `Receipt_REC_${receiptId.slice(-6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-          scale: 2.5,
+          scale: 2,
           useCORS: true,
           letterRendering: true,
           scrollY: 0,
@@ -207,8 +230,10 @@ function StudentDashboardContent() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      await (window as any).html2pdf().from(clone).set(opt).save();
-      document.body.removeChild(clone);
+      await (window as any).html2pdf().from(original).set(opt).save();
+      
+      // Restore the buttons
+      if (buttons) buttons.style.display = 'flex';
     } catch (err) {
       console.error(err);
       alert('Failed to generate PDF. Please try print option.');
@@ -231,8 +256,8 @@ function StudentDashboardContent() {
       </header>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
-        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'messages', 'notifications', 'profile'].map(tab => (
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
+        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -248,7 +273,7 @@ function StudentDashboardContent() {
               cursor: 'pointer' 
             }}
           >
-            {tab}
+            {tab === 'guru-ji' ? '🕉️ Digital Guru Ji' : tab}
           </button>
         ))}
       </div>
@@ -889,25 +914,35 @@ function StudentDashboardContent() {
         }
 
         @media print {
-          body {
+          html, body {
             background: #ffffff !important;
             color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
           }
-          body > * {
+          header, footer, nav, button, .bg-glow, .no-print {
             display: none !important;
           }
-          body > .receipt-modal-backdrop {
-            display: block !important;
+          .animate-fade-in > *:not(.receipt-modal-backdrop) {
+            display: none !important;
+          }
+          .receipt-modal-backdrop {
             position: absolute !important;
             inset: 0 !important;
-            background: transparent !important;
-            backdrop-filter: none !important;
+            display: flex !important;
+            align-items: flex-start !important;
+            justify-content: center !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             padding: 0 !important;
             margin: 0 !important;
             overflow: visible !important;
-            z-index: 9999 !important;
+            z-index: 99999 !important;
+            width: 100% !important;
+            backdrop-filter: none !important;
           }
           .receipt-print-area {
             display: block !important;
@@ -929,6 +964,172 @@ function StudentDashboardContent() {
           }
         }
       `}</style>
+      {activeTab === 'guru-ji' && (
+        <div className="glass-card animate-scale-up" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', minHeight: '650px', background: 'rgba(30, 27, 22, 0.4)', border: '1px solid rgba(245, 158, 11, 0.2)', marginBottom: '2rem' }}>
+          {/* Guru Ji Header */}
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', borderBottom: '1px dashed rgba(245, 158, 11, 0.2)', paddingBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', boxShadow: '0 0 20px rgba(245, 158, 11, 0.4)', animation: 'pulse 2s infinite' }}>
+              🕉️
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b', margin: 0 }}>Digital Guru Ji (डिजिटल गुरु जी)</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '4px 0 0 0' }}>Your 24/7 AI-powered personal tutor. Solve doubts instantly with step-by-step explanations.</p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '2rem', flex: 1 }} className="guru-grid">
+            <style>{`
+              .guru-grid {
+                display: grid;
+              }
+              @media (max-width: 900px) {
+                .guru-grid {
+                  grid-template-columns: 1fr !important;
+                }
+              }
+              @keyframes pulse {
+                0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+                70% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(245,158,11,0); }
+                100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+              }
+              .chat-bubble {
+                border-radius: 16px;
+                padding: 1.25rem;
+                max-width: 85%;
+                line-height: 1.6;
+                font-size: 0.95rem;
+              }
+              .chat-bubble pre {
+                background: rgba(0,0,0,0.3);
+                padding: 1rem;
+                border-radius: 8px;
+                overflow-x: auto;
+                margin: 1rem 0;
+              }
+              .chat-bubble code {
+                font-family: monospace;
+                background: rgba(255,255,255,0.1);
+                padding: 2px 6px;
+                border-radius: 4px;
+              }
+            `}</style>
+
+            {/* Left Column: Input Form & Subject Selector & Quick Examples */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className="input-group">
+                <label style={{ color: '#f59e0b', fontWeight: 700 }}>Select Subject</label>
+                <select 
+                  value={guruSubject} 
+                  onChange={(e) => setGuruSubject(e.target.value)}
+                  style={{ width: '100%', padding: '1rem', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', borderRadius: '12px', color: '#fff', fontSize: '1rem' }}
+                >
+                  {['Mathematics', 'Physics', 'Chemistry', 'Biology', 'General Academics'].map(subj => (
+                    <option key={subj} value={subj} style={{ background: '#1e1b16', color: '#fff' }}>{subj}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <label style={{ color: '#f59e0b', fontWeight: 700 }}>Type your academic doubt</label>
+                <textarea 
+                  placeholder="Ask a question (e.g. Solve quadratic equation, Explain photosynthesis...)" 
+                  value={guruQuestion}
+                  onChange={(e) => setGuruQuestion(e.target.value)}
+                  style={{ width: '100%', flex: 1, minHeight: '120px', padding: '1rem', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', borderRadius: '12px', color: '#fff', fontSize: '1rem', resize: 'none', lineHeight: 1.5 }}
+                />
+              </div>
+
+              <button 
+                onClick={askGuruJi}
+                disabled={guruLoading || !guruQuestion.trim()}
+                style={{ 
+                  width: '100%', padding: '1rem', borderRadius: '12px', 
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', border: 'none', 
+                  fontWeight: 800, cursor: guruLoading || !guruQuestion.trim() ? 'not-allowed' : 'pointer', fontSize: '1rem',
+                  boxShadow: '0 4px 15px rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                {guruLoading ? 'Thinking & Solving...' : '🙏 Seek Guru Ji\'s Guidance'}
+              </button>
+
+              <div>
+                <h4 style={{ color: '#f59e0b', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem', fontWeight: 700 }}>Quick Doubt Examples:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {[
+                    { text: 'Solve quadratic equation x^2 - 5x + 6 = 0', subject: 'Mathematics' },
+                    { text: 'Explain the mechanism of Photosynthesis', subject: 'Biology' },
+                    { text: 'What are Newton\'s laws of motion?', subject: 'Physics' },
+                    { text: 'Explain electronegativity trends in periodic table', subject: 'Chemistry' }
+                  ].map((ex, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={() => {
+                        setGuruQuestion(ex.text);
+                        setGuruSubject(ex.subject);
+                      }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', color: 'var(--text-muted)', textAlign: 'left', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,158,11,0.05)'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    >
+                      💡 {ex.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Chat History and Explanation */}
+            <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden', height: '550px' }}>
+              <div style={{ background: 'rgba(245,158,11,0.05)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: '0.9rem' }}>📖 STUDY DESK & GUIDANCE</span>
+                <button 
+                  onClick={() => setGuruHistory([{ role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal tutor. I can solve any academic problem and explain key concepts step-by-step. Select a subject and ask your doubt, or choose one of the examples below!' }])}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  🧹 Clear Board
+                </button>
+              </div>
+
+              {/* Message Feed */}
+              <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
+                {guruHistory.map((msg, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div 
+                      className="chat-bubble"
+                      style={{ 
+                        background: msg.role === 'user' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.02)', 
+                        border: msg.role === 'user' ? '1px solid rgba(245,158,11,0.3)' : '1px solid var(--border)',
+                        color: '#fff',
+                        alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start'
+                      }}
+                    >
+                      {msg.subject && (
+                        <span style={{ display: 'inline-block', fontSize: '0.65rem', background: '#f59e0b', color: '#1e1b16', padding: '2px 6px', borderRadius: '4px', fontWeight: 800, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                          {msg.subject}
+                        </span>
+                      )}
+                      
+                      <div style={{ whiteSpace: 'pre-line' }}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {guruLoading && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <div className="chat-bubble" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div className="spinner" style={{ width: '15px', height: '15px', border: '2px solid #f3f3f3', borderTop: '2px solid #f59e0b', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Guru Ji is calculating step-by-step solution...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'messages' && session?.user && (
         <ChatWindow currentUserId={(session.user as any).id} />
       )}

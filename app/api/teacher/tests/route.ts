@@ -17,31 +17,43 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get courses the teacher is assigned to
-    const teacherId = session.user.id;
-    const teacher = await prisma.user.findUnique({
-      where: { id: teacherId },
-      include: {
-        teacherBatches: {
-          select: { courseId: true }
+    const isAdmin = session.user.role === 'ADMIN';
+
+    let tests;
+    if (isAdmin) {
+      tests = await prisma.test.findMany({
+        include: {
+          course: { select: { name: true } },
+          results: true
+        },
+        orderBy: { date: 'desc' }
+      });
+    } else {
+      const teacherId = session.user.id;
+      const teacher = await prisma.user.findUnique({
+        where: { id: teacherId },
+        include: {
+          teacherBatches: {
+            select: { courseId: true }
+          }
         }
-      }
-    });
+      });
 
-    if (!teacher) return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
+      if (!teacher) return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
 
-    const courseIds = teacher.teacherBatches.map((b: any) => b.courseId);
+      const courseIds = teacher.teacherBatches.map((b: any) => b.courseId);
 
-    const tests = await prisma.test.findMany({
-      where: {
-        courseId: { in: courseIds }
-      },
-      include: {
-        course: { select: { name: true } },
-        results: true
-      },
-      orderBy: { date: 'desc' }
-    });
+      tests = await prisma.test.findMany({
+        where: {
+          courseId: { in: courseIds }
+        },
+        include: {
+          course: { select: { name: true } },
+          results: true
+        },
+        orderBy: { date: 'desc' }
+      });
+    }
 
     return NextResponse.json({ tests });
   } catch (error) {
@@ -77,5 +89,34 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Error creating test:', error);
     return NextResponse.json({ error: 'Failed to create test' }, { status: 500 });
+  }
+}
+
+// DELETE Test (For Teachers & Admins)
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) return NextResponse.json({ error: 'Test ID is required' }, { status: 400 });
+
+    // First delete associated test results
+    await prisma.testResult.deleteMany({
+      where: { testId: id }
+    });
+
+    await prisma.test.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("ERROR DELETING TEST:", error);
+    return NextResponse.json({ error: 'Failed to delete test' }, { status: 500 });
   }
 }
