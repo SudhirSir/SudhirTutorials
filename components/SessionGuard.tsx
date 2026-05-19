@@ -8,16 +8,29 @@ export function SessionGuard() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
 
-  // 1. Detect page refresh / reload
+  // 1. Detect page refresh / reload and enforce maximum of 3 refreshes
   useEffect(() => {
     if (status === "authenticated") {
       const navigationEntries = performance.getEntriesByType('navigation');
       const isReload = navigationEntries.length > 0 && (navigationEntries[0] as PerformanceNavigationTiming).type === 'reload';
       
       if (isReload) {
-        console.log("Page refresh detected! Terminating session...");
-        signOut({ callbackUrl: "/login" });
+        const storedCount = sessionStorage.getItem('reload_count');
+        const currentCount = storedCount ? parseInt(storedCount, 10) : 0;
+        const newCount = currentCount + 1;
+        
+        console.log(`Page refresh detected! Reload count: ${newCount}`);
+        
+        if (newCount > 3) {
+          console.warn("Reload limit of 3 exceeded. Logging out...");
+          sessionStorage.removeItem('reload_count');
+          signOut({ callbackUrl: "/login" });
+        } else {
+          sessionStorage.setItem('reload_count', newCount.toString());
+        }
       }
+    } else if (status === "unauthenticated") {
+      sessionStorage.removeItem('reload_count');
     }
   }, [status]);
 
