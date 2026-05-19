@@ -4388,7 +4388,6 @@ function AdminDashboardContent() {
                 </div>
               </div>
             )}
-            </div>
 
             <div style={{ marginTop: '4rem', display: 'flex', gap: '1.5rem' }}>
               <button 
