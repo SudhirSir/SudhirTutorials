@@ -28,6 +28,7 @@ export function LecturesSection() {
 
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lectureSubTab, setLectureSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'LIVE' | 'RECORDED'>('ALL');
   const [subjectFilter, setSubjectFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -197,226 +198,404 @@ export function LecturesSection() {
           <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Watch live streams and review assigned batch recordings</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {(role === 'ADMIN' || role === 'TEACHER') && (
+        {/* Premium Sub-Tab Navigation Header */}
+        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.15)', padding: '0.4rem', borderRadius: '16px', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
+          {[
+            { id: 'DASHBOARD', label: '📺 Lecture Hub', desc: 'Active Player & Stats' },
+            { id: 'LIVE', label: '🔴 Live Streams', desc: 'Upcoming & Live Classes' },
+            { id: 'RECORDED', label: '🎥 Video Archive', desc: 'Lesson Video Library' },
+            ...((role === 'ADMIN' || role === 'TEACHER') ? [{ id: 'ASSIGN', label: '➕ Broadcast Scheduler', desc: 'Assign Live/Recorded' }] : [])
+          ].map(tab => (
             <button 
-              onClick={() => setShowAssignModal(true)}
-              className="btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, padding: '10px 18px', borderRadius: '20px', fontSize: '0.85rem' }}
+              key={tab.id}
+              onClick={() => setLectureSubTab(tab.id as any)}
+              style={{
+                padding: '0.5rem 1rem',
+                border: 'none',
+                background: lectureSubTab === tab.id ? 'var(--primary)' : 'transparent',
+                color: lectureSubTab === tab.id ? '#fff' : 'var(--text-muted)',
+                borderRadius: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.25s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '0.05rem',
+                textAlign: 'left'
+              }}
             >
-              ➕ Assign New Lecture
+              <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>{tab.label}</span>
+              <span style={{ fontSize: '0.6rem', fontWeight: 500, opacity: lectureSubTab === tab.id ? 0.9 : 0.6 }}>{tab.desc}</span>
             </button>
-          )}
+          ))}
         </div>
       </div>
 
-      {/* 2. Interactive Theater Player */}
-      {activeLecture && (
-        <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-          {/* Main Video Embed */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'black' }}>
-              <iframe
-                src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=1&rel=0&modestbranding=1`}
-                title={activeLecture.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+      {/* ── SUB-TAB: DASHBOARD ────────────────────────────────────────────── */}
+      {lectureSubTab === 'DASHBOARD' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Premium welcome banner */}
+          <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(99, 102, 241, 0.04) 100%)', border: '1px solid var(--border)', borderRadius: '20px' }}>
+            <h3 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>Welcome to your Live Classrooms & Video Library! 📺</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem', maxWidth: '700px', lineHeight: '1.4' }}>
+              Attend interactive live streams, catch up on syllabus recordings, and view lecture syllabus documents.
+            </p>
+          </div>
+
+          {/* Top Level Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+            {[
+              { label: 'Total Index Lectures', value: lectures.length, color: '#8b5cf6', desc: 'Indexed batch classes', icon: '📺' },
+              { label: '🔴 Live Now', value: lectures.filter(l => l.type === 'LIVE').length, color: '#ef4444', desc: 'Active streams', icon: '🎥' },
+              { label: '🎥 Recorded Archives', value: lectures.filter(l => l.type === 'RECORDED').length, color: '#3b82f6', desc: 'Syllabus recordings', icon: '💾' },
+              { label: 'Linked Batches', value: Array.from(new Set(lectures.map(l => l.batchId))).length, color: '#10b981', desc: 'Linked student groups', icon: '👥' }
+            ].map((s, i) => (
+              <div key={i} className="glass-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: '0.4rem', color: 'var(--text)' }}>{s.value}</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{s.desc}</div>
+                </div>
+                <span style={{ fontSize: '1.75rem', opacity: 0.7 }}>{s.icon}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Theater Player Area */}
+          {activeLecture ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎬 Now Watching / Selected Lecture</h4>
+              <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+                {/* Main Video Embed */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'black' }}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=1&rel=0&modestbranding=1`}
+                      title={activeLecture.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Video Metadata & Theatre Info */}
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                  <div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ 
+                        background: activeLecture.type === 'LIVE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)', 
+                        color: activeLecture.type === 'LIVE' ? '#ef4444' : 'var(--primary)',
+                        padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px'
+                      }}>
+                        {activeLecture.type === 'LIVE' ? '🔴 LIVE STREAM' : '🎥 RECORDED'}
+                      </span>
+                      <span style={{ background: 'var(--card-bg-alt)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
+                        {activeLecture.subject}
+                      </span>
+                    </div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0', lineHeight: 1.3 }}>{activeLecture.title}</h2>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, maxHeight: '150px', overflowY: 'auto' }}>
+                      {activeLecture.description || 'No descriptive details available for this lecture slot.'}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block' }}>Assigned Batch:</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)' }}>
+                        {activeLecture.batch.name} ({activeLecture.batch.className || 'N/A'})
+                      </span>
+                    </div>
+                    
+                    {(role === 'ADMIN' || (role === 'TEACHER' && activeLecture.assignedById === currentUserId)) && (
+                      <button 
+                        onClick={(e) => handleDeleteLecture(activeLecture.id, e)}
+                        style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        🗑️ Delete Slot
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              padding: '4rem', 
+              border: '2px dashed var(--border)', 
+              borderRadius: '20px', 
+              background: 'rgba(255,255,255,0.01)', 
+              textAlign: 'center', 
+              gap: '1rem'
+            }}>
+              <span style={{ fontSize: '3rem' }}>📺</span>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>No Active Lecture Selected</h4>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '500px' }}>
+                  Select any live class or video recording from the tabs above to launch the interactive theatre player.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                <button onClick={() => setLectureSubTab('LIVE')} className="btn-primary" style={{ padding: '0.65rem 1.25rem', fontWeight: 800, borderRadius: '10px', fontSize: '0.8rem' }}>
+                  🔴 Watch Live Streams
+                </button>
+                <button onClick={() => setLectureSubTab('RECORDED')} className="btn-secondary" style={{ padding: '0.65rem 1.25rem', fontWeight: 800, borderRadius: '10px', fontSize: '0.8rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer' }}>
+                  🎥 Browse Video Archive
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SUB-TAB: LIVE BROADCASTS ────────────────────────────────────── */}
+      {lectureSubTab === 'LIVE' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Filter and Search controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--card-bg-alt)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>🔴 Live Timetable & Active Streams</h4>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={subjectFilter}
+                onChange={e => setSubjectFilter(e.target.value)}
+                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                <option value="ALL">All Subjects</option>
+                {uniqueSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <input 
+                type="text"
+                placeholder="Search live streams..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', width: '220px', outline: 'none' }}
               />
             </div>
           </div>
 
-          {/* Video Metadata & Theatre Info */}
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.5rem 0' }}>
-            <div>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ 
-                  background: activeLecture.type === 'LIVE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)', 
-                  color: activeLecture.type === 'LIVE' ? '#ef4444' : 'var(--primary)',
-                  padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px'
-                }}>
-                  {activeLecture.type === 'LIVE' ? '🔴 LIVE STREAM' : '🎥 RECORDED'}
-                </span>
-                <span style={{ background: 'var(--card-bg-alt)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
-                  {activeLecture.subject}
-                </span>
-              </div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0', lineHeight: 1.3 }}>{activeLecture.title}</h2>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, maxHeight: '180px', overflowY: 'auto' }}>
-                {activeLecture.description || 'No descriptive details available for this lecture slot.'}
-              </p>
+          {/* Grid of LIVE lectures only */}
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+              <div className="spinner" style={{ margin: '0 auto 1rem' }} />
+              <div>Loading active stream listings...</div>
             </div>
-
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Assigned Batch:</span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>
-                  {activeLecture.batch.name} ({activeLecture.batch.className || 'N/A'})
-                </span>
-              </div>
-              
-              {role === 'ADMIN' && (
-                <button 
-                  onClick={(e) => handleDeleteLecture(activeLecture.id, e)}
-                  style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+          ) : filteredLectures.filter(l => l.type === 'LIVE').length === 0 ? (
+            <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔴</div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 800 }}>No Live Streams Scheduled</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem' }}>There are no scheduled live interactive streams assigned to your batch profile right now.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+              {filteredLectures.filter(l => l.type === 'LIVE').map(lecture => (
+                <div 
+                  key={lecture.id}
+                  onClick={() => { setActiveLecture(lecture); setLectureSubTab('DASHBOARD'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="lecture-grid-card"
+                  style={{
+                    borderRadius: '16px',
+                    background: 'var(--card-bg)',
+                    border: activeLecture?.id === lecture.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: activeLecture?.id === lecture.id ? '0 8px 30px rgba(99, 102, 241, 0.15)' : 'none'
+                  }}
                 >
-                  🗑️ Delete Slot
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                  {/* Thumbnail with overlay status */}
+                  <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', overflow: 'hidden' }}>
+                    <img 
+                      src={lecture.thumbnailUrl} 
+                      alt={lecture.title} 
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                    
+                    {/* Play Button Overlay */}
+                    <div className="play-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeLecture?.id === lecture.id ? 1 : 0, transition: '0.2s' }}>
+                      <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.2rem' }}>▶</div>
+                    </div>
 
-      {/* 3. Search & Quick Filter Row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--card-bg-alt)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-        {/* Toggle between All, Live, Recorded */}
-        <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border)' }}>
-          {(['ALL', 'LIVE', 'RECORDED'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(f)}
-              style={{
-                padding: '6px 14px', borderRadius: '8px', border: 'none',
-                background: activeFilter === f ? 'var(--primary)' : 'transparent',
-                color: activeFilter === f ? '#fff' : 'var(--text-muted)',
-                fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: '0.2s'
-              }}
-            >
-              {f === 'ALL' ? 'All' : f === 'LIVE' ? '🔴 Live Classes' : '🎥 Recorded Lectures'}
-            </button>
-          ))}
-        </div>
+                    <span style={{ 
+                      position: 'absolute', top: '10px', left: '10px',
+                      background: '#ef4444', color: 'white',
+                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase'
+                    }}>
+                      🔴 LIVE
+                    </span>
+                    
+                    <span style={{ 
+                      position: 'absolute', bottom: '10px', right: '10px',
+                      background: 'rgba(99, 102, 241, 0.9)', color: 'white',
+                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800
+                    }}>
+                      {lecture.subject}
+                    </span>
+                  </div>
 
-        {/* Filter & Search Form */}
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <select
-            value={subjectFilter}
-            onChange={e => setSubjectFilter(e.target.value)}
-            style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}
-          >
-            <option value="ALL">All Subjects</option>
-            {uniqueSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+                  {/* Info text details */}
+                  <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3 }}>
+                        {lecture.title}
+                      </h4>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4 }}>
+                        {lecture.description || 'No stream syllabus details logged.'}
+                      </p>
+                    </div>
 
-          <input 
-            type="text"
-            placeholder="Search lectures..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', width: '220px', outline: 'none' }}
-          />
-        </div>
-      </div>
-
-      {/* 4. Lectures List Grid */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-          <div className="spinner" style={{ margin: '0 auto 1rem', width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <div>Synchronizing Interactive Stream Deck...</div>
-        </div>
-      ) : filteredLectures.length === 0 ? (
-        <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.6 }}>🎬</div>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 800 }}>No Lectures Found</h3>
-          <p style={{ margin: 0, fontSize: '0.85rem' }}>There are no scheduled live lectures or video recordings assigned to your batch profile right now.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          {filteredLectures.map(lecture => (
-            <div 
-              key={lecture.id}
-              onClick={() => { setActiveLecture(lecture); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="lecture-grid-card"
-              style={{
-                borderRadius: '16px',
-                background: 'var(--card-bg)',
-                border: activeLecture?.id === lecture.id ? '2px solid var(--primary)' : '1px solid var(--border)',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: activeLecture?.id === lecture.id ? '0 8px 30px rgba(99, 102, 241, 0.15)' : 'none'
-              }}
-            >
-              {/* Thumbnail with overlay status */}
-              <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', overflow: 'hidden' }}>
-                <img 
-                  src={lecture.thumbnailUrl} 
-                  alt={lecture.title} 
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
-                />
-                
-                {/* Play Button Overlay */}
-                <div className="play-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeLecture?.id === lecture.id ? 1 : 0, transition: '0.2s' }}>
-                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.2rem', boxShadow: '0 4px 15px rgba(99,102,241,0.5)' }}>
-                    ▶
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        Batch: {lecture.batch.name}
+                      </span>
+                      
+                      {(role === 'ADMIN' || (role === 'TEACHER' && lecture.assignedById === currentUserId)) && (
+                        <button
+                          onClick={(e) => handleDeleteLecture(lecture.id, e)}
+                          style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {/* Badge Type */}
-                <span style={{ 
-                  position: 'absolute', top: '10px', left: '10px',
-                  background: lecture.type === 'LIVE' ? '#ef4444' : 'rgba(0,0,0,0.7)', 
-                  color: 'white',
-                  padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px'
-                }}>
-                  {lecture.type === 'LIVE' ? '🔴 LIVE' : '🎥 RECORDED'}
-                </span>
-                
-                {/* Subject Badge */}
-                <span style={{ 
-                  position: 'absolute', bottom: '10px', right: '10px',
-                  background: 'rgba(99, 102, 241, 0.9)', 
-                  color: 'white',
-                  padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800
-                }}>
-                  {lecture.subject}
-                </span>
-              </div>
-
-              {/* Info text details */}
-              <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
-                <div>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3 }}>
-                    {lecture.title}
-                  </h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4 }}>
-                    {lecture.description || 'No lecture syllabus details logged.'}
-                  </p>
-                </div>
-
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    Batch: {lecture.batch.name}
-                  </span>
-                  
-                  {(role === 'ADMIN' || (role === 'TEACHER' && lecture.assignedById === currentUserId)) && (
-                    <button
-                      onClick={(e) => handleDeleteLecture(lecture.id, e)}
-                      style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
-      {/* 5. Assign New Lecture Modal */}
-      {showAssignModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '480px', padding: '2.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '24px', position: 'relative', boxShadow: 'var(--shadow-lg)' }}>
-            <button 
-              onClick={() => setShowAssignModal(false)}
-              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}
-            >
-              ×
-            </button>
+      {/* ── SUB-TAB: RECORDED ARCHIVE ───────────────────────────────────── */}
+      {lectureSubTab === 'RECORDED' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Filter and Search controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--card-bg-alt)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>🎥 Recorded Session Video Library</h4>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={subjectFilter}
+                onChange={e => setSubjectFilter(e.target.value)}
+                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                <option value="ALL">All Subjects</option>
+                {uniqueSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <input 
+                type="text"
+                placeholder="Search video archive..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', width: '220px', outline: 'none' }}
+              />
+            </div>
+          </div>
+
+          {/* Grid of RECORDED lectures only */}
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+              <div className="spinner" style={{ margin: '0 auto 1rem' }} />
+              <div>Loading recorded library archive...</div>
+            </div>
+          ) : filteredLectures.filter(l => l.type === 'RECORDED').length === 0 ? (
+            <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎥</div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 800 }}>No Videos Found</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem' }}>There are no recorded lessons assigned to your batch profile right now.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+              {filteredLectures.filter(l => l.type === 'RECORDED').map(lecture => (
+                <div 
+                  key={lecture.id}
+                  onClick={() => { setActiveLecture(lecture); setLectureSubTab('DASHBOARD'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="lecture-grid-card"
+                  style={{
+                    borderRadius: '16px',
+                    background: 'var(--card-bg)',
+                    border: activeLecture?.id === lecture.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: activeLecture?.id === lecture.id ? '0 8px 30px rgba(99, 102, 241, 0.15)' : 'none'
+                  }}
+                >
+                  {/* Thumbnail with overlay status */}
+                  <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', overflow: 'hidden' }}>
+                    <img 
+                      src={lecture.thumbnailUrl} 
+                      alt={lecture.title} 
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                    
+                    {/* Play Button Overlay */}
+                    <div className="play-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeLecture?.id === lecture.id ? 1 : 0, transition: '0.2s' }}>
+                      <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.2rem' }}>▶</div>
+                    </div>
+
+                    <span style={{ 
+                      position: 'absolute', top: '10px', left: '10px',
+                      background: 'rgba(0,0,0,0.7)', color: 'white',
+                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase'
+                    }}>
+                      🎥 VIDEO
+                    </span>
+                    
+                    <span style={{ 
+                      position: 'absolute', bottom: '10px', right: '10px',
+                      background: 'rgba(99, 102, 241, 0.9)', color: 'white',
+                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800
+                    }}>
+                      {lecture.subject}
+                    </span>
+                  </div>
+
+                  {/* Info text details */}
+                  <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3 }}>
+                        {lecture.title}
+                      </h4>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4 }}>
+                        {lecture.description || 'No lecture syllabus details logged.'}
+                      </p>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        Batch: {lecture.batch.name}
+                      </span>
+                      
+                      {(role === 'ADMIN' || (role === 'TEACHER' && lecture.assignedById === currentUserId)) && (
+                        <button
+                          onClick={(e) => handleDeleteLecture(lecture.id, e)}
+                          style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SUB-TAB: BROADCAST SCHEDULER ────────────────────────────────── */}
+      {lectureSubTab === 'ASSIGN' && (role === 'ADMIN' || role === 'TEACHER') && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+          <div className="glass-card animate-scale-up" style={{ padding: '2.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '24px' }}>
             <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0' }}>Assign Interactive Video Lecture</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1.5rem 0' }}>Schedule a YouTube live stream or index a pre-recorded subject video for batch students.</p>
 
@@ -428,7 +607,7 @@ export function LecturesSection() {
 
             <form onSubmit={handleAssignLecture} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Lecture Title</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Lecture Title</label>
                 <input 
                   type="text" 
                   required
@@ -440,17 +619,17 @@ export function LecturesSection() {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Syllabus / Description</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Syllabus / Description</label>
                 <textarea 
                   placeholder="Summarize key takeaways, homework, or links for students..."
                   value={assignForm.description}
                   onChange={e => setAssignForm(p => ({ ...p, description: e.target.value }))}
-                  style={{ width: '100%', minHeight: '60px', padding: '0.8rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
+                  style={{ width: '100%', minHeight: '80px', padding: '0.8rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Target Batch</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Target Batch</label>
                 <select
                   required
                   value={assignForm.batchId}
@@ -466,7 +645,7 @@ export function LecturesSection() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Subject Wise</label>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Subject Wise</label>
                   <select
                     required
                     value={assignForm.subject}
@@ -480,7 +659,7 @@ export function LecturesSection() {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Lecture Type</label>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Lecture Type</label>
                   <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '3px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                     <button
                       type="button"
@@ -509,7 +688,7 @@ export function LecturesSection() {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>YouTube URL / Live Stream Link</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>YouTube URL / Live Stream Link</label>
                 <input 
                   type="url" 
                   required
@@ -523,7 +702,7 @@ export function LecturesSection() {
               <button 
                 type="submit" 
                 disabled={assignLoading}
-                style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', opacity: assignLoading ? 0.7 : 1, transition: '0.2s', marginTop: '0.5rem', boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}
+                style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', opacity: assignLoading ? 0.7 : 1, transition: '0.2s', marginTop: '1rem', boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}
               >
                 {assignLoading ? 'Scheduling...' : '🚀 Broadcast & Assign Lecture'}
               </button>
