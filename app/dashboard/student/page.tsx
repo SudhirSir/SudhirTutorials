@@ -14,6 +14,28 @@ function StudentDashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await fetch('/api/unread-counts');
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadNotifications(data.unreadNotifications);
+        setUnreadMessages(data.unreadMessages);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCounts();
+    const interval = setInterval(fetchUnreadCounts, 6000);
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -81,6 +103,7 @@ function StudentDashboardContent() {
   };
 
   useEffect(() => {
+    fetchUnreadCounts();
     if (activeTab === 'dashboard') fetchDashboard();
     if (activeTab === 'materials') fetchMaterials();
     if (activeTab === 'fees') fetchFees();
@@ -273,6 +296,12 @@ function StudentDashboardContent() {
               cursor: 'pointer' 
             }}
           >
+            {tab === 'messages' && unreadMessages > 0 && (
+              <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>
+            )}
+            {tab === 'notifications' && unreadNotifications > 0 && (
+              <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
+            )}
             {tab === 'guru-ji' ? '🕉️ Digital Guru Ji' : tab}
           </button>
         ))}

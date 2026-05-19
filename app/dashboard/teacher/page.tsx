@@ -13,6 +13,28 @@ function TeacherDashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('classes');
+
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await fetch('/api/unread-counts');
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadNotifications(data.unreadNotifications);
+        setUnreadMessages(data.unreadMessages);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCounts();
+    const interval = setInterval(fetchUnreadCounts, 6000);
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -52,6 +74,7 @@ function TeacherDashboardContent() {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
+    fetchUnreadCounts();
     if (activeTab === 'classes') {
       fetchClasses();
     }
@@ -321,6 +344,12 @@ function TeacherDashboardContent() {
               cursor: 'pointer' 
             }}
           >
+            {tab === 'messages' && unreadMessages > 0 && (
+              <span style={{ background: '#10b981', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>
+            )}
+            {tab === 'notifications' && unreadNotifications > 0 && (
+              <span style={{ background: '#10b981', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
+            )}
             {tab}
           </button>
         ))}

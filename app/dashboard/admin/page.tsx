@@ -16,7 +16,29 @@ function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState('overview');
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
   const [financeSubTab, setFinanceSubTab] = useState<'LEDGER' | 'ASSIGN'>('LEDGER');
-  
+
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await fetch('/api/unread-counts');
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadNotifications(data.unreadNotifications);
+        setUnreadMessages(data.unreadMessages);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCounts();
+    const interval = setInterval(fetchUnreadCounts, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
@@ -781,6 +803,7 @@ function AdminDashboardContent() {
   };
 
   useEffect(() => {
+    fetchUnreadCounts();
     if (activeTab === 'overview') fetchOverviewStats();
     if (activeTab === 'users') handleSearchDirectory();
     if (activeTab === 'finances') {
@@ -1165,6 +1188,12 @@ function AdminDashboardContent() {
           >
             {tab === 'verifications' && pendingVerifications.length > 0 && (
               <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', marginRight: '6px' }}>{pendingVerifications.length}</span>
+            )}
+            {tab === 'messages' && unreadMessages > 0 && (
+              <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>
+            )}
+            {tab === 'notifications' && unreadNotifications > 0 && (
+              <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
             {tab === 'attendance' ? '✏️ Attendance' : 
              tab === 'materials' ? '📚 Study Materials' : 

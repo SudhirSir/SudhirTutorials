@@ -17,7 +17,21 @@ export const authOptions: NextAuthOptions = {
           throw new Error("MISSING_CREDENTIALS");
         }
         try {
-          const user = await prisma.user.findUnique({ where: { username: credentials.username } });
+          // Retry logic for fetching the user (helps bypass transient connection drops or cold starts)
+          let user = null;
+          let retries = 3;
+          while (retries > 0) {
+            try {
+              user = await prisma.user.findUnique({ where: { username: credentials.username } });
+              break;
+            } catch (err: any) {
+              retries--;
+              if (retries === 0) throw err;
+              console.warn(`Prisma user query failed, retrying... (${retries} left). Error:`, err.message);
+              await new Promise(resolve => setTimeout(resolve, 350));
+            }
+          }
+
           if (!user) {
             console.log(`Login failed: User not found - ${credentials.username}`);
             throw new Error("USER_NOT_FOUND");
@@ -44,13 +58,24 @@ export const authOptions: NextAuthOptions = {
               }
               // Admins can act as teachers if they are assigned as teacher to any batch
               if (user.role === "ADMIN") {
-                const adminIsTeacher = await prisma.batch.findFirst({
-                  where: {
-                    teachers: {
-                      some: { id: user.id }
-                    }
+                let adminIsTeacher = null;
+                let retriesBatch = 3;
+                while (retriesBatch > 0) {
+                  try {
+                    adminIsTeacher = await prisma.batch.findFirst({
+                      where: {
+                        teachers: {
+                          some: { id: user.id }
+                        }
+                      }
+                    });
+                    break;
+                  } catch (err: any) {
+                    retriesBatch--;
+                    if (retriesBatch === 0) throw err;
+                    await new Promise(resolve => setTimeout(resolve, 350));
                   }
-                });
+                }
                 if (!adminIsTeacher) {
                   throw new Error("ADMIN_NOT_TEACHER");
                 }
@@ -64,10 +89,22 @@ export const authOptions: NextAuthOptions = {
           }
 
           const activeToken = require('crypto').randomBytes(16).toString('hex');
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { activeToken }
-          });
+          
+          // Retry logic for updating user activeToken
+          let retriesUpdate = 3;
+          while (retriesUpdate > 0) {
+            try {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { activeToken }
+              });
+              break;
+            } catch (err: any) {
+              retriesUpdate--;
+              if (retriesUpdate === 0) throw err;
+              await new Promise(resolve => setTimeout(resolve, 350));
+            }
+          }
 
           return { 
             id: user.id, 
