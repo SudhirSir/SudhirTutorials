@@ -53,8 +53,15 @@ export async function GET(req: Request) {
             username: true,
             studentProfile: {
               select: {
+                rollNumber: true,
+                registrationNo: true,
                 className: true,
-                grade: true
+                grade: true,
+                batch: true,
+                phone: true,
+                email: true,
+                fatherName: true,
+                address: true,
               }
             }
           } 

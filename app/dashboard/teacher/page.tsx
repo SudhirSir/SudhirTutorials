@@ -332,7 +332,7 @@ Depending on your specific focus, this represents the vital equation model for t
   useEffect(() => {
     if (profile?.name) {
       setTeacherGuruHistory([
-        { role: 'guru', content: `Hello, Teacher ${profile.name}! 👋 I am Digital Guru AI, your administrative and teaching assistant. Let's make learning and lesson planning incredibly creative today! Select your option below.` }
+        { role: 'guru', content: `Hello, Teacher ${profile.name}! 👋 I am Guru-Dev AI, your premium teaching companion. Let's make learning, lesson planning, and notes generation incredibly creative today!` }
       ]);
     }
   }, [profile]);
@@ -1339,7 +1339,7 @@ Depending on your specific focus, this represents the vital equation model for t
                     boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                   }}
                 >
-                  {teacherGuruLoading ? 'Processing...' : '✨ Ask Guru Ji'}
+                  {teacherGuruLoading ? 'Processing...' : '✨ Ask Guru-Dev AI'}
                 </button>
               </div>
 
@@ -1348,7 +1348,7 @@ Depending on your specific focus, this represents the vital equation model for t
                 <div style={{ background: 'var(--surface-light)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700, color: '#10b981', fontSize: '0.9rem' }}>📖 ACADEMIC EXPERT WORKSPACE</span>
                   <button
-                    onClick={() => setTeacherGuruHistory([{ role: 'guru', content: `Hello, Teacher ${profile?.name || 'Academic'}! 👋 I am Digital Guru AI. How can I assist you in verifying details or planning today?` }])}
+                    onClick={() => setTeacherGuruHistory([{ role: 'guru', content: `Hello, Teacher ${profile?.name || 'Academic'}! 👋 I am Guru-Dev AI. How can I assist you in verifying details or planning today?` }])}
                     style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     🧹 Clear Feed

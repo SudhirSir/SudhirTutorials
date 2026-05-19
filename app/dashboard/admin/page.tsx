@@ -17,6 +17,15 @@ function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState('overview');
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
   const [financeSubTab, setFinanceSubTab] = useState<'LEDGER' | 'ASSIGN'>('LEDGER');
+  const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures'>('menu');
+
+  useEffect(() => {
+    // Intercept separate tab clicks to open nested sub-tab layout under academics
+    if (['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures'].includes(activeTab)) {
+      setAcademicSubTab(activeTab as any);
+      setActiveTab('academics');
+    }
+  }, [activeTab]);
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -205,7 +214,7 @@ function AdminDashboardContent() {
   const [adminGuruSubject, setAdminGuruSubject] = useState('Mathematics');
   const [adminGuruLanguage, setAdminGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
   const [adminGuruHistory, setAdminGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([
-    { role: 'guru', content: `Hello, Admin! 👋 I am Digital Guru AI, your administrative and teaching assistant. Let's make learning and lesson planning incredibly creative today! Select your option below.` }
+    { role: 'guru', content: `Hello, Admin! 👋 I am Guru-Dev AI, your premium administrative and planning assistant. Let's make scheduling and learning management incredibly streamlined today!` }
   ]);
   const [adminGuruLoading, setAdminGuruLoading] = useState(false);
 
@@ -1085,28 +1094,28 @@ Depending on your specific focus, this represents the vital equation model for t
       fetchAutoBillingPreview(currentMonth);
     }
     if (activeTab === 'verifications') fetchPendingVerifications();
-    if (activeTab === 'courses') {
+    if (activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) {
       fetchCourses();
       fetchBatches();
       fetchTeachers();
       fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []));
     }
-    if (activeTab === 'attendance') {
+    if (activeTab === 'attendance' || (activeTab === 'academics' && academicSubTab === 'attendance')) {
       fetchBatches();
     }
-    if (activeTab === 'materials') {
+    if (activeTab === 'materials' || (activeTab === 'academics' && academicSubTab === 'materials')) {
       fetchMaterials();
       fetchCourses();
     }
-    if (activeTab === 'tests') {
+    if (activeTab === 'tests' || (activeTab === 'academics' && academicSubTab === 'tests')) {
       fetchTests();
       fetchCourses();
     }
-    if (activeTab === 'analytics') {
+    if (activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) {
       fetchReports();
       fetchFinSummary();
     }
-  }, [activeTab]);
+  }, [activeTab, academicSubTab]);
 
   const fetchReports = async () => {
     setIsReportsLoading(true);
@@ -1436,10 +1445,13 @@ Depending on your specific focus, this represents the vital equation model for t
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
-        {['overview', 'users', 'verifications', 'finances', 'courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'guru-ai', 'messages', 'notifications'].map(tab => (
+        {['overview', 'users', 'verifications', 'finances', 'academics', 'guru-ai', 'messages', 'notifications'].map(tab => (
           <button 
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => {
+              setActiveTab(tab);
+              if (tab === 'academics') setAcademicSubTab('menu');
+            }}
             style={{ 
               padding: '0.75rem 1rem', 
               background: 'transparent', 
@@ -1465,19 +1477,92 @@ Depending on your specific focus, this represents the vital equation model for t
              tab === 'users' ? '👥 Users Directory' :
              tab === 'verifications' ? '✅ Pending Approvals' :
              tab === 'finances' ? '💳 Finances & Fees' :
-             tab === 'courses' ? '🏫 Courses & Batches' :
-             tab === 'attendance' ? '✏️ Attendance' :
-             tab === 'materials' ? '📚 Study Materials' :
-             tab === 'tests' ? '📝 Tests & Marks' :
-             tab === 'analytics' ? '📈 Performance Analytics' :
-             tab === 'lectures' ? '📺 Live Classes' :
-             tab === 'guru-ai' ? '✨ Guru AI Workspace' :
+             tab === 'academics' ? '🎓 Academic Services' :
+             tab === 'guru-ai' ? '✨ Guru-Dev AI' :
              tab === 'messages' ? '💬 Messages' :
              tab === 'notifications' ? '🔔 Notifications' :
              tab}
           </button>
         ))}
       </div>
+
+      {/* Academic Sub-tab Back Navigation Header */}
+      {activeTab === 'academics' && academicSubTab !== 'menu' && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '2rem' }} className="no-print">
+          <button 
+            onClick={() => setAcademicSubTab('menu')}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+              padding: '0.6rem 1.25rem',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            className="academic-back-btn"
+          >
+            ⬅ Back to Academic Services Menu
+          </button>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            Academic Service / {academicSubTab === 'courses' ? 'Courses & Batches' : academicSubTab === 'attendance' ? 'Attendance Logs' : academicSubTab === 'materials' ? 'Study Materials' : academicSubTab === 'tests' ? 'Tests & Exams' : academicSubTab === 'analytics' ? 'Performance Analytics' : academicSubTab === 'lectures' ? 'Live Classes' : academicSubTab}
+          </span>
+        </div>
+      )}
+
+      {/* Academic Services Menu Dashboard */}
+      {activeTab === 'academics' && academicSubTab === 'menu' && (
+        <div className="glass-card animate-fade-in" style={{ padding: '2.5rem', border: '1px solid var(--border)', marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.5rem', color: '#ef4444' }}>🎓 Academic Services</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem' }}>Streamline your academy's classes, syllabus uploads, schedules, exams, and performance metrics.</p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+            {[
+              { id: 'courses', title: '🏫 Courses & Batches', desc: 'Configure courses, manage batches, fee pricing plans, and assigned faculties.', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
+              { id: 'attendance', title: '✏️ Student Attendance', desc: 'Track daily attendance logs, view student check-in history, and download reports.', color: 'rgba(16, 185, 129, 0.05)', border: '#10b981', textColor: '#10b981' },
+              { id: 'materials', title: '📚 Study Materials & Content', desc: 'Upload and organize syllabus books, worksheets, PDFs, notes, and lectures.', color: 'rgba(59, 130, 246, 0.05)', border: '#3b82f6', textColor: '#3b82f6' },
+              { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
+              { id: 'analytics', title: '📈 Performance Analytics', desc: 'Get graphical insights on class progress, marks distribution, and attendance trends.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
+              { id: 'lectures', title: '📺 Live Online Lectures', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
+            ].map(svc => (
+              <div 
+                key={svc.id}
+                onClick={() => setAcademicSubTab(svc.id as any)}
+                className="academic-service-card animate-scale-up"
+                style={{
+                  padding: '1.75rem',
+                  borderRadius: '20px',
+                  background: svc.color,
+                  border: `1px solid ${svc.border}22`,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem'
+                }}
+              >
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: svc.textColor, margin: 0 }}>{svc.title}</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{svc.desc}</p>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: svc.textColor, marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Open Service ➔
+                </span>
+              </div>
+            ))}
+          </div>
+          <style jsx>{`
+            .academic-service-card:hover {
+              transform: translateY(-5px);
+              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+              border-color: #ef4444 !important;
+            }
+          `}</style>
+        </div>
+      )}
 
       {activeTab === 'overview' && (
         <>
@@ -1977,7 +2062,7 @@ Depending on your specific focus, this represents the vital equation model for t
                     </div>
 
                     {/* Preview Table */}
-                    <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                         <thead style={{ background: 'var(--card-bg-alt)', position: 'sticky', top: 0, zIndex: 10 }}>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
@@ -2168,7 +2253,7 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
 
-      {activeTab === 'courses' && (
+      {(activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) && (
         <div className="courses-layout-grid" style={{ gap: '2rem' }}>
           
           <div className="glass-card" style={{ padding: '2rem' }}>
@@ -2423,7 +2508,7 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
 
-      {activeTab === 'analytics' && (
+      {(activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
           
           {/* Revenue Trend Chart (CSS Bar Chart) */}
@@ -2480,7 +2565,7 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
 
-      {activeTab === 'attendance' && (
+      {(activeTab === 'attendance' || (activeTab === 'academics' && academicSubTab === 'attendance')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '2rem' }} className="animate-scale-up">
             <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
                <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>✏️ Attendance Control</h3>
@@ -2581,7 +2666,7 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
 
-      {activeTab === 'materials' && (
+      {(activeTab === 'materials' || (activeTab === 'academics' && academicSubTab === 'materials')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }} className="animate-scale-up materials-grid">
           <style>{`
             @media (max-width: 900px) {
@@ -2743,7 +2828,7 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
 
-      {activeTab === 'tests' && (
+      {(activeTab === 'tests' || (activeTab === 'academics' && academicSubTab === 'tests')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }} className="animate-scale-up tests-grid">
           <style>{`
             @media (max-width: 900px) {
@@ -3014,7 +3099,7 @@ Depending on your specific focus, this represents the vital equation model for t
                     boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                   }}
                 >
-                  {adminGuruLoading ? 'Processing...' : '✨ Ask Guru Ji'}
+                  {adminGuruLoading ? 'Processing...' : '✨ Ask Guru-Dev AI'}
                 </button>
               </div>
 
@@ -3023,7 +3108,7 @@ Depending on your specific focus, this represents the vital equation model for t
                 <div style={{ background: 'var(--surface-light)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700, color: '#ef4444', fontSize: '0.9rem' }}>📖 ACADEMIC EXPERT WORKSPACE</span>
                   <button
-                    onClick={() => setAdminGuruHistory([{ role: 'guru', content: `Hello, Admin! 👋 I am Digital Guru AI. How can I assist you in verifying details or planning today?` }])}
+                    onClick={() => setAdminGuruHistory([{ role: 'guru', content: `Hello, Admin! 👋 I am Guru-Dev AI. How can I assist you in verifying details or planning today?` }])}
                     style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     🧹 Clear Feed
@@ -3232,7 +3317,7 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
 
-      {activeTab === 'lectures' && (
+      {(activeTab === 'lectures' || (activeTab === 'academics' && academicSubTab === 'lectures')) && (
         <LecturesSection />
       )}
 
@@ -4289,11 +4374,25 @@ Depending on your specific focus, this represents the vital equation model for t
                   💼 Admin profiles have full system-wide permissions and do not maintain restricted student or teacher records.
                 </div>
               )}
-
               {selectedUserDetail.role === 'STUDENT' && (
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Fee Statement Ledger (SBI Style)</h3>
-                  <StudentLedger studentId={selectedUserDetail.id} />
+                  <StudentLedger 
+                    studentId={selectedUserDetail.id} 
+                    onViewReceipt={async (feeId) => {
+                      try {
+                        const res = await fetch(`/api/student/fees/receipt/${feeId}`);
+                        if (res.ok) {
+                          const data = await res.json();
+                          setActiveReceipt(data.fee);
+                        } else {
+                          alert("Failed to load receipt details.");
+                        }
+                      } catch (e) {
+                        alert("Error loading receipt.");
+                      }
+                    }}
+                  />
                 </div>
               )}
 

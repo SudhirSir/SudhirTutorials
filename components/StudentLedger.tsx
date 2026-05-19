@@ -17,7 +17,7 @@ const MONTHS_LIST = [
 export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewReceipt }: StudentLedgerProps) {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewType, setViewType] = useState<'month' | 'year' | 'statement'>('month');
+  const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
@@ -185,8 +185,20 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           <div class="meta-grid">
             <div class="meta-card">
               <h3>Account Holder & Profile</h3>
-              <p>${fees[0]?.student?.name || 'Academic Student'}</p>
-              <p style="font-size: 12px; font-weight: normal; color: #6b7280; margin-top: 4px;">ID / Username: @${fees[0]?.student?.username || 'N/A'}</p>
+              <p style="font-size: 18px; margin-bottom: 8px; color: #1e1b4b; font-weight: bold;">${fees[0]?.student?.name || 'Academic Student'}</p>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 12px; color: #4b5563;">
+                <div><strong>Student ID:</strong> @${fees[0]?.student?.username || 'N/A'}</div>
+                <div><strong>Roll Number:</strong> ${fees[0]?.student?.studentProfile?.rollNumber || 'N/A'}</div>
+                <div><strong>Registration No:</strong> ${fees[0]?.student?.studentProfile?.registrationNo || 'N/A'}</div>
+                <div><strong>Class / Grade:</strong> ${fees[0]?.student?.studentProfile?.className || fees[0]?.student?.studentProfile?.grade || 'N/A'}</div>
+                <div><strong>Batch:</strong> ${fees[0]?.student?.studentProfile?.batch || 'N/A'}</div>
+                <div><strong>Father's Name:</strong> ${fees[0]?.student?.studentProfile?.fatherName || 'N/A'}</div>
+                <div><strong>Contact Phone:</strong> ${fees[0]?.student?.studentProfile?.phone || 'N/A'}</div>
+                <div><strong>Email Address:</strong> ${fees[0]?.student?.studentProfile?.email || 'N/A'}</div>
+              </div>
+              <div style="font-size: 12px; color: #4b5563; margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
+                <strong>Address:</strong> ${fees[0]?.student?.studentProfile?.address || 'N/A'}
+              </div>
             </div>
             <div class="meta-card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div>
@@ -372,6 +384,18 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
             >
               🏦 Student Fee Statement
             </button>
+            <button 
+              type="button"
+              onClick={() => setViewType('latest-payments')}
+              style={{
+                padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
+                background: viewType === 'latest-payments' ? 'var(--primary)' : 'transparent',
+                color: viewType === 'latest-payments' ? '#fff' : 'var(--text-muted)',
+                fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
+              }}
+            >
+              💳 Latest 10 Payments
+            </button>
           </div>
         </div>
       </div>
@@ -529,7 +553,25 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         const finalBalance = postings.length > 0 ? postings[postings.length - 1].balance : 0;
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Student Info Profile Card */}
+            {fees[0]?.student && (
+              <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', background: 'var(--surface-light)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem' }}>👤 Student Account Profile Details</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem 1.5rem', fontSize: '0.85rem' }}>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Real Name:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.name || 'N/A'}</span></div>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Student ID:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>@{fees[0].student.username || 'N/A'}</span></div>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Roll Number:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.rollNumber || 'N/A'}</span></div>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Registration No:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.registrationNo || 'N/A'}</span></div>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Class / Grade:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.className || fees[0].student.studentProfile?.grade || 'N/A'}</span></div>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Batch:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.batch || 'N/A'}</span></div>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Father's Name:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.fatherName || 'N/A'}</span></div>
+                  <div><strong style={{ color: 'var(--text-muted)' }}>Contact Phone:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.phone || 'N/A'}</span></div>
+                  <div style={{ gridColumn: 'span 2' }}><strong style={{ color: 'var(--text-muted)' }}>Email Address:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.email || 'N/A'}</span></div>
+                  <div style={{ gridColumn: 'span 2' }}><strong style={{ color: 'var(--text-muted)' }}>Residential Address:</strong> <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fees[0].student.studentProfile?.address || 'N/A'}</span></div>
+                </div>
+              </div>
+            )}
             {/* Bank Header Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
               <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'var(--surface-light)', borderRadius: '16px', border: '1px solid var(--border)' }}>
@@ -604,6 +646,91 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                     <tr>
                       <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                         No transactions recorded in passbook.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* LATEST 10 PAYMENTS VIEW */}
+      {viewType === 'latest-payments' && (() => {
+        const paidPayments = fees
+          .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
+          .sort((a, b) => new Date(b.paidAt || b.createdAt).getTime() - new Date(a.paidAt || a.createdAt).getTime())
+          .slice(0, 10);
+
+        return (
+          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Showing the latest 10 successful/verified payments
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '16px', background: 'var(--surface-light)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.01)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 800 }}>
+                    <th style={{ padding: '1.25rem 1.5rem' }}>Payment Date</th>
+                    <th>Ref / Receipt No</th>
+                    <th>Fee Details</th>
+                    <th style={{ textAlign: 'right' }}>Amount Paid</th>
+                    <th>Method</th>
+                    <th style={{ textAlign: 'center', paddingRight: '1.5rem' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paidPayments.map((p, idx) => (
+                    <tr key={p.id || idx} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem', transition: 'background 0.2s' }}>
+                      <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text)', fontWeight: 600 }}>
+                        {p.paidAt ? new Date(p.paidAt).toLocaleDateString('en-GB') : new Date(p.createdAt).toLocaleDateString('en-GB')}
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 700 }}>
+                        {p.receiptNo || `REC-${p.id.slice(-6).toUpperCase()}`}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700, color: 'var(--text)' }}>{p.title || 'Monthly Fee'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Billing Period: {p.billingMonth}</div>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 800, color: '#10b981' }}>
+                        ₹{(p.paidAmount || p.amount).toFixed(2)}
+                      </td>
+                      <td>
+                        <span style={{ 
+                          padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800,
+                          background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8'
+                        }}>
+                          {p.paymentMethod || 'ONLINE'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', paddingRight: '1.5rem' }}>
+                        {onViewReceipt ? (
+                          <button 
+                            type="button"
+                            onClick={() => onViewReceipt(p.id)}
+                            style={{
+                              padding: '6px 12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981',
+                              border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '10px',
+                              cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, transition: 'all 0.2s'
+                            }}
+                            className="btn-receipt"
+                          >
+                            🧾 View Receipt
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No receipts config</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {paidPayments.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        No successful payments recorded yet.
                       </td>
                     </tr>
                   )}

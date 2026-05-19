@@ -15,6 +15,27 @@ export async function GET() {
 
     const rawFees = await prisma.payment.findMany({
       where: { studentId },
+      include: {
+        student: {
+          select: {
+            name: true,
+            username: true,
+            studentProfile: {
+              select: {
+                rollNumber: true,
+                registrationNo: true,
+                className: true,
+                grade: true,
+                batch: true,
+                phone: true,
+                email: true,
+                fatherName: true,
+                address: true,
+              }
+            }
+          }
+        }
+      },
       orderBy: { dueDate: 'desc' }
     });
 
