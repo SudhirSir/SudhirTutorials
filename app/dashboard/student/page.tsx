@@ -9,9 +9,11 @@ import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
 import { StudentLedger } from '@/components/StudentLedger';
+import { useTheme } from '@/components/ThemeProvider';
 
 function StudentDashboardContent() {
   const { data: session } = useSession();
+  const { theme } = useTheme();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -76,24 +78,24 @@ function StudentDashboardContent() {
       // Format bold text **something** into <strong>something</strong>
       text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       // Format italic or code `something` into styled code span
-      text = text.replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-family:monospace;color:#fef08a;">$1</code>');
+      text = text.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
 
       if (text.startsWith('### ')) {
-        return <h3 key={idx} style={{ color: '#f59e0b', fontSize: '1.2rem', marginTop: '1.25rem', marginBottom: '0.75rem', fontWeight: 800 }}>{text.slice(4)}</h3>;
+        return <h3 key={idx} style={{ color: '#d97706', fontSize: '1.25rem', marginTop: '1.25rem', marginBottom: '0.75rem', fontWeight: 800 }}>{text.slice(4)}</h3>;
       }
       if (text.startsWith('#### ')) {
-        return <h4 key={idx} style={{ color: '#fbbf24', fontSize: '1.05rem', marginTop: '1rem', marginBottom: '0.5rem', fontWeight: 700 }}>{text.slice(5)}</h4>;
+        return <h4 key={idx} style={{ color: '#b45309', fontSize: '1.1rem', marginTop: '1rem', marginBottom: '0.5rem', fontWeight: 700 }}>{text.slice(5)}</h4>;
       }
       if (text.startsWith('👉 ')) {
-        return <div key={idx} style={{ background: 'rgba(245,158,11,0.08)', padding: '0.75rem 1rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.75rem 0', fontWeight: 600, color: '#fef08a' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
+        return <div key={idx} style={{ background: 'rgba(245,158,11,0.08)', padding: '0.75rem 1rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.75rem 0', fontWeight: 700, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
       }
       if (text.startsWith('* ') || text.startsWith('- ')) {
-        return <li key={idx} style={{ marginLeft: '1.2rem', marginBottom: '0.35rem', listStyleType: 'square', color: 'var(--text-normal)' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
+        return <li key={idx} style={{ marginLeft: '1.2rem', marginBottom: '0.35rem', listStyleType: 'square', color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
       }
       if (text.startsWith('---')) {
-        return <hr key={idx} style={{ border: 'none', borderTop: '1px dashed rgba(245,158,11,0.2)', margin: '1.25rem 0' }} />;
+        return <hr key={idx} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '1.25rem 0' }} />;
       }
-      return <p key={idx} style={{ margin: '0.5rem 0', lineHeight: 1.6, color: 'var(--text-normal)' }} dangerouslySetInnerHTML={{ __html: text }} />;
+      return <p key={idx} style={{ margin: '0.5rem 0', lineHeight: 1.6, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: text }} />;
     });
   };
 
@@ -345,33 +347,35 @@ function StudentDashboardContent() {
                 <span style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Live Schedule</span>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.75rem' }}>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => {
-                  const daySchedules: any[] = [];
-                  dashboard?.batches?.forEach(b => {
-                    b.schedules?.forEach((s: any) => {
-                      if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name });
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', paddingBottom: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.75rem', minWidth: '800px' }}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => {
+                    const daySchedules: any[] = [];
+                    dashboard?.batches?.forEach(b => {
+                      b.schedules?.forEach((s: any) => {
+                        if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name });
+                      });
                     });
-                  });
 
-                  return (
-                    <div key={day} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '1rem 0.5rem', minHeight: '120px', border: '1px solid var(--border)' }}>
-                      <div style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{day}</div>
-                      {daySchedules.length > 0 ? (
-                        daySchedules.map(ds => (
-                          <div key={ds.id} style={{ background: 'var(--primary)', color: 'white', fontSize: '0.65rem', padding: '6px', borderRadius: '6px', marginBottom: '6px', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)' }}>
-                            <div style={{ fontWeight: 800 }}>{ds.startTime}</div>
-                            {ds.subject && <div style={{ fontWeight: 700, fontSize: '0.6rem', background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', margin: '2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ds.subject}</div>}
-                            <div style={{ opacity: 0.9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ds.batchName}</div>
-                          </div>
-                        ))
-                      ) : (
-                        <div style={{ height: '20px' }}></div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
+                    return (
+                      <div key={day} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '1rem 0.5rem', minHeight: '120px', border: '1px solid var(--border)' }}>
+                        <div style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{day}</div>
+                        {daySchedules.length > 0 ? (
+                          daySchedules.map(ds => (
+                            <div key={ds.id} style={{ background: 'var(--primary)', color: 'white', fontSize: '0.65rem', padding: '6px', borderRadius: '6px', marginBottom: '6px', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)' }}>
+                              <div style={{ fontWeight: 800 }}>{ds.startTime}</div>
+                              {ds.subject && <div style={{ fontWeight: 700, fontSize: '0.6rem', background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', margin: '2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ds.subject}</div>}
+                              <div style={{ opacity: 0.9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ds.batchName}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ height: '20px' }}></div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
             {/* My Batches & Teachers */}
             <div className="glass-card" style={{ padding: '2rem', marginTop: '2rem' }}>
@@ -1023,9 +1027,9 @@ function StudentDashboardContent() {
         }
       `}</style>
       {activeTab === 'guru-ji' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', minHeight: '650px', background: 'rgba(30, 27, 22, 0.4)', border: '1px solid rgba(245, 158, 11, 0.2)', marginBottom: '2rem' }}>
+        <div className="glass-card animate-scale-up" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', minHeight: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem' }}>
           {/* Guru Ji Header */}
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', borderBottom: '1px dashed rgba(245, 158, 11, 0.2)', paddingBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '1.5rem', flexWrap: 'wrap' }}>
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', boxShadow: '0 0 20px rgba(245, 158, 11, 0.4)', animation: 'pulse 2s infinite' }}>
               🧠
             </div>
@@ -1058,17 +1062,20 @@ function StudentDashboardContent() {
                 font-size: 0.95rem;
               }
               .chat-bubble pre {
-                background: rgba(0,0,0,0.3);
+                background: var(--surface-light);
                 padding: 1rem;
                 border-radius: 8px;
                 overflow-x: auto;
                 margin: 1rem 0;
+                border: 1px solid var(--border);
               }
               .chat-bubble code {
                 font-family: monospace;
-                background: rgba(255,255,255,0.1);
+                background: var(--surface-light);
                 padding: 2px 6px;
                 border-radius: 4px;
+                color: var(--primary);
+                font-weight: 600;
               }
             `}</style>
 
@@ -1079,10 +1086,10 @@ function StudentDashboardContent() {
                 <select 
                   value={guruSubject} 
                   onChange={(e) => setGuruSubject(e.target.value)}
-                  style={{ width: '100%', padding: '1rem', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', borderRadius: '12px', color: '#fff', fontSize: '1rem' }}
+                  style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }}
                 >
                   {['Mathematics', 'Physics', 'Chemistry', 'Biology', 'General Academics'].map(subj => (
-                    <option key={subj} value={subj} style={{ background: '#1e1b16', color: '#fff' }}>{subj}</option>
+                    <option key={subj} value={subj} style={{ background: 'var(--surface)', color: 'var(--text)' }}>{subj}</option>
                   ))}
                 </select>
               </div>
@@ -1100,8 +1107,8 @@ function StudentDashboardContent() {
                         borderRadius: '10px',
                         border: '1px solid',
                         borderColor: guruLanguage === lang ? '#f59e0b' : 'var(--border)',
-                        background: guruLanguage === lang ? 'rgba(245, 158, 11, 0.15)' : 'rgba(0,0,0,0.3)',
-                        color: guruLanguage === lang ? '#f59e0b' : '#fff',
+                        background: guruLanguage === lang ? 'rgba(245, 158, 11, 0.15)' : 'var(--input-bg)',
+                        color: guruLanguage === lang ? '#f59e0b' : 'var(--text)',
                         fontWeight: 700,
                         cursor: 'pointer',
                         fontSize: '0.8rem',
@@ -1121,7 +1128,7 @@ function StudentDashboardContent() {
                   placeholder="Ask a question (e.g. Solve quadratic equation, Explain photosynthesis...)" 
                   value={guruQuestion}
                   onChange={(e) => setGuruQuestion(e.target.value)}
-                  style={{ width: '100%', flex: 1, minHeight: '120px', padding: '1rem', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', borderRadius: '12px', color: '#fff', fontSize: '1rem', resize: 'none', lineHeight: 1.5 }}
+                  style={{ width: '100%', flex: 1, minHeight: '120px', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem', resize: 'none', lineHeight: 1.5 }}
                 />
               </div>
 
@@ -1153,9 +1160,9 @@ function StudentDashboardContent() {
                         setGuruQuestion(ex.text);
                         setGuruSubject(ex.subject);
                       }}
-                      style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', color: 'var(--text-muted)', textAlign: 'left', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,158,11,0.05)'; e.currentTarget.style.color = '#fff'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text-muted)', textAlign: 'left', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,158,11,0.08)'; e.currentTarget.style.color = 'var(--text)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--card-bg-alt)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                     >
                       💡 {ex.text}
                     </button>
@@ -1165,11 +1172,11 @@ function StudentDashboardContent() {
             </div>
 
             {/* Right Column: Chat History and Explanation */}
-            <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden', height: '550px' }}>
-              <div style={{ background: 'rgba(245,158,11,0.05)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden', height: '550px' }}>
+              <div style={{ background: 'var(--surface-light)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: '0.9rem' }}>📖 STUDY DESK & GUIDANCE</span>
                 <button 
-                  onClick={() => setGuruHistory([{ role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal tutor. I can solve any academic problem and explain key concepts step-by-step. Select a subject and ask your doubt, or choose one of the examples below!' }])}
+                  onClick={() => setGuruHistory([{ role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal AI tutor. I am here to clarify all your doubts completely. Select your preferred subject and explanatory language (English, Hindi, or Hinglish), then ask your doubt!' }])}
                   style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                 >
                   🧹 Clear Board
@@ -1183,9 +1190,9 @@ function StudentDashboardContent() {
                     <div 
                       className="chat-bubble"
                       style={{ 
-                        background: msg.role === 'user' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.02)', 
-                        border: msg.role === 'user' ? '1px solid rgba(245,158,11,0.3)' : '1px solid var(--border)',
-                        color: '#fff',
+                        background: msg.role === 'user' ? 'rgba(99, 102, 241, 0.15)' : 'var(--surface)', 
+                        border: msg.role === 'user' ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid var(--border)',
+                        color: 'var(--text)',
                         alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start'
                       }}
                     >
@@ -1208,7 +1215,7 @@ function StudentDashboardContent() {
                 
                 {guruLoading && (
                   <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    <div className="chat-bubble" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className="chat-bubble" style={{ background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <div className="spinner" style={{ width: '15px', height: '15px', border: '2px solid #f3f3f3', borderTop: '2px solid #f59e0b', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Guru Ji is calculating step-by-step solution...</span>
                     </div>
