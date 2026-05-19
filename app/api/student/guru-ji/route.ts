@@ -15,6 +15,50 @@ export async function POST(req: Request) {
     }
 
     const resolvedSubject = subject || detectSubject(question);
+    
+    // Check for OpenAI API Key
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey) {
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are 'Digital Sahayak', a highly professional, helpful, and premium AI learning companion for the prestigious institute 'Sudhir Tutorials'. 
+You assist students, teachers, and administrators with clear, accurate, and detailed explanations of academic concepts, doubt solving, or planning outlines.
+Please generate a comprehensive, well-structured, beautifully formatted response in ${language.toUpperCase()} for the subject '${resolvedSubject}'. 
+Make sure your answer is extremely helpful, scientific, and thorough. Use bold points, equations where needed, and clear headers.`
+              },
+              {
+                role: 'user',
+                content: question
+              }
+            ],
+            temperature: 0.7
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const solution = data.choices[0].message.content;
+          return NextResponse.json({
+            success: true,
+            subject: resolvedSubject,
+            solution
+          });
+        }
+      } catch (openAiError) {
+        console.error("OpenAI API query error, using local fallback:", openAiError);
+      }
+    }
+
     const solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
 
     // Add a slight network delay to feel like a real AI processing thoughts

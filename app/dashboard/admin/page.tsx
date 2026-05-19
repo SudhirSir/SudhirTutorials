@@ -18,6 +18,7 @@ function AdminDashboardContent() {
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
   const [financeSubTab, setFinanceSubTab] = useState<'LEDGER' | 'ASSIGN'>('LEDGER');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures'>('menu');
+  const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES'>('ALL');
 
   useEffect(() => {
     // Intercept separate tab clicks to open nested sub-tab layout under academics
@@ -214,7 +215,7 @@ function AdminDashboardContent() {
   const [adminGuruSubject, setAdminGuruSubject] = useState('Mathematics');
   const [adminGuruLanguage, setAdminGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
   const [adminGuruHistory, setAdminGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([
-    { role: 'guru', content: `Hello, Admin! 👋 I am Guru-Dev AI, your premium administrative and planning assistant. Let's make scheduling and learning management incredibly streamlined today!` }
+    { role: 'guru', content: `Hello, Admin! 👋 I am Digital Sahayak, your premium administrative and planning assistant. Let's make scheduling and learning management incredibly streamlined today!` }
   ]);
   const [adminGuruLoading, setAdminGuruLoading] = useState(false);
 
@@ -231,121 +232,25 @@ function AdminDashboardContent() {
   const generateLessonPPT = async () => {
     if (!pptTopic.trim()) return;
     setPptGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const topic = pptTopic.trim();
-    const grade = pptGrade;
-    const focus = pptFocus;
-
-    const slides = [
-      {
-        type: 'TITLE',
-        title: `📖 LESSON PLAN & LECTURE OUTLINE`,
-        subtitle: `${topic.toUpperCase()}`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Curriculum: ${grade} | Designed for Premium Academic Excellence`,
-        content: `Welcome to the official premium lecture presentation. This slide deck has been custom-prepared for ${grade} scholars. Let's delve into the core concepts, analytical frameworks, and practical problem-solving methods of this topic.`
-      },
-      {
-        type: 'CONCEPT',
-        title: `⚡ Core Concepts & Definitions`,
-        subtitle: `Understanding the Foundations`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Topic Focus: ${topic}`,
-        content: `What is ${topic}? Let's break down the scientific/mathematical definition of this topic.
-
-👉 **Definition & Core Philosophy:**
-This topic forms the fundamental bedrock of academic science/mathematics. It explains the core interactions, equations, and principles that govern physical systems or mathematical relations.
-
-👉 **Key Principles to Remember:**
-1. **Precision & Consistency**: Every definition must match scientific standards.
-2. **Interconnected Nature**: This relates closely to higher-level analytical mechanics and logical deductions.
-3. **Application in Exams**: Conceptual clarity is highly tested in competitive papers like IIT-JEE, NEET, and Board Exams.`
-      },
-      {
-        type: 'FORMULA',
-        title: `🧮 Mathematical Formulas & Derivations`,
-        subtitle: `The Quantitative Framework`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Formulas for ${topic}`,
-        content: `Let's analyze the governing mathematical framework of ${topic}:
-
-👉 **Primary Governing Equation:**
-Depending on your specific focus, this represents the vital equation model for this topic:
-*   **Formula**: Balanced Conservation Equation or Governing Algebraic Matrix of variables.
-*   **Variables Invoiced**:
-    *   **Independent Parameters**: Measured constants and boundary values.
-    *   **Dependent Variables**: Calculated dynamic outputs.
-
-👉 **Derivation & Step-by-Step Proof:**
-1. Set up initial boundary conditions of the system.
-2. Integrate across the boundary constraints.
-3. Establish the final balanced conservation equation.`
-      },
-      {
-        type: 'PRACTICAL',
-        title: `🌍 Real-World Applications & Examples`,
-        subtitle: `Connecting Theory to Reality`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Industry & Real-Life Use Cases`,
-        content: `Why do we study ${topic}? Let's check where this is applied in modern technology:
-
-👉 **Practical Real-world Scenarios:**
-*   **Engineering & Design**: Designing robust structures, electronic circuits, or thermal power grids.
-*   **Daily Life Phenomenon**: Explaining natural occurrences, biological metabolic pathways, or standard kinematic motions.
-*   **Technology Integration**: Utilized in space research, software algorithms, or dynamic industrial automation.
-
-👉 **Classroom Activity / Discussion:**
-"How would changing the input constraint parameter affect the net output efficiency of this system?" Discuss in groups of 3.`
-      },
-      {
-        type: 'QUIZ',
-        title: `📝 Lecture Self-Assessment (5 MCQs)`,
-        subtitle: `Test Your Conceptual Understanding`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Quiz Session | Grade: ${grade}`,
-        content: `Let's solve these hand-picked conceptual multiple-choice questions:
-
-**Q1. What is the primary governing factor of ${topic}?**
-*   [A] Ambient atmospheric conditions
-*   [B] Intrinsic system parameters (Correct ✓)
-*   [C] Random quantum perturbations
-*   [D] None of the above
-
-**Q2. Which constant plays the most vital role here?**
-*   [A] Planck's Constant
-*   [B] Ideal Gas Constant
-*   [C] Proportionality Coefficient (Correct ✓)
-*   [D] Gravitational Parameter
-
-**Q3. If we double the active system variable, the resulting net output will:**
-*   [A] Increase by 2x (Correct ✓)
-*   [B] Reduce by half
-*   [C] Remain absolutely unchanged
-*   [D] Exponentially decay
-
-**Q4. Under what boundary state does this model fail?**
-*   [A] High temperatures
-*   [B] Outside normal operating limits (Correct ✓)
-*   [C] Absolute zero temperature
-*   [D] All of the above
-
-**Q5. The ultimate goal of studying this topic is to enable:**
-*   [A] Rote memorization of derivations
-*   [B] Dynamic industrial predictions & calculations (Correct ✓)
-*   [C] Pure historical analysis
-*   [D] None of the above`
+    try {
+      const res = await fetch('/api/admin/ai/ppt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: pptTopic.trim(), grade: pptGrade, focus: pptFocus })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedPpt(data);
+        setActiveSlideIndex(0);
+      } else {
+        alert('Failed to generate slides. Please try again.');
       }
-    ];
-
-    setGeneratedPpt({
-      topic,
-      grade,
-      focus,
-      slides
-    });
-    setActiveSlideIndex(0);
-    setPptGenerating(false);
+    } catch (err) {
+      console.error(err);
+      alert('Connection error occurred.');
+    } finally {
+      setPptGenerating(false);
+    }
   };
 
   const printAdminPpt = () => {
@@ -1478,7 +1383,7 @@ Depending on your specific focus, this represents the vital equation model for t
              tab === 'verifications' ? '✅ Pending Approvals' :
              tab === 'finances' ? '💳 Finances & Fees' :
              tab === 'academics' ? '🎓 Academic Services' :
-             tab === 'guru-ai' ? '✨ Guru-Dev AI' :
+             tab === 'guru-ai' ? '✨ Digital Sahayak' :
              tab === 'messages' ? '💬 Messages' :
              tab === 'notifications' ? '🔔 Notifications' :
              tab}
@@ -1851,101 +1756,303 @@ Depending on your specific focus, this represents the vital equation model for t
 
               {/* Full-Width Ledger Collection Table */}
               <div className="glass-card" style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
                   <div>
                     <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Fee Ledger & Collections</h2>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Track and verify all student payments</p>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => setLedgerViewMode('ALL')}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: ledgerViewMode === 'ALL' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                          color: ledgerViewMode === 'ALL' ? 'white' : 'var(--text)',
+                          border: ledgerViewMode === 'ALL' ? 'none' : '1px solid var(--border)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        All Records
+                      </button>
+                      <button
+                        onClick={() => setLedgerViewMode('FIRST_10')}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: ledgerViewMode === 'FIRST_10' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                          color: ledgerViewMode === 'FIRST_10' ? 'white' : 'var(--text)',
+                          border: ledgerViewMode === 'FIRST_10' ? 'none' : '1px solid var(--border)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        First 10 Transactions
+                      </button>
+                      <button
+                        onClick={() => setLedgerViewMode('ASSIGNED_FEES')}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: ledgerViewMode === 'ASSIGNED_FEES' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                          color: ledgerViewMode === 'ASSIGNED_FEES' ? 'white' : 'var(--text)',
+                          border: ledgerViewMode === 'ASSIGNED_FEES' ? 'none' : '1px solid var(--border)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        Assigned Fees
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <input 
-                      type="text" 
-                      placeholder="Search Name or ID..." 
-                      value={feeSearchQuery}
-                      onChange={e => setFeeSearchQuery(e.target.value)}
-                      list="ledger-student-search-list"
-                      style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
-                    />
-                    <datalist id="ledger-student-search-list">
-                      {directoryUsers
-                        .filter(u => u.role === 'STUDENT')
-                        .map(s => (
-                          <option key={s.id} value={s.name} label={s.username} />
-                        ))}
-                    </datalist>
-                  </div>
+
+                  {ledgerViewMode === 'ALL' && (
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Search Name or ID..." 
+                        value={feeSearchQuery}
+                        onChange={e => setFeeSearchQuery(e.target.value)}
+                        list="ledger-student-search-list"
+                        style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
+                      />
+                      <datalist id="ledger-student-search-list">
+                        {directoryUsers
+                          .filter(u => u.role === 'STUDENT')
+                          .map(s => (
+                            <option key={s.id} value={s.name} label={s.username} />
+                          ))}
+                      </datalist>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        <th style={{ padding: '0.75rem 0' }}>Student / ID</th>
-                        <th>Billing Details</th>
-                        <th>Status</th>
-                        <th>Amount Breakup</th>
-                        <th>Total Due</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const filteredFees = fees.filter(f => 
-                          f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
-                          f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
-                        );
-
-                        if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
-
-                        return filteredFees.map(fee => {
-                          const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
-                          return (
-                            <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
-                              <td style={{ padding: '1rem 0' }}>
-                                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
-                              </td>
-                              <td>
-                                <div style={{ fontSize: '0.9rem' }}>{fee.billingMonth}</div>
-                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
-                              </td>
-                              <td>
-                                <span style={{
-                                  padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                                  background: fee.status === 'PAID' ? 'rgba(52,211,153,0.1)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
-                                  color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
-                                  border: `1px solid ${fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'}`
-                                }}>
-                                  {fee.status}
-                                </span>
-                                {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
-                              </td>
-                              <td style={{ fontSize: '0.8rem' }}>
-                                 <div>Base: ₹{fee.amount}</div>
-                                 {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
-                                 {fee.discount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{fee.discount}</div>}
-                              </td>
-                              <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                  {fee.status === 'PENDING' && (
-                                    <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({...paymentDetails, discount: fee.discount}); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
-                                  )}
-                                  {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
-                                    <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
-                                  )}
-                                  {(fee.status !== 'PENDING') && (
-                                    <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
-                                  )}
-                                  <button onClick={() => { setEditingFeeRecord(fee); setShowEditFeeModal(true); }} style={{ padding: '6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }} title="Edit Fee Record">✎</button>
-                                  <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
-                                </div>
-                              </td>
-                            </tr>
+                  {/* View Mode 1: ALL RECORDS */}
+                  {ledgerViewMode === 'ALL' && (
+                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          <th style={{ padding: '0.75rem 0' }}>Student / ID</th>
+                          <th>Billing Details</th>
+                          <th>Status</th>
+                          <th>Amount Breakup</th>
+                          <th>Total Due</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const filteredFees = fees.filter(f => 
+                            f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
+                            f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
                           );
-                        });
-                      })()}
-                    </tbody>
-                  </table>
+
+                          if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
+
+                          return filteredFees.map(fee => {
+                            const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
+                            return (
+                              <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
+                                <td style={{ padding: '1rem 0' }}>
+                                  <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
+                                </td>
+                                <td>
+                                  <div style={{ fontSize: '0.9rem' }}>{fee.billingMonth}</div>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
+                                </td>
+                                <td>
+                                  <span style={{
+                                    padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
+                                    background: fee.status === 'PAID' ? 'rgba(52,211,153,0.1)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
+                                    color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
+                                    border: `1px solid ${fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'}`
+                                  }}>
+                                    {fee.status}
+                                  </span>
+                                  {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
+                                </td>
+                                <td style={{ fontSize: '0.8rem' }}>
+                                   <div>Base: ₹{fee.amount}</div>
+                                   {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
+                                   {fee.discount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{fee.discount}</div>}
+                                </td>
+                                <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {fee.status === 'PENDING' && (
+                                      <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({...paymentDetails, discount: fee.discount}); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
+                                    )}
+                                    {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
+                                      <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
+                                    )}
+                                    {(fee.status !== 'PENDING') && (
+                                      <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
+                                    )}
+                                    <button onClick={() => { setEditingFeeRecord(fee); setShowEditFeeModal(true); }} style={{ padding: '6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }} title="Edit Fee Record">✎</button>
+                                    <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* View Mode 2: FIRST 10 TRANSACTIONS */}
+                  {ledgerViewMode === 'FIRST_10' && (
+                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          <th style={{ padding: '0.75rem 0' }}>Transaction Ref / Date</th>
+                          <th>Student</th>
+                          <th>Category</th>
+                          <th>Method</th>
+                          <th>Amount Paid</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const paidFees = [...fees]
+                            .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
+                            .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+                            .slice(0, 10);
+
+                          if (paidFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions recorded yet.</td></tr>;
+
+                          return paidFees.map(fee => {
+                            const dateObj = new Date(fee.updatedAt || fee.createdAt);
+                            const formattedDate = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                            return (
+                              <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td style={{ padding: '1rem 0' }}>
+                                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>REC-{fee.id.slice(-6).toUpperCase()}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
+                                </td>
+                                <td>
+                                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.student?.name}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
+                                </td>
+                                <td>
+                                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{fee.billingMonth}</div>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fee.title}</div>
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontWeight: 600 }}>
+                                    {fee.paymentMethod || 'ONLINE'}
+                                  </span>
+                                </td>
+                                <td style={{ fontWeight: 800, color: '#10b981' }}>₹{fee.totalDue.toFixed(0)}</td>
+                                <td>
+                                  <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>🧾 View Receipt</button>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* View Mode 3: ASSIGNED FEES */}
+                  {ledgerViewMode === 'ASSIGNED_FEES' && (
+                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          <th style={{ padding: '0.75rem 0' }}>Student Details</th>
+                          <th>Assigned Base Fee</th>
+                          <th>Total Paid Fees</th>
+                          <th>Outstanding Balance</th>
+                          <th>Invoices Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const students = directoryUsers.filter(u => u.role === 'STUDENT');
+
+                          if (students.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No registered students found in directory.</td></tr>;
+
+                          return students.map(s => {
+                            const studentInvoices = fees.filter(f => f.studentId === s.id);
+                            const totalPaid = studentInvoices
+                              .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
+                              .reduce((acc, f) => acc + f.totalDue, 0);
+                            const outstanding = studentInvoices
+                              .filter(f => f.status === 'PENDING')
+                              .reduce((acc, f) => acc + f.totalDue, 0);
+                            const baseFee = s.studentProfile?.baseFee || 0;
+                            const pendingCount = studentInvoices.filter(f => f.status === 'PENDING').length;
+
+                            return (
+                              <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td style={{ padding: '1rem 0' }}>
+                                  <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
+                                </td>
+                                <td style={{ fontWeight: 700, color: 'var(--text)' }}>
+                                  ₹{baseFee.toLocaleString()}
+                                </td>
+                                <td style={{ fontWeight: 700, color: '#10b981' }}>
+                                  ₹{totalPaid.toLocaleString()}
+                                </td>
+                                <td style={{ fontWeight: 700, color: outstanding > 0 ? '#ef4444' : 'var(--text-muted)' }}>
+                                  ₹{outstanding.toLocaleString()}
+                                </td>
+                                <td>
+                                  {pendingCount > 0 ? (
+                                    <span style={{ fontSize: '0.7rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                      {pendingCount} PENDING BILLS
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: '0.7rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                      ALL PAID
+                                    </span>
+                                  )}
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button 
+                                      onClick={() => {
+                                        setFeeSearchQuery(s.username);
+                                        setLedgerViewMode('ALL');
+                                      }}
+                                      style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                    >
+                                      🔍 Track Payments
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        setAddFeeMode('INDIVIDUAL');
+                                        setFeeStudentId(s.username);
+                                        setFeeStudentSearch(`${s.name} (${s.username})`);
+                                        setFeeAmount(String(baseFee));
+                                        setFinanceSubTab('ASSIGN');
+                                      }}
+                                      style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                    >
+                                      ➕ Assign Fee
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
 
@@ -3099,7 +3206,7 @@ Depending on your specific focus, this represents the vital equation model for t
                     boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                   }}
                 >
-                  {adminGuruLoading ? 'Processing...' : '✨ Ask Guru-Dev AI'}
+                  {adminGuruLoading ? 'Processing...' : '✨ Ask Digital Sahayak'}
                 </button>
               </div>
 
@@ -3108,7 +3215,7 @@ Depending on your specific focus, this represents the vital equation model for t
                 <div style={{ background: 'var(--surface-light)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700, color: '#ef4444', fontSize: '0.9rem' }}>📖 ACADEMIC EXPERT WORKSPACE</span>
                   <button
-                    onClick={() => setAdminGuruHistory([{ role: 'guru', content: `Hello, Admin! 👋 I am Guru-Dev AI. How can I assist you in verifying details or planning today?` }])}
+                    onClick={() => setAdminGuruHistory([{ role: 'guru', content: `Hello, Admin! 👋 I am Digital Sahayak. How can I assist you in verifying details or planning today?` }])}
                     style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     🧹 Clear Feed
