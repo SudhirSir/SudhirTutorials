@@ -63,10 +63,39 @@ function StudentDashboardContent() {
   // Digital Guru Ji AI states
   const [guruQuestion, setGuruQuestion] = useState('');
   const [guruSubject, setGuruSubject] = useState('Mathematics');
+  const [guruLanguage, setGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
   const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([
-    { role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal tutor. I can solve any academic problem and explain key concepts step-by-step. Select a subject and ask your doubt, or choose one of the examples below!' }
+    { role: 'guru', content: 'Greetings, dear student! 🙏 I am Digital Guru Ji, your virtual personal AI tutor. I am here to clarify all your doubts completely. Select your preferred subject and explanatory language (English, Hindi, or Hinglish), then ask your doubt!' }
   ]);
   const [guruLoading, setGuruLoading] = useState(false);
+
+  // High performance formatting engine to render clean unicode mathematics and science equations beautifully
+  const formatGuruResponse = (content: string) => {
+    return content.split('\n').map((line, idx) => {
+      let text = line;
+      // Format bold text **something** into <strong>something</strong>
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // Format italic or code `something` into styled code span
+      text = text.replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-family:monospace;color:#fef08a;">$1</code>');
+
+      if (text.startsWith('### ')) {
+        return <h3 key={idx} style={{ color: '#f59e0b', fontSize: '1.2rem', marginTop: '1.25rem', marginBottom: '0.75rem', fontWeight: 800 }}>{text.slice(4)}</h3>;
+      }
+      if (text.startsWith('#### ')) {
+        return <h4 key={idx} style={{ color: '#fbbf24', fontSize: '1.05rem', marginTop: '1rem', marginBottom: '0.5rem', fontWeight: 700 }}>{text.slice(5)}</h4>;
+      }
+      if (text.startsWith('👉 ')) {
+        return <div key={idx} style={{ background: 'rgba(245,158,11,0.08)', padding: '0.75rem 1rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.75rem 0', fontWeight: 600, color: '#fef08a' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
+      }
+      if (text.startsWith('* ') || text.startsWith('- ')) {
+        return <li key={idx} style={{ marginLeft: '1.2rem', marginBottom: '0.35rem', listStyleType: 'square', color: 'var(--text-normal)' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
+      }
+      if (text.startsWith('---')) {
+        return <hr key={idx} style={{ border: 'none', borderTop: '1px dashed rgba(245,158,11,0.2)', margin: '1.25rem 0' }} />;
+      }
+      return <p key={idx} style={{ margin: '0.5rem 0', lineHeight: 1.6, color: 'var(--text-normal)' }} dangerouslySetInnerHTML={{ __html: text }} />;
+    });
+  };
 
   const askGuruJi = async () => {
     if (!guruQuestion.trim()) return;
@@ -82,7 +111,7 @@ function StudentDashboardContent() {
       const res = await fetch('/api/student/guru-ji', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, subject: subj })
+        body: JSON.stringify({ question: q, subject: subj, language: guruLanguage })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -302,7 +331,7 @@ function StudentDashboardContent() {
             {tab === 'notifications' && unreadNotifications > 0 && (
               <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
-            {tab === 'guru-ji' ? '🕉️ Digital Guru Ji' : tab}
+            {tab === 'guru-ji' ? '✨ Digital Guru Ji' : tab}
           </button>
         ))}
       </div>
@@ -997,8 +1026,8 @@ function StudentDashboardContent() {
         <div className="glass-card animate-scale-up" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', minHeight: '650px', background: 'rgba(30, 27, 22, 0.4)', border: '1px solid rgba(245, 158, 11, 0.2)', marginBottom: '2rem' }}>
           {/* Guru Ji Header */}
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', borderBottom: '1px dashed rgba(245, 158, 11, 0.2)', paddingBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', boxShadow: '0 0 20px rgba(245, 158, 11, 0.4)', animation: 'pulse 2s infinite' }}>
-              🕉️
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', boxShadow: '0 0 20px rgba(245, 158, 11, 0.4)', animation: 'pulse 2s infinite' }}>
+              🧠
             </div>
             <div>
               <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b', margin: 0 }}>Digital Guru Ji (डिजिटल गुरु जी)</h2>
@@ -1056,6 +1085,34 @@ function StudentDashboardContent() {
                     <option key={subj} value={subj} style={{ background: '#1e1b16', color: '#fff' }}>{subj}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="input-group">
+                <label style={{ color: '#f59e0b', fontWeight: 700 }}>Explanatory Language</label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                  {(['ENGLISH', 'HINDI', 'HINGLISH'] as const).map(lang => (
+                    <button
+                      key={lang}
+                      onClick={() => setGuruLanguage(lang)}
+                      style={{
+                        flex: 1,
+                        padding: '0.8rem 0.5rem',
+                        borderRadius: '10px',
+                        border: '1px solid',
+                        borderColor: guruLanguage === lang ? '#f59e0b' : 'var(--border)',
+                        background: guruLanguage === lang ? 'rgba(245, 158, 11, 0.15)' : 'rgba(0,0,0,0.3)',
+                        color: guruLanguage === lang ? '#f59e0b' : '#fff',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        transition: 'all 0.2s',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {lang === 'HINGLISH' ? '💬 Hinglish' : lang === 'HINDI' ? '🇮🇳 Hindi' : '🇬🇧 English'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="input-group" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -1138,8 +1195,12 @@ function StudentDashboardContent() {
                         </span>
                       )}
                       
-                      <div style={{ whiteSpace: 'pre-line' }}>
-                        {msg.content}
+                      <div>
+                        {msg.role === 'guru' ? (
+                          formatGuruResponse(msg.content)
+                        ) : (
+                          <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                        )}
                       </div>
                     </div>
                   </div>

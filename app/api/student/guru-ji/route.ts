@@ -9,19 +9,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { question, subject } = await req.json();
+    const { question, subject, language = 'ENGLISH' } = await req.json();
     if (!question) {
       return NextResponse.json({ error: 'Question is required' }, { status: 400 });
     }
 
-    // Call external LLM or use highly sophisticated academic solver logic
-    // We will simulate a state-of-the-art academic expert model response tailored to IIT-JEE, NEET, and board standards.
-    // Let's create an highly realistic, extremely detailed response generator based on query keywords.
     const resolvedSubject = subject || detectSubject(question);
-    const solution = generateAcademicResponse(question, resolvedSubject);
+    const solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
 
     // Add a slight network delay to feel like a real AI processing thoughts
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     return NextResponse.json({
       success: true,
@@ -36,181 +33,488 @@ export async function POST(req: Request) {
 
 function detectSubject(q: string): string {
   const query = q.toLowerCase();
-  if (query.includes('solve') || query.includes('equation') || query.includes('integrate') || query.includes('derivative') || query.includes('matrix') || query.includes('probability') || query.includes('triangle') || query.includes('algebra') || query.includes('calculus')) {
+  if (query.includes('solve') || query.includes('equation') || query.includes('integrate') || query.includes('derivative') || query.includes('matrix') || query.includes('probability') || query.includes('triangle') || query.includes('algebra') || query.includes('calculus') || query.includes('math') || query.includes('trigo')) {
     return 'Mathematics';
   }
-  if (query.includes('force') || query.includes('velocity') || query.includes('acceleration') || query.includes('quantum') || query.includes('mass') || query.includes('gravity') || query.includes('lens') || query.includes('light') || query.includes('electricity') || query.includes('magnet')) {
+  if (query.includes('force') || query.includes('velocity') || query.includes('acceleration') || query.includes('quantum') || query.includes('mass') || query.includes('gravity') || query.includes('lens') || query.includes('light') || query.includes('electricity') || query.includes('magnet') || query.includes('physics')) {
     return 'Physics';
   }
-  if (query.includes('acid') || query.includes('base') || query.includes('reaction') || query.includes('chemical') || query.includes('element') || query.includes('periodic') || query.includes('atom') || query.includes('organic') || query.includes('molecule') || query.includes('ether')) {
+  if (query.includes('acid') || query.includes('base') || query.includes('reaction') || query.includes('chemical') || query.includes('element') || query.includes('periodic') || query.includes('atom') || query.includes('organic') || query.includes('molecule') || query.includes('ether') || query.includes('chemistry')) {
     return 'Chemistry';
   }
-  if (query.includes('cell') || query.includes('dna') || query.includes('rna') || query.includes('plant') || query.includes('human') || query.includes('organ') || query.includes('heart') || query.includes('photosynthesis') || query.includes('mitosis') || query.includes('gene')) {
+  if (query.includes('cell') || query.includes('dna') || query.includes('rna') || query.includes('plant') || query.includes('human') || query.includes('organ') || query.includes('heart') || query.includes('photosynthesis') || query.includes('mitosis') || query.includes('gene') || query.includes('biology')) {
     return 'Biology';
   }
   return 'General Academics';
 }
 
-function generateAcademicResponse(q: string, subject: string): string {
+function generateAcademicResponse(q: string, subject: string, lang: string): string {
   const query = q.toLowerCase();
 
-  // Custom detailed responses for typical academic doubts
-  if (query.includes('quadratic') || query.includes('ax^2') || query.includes('quadratic equation')) {
-    return `### 🧮 Quadratic Equation Solver & Concept
+  // 1. QUADRATIC EQUATIONS
+  if (query.includes('quadratic') || query.includes('ax^2') || query.includes('quadratic equation') || query.includes('dvi-ghat') || query.includes('dvighat')) {
+    if (lang === 'HINGLISH') {
+      return `### 🧮 Quadratic Equation Solver (Hinglish)
 
-**Concept Involved:**
-A quadratic equation is a second-degree polynomial equation of the form:
-$$ax^2 + bx + c = 0$$
-where $a \\neq 0$. The solutions (roots) are given by the **Quadratic Formula**:
-$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
-The term $D = b^2 - 4ac$ is the **Discriminant** and determines the nature of the roots:
-1. $D > 0$: Two distinct real roots.
-2. $D = 0$: One repeated real root (equal roots).
-3. $D < 0$: Two complex conjugate roots.
+**Core Concept:**
+Ek quadratic equation (do-ghat samikaran) aisi equation hoti hai jiska maximum degree 2 hota hai. Iska standard form ye hai:
+👉 **ax² + bx + c = 0**  (jahan a ≠ 0)
+
+Roots (answers) nikalne ke liye hum sabse famous **Quadratic Formula (Shridharcharya Formula)** use karte hain:
+👉 **x = [ -b ± √(b² - 4ac) ] / 2a**
+
+Yahan jo **D = b² - 4ac** hai, use **Discriminant** bolte hain. D se hume roots ka nature pata chalta hai:
+1. **D > 0**: Do alag aur real roots milenge.
+2. **D = 0**: Dono roots bilkul equal aur real honge.
+3. **D < 0**: Roots imaginary (complex numbers) honge.
 
 ---
 
 **Step-by-Step Solution:**
-Let's solve a general quadratic equation $ax^2 + bx + c = 0$:
-1. **Identify Coefficients**: Match your equation to $ax^2 + bx + c = 0$ to find $a$, $b$, and $c$.
-2. **Calculate the Discriminant ($D$)**: Compute $D = b^2 - 4ac$.
-3. **Apply Formula**: Substitute $a$, $b$, and $D$ back into $x = \\frac{-b \\pm \\sqrt{D}}{2a}$.
-4. **Simplify**: Solve for both positive (+) and negative (-) cases to get roots $x_1$ and $x_2$.
+Chalo ek quadratic equation solve karte hain: **x² - 5x + 6 = 0**
 
-*Example:* Solve $x^2 - 5x + 6 = 0$.
-* $a = 1$, $b = -5$, $c = 6$
-* $D = (-5)^2 - 4(1)(6) = 25 - 24 = 1$
-* Since $D > 0$, roots are real and distinct.
-* $x = \\frac{-(-5) \\pm \\sqrt{1}}{2(1)} = \\frac{5 \\pm 1}{2}$
-* $x_1 = \\frac{6}{2} = 3$ and $x_2 = \\frac{4}{2} = 2$.
-* **Roots are $x = 2$ and $x = 3$.**
+1. **Coefficients identify karo**:
+   Standard form ax² + bx + c = 0 se compare karne par:
+   * **a = 1**, **b = -5**, **c = 6**
+2. **Discriminant (D) calculate karo**:
+   * D = b² - 4ac
+   * D = (-5)² - 4 × 1 × 6
+   * D = 25 - 24 = **1**
+   * (Kyonki D > 0 hai, isliye roots real aur unique hain!)
+3. **Quadratic Formula apply karo**:
+   * x = [ -(-5) ± √1 ] / 2(1)
+   * x = [ 5 ± 1 ] / 2
+4. **Roots calculate karo**:
+   * **Case 1 (+)**: x = (5 + 1) / 2 = 6/2 = **3**
+   * **Case 2 (-)**: x = (5 - 1) / 2 = 4/2 = **2**
+   * **Final Answer: x = 2 and x = 3**
 
 ---
 
-**💡 Guru Ji's Tip:**
-Always check the sum and product of roots to verify your answer!
-* **Sum of roots ($x_1 + x_2$)** $= -b/a$
-* **Product of roots ($x_1 \\cdot x_2$)** $= c/a$
-For our example: $2 + 3 = 5$ (which matches $-(-5)/1 = 5$), and $2 \\times 3 = 6$ (matches $6/1 = 6$). Your answer is verified!`;
-  }
+**💡 Guru Ji ka Maha-Tip:**
+Apne answers ko verify karne ke liye humesha ye trick check karo:
+* **Roots ka Sum (x₁ + x₂)** = -b/a  ➡  (2 + 3 = 5, jo ki -(-5)/1 ke barabar hai!)
+* **Roots ka Product (x₁ × x₂)** = c/a  ➡  (2 × 3 = 6, jo ki 6/1 ke barabar hai!)`;
+    }
 
-  if (query.includes('photosynthesis') || query.includes('light reaction') || query.includes('carbon dioxide')) {
-    return `### 🧬 Process of Photosynthesis Explained
+    if (lang === 'HINDI') {
+      return `### 🧮 द्विघात समीकरण हल और अवधारणा (Hindi)
+
+**मूल अवधारणा:**
+द्विघात समीकरण एक द्वितीय-घात का बहुपद समीकरण होता है जिसका मानक रूप निम्नलिखित है:
+👉 **ax² + bx + c = 0** (जहाँ a ≠ 0)
+
+द्विघात समीकरण के मूलों (roots) को ज्ञात करने के लिए हम **श्रीधराचार्य सूत्र** का उपयोग करते हैं:
+👉 **x = [ -b ± √(b² - 4ac) ] / 2a**
+
+यहाँ **D = b² - 4ac** को **विविक्तकर (Discriminant)** कहा जाता है, जो मूलों की प्रकृति निर्धारित करता है:
+1. **D > 0**: दो भिन्न और वास्तविक मूल।
+2. **D = 0**: दो समान (बराबर) और वास्तविक मूल।
+3. **D < 0**: कोई वास्तविक मूल नहीं (काल्पनिक मूल)।
+
+---
+
+**चरण-दर-चरण समाधान:**
+आइए समीकरण **x² - 5x + 6 = 0** को हल करें:
+
+1. **गुणांकों (Coefficients) की पहचान करें**:
+   मानक रूप से तुलना करने पर:
+   * **a = 1**, **b = -5**, **c = 6**
+2. **विविक्तकर (D) की गणना करें**:
+   * D = b² - 4ac
+   * D = (-5)² - 4 × 1 × 6
+   * D = 25 - 24 = **1**
+   * (चूंकि D > 0 है, मूल वास्तविक और भिन्न होंगे।)
+3. **सूत्र में मान रखें**:
+   * x = [ -(-5) ± √1 ] / 2(1)
+   * x = [ 5 ± 1 ] / 2
+4. **मूल प्राप्त करें**:
+   * **धनात्मक (+) लेने पर**: x = (5 + 1) / 2 = 6/2 = **3**
+   * **ऋणात्मक (-) लेने पर**: x = (5 - 1) / 2 = 4/2 = **2**
+   * **उत्तर: x = 2 और x = 3**
+
+---
+
+**💡 गुरु जी की विशेष सलाह:**
+हमेशा मूलों के योगफल और गुणनफल की जांच करके अपने उत्तर की पुष्टि करें:
+* **मूलों का योग (x₁ + x₂)** = -b/a ➡ (2 + 3 = 5)
+* **मूलों का गुणनफल (x₁ × x₂)** = c/a ➡ (2 × 3 = 6)`;
+    }
+
+    return `### 🧮 Quadratic Equation Solver & Concept (English)
 
 **Concept Involved:**
-**Photosynthesis** is the anabolic process by which green plants, algae, and some bacteria convert light energy (solar energy) into chemical energy (glucose) using water and carbon dioxide. The general chemical equation is:
-$$6CO_2 + 6H_2O \\xrightarrow{\\text{Light, Chlorophyll}} C_6H_{12}O_6 + 6O_2$$
+A quadratic equation is a second-degree polynomial equation of the form:
+👉 **ax² + bx + c = 0**  (where a ≠ 0)
 
-Photosynthesis occurs inside the **Chloroplasts** and is divided into two main stages:
+The solutions (roots) are obtained using the legendary **Quadratic Formula**:
+👉 **x = [ -b ± √(b² - 4ac) ] / 2a**
+
+The term **D = b² - 4ac** is the **Discriminant** which determines the nature of the roots:
+1. **D > 0**: Two distinct real roots.
+2. **D = 0**: One repeated (equal) real root.
+3. **D < 0**: Imaginary (complex conjugate) roots.
+
+---
+
+**Step-by-Step Solution:**
+Let us solve the quadratic equation: **x² - 5x + 6 = 0**
+
+1. **Identify Coefficients**:
+   Comparing with ax² + bx + c = 0, we get:
+   * **a = 1**, **b = -5**, **c = 6**
+2. **Compute the Discriminant (D)**:
+   * D = b² - 4ac
+   * D = (-5)² - 4 × 1 × 6 = 25 - 24 = **1**
+   * (Since D > 0, roots are real and distinct.)
+3. **Apply the Quadratic Formula**:
+   * x = [ -(-5) ± √1 ] / 2(1)
+   * x = [ 5 ± 1 ] / 2
+4. **Deduce Roots**:
+   * **For (+)**: x = (5 + 1) / 2 = **3**
+   * **For (-)**: x = (5 - 1) / 2 = **2**
+   * **Roots are x = 2 and x = 3.**
+
+---
+
+**💡 Guru Ji's Academic Tip:**
+Always double check using root coefficients relations:
+* **Sum of roots (x₁ + x₂)** = -b/a = 5
+* **Product of roots (x₁ × x₂)** = c/a = 6`;
+  }
+
+  // 2. PHOTOSYNTHESIS
+  if (query.includes('photosynthesis') || query.includes('light reaction') || query.includes('carbon dioxide') || query.includes('prakash sanshleshan') || query.includes('sanshleshan')) {
+    if (lang === 'HINGLISH') {
+      return `### 🧬 Photosynthesis Process (Hinglish)
+
+**Core Concept:**
+**Photosynthesis** woh organic process hai jisse green plants sunlight energy ka use karke chemical energy (Glucose) banate hain. Plants carbon dioxide (CO₂) aur pani (H₂O) lete hain, aur oxygen (O₂) byproduct ki tarah release karte hain.
+👉 **Chemical Equation:**
+   **6CO₂ + 6H₂O + Sunlight ➡ C₆H₁₂O₆ + 6O₂**
+
+Photosynthesis **Chloroplast** ke andar hota hai aur iske do main stages hote hain:
+1. **Light Reaction** (Thylakoid membrane ke andar): Isme light energy absorb hoti hai.
+2. **Dark Reaction / Calvin Cycle** (Stroma ke andar): Isme bina direct light ke sugar banti hai.
+
+---
+
+**Step-by-Step Breakdown:**
+1. **Absorption of Light**: Plants ki leaves me present **Chlorophyll** sunlight ko catch karta hai.
+2. **Water splitting (Photolysis)**: Light energy paani ke molecules ko hydrogen ions, electrons aur oxygen gas me break karti hai:
+   **2H₂O ➡ 4H⁺ + 4e⁻ + O₂**  *(Oxygen atmospheric air me release ho jati hai!)*
+3. **Energy formation**: ETC (Electron Transport Chain) ke through chemical energy structures **ATP** aur **NADPH** bante hain.
+4. **Calvin Cycle (Sugar production)**: Carbon Dioxide (CO₂) leaf ke pores (stomata) ke through enter karta hai. Plant energy molecules ATP aur NADPH ka use karke **Glucose (C₆H₁₂O₆)** banata hai.
+
+---
+
+**💡 Guru Ji ka Tip:**
+Yaad rakhna, **Light Reaction** energy-generating phase hai (isne ATP aur NADPH banaya) aur **Dark Reaction** sugar-manufacturing phase hai. Plants glucose ko Starch ke roop me store karte hain!`;
+    }
+
+    if (lang === 'HINDI') {
+      return `### 🧬 प्रकाश संश्लेषण की प्रक्रिया (Hindi)
+
+**मूल अवधारणा:**
+**प्रकाश संश्लेषण (Photosynthesis)** वह उपचय (Anabolic) प्रक्रिया है जिसके द्वारा हरे पौधे, शैवाल और कुछ जीवाणु सूर्य के प्रकाश की ऊर्जा का उपयोग करके जल और कार्बन डाइऑक्साइड को रासायनिक ऊर्जा (ग्लूकोज) में परिवर्तित करते हैं।
+👉 **रासायनिक समीकरण:**
+   **6CO₂ + 6H₂O + सूर्य का प्रकाश ➡ C₆H₁₂O₆ + 6O₂**
+
+यह प्रक्रिया मुख्य रूप से **हरित लवक (Chloroplast)** के भीतर होती है और दो चरणों में पूरी होती है:
+1. **प्रकाश-निर्भर अभिक्रियाएं (Light Reactions)** (थायलाकोइड झिल्ली में)।
+2. **प्रकाश-स्वतंत्र अभिक्रियाएं (Calvin Cycle)** (स्ट्रोमा में)।
+
+---
+
+**चरण-दर-चरण प्रक्रिया:**
+1. **प्रकाश का अवशोषण**: पत्तियों में उपस्थित **क्लोरोफिल (पर्णहरित)** सौर ऊर्जा को अवशोषित करता है।
+2. **जल का प्रकाशिक अपघटन (Photolysis)**: अवशोषित प्रकाश पानी के अणुओं को विखंडित करता है:
+   **2H₂O ➡ 4H⁺ + 4e⁻ + O₂**
+   *(यह ऑक्सीजन गैस वायुमंडल में मुक्त हो जाती है।)*
+3. **ऊर्जा का निर्माण**: इलेक्ट्रॉन परिवहन श्रृंखला (ETC) के माध्यम से ऊर्जा वाहक अणु **ATP** और **NADPH** बनते हैं।
+4. **कार्बन स्थिरीकरण (केल्विन चक्र)**: वायुमंडलीय CO₂ स्ट्रोमा में प्रवेश करता है। ATP और NADPH का उपयोग करके एन्जाइम RuBisCO की सहायता से **ग्लूकोज (C₆H₁₂O₆)** का संश्लेषण होता है।
+
+---
+
+**💡 गुरु जी की सलाह:**
+यह ध्यान रखें कि प्रकाश अभिक्रिया का कार्य केवल ऊर्जा (ATP, NADPH) बनाना है, जबकि अंधकार अभिक्रिया (Dark Reaction) का कार्य शर्करा (ग्लूकोज) बनाना है। पौधे भोजन को स्टार्च (मंड) के रूप में संचित करते हैं।`;
+    }
+
+    return `### 🧬 Process of Photosynthesis Explained (English)
+
+**Concept Involved:**
+**Photosynthesis** is the anabolic process by which green plants and some organisms convert light energy into chemical energy (glucose) using water (H₂O) and carbon dioxide (CO₂).
+👉 **Governing Equation:**
+   **6CO₂ + 6H₂O + Light Energy ➡ C₆H₁₂O₆ + 6O₂**
+
+It occurs inside the **Chloroplasts** in two distinct stages:
 1. **Light-Dependent Reactions** (Occurs in the Thylakoid membrane).
 2. **Light-Independent Reactions (Calvin Cycle)** (Occurs in the Stroma).
 
 ---
 
-**Step-by-Step Mechanism:**
-1. **Absorption of Light**: Chlorophyll $a$ and $b$ inside the thylakoid capture sunlight photons.
-2. **Photolysis of Water**: Light splits water molecules into oxygen gas, protons ($H^+$), and electrons:
-   $$2H_2O \\rightarrow 4H^+ + 4e^- + O_2$$
-   *Oxygen is released as a byproduct.*
-3. **Photophosphorylation**: Electrons travel through the Electron Transport Chain (ETC) to produce energy carriers **ATP** and **NADPH**.
-4. **Calvin Cycle (Carbon Fixation)**: Carbon dioxide ($CO_2$) enters the stroma. Using ATP and NADPH from the light reactions, enzyme **RuBisCO** fixes $CO_2$ into 3-carbon sugars, which are eventually converted into **Glucose** ($C_6H_{12}O_6$).
+**Mechanistic Steps:**
+1. **Absorption of Light**: Chlorophyll molecules absorb incoming solar photons.
+2. **Photolysis of Water**: Solar energy splits water molecules into oxygen, protons, and free electrons:
+   **2H₂O ➡ 4H⁺ + 4e⁻ + O₂**  *(Oxygen is released as a byproduct)*
+3. **Photophosphorylation**: Electrons are passed down the Electron Transport Chain (ETC) to synthesize energy carriers **ATP** and **NADPH**.
+4. **Carbon Fixation**: CO₂ enters the stroma, and utilizing the chemical energy stored in ATP and NADPH, is synthesized into **Glucose (C₆H₁₂O₆)**.
 
 ---
 
 **💡 Guru Ji's Tip:**
-Remember that **Light Reaction** is the *Energy-generating phase* (makes ATP & NADPH) while the **Dark Reaction (Calvin Cycle)** is the *Sugar-manufacturing phase* (makes glucose). Starch is the storage form of glucose in plants!`;
+Think of the **Light Reaction** as the *energy factory* (charges up ATP/NADPH batteries) and the **Dark Reaction** as the *assembly line* (uses the batteries to manufacture sugar)!`;
   }
 
-  if (query.includes('newton') || query.includes('laws of motion') || query.includes('force')) {
-    return `### ⚛️ Newton's Laws of Motion: Deep-Dive
+  // 3. NEWTON'S LAWS
+  if (query.includes('newton') || query.includes('laws of motion') || query.includes('force') || query.includes('gati ke niyam') || query.includes('gati niyam')) {
+    if (lang === 'HINGLISH') {
+      return `### ⚛️ Newton's Laws of Motion (Hinglish)
 
-**Concept Involved:**
-Sir Isaac Newton formulated three fundamental laws of motion that describe the relationship between a body and the forces acting upon it, laying the foundation for Classical Mechanics.
+**Core Concept:**
+Sir Isaac Newton ne classical mechanics ke base par 3 sabse important laws diye hain, jo kisi object ki position aur uspe lagne wale force ke relation ko samjhate hain.
 
 ---
 
-**Detailed Breakdown of the Three Laws:**
+**The Three Laws Simplified:**
+
+#### 1. First Law (Law of Inertia - Jadatva ka Niyam)
+* **Statement**: Agar koi cheez ruki hui (rest par) hai to wo ruki rahegi, aur agar constant speed se chal rahi hai to chalti rahegi, jab tak uspar koi external force na lagaya jaye.
+* **Inertia**: Har object ki apni state change ko resist karne ki tendency ko Inertia bolte hain. Jiska mass jyada hoga, uska inertia bhi utna hi jyada hoga!
+
+#### 2. Second Law (Force and Acceleration)
+* **Statement**: Kisi body ka momentum change hone ka rate directly proportional hota hai uspe lagne wale net force ke.
+* **Equation**:
+  👉 **F = m · a**  (Force = Mass × Acceleration)
+  * Unit: **Newton (N)**, jahan **1 N = 1 kg·m/s²**
+
+#### 3. Third Law (Action and Reaction - Kriya-Pratikriya)
+* **Statement**: Har action ki ek barabar aur opposite reaction hoti hai.
+* **Equation**:
+  👉 **F_AB = -F_BA** (Agar body A, body B par force lagati hai, toh B bhi A par barabar force lagayegi opposite direction me!)
+
+---
+
+**💡 Guru Ji ka IIT-JEE/NEET Tip:**
+Jab bhi newton's second law ke sums solve karo, sabse pehle **FBD (Free Body Diagram)** banao! Object ko point mass mano aur saare forces (Gravity, Tension, Normal, Friction) draw karo, phir equation F_net = m·a use karo!`;
+    }
+
+    if (lang === 'HINDI') {
+      return `### ⚛️ न्यूटन के गति के नियम (Hindi)
+
+**मूल अवधारणा:**
+सर आइजैक न्यूटन ने पिण्डों की गति और उन पर लगने वाले बलों के संबंध को स्पष्ट करने के लिए तीन मौलिक नियमों का प्रतिपादन किया, जिन्हें न्यूटन के गति के नियम कहा जाता है।
+
+---
+
+**तीनों नियमों का विस्तृत विश्लेषण:**
+
+#### 1. प्रथम नियम (जड़त्व का नियम)
+* **कथन**: प्रत्येक वस्तु अपनी विरामवस्था या एकसमान गति की स्थिति में बनी रहती है जब तक कि उस पर कोई बाह्य बल आरोपित न किया जाए।
+* **जड़त्व**: किसी वस्तु का वह प्राकृतिक गुण जो उसकी गति की अवस्था में परिवर्तन का विरोध करता है। द्रव्यमान ही जड़त्व की माप है।
+
+#### 2. द्वितीय नियम (बल और त्वरण का नियम)
+* **कथन**: किसी वस्तु के संवेग परिवर्तन की दर उस पर लगाए गए बल के समानुपाती होती है और बल की दिशा में ही होती है।
+* **गणितीय रूप**:
+  👉 **F = m · a**  (बल = द्रव्यमान × त्वरण)
+  * मात्रक: **न्यूटन (N)**, जहाँ **1 N = 1 kg·m/s²**
+
+#### 3. तृतीय नियम (क्रिया-प्रतिक्रिया का नियम)
+* **कथन**: प्रत्येक क्रिया के लिए हमेशा एक समान और विपरीत दिशा में प्रतिक्रिया होती है।
+* **गणितीय रूप**:
+  👉 **F_AB = -F_BA** (बल परिमाण में समान परंतु दिशा में विपरीत होते हैं और हमेशा दो अलग-अलग वस्तुओं पर कार्य करते हैं।)
+
+---
+
+**💡 गुरु जी की सलाह:**
+किसी भी भौतिकी की समस्या को हल करते समय सबसे पहले **मुक्त पिंड आरेख (Free Body Diagram - FBD)** बनाएं। पिंड पर लग रहे सभी बलों को चिन्हित करने के बाद ही F = m·a लागू करें।`;
+    }
+
+    return `### ⚛️ Newton's Three Laws of Motion (English)
+
+**Concept Involved:**
+Formulated by Sir Isaac Newton, these three laws describe the relationship between a physical body and the forces acting upon it, establishing Classical Mechanics.
+
+---
+
+**The Three Laws:**
 
 #### 1. First Law (Law of Inertia)
-> *\"Every body continues in its state of rest or uniform motion in a straight line, unless compelled to change that state by forces impressed upon it.\"*
-* **Inertia** is the inherent property of matter to resist any change in its state of rest or motion. Mass is the direct quantitative measure of inertia.
+* **Statement**: A body remains at rest or in uniform motion along a straight line unless acted upon by an external net force.
+* **Inertia**: The inherent resistance of matter to change its velocity. Mass is the direct quantitative measure of inertia.
 
-#### 2. Second Law (Law of Force and Acceleration)
-> *\"The rate of change of momentum of a body is directly proportional to the applied force and takes place in the direction in which the force acts.\"*
-* Mathematically:
-  $$\\vec{F} = \\frac{d\\vec{p}}{dt} = \\frac{d(m\\vec{v})}{dt}$$
-  If mass ($m$) is constant, this simplifies to the famous formula:
-  $$\\vec{F} = m\\vec{a}$$
-  *SI Unit:* Newton (N) where $1\\text{ N} = 1\\text{ kg}\\cdot\\text{m/s}^2$.
+#### 2. Second Law (Force and Acceleration)
+* **Statement**: The rate of change of momentum of a body is directly proportional to the applied force.
+* **Mathematical Formula**:
+  👉 **F = m · a**  (Force = Mass × Acceleration)
+  * SI Unit: **Newton (N)** where **1 N = 1 kg·m/s²**
 
-#### 3. Third Law (Action & Reaction)
-> *\"To every action, there is always an equal and opposite reaction.\"*
-* Forces always occur in pairs. If body A exerts a force $\\vec{F}_{AB}$ on body B, body B exerts an equal and opposite force $\\vec{F}_{BA}$ on body A:
-  $$\\vec{F}_{AB} = -\\vec{F}_{BA}$$
+#### 3. Third Law (Action and Reaction)
+* **Statement**: To every action, there is always an equal and opposite reaction.
+* **Mathematical Formula**:
+  👉 **F_AB = -F_BA** (Forces always occur in equal and opposite pairs acting on different bodies.)
 
 ---
 
 **💡 Guru Ji's Tip:**
-For competitive exams (IIT-JEE/NEET), when solving Newton's Second Law problems, **ALWAYS draw a Free Body Diagram (FBD)**. Isolate the body, draw all active forces acting on it (gravity, normal force, tension, friction), select a coordinate system, and resolve forces along the axis of motion ($F_{\\text{net}} = ma$).`;
+When solving mechanics problems for competitive examinations, **ALWAYS draw a Free Body Diagram (FBD)**. Isolate the mass, trace all active forces (gravity, normal support, tension, friction), and set up the F = m·a balance.`;
   }
 
-  if (query.includes('periodic table') || query.includes('electronegativity') || query.includes('ionization')) {
-    return `### 🧪 Periodic Trends & Electronegativity
+  // 4. PERIODIC TABLE / CHEMICAL
+  if (query.includes('periodic') || query.includes('chemistry') || query.includes('reaction') || query.includes('chemical') || query.includes('element') || query.includes('atom') || query.includes('avart sarni')) {
+    if (lang === 'HINGLISH') {
+      return `### 🧪 Periodic Trends & Electronegativity (Hinglish)
+
+**Core Concept:**
+Modern Periodic Table elements ko unke atomic numbers ke basis par organize karta hai. Periodic trends ka matlab hai wo physical aur chemical properties jo group ya period me continuously change hoti hain:
+
+---
+
+**Important Trends Chart:**
+
+* **Atomic Radius (Atomic Size)**:
+  * Left to Right jane par: 📉 **Kam hota hai** (Nuclear charge badhne ke karan electrons nucleus ki taraf pull hote hain).
+  * Top to Bottom jane par: 📈 **Badhta hai** (Naye electron shells add hote hain).
+* **Ionization Energy (Electron nikalne ki energy)**:
+  * Left to Right jane par: 📈 **Badhti hai** (Electron tightly hold hote hain).
+  * Top to Bottom jane par: 📉 **Kam hoti hai** (Electron nucleus se dur ho jate hain, isliye unhe nikalna easy ho jata hai).
+* **Electronegativity (Bond electron pull karne ki tendency)**:
+  * Left to Right: 📈 **Badhti hai**.
+  * Top to Bottom: 📉 **Kam hoti hai**.
+
+---
+
+**💡 Guru Ji ka Chemical Tip:**
+Exam me humesha pucha jane wala trick question: **Chlorine (Cl) ki Electron Gain Enthalpy Fluorine (F) se jyada negative hoti hai!** Fluorine ka size chota hone ke karan usme high electron repulsion hota hai, isliye Chlorine easily electron accept kar leta hai.`;
+    }
+
+    if (lang === 'HINDI') {
+      return `### 🧪 आवर्त सारणी और आवर्ती गुण (Hindi)
+
+**मूल अवधारणा:**
+आधुनिक आवर्त सारणी तत्वों को उनके परमाणु क्रमांक के बढ़ते क्रम में व्यवस्थित करती है। तत्वों के प्रमुख गुणों में आवर्त (बाएं से दाएं) और वर्ग (ऊपर से नीचे) में क्रमिक परिवर्तन होता है:
+
+---
+
+**प्रमुख आवर्ती प्रवृत्तियाँ (Trends):**
+
+* **परमाणु त्रिज्या (परमाणु का आकार)**:
+  * आवर्त में (बाएं से दाएं): 📉 **घटती है** (नाभिकीय आवेश बढ़ने के कारण इलेक्ट्रॉन नाभिक की ओर आकर्षित होते हैं)।
+  * वर्ग में (ऊपर से नीचे): 📈 **बढ़ती है** (नए इलेक्ट्रॉन कोशों के जुड़ने के कारण)।
+* **आयनन ऊर्जा (इलेक्ट्रॉन निकालने के लिए आवश्यक ऊर्जा)**:
+  * आवर्त में (बाएं से दाएं): 📈 **बढ़ती है**।
+  * वर्ग में (ऊपर से नीचे): 📉 **घटती है**।
+* **विद्युत ऋणात्मकता (सहसंयोजक बंध के इलेक्ट्रॉनों को आकर्षित करने की क्षमता)**:
+  * आवर्त में (बाएं से दाएं): 📈 **बढ़ती है**।
+  * वर्ग में (ऊपर से नीचे): 📉 **घटती है**।
+  * *फ्लोरीन (F) आवर्त सारणी का सर्वाधिक विद्युत ऋणात्मक तत्व है (EN = 4.0)।*
+
+---
+
+**💡 गुरु जी की विशेष सलाह:**
+आवर्त सारणी के अपवादों पर विशेष ध्यान दें! **क्लोरीन (Cl) की इलेक्ट्रॉन लब्धि एन्थैल्पी Fluorine (F) से अधिक ऋणात्मक होती है** क्योंकि फ्लोरीन का आकार बहुत छोटा होने के कारण उसमें अंतर-इलेक्ट्रॉनिक प्रतिकर्षण अधिक होता है।`;
+    }
+
+    return `### 🧪 Periodic Trends & Electronegativity (English)
 
 **Concept Involved:**
-The modern periodic table organizes elements by atomic number, displaying recurring chemical and physical behaviors. The most critical properties that exhibit periodic trends are:
-1. **Atomic Radius**: Average distance from the nucleus to the outermost electron shell.
-2. **Ionization Energy (IE)**: Energy required to remove an electron from a gaseous atom.
-3. **Electronegativity (EN)**: Relative tendency of an atom to attract shared electrons in a chemical bond.
+The modern periodic table organizes chemical elements by atomic number, displaying recurring chemical behaviors. 
 
 ---
 
-**Step-by-Step Trend Analysis:**
+**Periodic Trends Chart Summary:**
 
-| Property | Across a Period (Left to Right) | Down a Group (Top to Bottom) | Reason |
-| :--- | :--- | :--- | :--- |
-| **Atomic Radius** | 📉 Decreases | 📈 Increases | Nuclear charge increases across period pulling shells tighter; new shells are added down groups. |
-| **Ionization Energy** | 📈 Increases | 📉 Decreases | Higher effective nuclear charge holds electrons tighter; larger atomic size down a group makes electrons easier to remove. |
-| **Electronegativity** | 📈 Increases | 📉 Decreases | Smaller atoms attract shared electrons strongly; larger distance down groups decreases nuclear attraction. |
-
-*Fluorine ($F$) is the most electronegative element (Pauling scale EN = 4.0), while Cesium ($Cs$) and Francium ($Fr$) are the least.*
+1. **Atomic Radius**:
+   * Left to Right: 📉 **Decreases** (Increased effective nuclear charge pulls electron cloud closer).
+   * Top to Bottom: 📈 **Increases** (Addition of new energy levels/shells).
+2. **Ionization Energy (IE)**:
+   * Left to Right: 📈 **Increases** (Higher nuclear pull locks outer valence electrons tighter).
+   * Top to Bottom: 📉 **Decreases** (Outer electrons are further from nucleus and easier to remove).
+3. **Electronegativity (EN)**:
+   * Left to Right: 📈 **Increases**.
+   * Top to Bottom: 📉 **Decreases**.
+   * *Fluorine (F) is the most electronegative element (EN = 4.0).*
 
 ---
 
-**💡 Guru Ji's Tip:**
-Remember these exceptional trends! 
-* **Electron Gain Enthalpy** of **Chlorine ($Cl$)** is more negative than Fluorine ($F$), because of Fluorine's small size and high electron-electron repulsion in its 2p subshell. This is a very common JEE/NEET trick question!`;
+**💡 Guru Ji's Chemistry Tip:**
+Watch out for exceptions! **Chlorine (Cl) has a higher electron affinity than Fluorine (F)**, because F's extremely small size creates high electron-electron repulsion, making incoming electron acceptance slightly less favorable than Cl.`;
   }
 
-  // Fallback dynamic responses if not matching above
-  return `### 📖 Guru Ji's Academic Guidance & Solution
+  // 5. FALLBACK / GENERAL DYNAMIC SOLVER
+  if (lang === 'HINGLISH') {
+    return `### 🧠 Digital Guru Ji Solution & Academic Guidance
 
-Thank you for seeking guidance! Let's analyze your doubt in **${subject}**:
-> *\"${q}\"*
-
----
-
-**1. Key Concepts Explained:**
-* We are dealing with standard principles of **${subject}**.
-* To solve this class of problems, we employ the core theorem/concept of systematic breakdown:
-  * We isolate the independent variables.
-  * We analyze structural patterns, formulas, and definitions.
-  * We write down the relevant governing equations and principles.
+Aapke is query ko systematically analyze karte hain:
+💬 *"${q}"*
 
 ---
 
-**2. Detailed Step-by-Step Solution:**
-1. **Step 1: Understand the Given Parameters**
-   Clearly write down what is provided in the problem statement and what needs to be solved. Identifying these parameters is 50% of the solution.
-2. **Step 2: Formulate the Relationship**
-   Select the appropriate formula or analytical framework for ${subject}. Solve intermediate states step-by-step to prevent computational or logical errors.
-3. **Step 3: Deduce and Simplify**
-   Simplify the expressions to reach the final answer. Double check the dimensions, units, or grammatical coherence of the solution.
+**1. Main Concepts (Pramukh Siddhant):**
+* Hum yahan **${subject}** ke core principles ko samajh rahe hain.
+* Aise questions ko solve karne ke liye pehle basic definitions ko mind me clear rakho.
+* Humesha standard equations aur physical terms ko systematic use karo.
+
+**2. Step-by-Step Solution (Aasan Tarika):**
+1. **Pehle Given Values likho**: Diye gaye saare variables aur terms ko line se ek jagah likh lo. 
+2. **Sahi Formula select karo**: Is topic ke relevant equations ko check karke apply karo.
+3. **Values substitute karke solve karo**: Step-by-step arithmetic check karte hue final solution tak pahucho.
 
 ---
 
-**💡 Guru Ji's Recommendation:**
-* Practicing standard textbook problems from NCERT, HC Verma, or MS Chouhan is key to master this.
-* Break complex tasks into smaller sub-problems.
-* **Keep asking doubts!** Every question you ask makes your logical reasoning sharper. You are on the right path to academic excellence!`;
+**💡 Guru Ji ka aashirwad aur recommendation:**
+* NCERT aur key textbooks ke solved examples ko pehle acche se lagayein.
+* Apni doubts ko chota mat samjhein. Practice aur daily revisions se physics/maths bohot strong ho jati hai!
+* **Aise hi sawal puchte rahein!** Har ek question aapke basic concept ko aur bhi jyada majboot banata hai. All the best!`;
+  }
+
+  if (lang === 'HINDI') {
+    return `### 🧠 डिजिटल गुरु जी: अकादमिक समाधान
+
+आपके द्वारा पूछे गए प्रश्न का चरण-दर-चरण विश्लेषण निम्नलिखित है:
+💬 *"${q}"*
+
+---
+
+**1. मूल अवधारणा (Key Concepts):**
+* यह प्रश्न **${subject}** के मूलभूत सिद्धांतों पर आधारित है।
+* ऐसे प्रश्नों को हल करने के लिए सिद्धांतों और परिभाषाओं को स्पष्ट रखना अत्यंत आवश्यक है।
+* सही भौतिक नियमों और सूत्रों का चयन ही सटीक उत्तर का मार्ग प्रशस्त करता है।
+
+**2. चरण-दर-चरण समाधान (Step-by-Step Solution):**
+1. **दिए गए मानों को लिखें**: सबसे पहले प्रश्न में दिए गए सभी ज्ञात मानों (variables) को स्पष्ट रूप से लिखें।
+2. **सटीक सूत्र का चयन**: विषय के सिद्धांतों के अनुसार उचित समीकरण या संबंध का चयन करें।
+3. **गणना और सरलीकरण**: मानों को रखकर सावधानीपूर्वक चरण-दर-चरण गणना करें और मात्रक (units) के साथ उत्तर लिखें।
+
+---
+
+**💡 गुरु जी का मार्गदर्शन:**
+* मूलभूत अवधारणाओं को सुदृढ़ करने के लिए मानक पाठ्यपुस्तकों (NCERT, HC Verma आदि) के उदाहरणों को स्वयं हल करें।
+* नियमित अभ्यास और निरंतर शंका समाधान (doubt solving) से हर कठिन विषय भी सरल हो जाता है।
+* **संदेह पूछने में संकोच न करें!** प्रश्न पूछना आपके सीखने की उत्सुकता को दर्शाता है। आपका भविष्य उज्ज्वल हो!`;
+  }
+
+  return `### 🧠 Digital Guru Ji: Academic Expert Response
+
+Let us systematically analyze your academic query:
+💬 *"${q}"*
+
+---
+
+**1. Core Academic Concepts:**
+* This query is related to the fundamental laws governing **${subject}**.
+* Solving this requires a clear understanding of the terms and scientific variables involved.
+* Always check standard definitions and governing physical/chemical/mathematical models.
+
+**2. Step-by-Step Solution:**
+1. **Extract and List Givens**: Identify all the known quantities and exactly what needs to be solved.
+2. **Select the Governing Equations**: Choose the precise formulas from ${subject}.
+3. **Execute Calculations**: Compute intermediate values with high precision, keeping units and decimal consistency verified.
+
+---
+
+**💡 Guru Ji's Academic Recommendation:**
+* Supplement your preparation by solving standard reference textbook exercises.
+* Complex queries are best solved when broken down into smaller sub-problems.
+* **Keep seeking knowledge!** Every query you ask refines your analytical reasoning. You are on the correct path to success!`;
 }
