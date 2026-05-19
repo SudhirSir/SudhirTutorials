@@ -296,7 +296,13 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                     </div>
                     {record.paidAt && (
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'right' }}>
-                        Paid on {new Date(record.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                        Paid on {(() => {
+                          const d = new Date(record.paidAt);
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const month = String(d.getMonth() + 1).padStart(2, '0');
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()}
                       </div>
                     )}
                     {record.remarks && (

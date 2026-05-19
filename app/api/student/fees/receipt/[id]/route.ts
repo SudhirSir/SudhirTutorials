@@ -18,10 +18,42 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const fee = await prisma.payment.findUnique({
       where: { id: id },
-      include: { student: { select: { name: true, username: true } } }
+      include: { 
+        student: { 
+          select: { 
+            name: true, 
+            username: true,
+            studentProfile: {
+              select: {
+                className: true,
+                grade: true
+              }
+            }
+          } 
+        } 
+      }
     });
 
     if (!fee) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+
+    // Count all payments created before or on this payment
+    const count = await prisma.payment.count({
+      where: {
+        createdAt: {
+          lte: fee.createdAt
+        }
+      }
+    });
+
+    const serial = 1000 + count;
+    const { generateReceiptNo } = require('@/lib/feeUtils');
+    const receiptNo = generateReceiptNo(fee, serial);
+
+    // Attach receiptNo
+    const enrichedFee = {
+      ...fee,
+      receiptNo
+    };
 
     // Allow admin to see any receipt, students can only see their own and only after admin verification
     if ((session.user as any).role === 'STUDENT') {
@@ -38,7 +70,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     // So we need to store late fine or calculate it properly for receipt. For now, since `calculateLateFine` uses current date, it won't be historically accurate unless we check paidAt.
     // For simplicity, we just return the base amount if paid. In a real app we'd have a `lateFinePaid` column.
     
-    return NextResponse.json({ fee });
+    return NextResponse.json({ fee: enrichedFee });
   } catch (error) {
     console.error('Error fetching receipt:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

@@ -703,7 +703,7 @@ function TeacherDashboardContent() {
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong> • Date: {new Date(test.date).toLocaleDateString()}
+                        Course: <strong>{test.course?.name}</strong> • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
                          Results recorded: {test.results?.length || 0} students

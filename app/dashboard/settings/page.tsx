@@ -82,7 +82,14 @@ export default function SettingsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Account Created</span>
-                <span style={{ fontWeight: 600 }}>{new Date(user?.createdAt).toLocaleDateString()}</span>
+                <span style={{ fontWeight: 600 }}>{(() => {
+                  const d = new Date(user?.createdAt);
+                  if (isNaN(d.getTime())) return '';
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const year = d.getFullYear();
+                  return `${day}/${month}/${year}`;
+                })()}</span>
              </div>
              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Verification Status</span>

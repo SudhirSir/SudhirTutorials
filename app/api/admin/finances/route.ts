@@ -44,9 +44,34 @@ export async function GET(req: Request) {
 
     const fees = await prisma.payment.findMany({
       where,
-      include: { student: { select: { name: true, username: true } } },
+      include: { 
+        student: { 
+          select: { 
+            name: true, 
+            username: true,
+            studentProfile: {
+              select: {
+                className: true,
+                grade: true
+              }
+            }
+          } 
+        } 
+      },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Generate quick sequential serials mapping by ascending createdAt
+    const allPayments = await prisma.payment.findMany({
+      select: { id: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    const serialMap = new Map<string, number>();
+    allPayments.forEach((p, idx) => {
+      serialMap.set(p.id, 1001 + idx);
+    });
+
+    const { generateReceiptNo } = require('@/lib/feeUtils');
 
     const enrichedFees = fees.map((fee: any) => {
       // For pending fees, show real-time calculated fine
@@ -59,11 +84,15 @@ export async function GET(req: Request) {
       const due = new Date(fee.dueDate);
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
+      const serial = serialMap.get(fee.id) || 1001;
+      const receiptNo = generateReceiptNo(fee, serial);
+
       return {
         ...fee,
         daysLate: daysLate > 0 ? daysLate : 0,
         currentLateFine: currentFine,
         totalDue: fee.amount + currentFine - fee.discount,
+        receiptNo
       };
     });
 

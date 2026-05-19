@@ -607,7 +607,7 @@ function AdminDashboardContent() {
 
       const opt = {
         margin: [10, 10, 10, 10],
-        filename: `Receipt_REC_${receiptId.slice(-6).toUpperCase()}.pdf`,
+        filename: `Receipt_${activeReceipt?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
           scale: 2,
@@ -1255,7 +1255,7 @@ function AdminDashboardContent() {
                       <span className="role-badge" style={{ fontSize: '0.65rem' }}>{u.role}</span>
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      Username: <strong>{u.username}</strong> • Joined {new Date(u.createdAt).toLocaleDateString()}
+                      Username: <strong>{u.username}</strong> • Joined {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                     </div>
                     {u.studentProfile && (
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
@@ -1371,7 +1371,7 @@ function AdminDashboardContent() {
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>@{u.username}</div>
                         </div>
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {new Date(u.createdAt).toLocaleDateString()}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}</div>
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
                         <button 
                           onClick={() => setSelectedUserDetail(u)}
@@ -1618,7 +1618,7 @@ function AdminDashboardContent() {
                        <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                           <div>
                              <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{exp.title}</div>
-                             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{exp.category} • {new Date(exp.date).toLocaleDateString()}</div>
+                             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{exp.category} • {((() => { const d = new Date(exp.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>-₹{exp.amount}</div>
@@ -2406,7 +2406,7 @@ function AdminDashboardContent() {
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong> • Date: {new Date(test.date).toLocaleDateString()}
+                        Course: <strong>{test.course?.name}</strong> • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
                          Marks recorded: {test.results?.length || 0} students
@@ -3099,11 +3099,11 @@ function AdminDashboardContent() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
-                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>REC-{activeReceipt.id.slice(-6).toUpperCase()}</div>
+                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</div>
                   <div style={{ color: '#6b7280' }}>
                     {activeReceipt.paidAt 
-                      ? `${new Date(activeReceipt.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
-                      : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      ? `${((() => { const d = new Date(activeReceipt.paidAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                      : ((() => { const d = new Date(); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                   </div>
                 </div>
               </div>

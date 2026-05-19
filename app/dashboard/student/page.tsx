@@ -218,7 +218,7 @@ function StudentDashboardContent() {
 
       const opt = {
         margin: [10, 10, 10, 10],
-        filename: `Receipt_REC_${receiptId.slice(-6).toUpperCase()}.pdf`,
+        filename: `Receipt_${receiptData?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
           scale: 2,
@@ -385,7 +385,7 @@ function StudentDashboardContent() {
                        ₹{(dashboard as any).feeHighlight.amount.toFixed(0)}
                      </div>
                      <p style={{ color: (dashboard as any)?.feeHighlight?.isOverdue ? 'var(--text)' : 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                       {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${new Date((dashboard as any).feeHighlight.dueDate).toLocaleDateString()}` : `Status: ${(dashboard as any).feeHighlight.status}`}
+                       {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${((() => { const d = new Date((dashboard as any).feeHighlight.dueDate); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}` : `Status: ${(dashboard as any).feeHighlight.status}`}
                      </p>
                      <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : 'rgba(255,255,255,0.15)', color: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '#fff', border: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => setActiveTab('fees')}>Pay Online</button>
                    </>
@@ -438,7 +438,7 @@ function StudentDashboardContent() {
                 {(dashboard as any)?.attendance?.history?.length > 0 ? (
                   (dashboard as any).attendance.history.map((a: any) => (
                     <tr key={a.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '1rem' }}>{new Date(a.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                      <td style={{ padding: '1rem' }}>{((() => { const d = new Date(a.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}</td>
                       <td>Batch assigned</td>
                       <td>
                         <span style={{ 
@@ -542,7 +542,7 @@ function StudentDashboardContent() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: 'bold', color: isUpcoming ? '#fff' : 'var(--text-muted)' }}>
-                        {testDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {((() => { const d = new Date(testDate); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {testDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -596,11 +596,11 @@ function StudentDashboardContent() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
-                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>REC-{receiptData.id.slice(-6).toUpperCase()}</div>
+                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</div>
                   <div style={{ color: '#6b7280' }}>
                     {receiptData.paidAt 
-                      ? `${new Date(receiptData.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}, ${new Date(receiptData.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
-                      : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      ? `${((() => { const d = new Date(receiptData.paidAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}, ${new Date(receiptData.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                      : ((() => { const d = new Date(); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                   </div>
                 </div>
               </div>
