@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
 import { StudentLedger } from '@/components/StudentLedger';
+import { LecturesSection } from '@/components/LecturesSection';
 import { useTheme } from '@/components/ThemeProvider';
 
 function StudentDashboardContent() {
@@ -311,7 +312,7 @@ function StudentDashboardContent() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
-        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
+        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -333,7 +334,7 @@ function StudentDashboardContent() {
             {tab === 'notifications' && unreadNotifications > 0 && (
               <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
-            {tab === 'guru-ji' ? '✨ Digital Guru Ji' : tab}
+            {tab === 'lectures' ? '📺 Live Classes' : tab === 'guru-ji' ? '✨ Digital Guru Ji' : tab}
           </button>
         ))}
       </div>
@@ -568,6 +569,10 @@ function StudentDashboardContent() {
           
           <StudentLedger onPayOnline={handlePayOnline} onViewReceipt={viewReceipt} />
         </div>
+      )}
+
+      {activeTab === 'lectures' && (
+        <LecturesSection />
       )}
 
       {activeTab === 'tests' && (

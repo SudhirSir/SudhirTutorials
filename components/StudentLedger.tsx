@@ -17,7 +17,7 @@ const MONTHS_LIST = [
 export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewReceipt }: StudentLedgerProps) {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewType, setViewType] = useState<'month' | 'year'>('month');
+  const [viewType, setViewType] = useState<'month' | 'year' | 'statement'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
@@ -66,6 +66,193 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
     }
 
     return { year, monthName };
+  };
+
+  // Generate bank-style transaction postings chronologically
+  const getStatementPostings = () => {
+    const postings: any[] = [];
+    
+    fees.forEach(fee => {
+      // 1. Fee Assignment (Debit)
+      const baseDebit = Math.max(0, fee.amount - fee.discount);
+      postings.push({
+        date: new Date(fee.dueDate || fee.createdAt),
+        description: `Tuition Fee Assignment - ${fee.billingMonth} (${fee.title})`,
+        reference: fee.receiptNo || `BILL-${fee.id.slice(-6).toUpperCase()}`,
+        type: 'DEBIT',
+        debit: baseDebit,
+        credit: 0
+      });
+      
+      // 2. Late Fine if applicable (Debit)
+      const fineVal = fee.status === 'PENDING' ? (fee.currentLateFine || 0) : (fee.lateFine || 0);
+      if (fineVal > 0) {
+        postings.push({
+          date: new Date(fee.dueDate || fee.createdAt),
+          description: `Late Payment Fine Applied - ${fee.billingMonth}`,
+          reference: `FINE-${fee.receiptNo ? fee.receiptNo.split('/').pop() : fee.id.slice(-4).toUpperCase()}`,
+          type: 'FINE',
+          debit: fineVal,
+          credit: 0
+        });
+      }
+      
+      // 3. Payment Received (Credit)
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(fee.status)) {
+        postings.push({
+          date: new Date(fee.paidAt || fee.createdAt),
+          description: `Fee Payment Received - ${fee.paymentMethod || 'Online'}`,
+          reference: fee.transactionId ? `TXN-${fee.transactionId.slice(-8).toUpperCase()}` : `RCPT-${fee.receiptNo}`,
+          type: 'CREDIT',
+          debit: 0,
+          credit: fee.paidAmount || (fee.amount + fineVal - fee.discount)
+        });
+      }
+    });
+    
+    // Sort chronologically ascending
+    postings.sort((a, b) => {
+      const diff = a.date.getTime() - b.date.getTime();
+      if (diff !== 0) return diff;
+      // Put credit at the end of the day
+      if (a.type === 'CREDIT' && b.type !== 'CREDIT') return 1;
+      if (a.type !== 'CREDIT' && b.type === 'CREDIT') return -1;
+      return 0;
+    });
+    
+    // Calculate running balance
+    let balance = 0;
+    const enrichedPostings = postings.map(p => {
+      if (p.type === 'DEBIT' || p.type === 'FINE') {
+        balance -= p.debit;
+      } else if (p.type === 'CREDIT') {
+        balance += p.credit;
+      }
+      return {
+        ...p,
+        balance
+      };
+    });
+    
+    return enrichedPostings;
+  };
+
+  const handlePrintStatement = () => {
+    const postings = getStatementPostings();
+    const totalDebit = postings.reduce((sum, p) => sum + p.debit, 0);
+    const totalCredit = postings.reduce((sum, p) => sum + p.credit, 0);
+    const finalBalance = postings.length > 0 ? postings[postings.length - 1].balance : 0;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Sudhir Tutorials - Academic Fee Passbook Ledger</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .header h1 { margin: 0; font-size: 24px; color: #4f46e5; }
+            .header p { margin: 5px 0 0; font-size: 14px; color: #666; }
+            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+            .meta-card { background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
+            .meta-card h3 { margin: 0 0 8px 0; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+            .meta-card p { margin: 0; font-size: 16px; font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 12px 10px; text-align: left; font-size: 12px; text-transform: uppercase; }
+            td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+            .debit { color: #dc2626; }
+            .credit { color: #16a34a; }
+            .balance { font-weight: bold; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px dashed #d1d5db; padding-top: 20px; }
+            .sign-row { display: flex; justify-content: space-between; margin-top: 50px; }
+            .sign-box { border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 8px; font-size: 12px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1>SUDHIR TUTORIALS</h1>
+              <p>Academic Fee Ledger & Transaction Statement</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="font-weight: bold; color: #4f46e5; margin: 0 0 5px 0;">OFFICIAL BANK LEDGER PASSBOOK</p>
+              <p style="margin: 0;">Generated: ${new Date().toLocaleDateString('en-GB')}</p>
+            </div>
+          </div>
+          
+          <div class="meta-grid">
+            <div class="meta-card">
+              <h3>Account Holder & Profile</h3>
+              <p>${fees[0]?.student?.name || 'Academic Student'}</p>
+              <p style="font-size: 12px; font-weight: normal; color: #6b7280; margin-top: 4px;">ID / Username: @${fees[0]?.student?.username || 'N/A'}</p>
+            </div>
+            <div class="meta-card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <h3>Total Debited (Charged)</h3>
+                <p class="debit">₹${totalDebit.toFixed(2)}</p>
+              </div>
+              <div>
+                <h3>Total Credited (Cleared)</h3>
+                <p class="credit">₹${totalCredit.toFixed(2)}</p>
+              </div>
+              <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+                <h3>Current Outstanding Balance</h3>
+                <p style="color: ${finalBalance >= 0 ? '#16a34a' : '#dc2626'}">
+                  ${finalBalance >= 0 ? 'Settled ✓' : '₹' + Math.abs(finalBalance).toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Value Date</th>
+                <th>Transaction Reference</th>
+                <th>Narrative / Particulars</th>
+                <th>Debit (Charged)</th>
+                <th>Credit (Payments)</th>
+                <th>Running Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${postings.map(p => `
+                <tr>
+                  <td>${new Date(p.date).toLocaleDateString('en-GB')}</td>
+                  <td style="font-family: monospace;">${p.reference}</td>
+                  <td>${p.description}</td>
+                  <td class="debit">${p.debit > 0 ? '₹' + p.debit.toFixed(2) : '-'}</td>
+                  <td class="credit">${p.credit > 0 ? '₹' + p.credit.toFixed(2) : '-'}</td>
+                  <td class="balance" style="color: ${p.balance >= 0 ? '#16a34a' : '#dc2626'}">
+                    ${p.balance >= 0 ? '₹' + p.balance.toFixed(2) : '-₹' + Math.abs(p.balance).toFixed(2)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="sign-row">
+            <div class="sign-box" style="border: none; text-align: left; color: #6b7280; font-style: italic;">
+              * Computer generated statement.<br/>No signature required.
+            </div>
+            <div class="sign-box">
+              Authorized Signatory
+            </div>
+          </div>
+          
+          <div class="footer">
+            © ${new Date().getFullYear()} Sudhir Tutorials. All rights reserved. Confidential Academic Record.
+          </div>
+          
+          <script>
+            window.onload = function() { window.print(); };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   // Get unique years in ledger
@@ -148,7 +335,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           )}
 
           {/* Toggle Type */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', display: 'flex', border: '1px solid var(--border)' }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', display: 'flex', border: '1px solid var(--border)', flexWrap: 'wrap', gap: '4px' }}>
             <button 
               onClick={() => setViewType('month')}
               style={{
@@ -169,7 +356,18 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                 fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
-              📊 Year-wise summary
+              📊 Year-wise
+            </button>
+            <button 
+              onClick={() => setViewType('statement')}
+              style={{
+                padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
+                background: viewType === 'statement' ? 'var(--primary)' : 'transparent',
+                color: viewType === 'statement' ? '#fff' : 'var(--text-muted)',
+                fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
+              }}
+            >
+              🏦 Bank Passbook Statement
             </button>
           </div>
         </div>
@@ -317,6 +515,98 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           })}
         </div>
       )}
+
+      {/* BANK STATEMENT CREDIT/DEBIT VIEW */}
+      {viewType === 'statement' && (() => {
+        const postings = getStatementPostings();
+        const totalDebit = postings.reduce((sum, p) => sum + p.debit, 0);
+        const totalCredit = postings.reduce((sum, p) => sum + p.credit, 0);
+        const finalBalance = postings.length > 0 ? postings[postings.length - 1].balance : 0;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Bank Header Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+              <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'var(--surface-light)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Charged (Debits)</span>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ef4444', marginTop: '0.5rem', display: 'block' }}>₹{totalDebit.toFixed(2)}</span>
+              </div>
+              <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'var(--surface-light)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Payments (Credits)</span>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#10b981', marginTop: '0.5rem', display: 'block' }}>₹{totalCredit.toFixed(2)}</span>
+              </div>
+              <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'var(--surface-light)', borderRadius: '16px', border: '1px solid var(--border)', gridColumn: 'span 1' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Net Academic Balance</span>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: finalBalance >= 0 ? '#10b981' : '#f59e0b', marginTop: '0.5rem', display: 'block' }}>
+                  {finalBalance >= 0 ? 'Settled ✓' : `-₹${Math.abs(finalBalance).toFixed(2)}`}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Showing all chronological credit/debit transaction postings
+              </span>
+              <button 
+                onClick={handlePrintStatement}
+                className="btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '20px', fontWeight: 700, fontSize: '0.85rem' }}
+              >
+                🖨️ Print / Save Ledger PDF
+              </button>
+            </div>
+
+            {/* Statement Grid */}
+            <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '16px', background: 'var(--surface-light)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.01)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 800 }}>
+                    <th style={{ padding: '1.25rem 1.5rem' }}>Value Date</th>
+                    <th>Reference</th>
+                    <th>Narrative / Description</th>
+                    <th style={{ textAlign: 'right' }}>Debit (Charged)</th>
+                    <th style={{ textAlign: 'right' }}>Credit (Deposited)</th>
+                    <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {postings.map((p, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem', transition: 'background 0.2s' }}>
+                      <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text)' }}>
+                        {(() => {
+                          const d = new Date(p.date);
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const month = String(d.getMonth() + 1).padStart(2, '0');
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()}
+                      </td>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{p.reference}</td>
+                      <td style={{ color: 'var(--text)', fontWeight: 600 }}>{p.description}</td>
+                      <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 700 }}>
+                        {p.debit > 0 ? `₹${p.debit.toFixed(2)}` : '-'}
+                      </td>
+                      <td style={{ textAlign: 'right', color: '#10b981', fontWeight: 700 }}>
+                        {p.credit > 0 ? `₹${p.credit.toFixed(2)}` : '-'}
+                      </td>
+                      <td style={{ textAlign: 'right', paddingRight: '1.5rem', fontWeight: 800, color: p.balance >= 0 ? '#10b981' : '#f59e0b' }}>
+                        {p.balance >= 0 ? `₹${p.balance.toFixed(2)}` : `-₹${Math.abs(p.balance).toFixed(2)}`}
+                      </td>
+                    </tr>
+                  ))}
+                  {postings.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        No transactions recorded in passbook.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* YEAR-WISE BREAKDOWN TABLE VIEW */}
       {viewType === 'year' && (

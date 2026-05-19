@@ -150,6 +150,7 @@ model Batch {
   students  User[]       @relation("StudentBatches")
   schedules Schedule[]
   attendance Attendance[]
+  lectures  Lecture[]
 }
 
 model Schedule {
@@ -229,3 +230,19 @@ model Attendance {
   
   @@unique([batchId, studentId, date])
 }
+
+model Lecture {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  youtubeUrl   String
+  type         String   // LIVE or RECORDED
+  subject      String
+  batchId      String
+  batch        Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  assignedById String
+  createdAt    DateTime @default(now())
+
+  @@index([batchId])
+}
+

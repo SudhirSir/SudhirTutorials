@@ -8,6 +8,7 @@ import { ProfileEditor } from '@/components/ProfileEditor';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
+import { LecturesSection } from '@/components/LecturesSection';
 
 function TeacherDashboardContent() {
   const { data: session } = useSession();
@@ -328,7 +329,7 @@ function TeacherDashboardContent() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
-        {['classes', 'materials', 'students', 'attendance', 'tests', 'messages', 'notifications', 'profile'].map(tab => (
+        {['classes', 'materials', 'students', 'attendance', 'tests', 'lectures', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -350,7 +351,7 @@ function TeacherDashboardContent() {
             {tab === 'notifications' && unreadNotifications > 0 && (
               <span style={{ background: '#10b981', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
-            {tab}
+            {tab === 'lectures' ? '📺 Live Classes' : tab}
           </button>
         ))}
       </div>
@@ -839,6 +840,10 @@ function TeacherDashboardContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'lectures' && (
+        <LecturesSection />
       )}
 
       {activeTab === 'profile' && (

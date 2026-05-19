@@ -11,7 +11,31 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('blocked_users');
+    if (saved) {
+      try {
+        setBlockedUsers(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, []);
+
+  const handleToggleBlock = (userId: string) => {
+    let updated;
+    if (blockedUsers.includes(userId)) {
+      updated = blockedUsers.filter(id => id !== userId);
+      alert('🔓 User has been successfully unblocked.');
+    } else {
+      updated = [...blockedUsers, userId];
+      alert('🚫 User has been blocked. You will no longer receive or send messages with this user.');
+    }
+    setBlockedUsers(updated);
+    localStorage.setItem('blocked_users', JSON.stringify(updated));
+  };
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!confirm('Are you sure you want to delete this message?')) return;
@@ -220,7 +244,7 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
       {/* Sidebar Contacts */}
       <div className="chat-sidebar">
         <div style={{ padding: '1.25rem 1.5rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff', letterSpacing: '0.5px' }}>Chats</span>
+          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text)', letterSpacing: '0.5px' }}>Chats</span>
           <button 
             onClick={openNewChat}
             style={{ padding: '6px 12px', borderRadius: '20px', background: 'var(--primary)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: '0.2s', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)' }}
@@ -237,13 +261,13 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
                 placeholder="Search name or ID..." 
                 value={searchQuery}
                 onChange={e => handleSearchUsers(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', fontSize: '0.9rem', outline: 'none', flexShrink: 0 }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', flexShrink: 0 }}
               />
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', flexShrink: 0, marginTop: '0.25rem' }}>Directory</div>
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
                 {searchResults.filter(u => u && u.id && u.id !== currentUserId).length > 0 ? (
                   searchResults.filter(u => u && u.id && u.id !== currentUserId).map((u, idx) => (
-                    <div key={u.id || `search-${idx}`} onClick={() => startChat(u)} style={{ padding: '0.75rem', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
+                    <div key={u.id || `search-${idx}`} onClick={() => startChat(u)} style={{ padding: '0.75rem', borderRadius: '12px', cursor: 'pointer', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--card-bg-alt)'}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', overflow: 'hidden', border: '1px solid var(--primary)', flexShrink: 0 }}>
                         {u.photoUrl ? (
                           <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -252,7 +276,7 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
                         )}
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Anonymous'}</div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Anonymous'}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username || 'N/A'} • {u.role}</div>
                       </div>
                     </div>
@@ -282,7 +306,7 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
                       background: selectedUser?.id === u.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
                       borderLeft: selectedUser?.id === u.id ? '4px solid var(--primary)' : '4px solid transparent',
                       transition: 'all 0.2s',
-                      borderBottom: '1px solid rgba(255,255,255,0.02)',
+                      borderBottom: '1px solid var(--border)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '1rem'
@@ -297,7 +321,7 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 700, fontSize: '1rem', color: selectedUser?.id === u.id ? 'white' : '#d1d5db', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Anonymous'}</span>
+                        <span style={{ fontWeight: 700, fontSize: '1rem', color: selectedUser?.id === u.id ? 'var(--primary)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name || 'Anonymous'}</span>
                         {latestMessage && (
                           <span style={{ fontSize: '0.7rem', color: unreadCount > 0 ? '#10b981' : 'var(--text-muted)', flexShrink: 0 }}>
                             {new Date(latestMessage.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -321,7 +345,7 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
               {!showUserSearch && contacts.length === 0 && (
                 <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📭</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '0.5rem' }}>Your inbox is empty</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem' }}>Your inbox is empty</div>
                   <div style={{ fontSize: '0.85rem' }}>Click "New Chat" to find teachers or students to message.</div>
                 </div>
               )}
@@ -343,35 +367,43 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
         ) : (
           <>
             <div style={{ padding: '1rem 2rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', zIndex: 10 }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <button 
-                    onClick={() => setSelectedUser(null)} 
-                    className="chat-back-btn"
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--text)',
-                      cursor: 'pointer',
-                      padding: '8px 12px 8px 0',
-                      alignItems: 'center',
-                      fontWeight: 'bold',
-                      fontSize: '1.1rem',
-                    }}
-                  >
-                    ← Back
-                  </button>
-                 <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '2px solid var(--primary)' }}>
-                   {selectedUser.photoUrl ? (
-                     <img src={selectedUser.photoUrl} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                   ) : (
-                     selectedUser.name ? selectedUser.name[0] : '?'
-                   )}
-                 </div>
-                 <div>
-                   <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>{selectedUser.name}</div>
-                   <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>● {selectedUser.role}</div>
-                 </div>
-               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button 
+                  onClick={() => setSelectedUser(null)} 
+                  className="chat-back-btn"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    padding: '8px 12px 8px 0',
+                    alignItems: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                  }}
+                >
+                  ← Back
+                </button>
+                <div 
+                  onClick={() => setShowProfileModal(true)}
+                  title="View Profile Details & Options"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '4px 8px', borderRadius: '12px', transition: 'background 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--card-bg-alt)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0 }}>
+                    {selectedUser.photoUrl ? (
+                      <img src={selectedUser.photoUrl} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      selectedUser.name ? selectedUser.name[0] : '?'
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>{selectedUser.name} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>ℹ️</span></div>
+                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>● {selectedUser.role}</div>
+                  </div>
+                </div>
+              </div>
                <button
                  onClick={() => handleDeleteChat(selectedUser.id)}
                  title="Delete Chat Thread"
@@ -469,25 +501,139 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
                })}
             </div>
 
-            <form onSubmit={handleSendMessage} style={{ padding: '1.25rem 2rem', display: 'flex', gap: '1rem', background: 'var(--surface)', borderTop: '1px solid var(--border)', alignItems: 'center' }}>
-               <input 
-                 type="text" 
-                 placeholder="Type a message..." 
-                 value={newMsg} 
-                 onChange={e => setNewMsg(e.target.value)}
-                 style={{ flex: 1, padding: '1rem 1.5rem', borderRadius: '24px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', fontSize: '1rem', outline: 'none', transition: 'all 0.2s' }}
-               />
-               <button 
-                 type="submit" 
-                 disabled={!newMsg.trim()}
-                 style={{ width: '50px', height: '50px', borderRadius: '50%', background: newMsg.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: newMsg.trim() ? 'pointer' : 'default', transition: 'all 0.2s' }}
-               >
-                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-               </button>
-            </form>
+             <form onSubmit={handleSendMessage} style={{ padding: '1.25rem 2rem', display: 'flex', gap: '1rem', background: 'var(--surface)', borderTop: '1px solid var(--border)', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  placeholder={blockedUsers.includes(selectedUser.id) ? "🚫 You have blocked this user. Unblock to message." : "Type a message..."} 
+                  value={newMsg} 
+                  disabled={blockedUsers.includes(selectedUser.id)}
+                  onChange={e => setNewMsg(e.target.value)}
+                  style={{ 
+                    flex: 1, 
+                    padding: '1rem 1.5rem', 
+                    borderRadius: '24px', 
+                    background: blockedUsers.includes(selectedUser.id) ? 'rgba(239, 68, 68, 0.05)' : 'var(--input-bg)', 
+                    border: blockedUsers.includes(selectedUser.id) ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border)', 
+                    color: blockedUsers.includes(selectedUser.id) ? 'var(--text-muted)' : 'var(--text)', 
+                    fontSize: '1rem', 
+                    outline: 'none', 
+                    transition: 'all 0.2s',
+                    cursor: blockedUsers.includes(selectedUser.id) ? 'not-allowed' : 'text'
+                  }}
+                />
+                <button 
+                  type="submit" 
+                  disabled={!newMsg.trim() || blockedUsers.includes(selectedUser.id)}
+                  style={{ width: '50px', height: '50px', borderRadius: '50%', background: newMsg.trim() && !blockedUsers.includes(selectedUser.id) ? 'var(--primary)' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: newMsg.trim() && !blockedUsers.includes(selectedUser.id) ? 'pointer' : 'default', transition: 'all 0.2s' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+             </form>
           </>
         )}
       </div>
+
+      {showProfileModal && selectedUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '400px', padding: '2.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '24px', position: 'relative', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+            <button 
+              onClick={() => setShowProfileModal(false)}
+              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}
+            >
+              ×
+            </button>
+            <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '3px solid var(--primary)', margin: '0 auto 1.5rem' }}>
+              {selectedUser.photoUrl ? (
+                <img src={selectedUser.photoUrl} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                selectedUser.name ? selectedUser.name[0] : '?'
+              )}
+            </div>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0' }}>{selectedUser.name}</h3>
+            <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>
+              ● {selectedUser.role}
+            </div>
+
+            <div style={{ background: 'var(--card-bg-alt)', borderRadius: '12px', padding: '1rem 1.25rem', textAlign: 'left', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', border: '1px solid var(--border)' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Username</span>
+                <span style={{ fontSize: '0.95rem', color: 'var(--text)', fontWeight: 600 }}>@{selectedUser.username || 'N/A'}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address</span>
+                <span style={{ fontSize: '0.95rem', color: 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{selectedUser.email || 'Not disclosed'}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</span>
+                <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span> Active {selectedUser.role}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <button 
+                onClick={() => handleToggleBlock(selectedUser.id)}
+                style={{
+                  width: '100%',
+                  padding: '0.85rem',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  border: blockedUsers.includes(selectedUser.id) ? '1px solid #10b981' : '1px solid #f87171',
+                  color: blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {blockedUsers.includes(selectedUser.id) ? '🔓 Unblock User' : '🚫 Block User'}
+              </button>
+              <button 
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this entire chat thread? This action cannot be undone.')) {
+                    handleDeleteChat(selectedUser.id);
+                    setShowProfileModal(false);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.85rem',
+                  borderRadius: '12px',
+                  background: '#ef4444',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                🗑️ Delete Chat Thread
+              </button>
+              <button 
+                onClick={() => {
+                  alert('Report submitted. Our administrative team will review this user shortly.');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.85rem',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                ⚠️ Report User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

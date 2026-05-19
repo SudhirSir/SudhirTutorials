@@ -11,6 +11,13 @@ export function SessionGuard() {
   // 1. Detect page refresh / reload and enforce maximum of 3 refreshes
   useEffect(() => {
     if (status === "authenticated") {
+      // If sessionStorage has no active tab flag, it means they closed the tab/browser previously or opened a new one. WIPE session!
+      if (!sessionStorage.getItem('tabSessionActive')) {
+        console.warn("New tab/window detected without an active tab session. Logging out for security.");
+        signOut({ callbackUrl: "/login" });
+        return;
+      }
+
       const navigationEntries = performance.getEntriesByType('navigation');
       const isReload = navigationEntries.length > 0 && (navigationEntries[0] as PerformanceNavigationTiming).type === 'reload';
       

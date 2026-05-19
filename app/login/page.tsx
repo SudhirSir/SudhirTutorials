@@ -91,6 +91,7 @@ export default function LoginPage() {
         }
         setLoading(false);
       } else {
+        sessionStorage.setItem('tabSessionActive', 'true');
         router.push(`/dashboard/${activeTab}`);
         router.refresh();
       }

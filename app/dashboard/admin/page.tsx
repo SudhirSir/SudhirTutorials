@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
 import { StudentLedger } from '@/components/StudentLedger';
+import { LecturesSection } from '@/components/LecturesSection';
 
 function AdminDashboardContent() {
   const { data: session } = useSession();
@@ -1170,7 +1171,7 @@ function AdminDashboardContent() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
-        {['overview', 'users', 'verifications', 'finances', 'courses', 'attendance', 'materials', 'tests', 'analytics', 'messages', 'notifications'].map(tab => (
+        {['overview', 'users', 'verifications', 'finances', 'courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'messages', 'notifications'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -1198,6 +1199,7 @@ function AdminDashboardContent() {
             {tab === 'attendance' ? '✏️ Attendance' : 
              tab === 'materials' ? '📚 Study Materials' : 
              tab === 'tests' ? '📝 Tests & Marks' : 
+             tab === 'lectures' ? '📺 Live Classes' : 
              tab}
           </button>
         ))}
@@ -2548,6 +2550,10 @@ function AdminDashboardContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'lectures' && (
+        <LecturesSection />
       )}
 
       {activeTab === 'messages' && session?.user && (
