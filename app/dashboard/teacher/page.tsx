@@ -63,6 +63,47 @@ function TeacherDashboardContent() {
   const [matCourseId, setMatCourseId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   
+  // Custom File Uploader helper states
+  const [uploadMode, setUploadMode] = useState<'FILE' | 'URL'>('FILE');
+  const [selectedFileName, setSelectedFileName] = useState('');
+  const [selectedFileSize, setSelectedFileSize] = useState('');
+  const [filePreview, setFilePreview] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFileName(file.name);
+    const sizeKB = Math.round(file.size / 1024);
+    setSelectedFileSize(sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`);
+
+    const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+    if (!matTitle) {
+      setMatTitle(baseName);
+    }
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') {
+      setMatType('PDF');
+    } else if (['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext || '')) {
+      setMatType('VIDEO');
+    } else if (['doc', 'docx', 'odt', 'rtf'].includes(ext || '')) {
+      setMatType('WORD');
+    } else if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext || '')) {
+      setMatType('IMAGE');
+      setFilePreview(URL.createObjectURL(file));
+    } else {
+      setMatType('PDF');
+    }
+
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const base64 = uploadEvent.target?.result as string;
+      setMatUrl(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+  
   // Test States
   const [tests, setTests] = useState<any[]>([]);
   const [selectedTest, setSelectedTest] = useState<any>(null);
@@ -231,6 +272,9 @@ function TeacherDashboardContent() {
       if (res.ok) {
         setMatTitle('');
         setMatUrl('');
+        setSelectedFileName('');
+        setSelectedFileSize('');
+        setFilePreview('');
         fetchMaterials();
         alert('Material uploaded successfully!');
       } else {
@@ -466,7 +510,22 @@ function TeacherDashboardContent() {
                   <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
                     <div>
                       <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: '#3f3f46' }}>{mat.type}</span>
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px', 
+                          fontWeight: 800, 
+                          color: '#fff',
+                          background: mat.type === 'PDF' ? '#ef4444' : 
+                                      mat.type === 'VIDEO' ? '#8b5cf6' : 
+                                      mat.type === 'WORD' ? '#3b82f6' : 
+                                      mat.type === 'IMAGE' ? '#10b981' : '#6366f1'
+                        }}>
+                          {mat.type === 'PDF' ? '📄 PDF' : 
+                           mat.type === 'VIDEO' ? '🎥 VIDEO' : 
+                           mat.type === 'WORD' ? '📝 WORD' : 
+                           mat.type === 'IMAGE' ? '🖼️ IMAGE' : '🔗 LINK'}
+                        </span>
                         {mat.title}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Course: {mat.course?.name}</div>
@@ -491,9 +550,11 @@ function TeacherDashboardContent() {
               <div className="input-group">
                 <label>Type</label>
                 <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                  <option value="PDF">PDF Document</option>
-                  <option value="VIDEO">Video Link</option>
-                  <option value="LINK">External Link</option>
+                  <option value="PDF">📄 PDF Document</option>
+                  <option value="VIDEO">🎥 Video File / Clip</option>
+                  <option value="WORD">📝 Word Document (DOCX)</option>
+                  <option value="IMAGE">🖼️ Reference Image / Diagram</option>
+                  <option value="LINK">🔗 External Link</option>
                 </select>
               </div>
 
@@ -506,10 +567,80 @@ function TeacherDashboardContent() {
                 {classes.length === 0 && <span style={{fontSize: '0.75rem', color: '#ef4444'}}>You must be assigned to a batch first.</span>}
               </div>
 
-              <div className="input-group">
-                <label>File URL / Link</label>
-                <input type="url" required placeholder="https://..." value={matUrl} onChange={e => setMatUrl(e.target.value)} />
+              <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('FILE')}
+                  style={{
+                    flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+                    background: uploadMode === 'FILE' ? '#10b981' : 'transparent',
+                    color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
+                  }}
+                >
+                  📂 Local File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('URL')}
+                  style={{
+                    flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+                    background: uploadMode === 'URL' ? '#10b981' : 'transparent',
+                    color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
+                  }}
+                >
+                  🔗 Paste URL
+                </button>
               </div>
+
+              {uploadMode === 'FILE' ? (
+                <div style={{
+                  border: '2px dashed var(--border)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  background: 'rgba(255,255,255,0.01)',
+                  transition: '0.2s',
+                }}>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.webm,.mov,.avi"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>📤</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)' }}>
+                    {selectedFileName ? 'Change Selected File' : 'Drag & Drop or Click to Select'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    PDF, DOC, DOCX, PNG, JPG, MP4, etc.
+                  </div>
+                  {selectedFileName && (
+                    <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'rgba(16,185,129,0.08)', border: '1px solid #10b981', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedFileName}
+                      </span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                        Size: {selectedFileSize}
+                      </span>
+                      {filePreview && (
+                        <img src={filePreview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', margin: '4px auto 0', border: '1px solid var(--border)' }} />
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="input-group">
+                  <label>File URL / External Link</label>
+                  <input type="text" required placeholder="https://..." value={matUrl} onChange={e => setMatUrl(e.target.value)} />
+                </div>
+              )}
 
               <button type="submit" className="btn-primary" disabled={isUploading || classes.length === 0} style={{ background: '#10b981', boxShadow: 'none' }}>
                 {isUploading ? 'Uploading...' : 'Publish Material'}

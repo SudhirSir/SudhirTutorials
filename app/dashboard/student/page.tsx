@@ -534,7 +534,22 @@ function StudentDashboardContent() {
                 <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
                   <div>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-                      <span style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', background: 'var(--primary)', color: '#fff' }}>{mat.type}</span>
+                      <span style={{ 
+                        fontSize: '0.75rem', 
+                        padding: '3px 8px', 
+                        borderRadius: '4px', 
+                        fontWeight: 800, 
+                        color: '#fff',
+                        background: mat.type === 'PDF' ? '#ef4444' : 
+                                    mat.type === 'VIDEO' ? '#8b5cf6' : 
+                                    mat.type === 'WORD' ? '#3b82f6' : 
+                                    mat.type === 'IMAGE' ? '#10b981' : '#6366f1'
+                      }}>
+                        {mat.type === 'PDF' ? '📄 PDF' : 
+                         mat.type === 'VIDEO' ? '🎥 VIDEO' : 
+                         mat.type === 'WORD' ? '📝 WORD' : 
+                         mat.type === 'IMAGE' ? '🖼️ IMAGE' : '🔗 LINK'}
+                      </span>
                       {mat.title}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
