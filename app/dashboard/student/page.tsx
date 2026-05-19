@@ -695,10 +695,13 @@ function StudentDashboardContent() {
                 {receiptData.transactionId && <div><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '3rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+                <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>
+                  * This is a computer-generated receipt. No signature is required.
+                </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ width: '120px', height: '1px', background: '#e5e7eb', marginBottom: '0.5rem' }}></div>
-                  <div style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase' }}>Receiver Signature</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}>SUDHIR TUTORIALS</div>
+                  <div style={{ fontSize: '0.55rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '2px' }}>Online Fee Desk</div>
                 </div>
               </div>
 
@@ -1030,8 +1033,12 @@ function StudentDashboardContent() {
         <div className="glass-card animate-scale-up" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', minHeight: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem' }}>
           {/* Guru Ji Header */}
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', boxShadow: '0 0 20px rgba(245, 158, 11, 0.4)', animation: 'pulse 2s infinite' }}>
-              🧠
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(245, 158, 11, 0.4)', animation: 'pulse 2s infinite' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5z" fill="#fff" />
+                <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z" fill="#fff" />
+              </svg>
             </div>
             <div>
               <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b', margin: 0 }}>Digital Guru Ji (डिजिटल गुरु जी)</h2>
@@ -1142,33 +1149,7 @@ function StudentDashboardContent() {
                   boxShadow: '0 4px 15px rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                 }}
               >
-                {guruLoading ? 'Thinking & Solving...' : '🙏 Seek Guru Ji\'s Guidance'}
               </button>
-
-              <div>
-                <h4 style={{ color: '#f59e0b', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem', fontWeight: 700 }}>Quick Doubt Examples:</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {[
-                    { text: 'Solve quadratic equation x^2 - 5x + 6 = 0', subject: 'Mathematics' },
-                    { text: 'Explain the mechanism of Photosynthesis', subject: 'Biology' },
-                    { text: 'What are Newton\'s laws of motion?', subject: 'Physics' },
-                    { text: 'Explain electronegativity trends in periodic table', subject: 'Chemistry' }
-                  ].map((ex, idx) => (
-                    <button 
-                      key={idx}
-                      onClick={() => {
-                        setGuruQuestion(ex.text);
-                        setGuruSubject(ex.subject);
-                      }}
-                      style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text-muted)', textAlign: 'left', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,158,11,0.08)'; e.currentTarget.style.color = 'var(--text)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--card-bg-alt)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                    >
-                      💡 {ex.text}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Right Column: Chat History and Explanation */}
@@ -1228,11 +1209,11 @@ function StudentDashboardContent() {
       )}
 
       {activeTab === 'messages' && session?.user && (
-        <ChatWindow currentUserId={(session.user as any).id} />
+        <ChatWindow currentUserId={(session.user as any).id} onMessagesRead={fetchUnreadCounts} />
       )}
 
       {activeTab === 'notifications' && (
-        <NotificationsPanel />
+        <NotificationsPanel onUnreadChange={setUnreadNotifications} />
       )}
 
       {activeTab === 'profile' && (

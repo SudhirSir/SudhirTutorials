@@ -2551,11 +2551,11 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'messages' && session?.user && (
-        <ChatWindow currentUserId={(session.user as any).id} />
+        <ChatWindow currentUserId={(session.user as any).id} onMessagesRead={fetchUnreadCounts} />
       )}
 
       {activeTab === 'notifications' && (
-        <NotificationsPanel />
+        <NotificationsPanel onUnreadChange={setUnreadNotifications} />
       )}
       {showDelModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -3165,10 +3165,13 @@ function AdminDashboardContent() {
                 {activeReceipt.transactionId && <div><strong>TXN ID:</strong> {activeReceipt.transactionId}</div>}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '3rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+                <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>
+                  * This is a computer-generated receipt. No signature is required.
+                </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ width: '120px', height: '1px', background: '#e5e7eb', marginBottom: '0.5rem' }}></div>
-                  <div style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase' }}>Receiver Signature</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}>SUDHIR TUTORIALS</div>
+                  <div style={{ fontSize: '0.55rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '2px' }}>Online Fee Desk</div>
                 </div>
               </div>
 

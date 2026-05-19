@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-export function ChatWindow({ currentUserId }: { currentUserId: string }) {
+export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: string, onMessagesRead?: () => void }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -101,6 +101,7 @@ export function ChatWindow({ currentUserId }: { currentUserId: string }) {
         body: JSON.stringify({ senderId })
       });
       fetchMessages();
+      if (onMessagesRead) onMessagesRead();
     } catch (e) {}
   };
 

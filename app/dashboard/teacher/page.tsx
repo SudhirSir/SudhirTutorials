@@ -846,11 +846,11 @@ function TeacherDashboardContent() {
       )}
 
       {activeTab === 'messages' && session?.user && (
-        <ChatWindow currentUserId={(session.user as any).id} />
+        <ChatWindow currentUserId={(session.user as any).id} onMessagesRead={fetchUnreadCounts} />
       )}
 
       {activeTab === 'notifications' && (
-        <NotificationsPanel />
+        <NotificationsPanel onUnreadChange={setUnreadNotifications} />
       )}
     </div>
   );
