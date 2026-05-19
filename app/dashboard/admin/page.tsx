@@ -535,6 +535,8 @@ function AdminDashboardContent() {
   const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'>('ALL');
 
   // Finance State
+  const [financeStudentSearchQuery, setFinanceStudentSearchQuery] = useState('');
+  const [showFinanceSuggestions, setShowFinanceSuggestions] = useState(false);
   const [fees, setFees] = useState<any[]>([]);
   const [feeSearchQuery, setFeeSearchQuery] = useState('');
   const [activeReceipt, setActiveReceipt] = useState<any>(null);
@@ -1967,6 +1969,152 @@ function AdminDashboardContent() {
           {financeSubTab === 'LEDGER' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               
+              {/* Premium Student Fee Statement Search Panel */}
+              <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)', border: '1px solid var(--border)' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    🔍 Search Student Fee Statement & Ledger
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                    Type the name or registration ID of a student to instantly view their complete chronological fee ledger, outstanding balances, paid history, and receipts.
+                  </p>
+                </div>
+                
+                <div style={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.25rem 0.5rem' }}>
+                    <span style={{ fontSize: '1.2rem', padding: '0 0.5rem', opacity: 0.7 }}>🔍</span>
+                    <input 
+                      type="text"
+                      placeholder="Search student name or ID (e.g. Rahul, STU02837)..."
+                      value={financeStudentSearchQuery}
+                      onChange={e => {
+                        setFinanceStudentSearchQuery(e.target.value);
+                        setShowFinanceSuggestions(true);
+                      }}
+                      onFocus={() => setShowFinanceSuggestions(true)}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem 0.5rem',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text)',
+                        fontSize: '0.95rem',
+                        outline: 'none'
+                      }}
+                    />
+                    {financeStudentSearchQuery && (
+                      <button 
+                        onClick={() => { setFinanceStudentSearchQuery(''); setShowFinanceSuggestions(false); }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  {showFinanceSuggestions && financeStudentSearchQuery.trim().length > 0 && (
+                    <>
+                      <div 
+                        onClick={() => setShowFinanceSuggestions(false)} 
+                        style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'transparent' }} 
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '16px',
+                        marginTop: '0.5rem',
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        zIndex: 100,
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+                        backdropFilter: 'blur(20px)',
+                        padding: '0.5rem'
+                      }}>
+                        {(() => {
+                          const matches = directoryUsers
+                            .filter(u => u.role === 'STUDENT' && (
+                              u.name?.toLowerCase().includes(financeStudentSearchQuery.toLowerCase()) ||
+                              u.username?.toLowerCase().includes(financeStudentSearchQuery.toLowerCase())
+                            ));
+                          if (matches.length === 0) {
+                            return (
+                              <div style={{ padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                <span>📂</span> No registered students found matching "{financeStudentSearchQuery}"
+                              </div>
+                            );
+                          }
+                          return matches.map(s => (
+                            <div 
+                              key={s.id}
+                              onClick={() => {
+                                setFinanceStudentSearchQuery('');
+                                setShowFinanceSuggestions(false);
+                                setSelectedUserDetail(s);
+                              }}
+                              style={{
+                                padding: '0.85rem 1.25rem',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '1rem',
+                                borderBottom: '1px solid rgba(255,255,255,0.02)'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                e.currentTarget.style.transform = 'translateX(5px)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.transform = 'translateX(0)';
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '1px solid var(--primary)', fontSize: '0.9rem', flexShrink: 0 }}>
+                                  {(s.name || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>{s.name}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <span>ID: <strong>{s.username}</strong></span>
+                                    {s.studentProfile?.className && (
+                                      <>
+                                        <span style={{ opacity: 0.5 }}>•</span>
+                                        <span>Class: {s.studentProfile.className}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <button 
+                                className="btn-primary"
+                                style={{
+                                  padding: '6px 14px',
+                                  fontSize: '0.75rem',
+                                  borderRadius: '8px',
+                                  fontWeight: 800,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}
+                              >
+                                📋 View Statement
+                              </button>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
               {/* Full-Width Ledger Collection Table */}
               <div className="glass-card" style={{ padding: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
@@ -2289,13 +2437,11 @@ function AdminDashboardContent() {
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                       <button 
                                         onClick={() => {
-                                          setFeeSearchQuery(s.username);
-                                          setLedgerViewMode('ALL');
-                                          setIsLedgerListOpen(true);
+                                          setSelectedUserDetail(s);
                                         }}
                                         style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
                                       >
-                                        🔍 Track Payments
+                                        📋 View Fee Statement
                                       </button>
                                       <button 
                                         onClick={() => {
@@ -4960,7 +5106,7 @@ function AdminDashboardContent() {
               )}
               {selectedUserDetail.role === 'STUDENT' && (
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Fee Statement Ledger (SBI Style)</h3>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Complete Fee Statement Ledger</h3>
                   <StudentLedger 
                     studentId={selectedUserDetail.id} 
                     onViewReceipt={async (feeId) => {
