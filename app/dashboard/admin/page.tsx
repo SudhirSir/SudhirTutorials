@@ -16,9 +16,10 @@ function AdminDashboardContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
-  const [financeSubTab, setFinanceSubTab] = useState<'LEDGER' | 'ASSIGN'>('LEDGER');
+  const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE'>('OVERVIEW');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures'>('menu');
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES'>('ALL');
+  const [isLedgerListOpen, setIsLedgerListOpen] = useState(false);
 
   useEffect(() => {
     // Intercept separate tab clicks to open nested sub-tab layout under academics
@@ -1693,67 +1694,166 @@ function AdminDashboardContent() {
         </div>
       )}
 
-      {activeTab === 'finances' && (
+{activeTab === 'finances' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start' }}>
-            <button 
-              onClick={() => setFinanceSubTab('LEDGER')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                background: financeSubTab === 'LEDGER' ? 'var(--primary)' : 'transparent',
-                color: financeSubTab === 'LEDGER' ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              💳 Fee Ledger & Collections
-            </button>
-            <button 
-              onClick={() => setFinanceSubTab('ASSIGN')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                background: financeSubTab === 'ASSIGN' ? 'var(--primary)' : 'transparent',
-                color: financeSubTab === 'ASSIGN' ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              ➕ Assign Fee
-            </button>
+          <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+            {[
+              { id: 'OVERVIEW', label: '📊 Finance Hub', desc: 'Overview & Stats' },
+              { id: 'LEDGER', label: '💳 Fee Ledger', desc: 'Transactions & Dues' },
+              { id: 'ASSIGN', label: '➕ Assign Fee', desc: 'Assign Custom/Batch' },
+              { id: 'EXPENSES', label: '💸 Expense Tracker', desc: 'Outflows & Claims' },
+              { id: 'BILLING_ENGINE', label: '⚙️ Billing Engine', desc: 'Auto monthly run' }
+            ].map(tab => (
+              <button 
+                key={tab.id}
+                onClick={() => setFinanceSubTab(tab.id as any)}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  border: 'none',
+                  background: financeSubTab === tab.id ? 'var(--primary)' : 'transparent',
+                  color: financeSubTab === tab.id ? '#fff' : 'var(--text-muted)',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '0.1rem',
+                  minWidth: '140px'
+                }}
+              >
+                <span style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>{tab.label}</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 500, opacity: financeSubTab === tab.id ? 0.9 : 0.6 }}>{tab.desc}</span>
+              </button>
+            ))}
           </div>
 
-          {financeSubTab === 'LEDGER' && (
+          {financeSubTab === 'OVERVIEW' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              
-              {/* ── Top Level Stats: Smart Finance Overview ── */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              {/* Premium Welcome Banner */}
+              <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%)', border: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '1.6rem', margin: 0, fontWeight: 800 }}>Smart Financial Command Center 💼</h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem', maxWidth: '700px' }}>
+                  Monitor institute collections, record administrative expenses, and automate student invoice generation seamlessly in one unified interface.
+                </p>
+              </div>
+
+              {/* ── Top Level Stats Grid ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
                  {[
-                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: '#10b981' },
-                   { label: 'Total Expenses', value: `₹${(finSummary?.totalExpenses || 0).toLocaleString()}`, color: '#f59e0b' },
-                   { label: 'Net Profit', value: `₹${(finSummary?.netProfit || 0).toLocaleString()}`, color: '#3b82f6' },
-                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: '#ef4444' }
+                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: '#10b981', desc: 'Received student dues', icon: '💰' },
+                   { label: 'Total Expenses', value: `₹${(finSummary?.totalExpenses || 0).toLocaleString()}`, color: '#f59e0b', desc: 'Outflow & administrative costs', icon: '💸' },
+                   { label: 'Net Profit', value: `₹${(finSummary?.netProfit || 0).toLocaleString()}`, color: '#3b82f6', desc: 'Net cash balance', icon: '📈' },
+                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: '#ef4444', desc: 'Outstanding invoices', icon: '⏳' }
                  ].map((s, i) => (
-                   <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}` }}>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
-                      <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>{s.value}</div>
+                   <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)' }}>{s.value}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{s.desc}</div>
+                      </div>
+                      <span style={{ fontSize: '2rem', opacity: 0.8 }}>{s.icon}</span>
                    </div>
                  ))}
               </div>
 
+              {/* Two Column Grid under Overview */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                
+                {/* Billing Summary Box / Chart */}
+                <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '260px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Billing Overview</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                      Breakdown of outstanding student collections. Manage fee assignments or run the automated monthly billing engine.
+                    </p>
+                  </div>
+
+                  {/* Visual Progress Bar */}
+                  <div style={{ margin: '1.5rem 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                      <span>Collection Efficiency</span>
+                      {(() => {
+                        const total = (finSummary?.totalRevenue || 0) + (finSummary?.totalPending || 0);
+                        const percent = total > 0 ? ((finSummary?.totalRevenue || 0) / total) * 100 : 0;
+                        return <span style={{ color: '#10b981' }}>{percent.toFixed(1)}%</span>;
+                      })()}
+                    </div>
+                    <div style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
+                      {(() => {
+                        const total = (finSummary?.totalRevenue || 0) + (finSummary?.totalPending || 0);
+                        const revPercent = total > 0 ? ((finSummary?.totalRevenue || 0) / total) * 100 : 0;
+                        const pendPercent = total > 0 ? ((finSummary?.totalPending || 0) / total) * 100 : 0;
+                        return (
+                          <>
+                            <div style={{ width: `${revPercent}%`, background: '#10b981', height: '100%' }} />
+                            <div style={{ width: `${pendPercent}%`, background: '#ef4444', height: '100%' }} />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'rgba(16,185,129,0.05)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Collected</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.05)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600 }}>Uncollected Dues</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Action Navigation Grid */}
+                <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: '260px' }}>
+                  <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Quick Actions</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', flex: 1, marginTop: '0.5rem' }}>
+                    {[
+                      { tab: 'LEDGER', title: 'Fee Ledger', emoji: '💳', desc: 'Track & collect payments', color: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.4)' },
+                      { tab: 'ASSIGN', title: 'Assign Fee', emoji: '➕', desc: 'Individual or batch fees', color: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+                      { tab: 'EXPENSES', title: 'Outflow Costs', emoji: '💸', desc: 'Manage institute bills', color: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.4)' },
+                      { tab: 'BILLING_ENGINE', title: 'Auto Billing', emoji: '⚙️', desc: 'Generate monthly invoices', color: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }
+                    ].map(act => (
+                      <button
+                        key={act.tab}
+                        onClick={() => setFinanceSubTab(act.tab as any)}
+                        style={{
+                          background: act.color,
+                          border: `1px solid ${act.borderColor}`,
+                          borderRadius: '16px',
+                          padding: '1rem',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.25rem',
+                          transition: 'all 0.2s',
+                          alignItems: 'flex-start',
+                          color: 'var(--text)'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                      >
+                        <span style={{ fontSize: '1.25rem' }}>{act.emoji}</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{act.title}</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{act.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {financeSubTab === 'LEDGER' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              
               {/* Full-Width Ledger Collection Table */}
               <div className="glass-card" style={{ padding: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
@@ -1813,398 +1913,301 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
-                  {ledgerViewMode === 'ALL' && (
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                      <input 
-                        type="text" 
-                        placeholder="Search Name or ID..." 
-                        value={feeSearchQuery}
-                        onChange={e => setFeeSearchQuery(e.target.value)}
-                        list="ledger-student-search-list"
-                        style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
-                      />
-                      <datalist id="ledger-student-search-list">
-                        {directoryUsers
-                          .filter(u => u.role === 'STUDENT')
-                          .map(s => (
-                            <option key={s.id} value={s.name} label={s.username} />
-                          ))}
-                      </datalist>
-                    </div>
-                  )}
-                </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    {ledgerViewMode === 'ALL' && (
+                      <div style={{ display: 'flex', gap: '1rem' }}>
+                        <input 
+                          type="text" 
+                          placeholder="Search Name or ID..." 
+                          value={feeSearchQuery}
+                          onChange={e => setFeeSearchQuery(e.target.value)}
+                          list="ledger-student-search-list"
+                          style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
+                        />
+                        <datalist id="ledger-student-search-list">
+                          {directoryUsers
+                            .filter(u => u.role === 'STUDENT')
+                            .map(s => (
+                              <option key={s.id} value={s.name} label={s.username} />
+                            ))}
+                        </datalist>
+                      </div>
+                    )}
 
-                <div style={{ overflowX: 'auto' }}>
-                  {/* View Mode 1: ALL RECORDS */}
-                  {ledgerViewMode === 'ALL' && (
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          <th style={{ padding: '0.75rem 0' }}>Student / ID</th>
-                          <th>Billing Details</th>
-                          <th>Status</th>
-                          <th>Amount Breakup</th>
-                          <th>Total Due</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const filteredFees = fees.filter(f => 
-                            f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
-                            f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
-                          );
-
-                          if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
-
-                          return filteredFees.map(fee => {
-                            const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
-                            return (
-                              <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
-                                <td style={{ padding: '1rem 0' }}>
-                                  <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
-                                </td>
-                                <td>
-                                  <div style={{ fontSize: '0.9rem' }}>{fee.billingMonth}</div>
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
-                                </td>
-                                <td>
-                                  <span style={{
-                                    padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                                    background: fee.status === 'PAID' ? 'rgba(52,211,153,0.1)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
-                                    color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
-                                    border: `1px solid ${fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'}`
-                                  }}>
-                                    {fee.status}
-                                  </span>
-                                  {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
-                                </td>
-                                <td style={{ fontSize: '0.8rem' }}>
-                                   <div>Base: ₹{fee.amount}</div>
-                                   {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
-                                   {fee.discount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{fee.discount}</div>}
-                                </td>
-                                <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
-                                <td>
-                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    {fee.status === 'PENDING' && (
-                                      <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({...paymentDetails, discount: fee.discount}); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
-                                    )}
-                                    {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
-                                      <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
-                                    )}
-                                    {(fee.status !== 'PENDING') && (
-                                      <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
-                                    )}
-                                    <button onClick={() => { setEditingFeeRecord(fee); setShowEditFeeModal(true); }} style={{ padding: '6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }} title="Edit Fee Record">✎</button>
-                                    <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                    </table>
-                  )}
-
-                  {/* View Mode 2: FIRST 10 TRANSACTIONS */}
-                  {ledgerViewMode === 'FIRST_10' && (
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          <th style={{ padding: '0.75rem 0' }}>Transaction Ref / Date</th>
-                          <th>Student</th>
-                          <th>Category</th>
-                          <th>Method</th>
-                          <th>Amount Paid</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const paidFees = [...fees]
-                            .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
-                            .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
-                            .slice(0, 10);
-
-                          if (paidFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions recorded yet.</td></tr>;
-
-                          return paidFees.map(fee => {
-                            const dateObj = new Date(fee.updatedAt || fee.createdAt);
-                            const formattedDate = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                            return (
-                              <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <td style={{ padding: '1rem 0' }}>
-                                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>REC-{fee.id.slice(-6).toUpperCase()}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
-                                </td>
-                                <td>
-                                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.student?.name}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
-                                </td>
-                                <td>
-                                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{fee.billingMonth}</div>
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fee.title}</div>
-                                </td>
-                                <td>
-                                  <span style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontWeight: 600 }}>
-                                    {fee.paymentMethod || 'ONLINE'}
-                                  </span>
-                                </td>
-                                <td style={{ fontWeight: 800, color: '#10b981' }}>₹{fee.totalDue.toFixed(0)}</td>
-                                <td>
-                                  <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>🧾 View Receipt</button>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                    </table>
-                  )}
-
-                  {/* View Mode 3: ASSIGNED FEES */}
-                  {ledgerViewMode === 'ASSIGNED_FEES' && (
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          <th style={{ padding: '0.75rem 0' }}>Student Details</th>
-                          <th>Assigned Base Fee</th>
-                          <th>Total Paid Fees</th>
-                          <th>Outstanding Balance</th>
-                          <th>Invoices Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const students = directoryUsers.filter(u => u.role === 'STUDENT');
-
-                          if (students.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No registered students found in directory.</td></tr>;
-
-                          return students.map(s => {
-                            const studentInvoices = fees.filter(f => f.studentId === s.id);
-                            const totalPaid = studentInvoices
-                              .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
-                              .reduce((acc, f) => acc + f.totalDue, 0);
-                            const outstanding = studentInvoices
-                              .filter(f => f.status === 'PENDING')
-                              .reduce((acc, f) => acc + f.totalDue, 0);
-                            const baseFee = s.studentProfile?.baseFee || 0;
-                            const pendingCount = studentInvoices.filter(f => f.status === 'PENDING').length;
-
-                            return (
-                              <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <td style={{ padding: '1rem 0' }}>
-                                  <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
-                                </td>
-                                <td style={{ fontWeight: 700, color: 'var(--text)' }}>
-                                  ₹{baseFee.toLocaleString()}
-                                </td>
-                                <td style={{ fontWeight: 700, color: '#10b981' }}>
-                                  ₹{totalPaid.toLocaleString()}
-                                </td>
-                                <td style={{ fontWeight: 700, color: outstanding > 0 ? '#ef4444' : 'var(--text-muted)' }}>
-                                  ₹{outstanding.toLocaleString()}
-                                </td>
-                                <td>
-                                  {pendingCount > 0 ? (
-                                    <span style={{ fontSize: '0.7rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                                      {pendingCount} PENDING BILLS
-                                    </span>
-                                  ) : (
-                                    <span style={{ fontSize: '0.7rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                                      ALL PAID
-                                    </span>
-                                  )}
-                                </td>
-                                <td>
-                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button 
-                                      onClick={() => {
-                                        setFeeSearchQuery(s.username);
-                                        setLedgerViewMode('ALL');
-                                      }}
-                                      style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                                    >
-                                      🔍 Track Payments
-                                    </button>
-                                    <button 
-                                      onClick={() => {
-                                        setAddFeeMode('INDIVIDUAL');
-                                        setFeeStudentId(s.username);
-                                        setFeeStudentSearch(`${s.name} (${s.username})`);
-                                        setFeeAmount(String(baseFee));
-                                        setFinanceSubTab('ASSIGN');
-                                      }}
-                                      style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                                    >
-                                      ➕ Assign Fee
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-
-              {/* 2-Column: Recent Expenses and Auto-Billing Controls Side-by-Side */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                
-                {/* Expenses Card */}
-                <div className="glass-card" style={{ padding: '2rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                     <h3 style={{ fontSize: '1.2rem', margin: 0 }}>Recent Expenses</h3>
-                     <button onClick={() => setShowExpenseModal(true)} style={{ background: 'var(--primary)', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}>+ Add</button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                     {expenses.slice(0, 5).map(exp => (
-                       <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                          <div>
-                             <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{exp.title}</div>
-                             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{exp.category} • {((() => { const d = new Date(exp.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}</div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                             <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>-₹{exp.amount}</div>
-                             <button onClick={() => deleteExpense(exp.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.7rem', cursor: 'pointer' }}>Delete</button>
-                          </div>
-                       </div>
-                     ))}
-                     {expenses.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>No expenses recorded.</p>}
-                  </div>
-                </div>
-
-                {/* Billing Summary Box */}
-                <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', margin: 0 }}>Billing Overview</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>View outstanding student dues and verify billing status. Generate monthly bills automatically via the controller engine below.</p>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-                    <div style={{ padding: '1rem', background: 'rgba(99,102,241,0.05)', borderRadius: '12px', border: '1px solid rgba(99,102,241,0.2)' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>Collected</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
-                    </div>
-                    <div style={{ padding: '1rem', background: 'rgba(239,68,68,0.05)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>Uncollected</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* ── Bottom Section: Automated Monthly Billing Control Engine ── */}
-              <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--primary)', borderRadius: '20px', background: 'var(--card-bg)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)' }}>
-                      ⚙️ Automated Monthly Billing Control Engine
-                    </h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Generate monthly student bills automatically based on individual profile base fees</p>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. May 2026" 
-                      value={autoBillingMonth}
-                      onChange={e => {
-                        setAutoBillingMonth(e.target.value);
-                        if (e.target.value.length >= 6) fetchAutoBillingPreview(e.target.value);
+                    <button
+                      onClick={() => setIsLedgerListOpen(!isLedgerListOpen)}
+                      style={{
+                        padding: '0.6rem 1.25rem',
+                        borderRadius: '10px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        background: isLedgerListOpen ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                        color: isLedgerListOpen ? '#ef4444' : '#10b981',
+                        border: `1px solid ${isLedgerListOpen ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
                       }}
-                      style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', width: '180px', fontWeight: 600 }}
-                    />
-                    
-                    <button 
-                      onClick={() => fetchAutoBillingPreview()} 
-                      disabled={loadingAutoBillingPreview}
-                      className="btn-secondary" 
-                      style={{ padding: '0.75rem 1.25rem', fontWeight: 700 }}
                     >
-                      {loadingAutoBillingPreview ? 'Calculating...' : '🔍 Preview Billing'}
-                    </button>
-
-                    <button 
-                      onClick={runAutoBillingEngine}
-                      disabled={runningAutoBilling}
-                      className="btn-primary" 
-                      style={{ padding: '0.75rem 1.5rem', fontWeight: 800 }}
-                    >
-                      {runningAutoBilling ? 'Generating Invoices...' : '🚀 Run Auto-Billing'}
+                      {isLedgerListOpen ? '↩️ Collapse Table' : '📂 Expand Table'}
                     </button>
                   </div>
                 </div>
 
-                {loadingAutoBillingPreview && (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                    Simulating billing preview and calculating base fees...
-                  </div>
-                )}
-
-                {!loadingAutoBillingPreview && autoBillingPreview && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'rgba(255,255,255,0.01)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                      <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Active Students</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text)' }}>{autoBillingPreview.totalActiveStudents}</div>
-                      </div>
-                      <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)', textAlign: 'center', color: '#10b981' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Already Billed</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem' }}>{autoBillingPreview.alreadyBilledCount}</div>
-                      </div>
-                      <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)', textAlign: 'center', color: '#f59e0b' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 600 }}>Pending Assignment</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem' }}>{autoBillingPreview.pendingBillingCount}</div>
-                      </div>
+                {!isLedgerListOpen ? (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: '3rem', 
+                    border: '2px dashed var(--border)', 
+                    borderRadius: '16px', 
+                    background: 'rgba(255,255,255,0.01)', 
+                    textAlign: 'center', 
+                    gap: '1rem'
+                  }}>
+                    <span style={{ fontSize: '3rem' }}>📁</span>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Ledger Records Table</h4>
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        Currently collapsed to optimize page length. Click below to load and view the full interactive ledger.
+                      </p>
                     </div>
-
-                    {/* Preview Table */}
-                    <div style={{ maxHeight: '200px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-                        <thead style={{ background: 'var(--card-bg-alt)', position: 'sticky', top: 0, zIndex: 10 }}>
-                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                            <th style={{ padding: '0.75rem 1rem' }}>Student Name</th>
-                            <th>User ID</th>
-                            <th>Class</th>
-                            <th>Calculated Base Fee</th>
+                    <button 
+                      onClick={() => setIsLedgerListOpen(true)}
+                      className="btn-primary"
+                      style={{ padding: '0.75rem 1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px' }}
+                    >
+                      📂 Open & View Ledger Table
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.5rem' }}>
+                    {/* View Mode 1: ALL RECORDS */}
+                    {ledgerViewMode === 'ALL' && (
+                      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            <th style={{ padding: '0.75rem 0' }}>Student / ID</th>
+                            <th>Billing Details</th>
                             <th>Status</th>
+                            <th>Amount Breakup</th>
+                            <th>Total Due</th>
+                            <th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {autoBillingPreview.preview?.map((p: any) => (
-                            <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                              <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text)' }}>{p.name}</td>
-                              <td style={{ color: 'var(--text)' }}>{p.username}</td>
-                              <td style={{ color: 'var(--text)' }}>{p.class}</td>
-                              <td style={{ fontWeight: 700, color: '#10b981' }}>₹{p.baseFee}</td>
-                              <td>
-                                <span style={{ 
-                                  padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800,
-                                  background: p.alreadyBilled ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                                  color: p.alreadyBilled ? '#10b981' : '#f59e0b'
-                                }}>
-                                  {p.alreadyBilled ? 'BILLED ✓' : 'READY'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                          {(() => {
+                            const filteredFees = fees.filter(f => 
+                              f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
+                              f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
+                            );
+
+                            if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
+
+                            return filteredFees.map(fee => {
+                              const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
+                              return (
+                                <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
+                                  <td style={{ padding: '1rem 0' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
+                                  </td>
+                                  <td>
+                                    <div style={{ fontSize: '0.9rem' }}>{fee.billingMonth}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
+                                  </td>
+                                  <td>
+                                    <span style={{
+                                      padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
+                                      background: fee.status === 'PAID' ? 'rgba(52,211,153,0.1)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
+                                      color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
+                                      border: `1px solid ${fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'}`
+                                    }}>
+                                      {fee.status}
+                                    </span>
+                                    {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
+                                  </td>
+                                  <td style={{ fontSize: '0.8rem' }}>
+                                     <div>Base: ₹{fee.amount}</div>
+                                     {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
+                                     {fee.discount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{fee.discount}</div>}
+                                  </td>
+                                  <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
+                                  <td>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                      {fee.status === 'PENDING' && (
+                                        <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({...paymentDetails, discount: fee.discount}); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
+                                      )}
+                                      {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
+                                        <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
+                                      )}
+                                      {(fee.status !== 'PENDING') && (
+                                        <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
+                                      )}
+                                      <button onClick={() => { setEditingFeeRecord(fee); setShowEditFeeModal(true); }} style={{ padding: '6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }} title="Edit Fee Record">✎</button>
+                                      <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
                         </tbody>
                       </table>
-                    </div>
+                    )}
+
+                    {/* View Mode 2: FIRST 10 TRANSACTIONS */}
+                    {ledgerViewMode === 'FIRST_10' && (
+                      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            <th style={{ padding: '0.75rem 0' }}>Transaction Ref / Date</th>
+                            <th>Student</th>
+                            <th>Category</th>
+                            <th>Method</th>
+                            <th>Amount Paid</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const paidFees = [...fees]
+                              .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
+                              .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+                              .slice(0, 10);
+
+                            if (paidFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions recorded yet.</td></tr>;
+
+                            return paidFees.map(fee => {
+                              const dateObj = new Date(fee.updatedAt || fee.createdAt);
+                              const formattedDate = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                              return (
+                                <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                  <td style={{ padding: '1rem 0' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>REC-{fee.id.slice(-6).toUpperCase()}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
+                                  </td>
+                                  <td>
+                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.student?.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
+                                  </td>
+                                  <td>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{fee.billingMonth}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fee.title}</div>
+                                  </td>
+                                  <td>
+                                    <span style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontWeight: 600 }}>
+                                      {fee.paymentMethod || 'ONLINE'}
+                                    </span>
+                                  </td>
+                                  <td style={{ fontWeight: 800, color: '#10b981' }}>₹{fee.totalDue.toFixed(0)}</td>
+                                  <td>
+                                    <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>🧾 View Receipt</button>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    )}
+
+                    {/* View Mode 3: ASSIGNED FEES */}
+                    {ledgerViewMode === 'ASSIGNED_FEES' && (
+                      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            <th style={{ padding: '0.75rem 0' }}>Student Details</th>
+                            <th>Assigned Base Fee</th>
+                            <th>Total Paid Fees</th>
+                            <th>Outstanding Balance</th>
+                            <th>Invoices Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const students = directoryUsers.filter(u => u.role === 'STUDENT');
+
+                            if (students.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No registered students found in directory.</td></tr>;
+
+                            return students.map(s => {
+                              const studentInvoices = fees.filter(f => f.studentId === s.id);
+                              const totalPaid = studentInvoices
+                                .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
+                                .reduce((acc, f) => acc + f.totalDue, 0);
+                              const outstanding = studentInvoices
+                                .filter(f => f.status === 'PENDING')
+                                .reduce((acc, f) => acc + f.totalDue, 0);
+                              const baseFee = s.studentProfile?.baseFee || 0;
+                              const pendingCount = studentInvoices.filter(f => f.status === 'PENDING').length;
+
+                              return (
+                                <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                  <td style={{ padding: '1rem 0' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
+                                  </td>
+                                  <td style={{ fontWeight: 700, color: 'var(--text)' }}>
+                                    ₹{baseFee.toLocaleString()}
+                                  </td>
+                                  <td style={{ fontWeight: 700, color: '#10b981' }}>
+                                    ₹{totalPaid.toLocaleString()}
+                                  </td>
+                                  <td style={{ fontWeight: 700, color: outstanding > 0 ? '#ef4444' : 'var(--text-muted)' }}>
+                                    ₹{outstanding.toLocaleString()}
+                                  </td>
+                                  <td>
+                                    {pendingCount > 0 ? (
+                                      <span style={{ fontSize: '0.7rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                        {pendingCount} PENDING BILLS
+                                      </span>
+                                    ) : (
+                                      <span style={{ fontSize: '0.7rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                        ALL PAID
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                      <button 
+                                        onClick={() => {
+                                          setFeeSearchQuery(s.username);
+                                          setLedgerViewMode('ALL');
+                                          setIsLedgerListOpen(true);
+                                        }}
+                                        style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                      >
+                                        🔍 Track Payments
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          setAddFeeMode('INDIVIDUAL');
+                                          setFeeStudentId(s.username);
+                                          setFeeStudentSearch(`${s.name} (${s.username})`);
+                                          setFeeAmount(String(baseFee));
+                                          setFinanceSubTab('ASSIGN');
+                                        }}
+                                        style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                      >
+                                        ➕ Assign Fee
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 )}
               </div>
-
             </div>
           )}
 
@@ -2258,44 +2261,36 @@ function AdminDashboardContent() {
                         style={{
                           width: '100%', padding: '0.85rem 1.25rem',
                           borderRadius: '12px',
-                          background: 'var(--input-bg)',
-                          border: `1px solid ${feeStudentId ? '#10b981' : 'var(--border)'}`,
-                          color: 'var(--text)', fontSize: '0.95rem'
+                          background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem'
                         }}
                       />
                       <datalist id="student-list">
-                        {directoryUsers
-                          .filter(u => u.role === 'STUDENT')
-                          .map(s => (
-                            <option key={s.id} value={`${s.name} (${s.username})`} />
-                          ))}
+                        {directoryUsers.filter(u => u.role === 'STUDENT').map(s => (
+                          <option key={s.id} value={`${s.name} (${s.username})`} />
+                        ))}
                       </datalist>
-                      {feeStudentId && (
-                        <span style={{
-                          position: 'absolute', right: '1rem', top: '50%',
-                          transform: 'translateY(-50%)',
-                          color: '#10b981', fontSize: '1rem'
-                        }}>✓</span>
-                      )}
                     </div>
-                    {!feeStudentId && feeStudentSearch && (
-                      <p style={{ fontSize: '0.75rem', color: '#f87171', marginTop: '4px' }}>
-                        No match found. Pick from the list.
-                      </p>
-                    )}
                   </div>
                 ) : (
                   <div className="input-group">
-                    <label>Select Batch</label>
-                    <select 
-                      required 
-                      value={feeStudentId} 
-                      onChange={e => setFeeStudentId(e.target.value)}
+                    <label>Select Allocation Batch Target</label>
+                    <select
+                      required
+                      value={feeStudentId}
+                      onChange={e => {
+                        setFeeStudentId(e.target.value);
+                        const matchedBatch = batches.find(b => b.id === e.target.value);
+                        if (matchedBatch?.defaultFee > 0) {
+                          setFeeAmount(String(matchedBatch.defaultFee));
+                        } else {
+                          setFeeAmount('');
+                        }
+                      }}
                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                     >
-                      <option value="">Choose...</option>
+                      <option value="">-- Choose Target Batch --</option>
                       {batches.map(b => (
-                        <option key={b.id} value={b.id}>{b.name} ({b.className})</option>
+                        <option key={b.id} value={b.id}>{b.name} ({b.className || 'No Class'})</option>
                       ))}
                     </select>
                   </div>
@@ -2357,9 +2352,195 @@ function AdminDashboardContent() {
             </div>
           )}
 
+          {financeSubTab === 'EXPENSES' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div className="glass-card" style={{ padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                   <div>
+                     <h3 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>Expense Tracker</h3>
+                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Log and manage institute operational outflows and expenses</p>
+                   </div>
+                   <button onClick={() => setShowExpenseModal(true)} className="btn-primary" style={{ padding: '0.6rem 1.2rem', borderRadius: '10px' }}>
+                     ➕ Add New Expense
+                   </button>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        <th style={{ padding: '0.75rem 0' }}>Expense Reference</th>
+                        <th>Category</th>
+                        <th>Remarks / Details</th>
+                        <th>Outflow Date</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expenses.map(exp => (
+                        <tr key={exp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '1rem 0', fontWeight: 700 }}>
+                            EXP-{exp.id.slice(-6).toUpperCase()}
+                          </td>
+                          <td>
+                            <span style={{ padding: '4px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                              {exp.category}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{exp.title}</div>
+                            {exp.remarks && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{exp.remarks}</div>}
+                          </td>
+                          <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                            {((() => { const d = new Date(exp.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
+                          </td>
+                          <td style={{ fontWeight: 800, color: '#ef4444' }}>
+                            -₹{exp.amount.toLocaleString()}
+                          </td>
+                          <td>
+                            <button 
+                              onClick={() => deleteExpense(exp.id)} 
+                              style={{ 
+                                background: 'rgba(239, 68, 68, 0.1)', 
+                                border: 'none', 
+                                color: '#ef4444', 
+                                padding: '6px 12px', 
+                                borderRadius: '6px', 
+                                fontSize: '0.75rem', 
+                                cursor: 'pointer',
+                                fontWeight: 700
+                              }}
+                            >
+                              🗑 Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {expenses.length === 0 && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '4rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No expenses recorded. Click "+ Add New Expense" to create one.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {financeSubTab === 'BILLING_ENGINE' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--primary)', borderRadius: '20px', background: 'var(--card-bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)' }}>
+                      ⚙️ Automated Monthly Billing Control Engine
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Generate monthly student bills automatically based on individual profile base fees
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. May 2026" 
+                      value={autoBillingMonth}
+                      onChange={e => {
+                        setAutoBillingMonth(e.target.value);
+                        if (e.target.value.length >= 6) fetchAutoBillingPreview(e.target.value);
+                      }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', width: '180px', fontWeight: 600 }}
+                    />
+                    
+                    <button 
+                      onClick={() => fetchAutoBillingPreview()} 
+                      disabled={loadingAutoBillingPreview}
+                      className="btn-secondary" 
+                      style={{ padding: '0.75rem 1.25rem', fontWeight: 700 }}
+                    >
+                      {loadingAutoBillingPreview ? 'Calculating...' : '🔍 Preview Billing'}
+                    </button>
+
+                    <button 
+                      onClick={runAutoBillingEngine}
+                      disabled={runningAutoBilling}
+                      className="btn-primary" 
+                      style={{ padding: '0.75rem 1.5rem', fontWeight: 800 }}
+                    >
+                      {runningAutoBilling ? 'Generating Invoices...' : '🚀 Run Auto-Billing'}
+                    </button>
+                  </div>
+                </div>
+
+                {loadingAutoBillingPreview && (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    Simulating billing preview and calculating base fees...
+                  </div>
+                )}
+
+                {!loadingAutoBillingPreview && autoBillingPreview && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'rgba(255,255,255,0.01)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', animation: 'fadeIn 0.3s ease-out' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                      <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Active Students</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text)' }}>{autoBillingPreview.totalActiveStudents}</div>
+                      </div>
+                      <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)', textAlign: 'center', color: '#10b981' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Already Billed</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem' }}>{autoBillingPreview.alreadyBilledCount}</div>
+                      </div>
+                      <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)', textAlign: 'center', color: '#f59e0b' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 600 }}>Pending Assignment</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem' }}>{autoBillingPreview.pendingBillingCount}</div>
+                      </div>
+                    </div>
+
+                    {/* Preview Table */}
+                    <div style={{ maxHeight: '350px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                        <thead style={{ background: 'var(--card-bg-alt)', position: 'sticky', top: 0, zIndex: 10 }}>
+                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                            <th style={{ padding: '0.75rem 1rem' }}>Student Name</th>
+                            <th>User ID</th>
+                            <th>Class</th>
+                            <th>Calculated Base Fee</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {autoBillingPreview.preview?.map((p: any) => (
+                            <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                              <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text)' }}>{p.name}</td>
+                              <td style={{ color: 'var(--text)' }}>{p.username}</td>
+                              <td style={{ color: 'var(--text)' }}>{p.class}</td>
+                              <td style={{ fontWeight: 700, color: '#10b981' }}>₹{p.baseFee}</td>
+                              <td>
+                                <span style={{ 
+                                  padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800,
+                                  background: p.alreadyBilled ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                                  color: p.alreadyBilled ? '#10b981' : '#f59e0b'
+                                }}>
+                                  {p.alreadyBilled ? 'BILLED ✓' : 'READY'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
-
       {(activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) && (
         <div className="courses-layout-grid" style={{ gap: '2rem' }}>
           
