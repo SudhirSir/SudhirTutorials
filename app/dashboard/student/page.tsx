@@ -438,13 +438,13 @@ function StudentDashboardContent() {
 
                       <div>
                         <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          👨‍🏫 Assigned Instructors
+                          Assigned Instructors
                         </div>
                         {b.teachers && b.teachers.length > 0 ? (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
                             {b.teachers.map((t: any, idx: number) => (
                               <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '0.85rem' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '0.85rem' }}>
                                   {t.name?.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
@@ -494,11 +494,11 @@ function StudentDashboardContent() {
                  )}
               </div>
 
-              <div className="glass-card" style={{ padding: '2rem', background: 'rgba(16, 185, 129, 0.05)', cursor: 'pointer' }} onClick={() => handleTabChange('attendance')}>
+              <div className="glass-card" style={{ padding: '2rem', background: 'rgba(59,130,246,0.05)', cursor: 'pointer' }} onClick={() => handleTabChange('attendance')}>
                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Overall Attendance</h3>
-                 <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10b981' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
+                 <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--secondary)' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
                  <div style={{ width: '100%', height: '8px', background: 'var(--border)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
-                    <div style={{ width: `${(dashboard as any)?.attendance?.percentage || 0}%`, height: '100%', background: '#10b981', boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)' }}></div>
+                    <div style={{ width: `${(dashboard as any)?.attendance?.percentage || 0}%`, height: '100%', background: 'var(--secondary)', boxShadow: '0 0 10px rgba(59,130,246,0.4)' }}></div>
                  </div>
                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>{(dashboard as any)?.attendance?.present || 0} / {(dashboard as any)?.attendance?.total || 0} Days Present</p>
               </div>
@@ -513,7 +513,7 @@ function StudentDashboardContent() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Attendance Rate</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10b981' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
              </div>
              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Sessions</div>
@@ -543,8 +543,8 @@ function StudentDashboardContent() {
                       <td>
                         <span style={{ 
                           padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700,
-                          background: a.status === 'PRESENT' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                          color: a.status === 'PRESENT' ? '#10b981' : '#ef4444'
+                          background: a.status === 'PRESENT' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
+                          color: a.status === 'PRESENT' ? 'var(--secondary)' : '#ef4444'
                         }}>
                           {a.status}
                         </span>

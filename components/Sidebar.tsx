@@ -189,7 +189,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
                 {name}
                 {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.8rem' }}>🔵</span>}
               </div>
-              <div style={{ fontSize: '0.75rem', color: isVerified ? '#10b981' : 'var(--text-muted)' }}>
+              <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
                 {isVerified ? 'Verified Account' : 'Online'}
               </div>
             </div>

@@ -1012,7 +1012,12 @@ function AdminDashboardContent() {
 
   useEffect(() => {
     fetchUnreadCounts();
-    if (activeTab === 'overview') fetchOverviewStats();
+    if (activeTab === 'overview') {
+      fetchOverviewStats();
+      // Auto-refresh revenue every 30 s while on overview tab
+      const overviewInterval = setInterval(fetchOverviewStats, 30000);
+      return () => clearInterval(overviewInterval);
+    }
     if (activeTab === 'users') handleSearchDirectory();
     if (activeTab === 'finances') {
       fetchFinances();
@@ -1861,11 +1866,11 @@ function AdminDashboardContent() {
           {/* Sub-Tab Navigation Header */}
           <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start', flexWrap: 'wrap' }}>
             {[
-              { id: 'OVERVIEW', label: '📊 Finance Hub', desc: 'Overview & Stats' },
-              { id: 'LEDGER', label: '💳 Fee Ledger', desc: 'Transactions & Dues' },
-              { id: 'ASSIGN', label: '➕ Assign Fee', desc: 'Assign Custom/Batch' },
-              { id: 'EXPENSES', label: '💸 Expense Tracker', desc: 'Outflows & Claims' },
-              { id: 'BILLING_ENGINE', label: '⚙️ Billing Engine', desc: 'Auto monthly run' }
+              { id: 'OVERVIEW', label: 'Finance Hub', desc: 'Overview & Stats' },
+              { id: 'LEDGER', label: 'Fee Ledger', desc: 'Transactions & Dues' },
+              { id: 'ASSIGN', label: 'Assign Fee', desc: 'Assign Custom/Batch' },
+              { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Outflows & Claims' },
+              { id: 'BILLING_ENGINE', label: 'Billing Engine', desc: 'Auto monthly run' }
             ].map(tab => (
               <button 
                 key={tab.id}
@@ -1895,8 +1900,8 @@ function AdminDashboardContent() {
           {financeSubTab === 'OVERVIEW' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               {/* Premium Welcome Banner */}
-              <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%)', border: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: '1.6rem', margin: 0, fontWeight: 800 }}>Smart Financial Command Center 💼</h3>
+              <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(59,130,246,0.05) 100%)', border: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '1.6rem', margin: 0, fontWeight: 800 }}>Smart Financial Command Center</h3>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem', maxWidth: '700px' }}>
                   Monitor institute collections, record administrative expenses, and automate student invoice generation seamlessly in one unified interface.
                 </p>
@@ -1905,10 +1910,10 @@ function AdminDashboardContent() {
               {/* ── Top Level Stats Grid ── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
                  {[
-                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: '#10b981', desc: 'Received student dues', icon: '💰' },
-                   { label: 'Total Expenses', value: `₹${(finSummary?.totalExpenses || 0).toLocaleString()}`, color: '#f59e0b', desc: 'Outflow & administrative costs', icon: '💸' },
-                   { label: 'Net Profit', value: `₹${(finSummary?.netProfit || 0).toLocaleString()}`, color: '#3b82f6', desc: 'Net cash balance', icon: '📈' },
-                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: '#ef4444', desc: 'Outstanding invoices', icon: '⏳' }
+                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Received student dues' },
+                   { label: 'Total Expenses', value: `₹${(finSummary?.totalExpenses || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outflow & administrative costs' },
+                   { label: 'Net Profit', value: `₹${(finSummary?.netProfit || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Net cash balance' },
+                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outstanding invoices' }
                  ].map((s, i) => (
                    <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
@@ -1916,7 +1921,6 @@ function AdminDashboardContent() {
                         <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)' }}>{s.value}</div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{s.desc}</div>
                       </div>
-                      <span style={{ fontSize: '2rem', opacity: 0.8 }}>{s.icon}</span>
                    </div>
                  ))}
               </div>
@@ -1940,7 +1944,7 @@ function AdminDashboardContent() {
                       {(() => {
                         const total = (finSummary?.totalRevenue || 0) + (finSummary?.totalPending || 0);
                         const percent = total > 0 ? ((finSummary?.totalRevenue || 0) / total) * 100 : 0;
-                        return <span style={{ color: '#10b981' }}>{percent.toFixed(1)}%</span>;
+                        return <span style={{ color: 'var(--secondary)' }}>{percent.toFixed(1)}%</span>;
                       })()}
                     </div>
                     <div style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
@@ -1950,8 +1954,8 @@ function AdminDashboardContent() {
                         const pendPercent = total > 0 ? ((finSummary?.totalPending || 0) / total) * 100 : 0;
                         return (
                           <>
-                            <div style={{ width: `${revPercent}%`, background: '#10b981', height: '100%' }} />
-                            <div style={{ width: `${pendPercent}%`, background: '#ef4444', height: '100%' }} />
+                            <div style={{ width: `${revPercent}%`, background: 'var(--secondary)', height: '100%' }} />
+                            <div style={{ width: `${pendPercent}%`, background: 'var(--primary)', height: '100%' }} />
                           </>
                         );
                       })()}
@@ -1959,52 +1963,14 @@ function AdminDashboardContent() {
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div style={{ padding: '0.75rem', background: 'rgba(16,185,129,0.05)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Collected</div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.2)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--secondary)', fontWeight: 600 }}>Collected</div>
                       <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
                     </div>
                     <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.05)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600 }}>Uncollected Dues</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Uncollected Dues</div>
                       <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Quick Action Navigation Grid */}
-                <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: '260px' }}>
-                  <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Quick Actions</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', flex: 1, marginTop: '0.5rem' }}>
-                    {[
-                      { tab: 'LEDGER', title: 'Fee Ledger', emoji: '💳', desc: 'Track & collect payments', color: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.4)' },
-                      { tab: 'ASSIGN', title: 'Assign Fee', emoji: '➕', desc: 'Individual or batch fees', color: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
-                      { tab: 'EXPENSES', title: 'Outflow Costs', emoji: '💸', desc: 'Manage institute bills', color: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.4)' },
-                      { tab: 'BILLING_ENGINE', title: 'Auto Billing', emoji: '⚙️', desc: 'Generate monthly invoices', color: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }
-                    ].map(act => (
-                      <button
-                        key={act.tab}
-                        onClick={() => setFinanceSubTab(act.tab as any)}
-                        style={{
-                          background: act.color,
-                          border: `1px solid ${act.borderColor}`,
-                          borderRadius: '16px',
-                          padding: '1rem',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.25rem',
-                          transition: 'all 0.2s',
-                          alignItems: 'flex-start',
-                          color: 'var(--text)'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                      >
-                        <span style={{ fontSize: '1.25rem' }}>{act.emoji}</span>
-                        <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{act.title}</span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{act.desc}</span>
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -2019,7 +1985,7 @@ function AdminDashboardContent() {
               <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)', border: '1px solid var(--border)' }}>
                 <div>
                   <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    🔍 Search Student Fee Statement & Ledger
+                    Search Student Fee Statement & Ledger
                   </h3>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
                     Type the name or registration ID of a student to instantly view their complete chronological fee ledger, outstanding balances, paid history, and receipts.
@@ -2058,24 +2024,24 @@ function AdminDashboardContent() {
                     )}
                   </div>
 
-                  {showFinanceSuggestions && financeStudentSearchQuery.trim().length > 0 && (
+                      {showFinanceSuggestions && financeStudentSearchQuery.trim().length > 0 && (
                     <>
                       <div 
                         onClick={() => setShowFinanceSuggestions(false)} 
-                        style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'transparent' }} 
+                        style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
                       />
                       <div style={{
                         position: 'absolute',
                         top: '100%',
                         left: 0,
                         right: 0,
-                        background: 'var(--card-bg)',
+                        background: 'var(--surface)',
                         border: '1px solid var(--border)',
                         borderRadius: '16px',
                         marginTop: '0.5rem',
                         maxHeight: '300px',
                         overflowY: 'auto',
-                        zIndex: 100,
+                        zIndex: 9999,
                         boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
                         backdropFilter: 'blur(20px)',
                         padding: '0.5rem'
@@ -4693,7 +4659,7 @@ function AdminDashboardContent() {
                   </div>
                 )}
                 {activeReceipt.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#10b981' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: 'var(--secondary, #1d4ed8)' }}>
                     <span>Discount Applied</span>
                     <span style={{ fontWeight: 700 }}>-₹{activeReceipt.discount.toFixed(2)}</span>
                   </div>
@@ -4750,9 +4716,9 @@ function AdminDashboardContent() {
                   disabled={downloadingPDF}
                   style={{ 
                     flex: 2, minWidth: '150px', padding: '0.8rem 1.25rem', borderRadius: '12px', 
-                    background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', 
+                    background: 'linear-gradient(135deg, var(--secondary), hsl(217,91%,45%))', color: '#fff', border: 'none', 
                     fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem',
-                    boxShadow: '0 4px 15px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                    boxShadow: '0 4px 15px rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
                   onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
@@ -5160,12 +5126,58 @@ function AdminDashboardContent() {
                         const res = await fetch(`/api/student/fees/receipt/${feeId}`);
                         if (res.ok) {
                           const data = await res.json();
-                          setActiveReceipt(data.fee);
+                          const fee = data.fee;
+                          // Open receipt in a new browser tab
+                          const receiptWindow = window.open('', '_blank');
+                          if (!receiptWindow) { alert('Please allow popups to view the receipt.'); return; }
+                          const fineAmt = fee.lateFine || 0;
+                          const discAmt = fee.discount || 0;
+                          const total = fee.paidAmount || (fee.amount + fineAmt - discAmt);
+                          const paidDate = fee.paidAt ? (() => { const d = new Date(fee.paidAt); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })() : '—';
+                          receiptWindow.document.write(`<!DOCTYPE html><html><head><title>Receipt – ${fee.receiptNo || fee.id}</title><style>
+                            body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1a1a2e;background:#f9f9f9;}
+                            .card{max-width:480px;margin:auto;background:#fff;border-radius:16px;padding:2.5rem;box-shadow:0 20px 50px rgba(0,0,0,0.12);border:8px solid #f3f4f6;position:relative;}
+                            h1{color:#ef4444;font-size:1.5rem;letter-spacing:1px;margin:0;}
+                            .label{color:#9ca3af;font-size:0.65rem;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;}
+                            .val{font-weight:700;font-size:0.9rem;color:#1a1a2e;}
+                            .row{display:flex;justify-content:space-between;margin-bottom:0.75rem;font-size:0.9rem;}
+                            .total{border-top:2px dashed #e5e7eb;padding-top:1rem;margin-top:1rem;font-size:1.1rem;font-weight:800;}
+                            .stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:5rem;font-weight:900;color:rgba(59,130,246,0.04);pointer-events:none;letter-spacing:10px;}
+                            .footer{text-align:center;font-size:0.65rem;color:#9ca3af;margin-top:2rem;border-top:1px dashed #e5e7eb;padding-top:1rem;}
+                            @media print{body{padding:0;background:white;}}
+                          </style></head><body>
+                          <div class="card">
+                            <div class="stamp">PAID</div>
+                            <div style="text-align:center;margin-bottom:1.5rem">
+                              <h1>SUDHIR TUTORIALS</h1>
+                              <p style="color:#6b7280;font-size:0.75rem;margin:4px 0">Professional Coaching for Academic Excellence</p>
+                              <div style="height:1px;background:#e5e7eb;width:60px;margin:1rem auto"></div>
+                              <h2 style="font-size:0.9rem;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#374151">Payment Receipt</h2>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+                              <div><div class="label">Student Name</div><div class="val">${fee.student?.name || '—'}</div><div style="color:#6b7280;font-size:0.8rem">ID: ${fee.student?.username || '—'}</div></div>
+                              <div style="text-align:right"><div class="label">Receipt No.</div><div class="val">${fee.receiptNo || 'REC-' + fee.id.slice(-6).toUpperCase()}</div><div style="color:#6b7280;font-size:0.8rem">${paidDate}</div></div>
+                            </div>
+                            <div style="border-top:2px solid #f3f4f6;border-bottom:2px solid #f3f4f6;padding:1.25rem 0;margin-bottom:1.25rem">
+                              <div class="row"><span>${fee.title} (${fee.billingMonth})</span><span style="font-weight:700">₹${fee.amount.toFixed(2)}</span></div>
+                              ${fineAmt > 0 ? `<div class="row" style="color:#ef4444"><span>Late Fine</span><span>+₹${fineAmt.toFixed(2)}</span></div>` : ''}
+                              ${discAmt > 0 ? `<div class="row" style="color:#1d4ed8"><span>Discount Applied</span><span>-₹${discAmt.toFixed(2)}</span></div>` : ''}
+                              <div class="row total"><span>TOTAL PAID</span><span>₹${total.toFixed(2)}</span></div>
+                            </div>
+                            <div style="font-size:0.75rem;color:#6b7280">
+                              <div><strong>Method:</strong> ${fee.paymentMethod || 'CASH'}</div>
+                              ${fee.transactionId ? `<div><strong>TXN ID:</strong> ${fee.transactionId}</div>` : ''}
+                            </div>
+                            <div class="footer">Computer-generated receipt. No signature required.<br>&copy; ${new Date().getFullYear()} Sudhir Tutorials</div>
+                          </div>
+                          <script>window.onload=function(){window.print();}<\/script>
+                          </body></html>`);
+                          receiptWindow.document.close();
                         } else {
-                          alert("Failed to load receipt details.");
+                          alert('Failed to load receipt details.');
                         }
                       } catch (e) {
-                        alert("Error loading receipt.");
+                        alert('Error loading receipt.');
                       }
                     }}
                   />
