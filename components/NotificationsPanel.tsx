@@ -41,6 +41,7 @@ export function NotificationsPanel({
   const { data: session } = useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   // Admin-only broadcast form state
   const [showCompose, setShowCompose] = useState(false);
@@ -186,8 +187,9 @@ export function NotificationsPanel({
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>You'll see messages from admin and teachers here.</div>
           </div>
         ) : (
-          notifications.map((n, i) => {
-            const style = typeColors[n.type] || typeColors.SYSTEM;
+          <>
+            {notifications.slice(0, visibleCount).map((n, i) => {
+              const style = typeColors[n.type] || typeColors.SYSTEM;
             return (
               <div
                 key={n.id}
@@ -237,7 +239,18 @@ export function NotificationsPanel({
                 </div>
               </div>
             );
-          })
+            })}
+            {visibleCount < notifications.length && (
+              <button 
+                onClick={() => setVisibleCount(prev => prev + 10)} 
+                style={{ width: '100%', padding: '1rem', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.05)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                View More Notifications
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

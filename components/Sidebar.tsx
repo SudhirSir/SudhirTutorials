@@ -35,31 +35,33 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   }, []);
 
   const adminLinks = [
-    { id: 'overview', label: 'Dashboard', icon: '📊' },
-    { id: 'courses', label: 'Batches & Fees', icon: '🎓' },
-    { id: 'finances', label: 'Revenue', icon: '💰' },
-    { id: 'directory', label: 'Directory', icon: '👥' },
-    { id: 'messages', label: 'Messages', icon: '💬' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
-    { id: 'settings', label: 'System Settings', icon: '⚙️' },
+    { id: 'overview', label: 'Dashboard' },
+    { id: 'courses', label: 'Batches & Fees' },
+    { id: 'finances', label: 'Revenue' },
+    { id: 'directory', label: 'Directory' },
+    { id: 'salary', label: 'Staff Salary Management' },
+    { id: 'messages', label: 'Messages' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'settings', label: 'System Settings' },
   ];
 
   const teacherLinks = [
-    { id: 'classes', label: 'My Batches', icon: '🏫' },
-    { id: 'materials', label: 'Materials', icon: '📚' },
-    { id: 'students', label: 'Student Roster', icon: '👨‍🎓' },
-    { id: 'attendance', label: 'Attendance', icon: '📝' },
-    { id: 'messages', label: 'Messages', icon: '💬' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
+    { id: 'classes', label: 'My Batches' },
+    { id: 'materials', label: 'Materials' },
+    { id: 'students', label: 'Student Roster' },
+    { id: 'attendance', label: 'Attendance' },
+    { id: 'salary', label: 'Salary Records' },
+    { id: 'messages', label: 'Messages' },
+    { id: 'notifications', label: 'Notifications' },
   ];
 
   const studentLinks = [
-    { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-    { id: 'materials', label: 'Study Material', icon: '📖' },
-    { id: 'tests', label: 'My Tests', icon: '🧪' },
-    { id: 'fees', label: 'Fee Portal', icon: '💳' },
-    { id: 'messages', label: 'Messages', icon: '💬' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'materials', label: 'Study Material' },
+    { id: 'tests', label: 'My Tests' },
+    { id: 'fees', label: 'Fee Details & Payments' },
+    { id: 'messages', label: 'Messages' },
+    { id: 'notifications', label: 'Notifications' },
   ];
 
   const links = role === 'ADMIN' ? adminLinks : role === 'TEACHER' ? teacherLinks : studentLinks;
@@ -135,7 +137,6 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
               {activeTab === link.id && (
                 <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: '4px', background: 'var(--primary)', borderRadius: '0 4px 4px 0' }} />
               )}
-              <span style={{ fontSize: '1.2rem' }}>{link.icon}</span>
               {link.label}
               {badgeCount > 0 && (
                 <span style={{
@@ -187,7 +188,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text)' }}>
                 {name}
-                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.8rem' }}>🔵</span>}
+                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.8rem' }}>(Verified)</span>}
               </div>
               <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
                 {isVerified ? 'Verified Account' : 'Online'}
@@ -216,7 +217,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
             gap: '0.75rem'
           }}
         >
-          <span>🚪</span> Logout
+          Logout
         </button>
       </div>
 

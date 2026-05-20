@@ -23,6 +23,7 @@ model User {
   mustChangePassword Boolean  @default(true)
   onboardingCompleted Boolean  @default(false)
   isProfileVerified  Boolean  @default(false)
+  isActive           Boolean  @default(true)
   activeToken        String?
   createdAt          DateTime @default(now())
   
@@ -39,6 +40,8 @@ model User {
   testResults        TestResult[]   @relation("StudentTestResults")
   materials          Material[]
   notifications      Notification[]
+  activityLogs       ActivityLog[]
+  salaryRecords      SalaryRecord[]
 }
 
 model Message {
@@ -244,5 +247,37 @@ model Lecture {
   createdAt    DateTime @default(now())
 
   @@index([batchId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model SalaryRecord {
+  id            String   @id @default(cuid())
+  teacherId     String
+  teacher       User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  month         String   // e.g., "April 2026"
+  baseSalary    Float
+  bonus         Float    @default(0)
+  deductions    Float    @default(0)
+  netPaid       Float    @default(0)
+  status        String   @default("PENDING") // PENDING, PAID
+  paidAt        DateTime?
+  transactionId String?
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([status])
 }
 

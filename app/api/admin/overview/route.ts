@@ -21,6 +21,7 @@ export async function GET() {
       classStatsGroup,
       paymentsThisMonth,
       pendingDues,
+      activityLogs
     ] = await Promise.all([
       prisma.user.count({ where: { role: 'STUDENT' } }),
       prisma.user.count({ where: { role: 'TEACHER' } }),
@@ -43,6 +44,11 @@ export async function GET() {
         where: { status: 'PENDING' },
         _sum: { amount: true },
       }),
+      prisma.activityLog.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true } } }
+      })
     ]);
 
     const classStats = classStatsGroup.map(g => ({
@@ -58,6 +64,7 @@ export async function GET() {
       classStats,
       revenueThisMonth: paymentsThisMonth._sum.paidAmount || 0,
       pendingDues: pendingDues._sum.amount || 0,
+      activityLogs
     });
 
     // Cache for 15 s, serve stale for 30 s while revalidating

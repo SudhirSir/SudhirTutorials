@@ -195,7 +195,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           </div>
 
           <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{profile.name}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '4px' }}>@{profile.username}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '4px' }}>{profile.username}</div>
           <div style={{ marginTop: '0.75rem' }}>
             <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '4px 12px', borderRadius: '20px', background: 'rgba(99,102,241,0.15)', color: 'var(--primary)' }}>
               {role}

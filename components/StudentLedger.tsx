@@ -186,7 +186,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
               <h3>Student Profile</h3>
               <p style="font-size: 18px; margin-bottom: 8px; color: #1a1a2e; font-weight: bold;">${fees[0]?.student?.name || 'Academic Student'}</p>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 12px; color: #4b5563;">
-                <div><strong>Student ID:</strong> @${fees[0]?.student?.username || 'N/A'}</div>
+                <div><strong>Student ID:</strong> ${fees[0]?.student?.username || 'N/A'}</div>
                 <div><strong>Roll Number:</strong> ${fees[0]?.student?.studentProfile?.rollNumber || 'N/A'}</div>
                 <div><strong>Class / Grade:</strong> ${fees[0]?.student?.studentProfile?.className || 'N/A'}</div>
                 <div><strong>Batch:</strong> ${fees[0]?.student?.studentProfile?.batch || 'N/A'}</div>
@@ -325,8 +325,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
             </select>
           )}
           <div style={{ background: 'rgba(0,0,0,0.1)', padding: '4px', borderRadius: '12px', display: 'flex', border: '1px solid var(--border)', flexWrap: 'wrap', gap: '4px' }}>
-            <button type="button" onClick={() => setViewType('month')} style={TAB_STYLE(viewType === 'month')}>12 Months</button>
-            <button type="button" onClick={() => setViewType('year')} style={TAB_STYLE(viewType === 'year')}>Year-wise</button>
+            <button type="button" onClick={() => setViewType('month')} style={TAB_STYLE(viewType === 'month')}>Monthly Fee Details</button>
             <button type="button" onClick={() => setViewType('statement')} style={TAB_STYLE(viewType === 'statement')}>Fee Statement</button>
             <button type="button" onClick={() => setViewType('latest-payments')} style={TAB_STYLE(viewType === 'latest-payments')}>Recent Payments</button>
           </div>
@@ -454,7 +453,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem 1.5rem', fontSize: '0.85rem' }}>
                   {[
                     ['Name', fees[0].student.name],
-                    ['Student ID', `@${fees[0].student.username}`],
+                    ['Student ID', `${fees[0].student.username}`],
                     ['Roll Number', fees[0].student.studentProfile?.rollNumber],
                     ['Class', fees[0].student.studentProfile?.className],
                     ['Batch', fees[0].student.studentProfile?.batch],
@@ -587,43 +586,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         );
       })()}
 
-      {/* YEAR-WISE TABLE */}
-      {viewType === 'year' && (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                <th style={{ padding: '1rem 0.75rem' }}>Year</th>
-                <th>Billed</th>
-                <th>Discounts (Cr)</th>
-                <th>Fines (Dr)</th>
-                <th>Total Paid</th>
-                <th>Outstanding</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allYearsSummary.map(yr => (
-                <tr key={yr.year} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.92rem' }}>
-                  <td style={{ padding: '1.1rem 0.75rem', fontWeight: 800, color: 'var(--text)' }}>{yr.year}</td>
-                  <td style={{ color: 'var(--text)' }}>₹{yr.totalBilled}</td>
-                  <td style={{ color: 'var(--secondary)', fontWeight: 600 }}>-₹{yr.totalDiscounts}</td>
-                  <td style={{ color: yr.totalFines > 0 ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600 }}>+₹{yr.totalFines}</td>
-                  <td style={{ fontWeight: 700, color: 'var(--secondary)' }}>₹{yr.totalPaid}</td>
-                  <td style={{ color: yr.totalOutstanding > 0 ? 'var(--primary)' : 'var(--text-muted)', fontWeight: yr.totalOutstanding > 0 ? 800 : 400 }}>
-                    {yr.totalOutstanding > 0 ? `₹${yr.totalOutstanding}` : 'Settled'}
-                  </td>
-                  <td>
-                    <span style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800, background: yr.totalOutstanding === 0 && yr.recordsCount > 0 ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)', color: yr.totalOutstanding === 0 && yr.recordsCount > 0 ? 'var(--secondary)' : 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      {yr.recordsCount === 0 ? 'No Data' : yr.totalOutstanding === 0 ? 'All Paid' : 'Dues Pending'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+
 
       <style>{`
         .ledger-month-card:hover {

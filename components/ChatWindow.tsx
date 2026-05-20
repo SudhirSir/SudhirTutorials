@@ -596,7 +596,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             <div style={{ background: 'var(--card-bg-alt)', borderRadius: '12px', padding: '1rem 1.25rem', textAlign: 'left', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', border: '1px solid var(--border)' }}>
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Username</span>
-                <span style={{ fontSize: '0.95rem', color: 'var(--text)', fontWeight: 600 }}>@{selectedUser.username || 'N/A'}</span>
+                <span style={{ fontSize: '0.95rem', color: 'var(--text)', fontWeight: 600 }}>{selectedUser.username || 'N/A'}</span>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address</span>

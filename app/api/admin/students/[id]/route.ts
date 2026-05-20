@@ -45,6 +45,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const {
       name,
+      isActive,
       rollNumber,
       registrationNo,
       grade,
@@ -76,11 +77,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    // Update name on the User model if provided
-    if (name !== undefined) {
+    // Update name and isActive on the User model if provided
+    if (name !== undefined || isActive !== undefined) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { name },
+        data: { 
+          ...(name !== undefined && { name }),
+          ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+        },
       });
     }
 
@@ -146,6 +150,20 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         marksTotal: marksTotal ? parseFloat(String(marksTotal)) : null,
       },
     });
+
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: '📝 Profile Updated',
+          message: 'Your profile details have been updated by the administration.',
+          type: 'SYSTEM',
+          isRead: false
+        }
+      });
+    } catch (err) {
+      console.error('Failed to send notification to student:', err);
+    }
 
     return NextResponse.json({ success: true, profile });
   } catch (error: any) {

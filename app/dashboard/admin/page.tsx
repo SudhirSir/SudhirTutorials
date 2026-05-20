@@ -97,6 +97,7 @@ function AdminDashboardContent() {
     pendingDues: number;
     classStats?: Array<{ className: string; count: number }>;
   } | null>(null);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
   const [newUserName, setNewUserName] = useState('');
   const [createdUser, setCreatedUser] = useState<{username: string, password: string, role: string} | null>(null);
@@ -883,6 +884,7 @@ function AdminDashboardContent() {
       if (res.ok) {
         const data = await res.json();
         setOverviewStats(data);
+        if (data.activityLogs) setActivityLogs(data.activityLogs);
       }
     } catch (err) { console.error(err); }
   };
@@ -1588,58 +1590,28 @@ function AdminDashboardContent() {
                 📋 Recent Operations Log
               </h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-                {[
-                  { time: 'Just Now', title: 'Receipt generated & verified', details: 'REC-903 collected offline for student STU02837', color: '#10b981' },
-                  { time: '10m ago', title: 'New student account created', details: 'Sequential ID generation successful: STU02842', color: '#6366f1' },
-                  { time: '45m ago', title: 'AI Slideset Prep Completed', details: 'Physics: Thermodynamics Class 10 generated successfully', color: '#f59e0b' },
-                  { time: '1h ago', title: 'Teacher Directory Profile edit', details: 'Profile modified for Instructor Manoj Sharma', color: '#3b82f6' },
-                  { time: '3h ago', title: 'System Automated Billing Run', details: 'Base invoices assigned across 12 active batches', color: '#ec4899' }
-                ].map((log, idx) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
+                {activityLogs.length > 0 ? activityLogs.map((log, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.02)' }}>
-                    <div style={{ width: '4px', background: log.color, borderRadius: '4px', flexShrink: 0 }}></div>
+                    <div style={{ width: '4px', background: '#3b82f6', borderRadius: '4px', flexShrink: 0 }}></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.title}</span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', flexShrink: 0 }}>{log.time}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.action}</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                          {new Date(log.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.details}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {log.details || 'No details'} (by {log.user?.name || 'System'})
+                      </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    No recent operations found.
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-
-          {/* Student Batch Distribution Matrix */}
-          <div className="glass-card" style={{ padding: '2rem' }}>
-            <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#ef4444', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              👥 Student Batch Load Distribution
-            </h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-              {[
-                { name: 'Morning 10th Standard', count: 18, limit: 30, pct: 60, status: 'Healthy' },
-                { name: 'Evening IIT-JEE Crash Course', count: 24, limit: 25, pct: 96, status: 'Near Capacity' },
-                { name: 'Class 12th Board Spec (Sci)', count: 15, limit: 25, pct: 60, status: 'Healthy' },
-                { name: 'Evening Commerce Foundation', count: 8, limit: 20, pct: 40, status: 'Open' }
-              ].map((batch, i) => (
-                <div key={i} style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{batch.name}</span>
-                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: batch.pct > 90 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: batch.pct > 90 ? '#ef4444' : '#10b981', fontWeight: 700 }}>
-                      {batch.status}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '0.5rem' }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800 }}>{batch.count} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>/ {batch.limit} students</span></span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>{batch.pct}%</span>
-                  </div>
-                  <div style={{ height: '6px', background: 'rgba(0,0,0,0.3)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${batch.pct}%`, height: '100%', background: batch.pct > 90 ? '#ef4444' : 'var(--primary)' }}></div>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -1785,7 +1757,7 @@ function AdminDashboardContent() {
                               {u.role}
                             </span>
                           </div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>@{u.username}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{u.username}</div>
                         </div>
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}</div>
@@ -3252,7 +3224,7 @@ function AdminDashboardContent() {
                         <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', flexWrap: 'wrap', gap: '1rem' }}>
                            <div>
                               <div style={{ fontWeight: 600 }}>{s.name}</div>
-                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>@{s.username}</div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.username}</div>
                            </div>
                            
                            <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -3529,7 +3501,7 @@ function AdminDashboardContent() {
                     <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                       <div>
                         <div style={{ fontWeight: 600 }}>{s.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>@{s.username}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</div>
                       </div>
                       <div className="input-group" style={{ margin: 0 }}>
                         <input 
@@ -4075,6 +4047,17 @@ function AdminDashboardContent() {
 
                {editingProfile.role === 'STUDENT' ? (
                  <>
+                   <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: '1 / -1' }}>
+                     <label style={{ margin: 0 }}>Student Account Status:</label>
+                     <select 
+                       value={editingProfile.isActive === false ? 'false' : 'true'}
+                       onChange={e => setEditingProfile({...editingProfile, isActive: e.target.value === 'true'})}
+                       style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontWeight: 600 }}
+                     >
+                       <option value="true">Active</option>
+                       <option value="false">Inactive</option>
+                     </select>
+                   </div>
                    <div className="input-group">
                      <label>Father's Name</label>
                      <input type="text" value={editingProfile.fatherName || ''} onChange={e => setEditingProfile({...editingProfile, fatherName: e.target.value})} placeholder="Full Name" />
@@ -4481,7 +4464,7 @@ function AdminDashboardContent() {
                           <div key={s.id} className="enrolled-student-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                               <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>{s.name}</span>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>@{s.username}</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.username}</span>
                             </div>
                             <button 
                               onClick={() => {
@@ -4527,7 +4510,7 @@ function AdminDashboardContent() {
                             <div key={s.id} className="available-student-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{s.name}</span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>@{s.username}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.username}</span>
                               </div>
                               <button 
                                 onClick={() => {
@@ -4838,7 +4821,7 @@ function AdminDashboardContent() {
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', margin: 'auto', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <h2 style={{ fontSize: '1.6rem', margin: '0 0 0.5rem', fontWeight: 800, color: 'var(--text)' }}>✎ Edit Fee Record</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-              Student: <strong>{editingFeeRecord.student?.name}</strong> (@{editingFeeRecord.student?.username})
+              Student: <strong>{editingFeeRecord.student?.name}</strong> ({editingFeeRecord.student?.username})
             </p>
 
             <form onSubmit={saveFeeRecordEdits} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -4987,10 +4970,15 @@ function AdminDashboardContent() {
               </div>
               <h2 style={{ fontSize: '1.8rem', margin: 0, fontWeight: 800, color: 'var(--text)' }}>{selectedUserDetail.name || 'Unnamed User'}</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>@{selectedUserDetail.username}</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedUserDetail.username}</span>
                 <span style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: '100px', fontWeight: 800, background: selectedUserDetail.role === 'ADMIN' ? 'rgba(239,68,68,0.15)' : selectedUserDetail.role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)', color: selectedUserDetail.role === 'ADMIN' ? '#f87171' : selectedUserDetail.role === 'TEACHER' ? '#34d399' : '#818cf8' }}>
                   {selectedUserDetail.role}
                 </span>
+                {selectedUserDetail.role === 'STUDENT' && (
+                  <span style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: '100px', fontWeight: 800, background: selectedUserDetail.isActive !== false ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: selectedUserDetail.isActive !== false ? '#10b981' : '#ef4444' }}>
+                    {selectedUserDetail.isActive !== false ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -5120,23 +5108,9 @@ function AdminDashboardContent() {
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Complete Fee Statement Ledger</h3>
                   <StudentLedger 
-                    studentId={selectedUserDetail.id} 
-                    onViewReceipt={async (feeId) => {
-                      try {
-                        const res = await fetch(`/api/student/fees/receipt/${feeId}`);
-                        if (res.ok) {
-                          const data = await res.json();
-                          const fee = data.fee;
-                          // Open receipt in a new browser tab
-                          const receiptWindow = window.open('', '_blank');
-                          if (!receiptWindow) { alert('Please allow popups to view the receipt.'); return; }
-                          const fineAmt = fee.lateFine || 0;
-                          const discAmt = fee.discount || 0;
-                          const total = fee.paidAmount || (fee.amount + fineAmt - discAmt);
-                          const paidDate = fee.paidAt ? (() => { const d = new Date(fee.paidAt); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })() : '—';
-                          receiptWindow.document.write(`<!DOCTYPE html><html><head><title>Receipt – ${fee.receiptNo || fee.id}</title><style>
+                                     receiptWindow.document.write(`<!DOCTYPE html><html><head><title>Receipt – ${fee.receiptNo || fee.id}</title><style>
                             body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1a1a2e;background:#f9f9f9;}
-                            .card{max-width:480px;margin:auto;background:#fff;border-radius:16px;padding:2.5rem;box-shadow:0 20px 50px rgba(0,0,0,0.12);border:8px solid #f3f4f6;position:relative;}
+                            .card{max-width:480px;margin:60px auto auto;background:#fff;border-radius:16px;padding:2.5rem;box-shadow:0 20px 50px rgba(0,0,0,0.12);border:8px solid #f3f4f6;position:relative;}
                             h1{color:#ef4444;font-size:1.5rem;letter-spacing:1px;margin:0;}
                             .label{color:#9ca3af;font-size:0.65rem;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;}
                             .val{font-weight:700;font-size:0.9rem;color:#1a1a2e;}
@@ -5144,8 +5118,22 @@ function AdminDashboardContent() {
                             .total{border-top:2px dashed #e5e7eb;padding-top:1rem;margin-top:1rem;font-size:1.1rem;font-weight:800;}
                             .stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:5rem;font-weight:900;color:rgba(59,130,246,0.04);pointer-events:none;letter-spacing:10px;}
                             .footer{text-align:center;font-size:0.65rem;color:#9ca3af;margin-top:2rem;border-top:1px dashed #e5e7eb;padding-top:1rem;}
-                            @media print{body{padding:0;background:white;}}
+                            .actions { position: fixed; top: 0; left: 0; right: 0; background: #fff; padding: 15px; display: flex; justify-content: center; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 100; }
+                            .btn { padding: 8px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit; }
+                            .btn-primary { background: #3b82f6; color: white; }
+                            .btn-secondary { background: #f3f4f6; color: #374151; }
+                            @media print{body{padding:0;background:white;} .card{margin-top:0; border:none; box-shadow:none;} .actions{display:none;}}
                           </style></head><body>
+                          <div class="actions">
+                            <button class="btn btn-secondary" onclick="window.print()">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                              Print Receipt
+                            </button>
+                            <button class="btn btn-primary" onclick="window.print()">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                              Save as PDF
+                            </button>
+                          </div>
                           <div class="card">
                             <div class="stamp">PAID</div>
                             <div style="text-align:center;margin-bottom:1.5rem">
@@ -5161,6 +5149,17 @@ function AdminDashboardContent() {
                             <div style="border-top:2px solid #f3f4f6;border-bottom:2px solid #f3f4f6;padding:1.25rem 0;margin-bottom:1.25rem">
                               <div class="row"><span>${fee.title} (${fee.billingMonth})</span><span style="font-weight:700">₹${fee.amount.toFixed(2)}</span></div>
                               ${fineAmt > 0 ? `<div class="row" style="color:#ef4444"><span>Late Fine</span><span>+₹${fineAmt.toFixed(2)}</span></div>` : ''}
+                              ${discAmt > 0 ? `<div class="row" style="color:#1d4ed8"><span>Discount Applied</span><span>-₹${discAmt.toFixed(2)}</span></div>` : ''}
+                              <div class="row total"><span>TOTAL PAID</span><span>₹${total.toFixed(2)}</span></div>
+                            </div>
+                            <div style="font-size:0.75rem;color:#6b7280">
+                              <div><strong>Method:</strong> ${fee.paymentMethod || 'CASH'}</div>
+                              ${fee.transactionId ? `<div><strong>TXN ID:</strong> ${fee.transactionId}</div>` : ''}
+                            </div>
+                            <div class="footer">Computer-generated receipt. No signature required.<br>&copy; ${new Date().getFullYear()} Sudhir Tutorials</div>
+                          </div>
+                          </body></html>`);
+                          receiptWindow.document.close();ixed(2)}</span></div>` : ''}
                               ${discAmt > 0 ? `<div class="row" style="color:#1d4ed8"><span>Discount Applied</span><span>-₹${discAmt.toFixed(2)}</span></div>` : ''}
                               <div class="row total"><span>TOTAL PAID</span><span>₹${total.toFixed(2)}</span></div>
                             </div>

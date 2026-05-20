@@ -81,7 +81,7 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
             {name || 'Unnamed User'}
             {isProfileVerified && <span title="Verified Member" style={{ fontSize: '0.9rem', color: '#3b82f6' }}>🔵</span>}
           </h3>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>@{username}</p>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{username}</p>
           
           <div style={{ marginTop: '0.75rem' }}>
             <span style={{ 
