@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
@@ -9,11 +9,24 @@ import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
 import { LecturesSection } from '@/components/LecturesSection';
+import { UserProfileModal } from '@/components/UserProfileModal';
 
 function TeacherDashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState('classes');
+
+  const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
+  const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    router.push(pathname + '?' + params.toString());
+  };
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -597,7 +610,7 @@ Depending on your specific focus, this represents the vital equation model for t
         {['classes', 'materials', 'students', 'attendance', 'tests', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             style={{ 
               padding: '0.75rem 1rem', 
               background: 'transparent', 
@@ -634,15 +647,15 @@ Depending on your specific focus, this represents the vital equation model for t
       {activeTab === 'classes' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '3rem' }}>
-            <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Quick Actions</h3>
-              <button onClick={() => setActiveTab('attendance')} style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', color: '#34d399', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button onClick={() => handleTabChange('attendance')} style={{ width: '100%', padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', color: '#34d399', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'}>
                 <span style={{ fontSize: '1.2rem' }}>📝</span> Mark Attendance
               </button>
-              <button onClick={() => setActiveTab('tests')} style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', color: '#fbbf24', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button onClick={() => handleTabChange('tests')} style={{ width: '100%', padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', color: '#fbbf24', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(245, 158, 11, 0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(245, 158, 11, 0.1)'}>
                 <span style={{ fontSize: '1.2rem' }}>🎯</span> Manage Tests & Marks
               </button>
-              <button onClick={() => setActiveTab('materials')} style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3b82f6', color: '#60a5fa', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button onClick={() => handleTabChange('materials')} style={{ width: '100%', padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3b82f6', color: '#60a5fa', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}>
                 <span style={{ fontSize: '1.2rem' }}>📚</span> Upload Materials
               </button>
             </div>
@@ -718,7 +731,7 @@ Depending on your specific focus, this represents the vital equation model for t
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                          <span style={{ fontSize: '1rem' }}>👥</span> {batch._count?.students || 0} Students
                       </div>
-                      <button onClick={() => { setAttBatchId(batch.id); setActiveTab('attendance'); }} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>Take Attendance</button>
+                      <button onClick={() => { setAttBatchId(batch.id); handleTabChange('attendance'); }} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.9'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Take Attendance</button>
                     </div>
                   </div>
                 ))
@@ -969,7 +982,17 @@ Depending on your specific focus, this represents the vital equation model for t
                 ) : (
                   students.map(student => (
                     <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '1rem 0', fontWeight: 'bold' }}>{student.name}</td>
+                      <td style={{ padding: '1rem 0', fontWeight: 'bold' }}>
+                        <span 
+                          onClick={() => setActiveProfileUserId(student.id)} 
+                          style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', transition: 'color 0.2s' }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#10b981'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'inherit'}
+                          title="Click to view profile"
+                        >
+                          {student.name}
+                        </span>
+                      </td>
                       <td>{student.username}</td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
@@ -1048,7 +1071,17 @@ Depending on your specific focus, this represents the vital equation model for t
                      return (
                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                           <div>
-                             <div style={{ fontWeight: 600 }}>{s.name}</div>
+                             <div style={{ fontWeight: 600 }}>
+                               <span 
+                                 onClick={() => setActiveProfileUserId(s.id)} 
+                                 style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', transition: 'color 0.2s' }}
+                                 onMouseEnter={e => e.currentTarget.style.color = '#10b981'}
+                                 onMouseLeave={e => e.currentTarget.style.color = 'inherit'}
+                                 title="Click to view profile"
+                               >
+                                 {s.name}
+                               </span>
+                             </div>
                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.username}</div>
                           </div>
                           
@@ -1150,7 +1183,17 @@ Depending on your specific focus, this represents the vital equation model for t
                 return (
                   <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                     <div>
-                      <div style={{ fontWeight: 600 }}>{s.name}</div>
+                      <div style={{ fontWeight: 600 }}>
+                        <span 
+                          onClick={() => setActiveProfileUserId(s.id)} 
+                          style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', transition: 'color 0.2s' }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#10b981'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'inherit'}
+                          title="Click to view profile"
+                        >
+                          {s.name}
+                        </span>
+                      </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</div>
                     </div>
                     <div className="input-group" style={{ margin: 0 }}>
@@ -1333,11 +1376,14 @@ Depending on your specific focus, this represents the vital equation model for t
                   onClick={askTeacherGuru}
                   disabled={teacherGuruLoading || !teacherGuruQuestion.trim()}
                   style={{
-                    width: '100%', padding: '1rem', borderRadius: '12px',
+                    width: '100%', padding: '0.75rem 1.5rem', borderRadius: '12px',
                     background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none',
-                    fontWeight: 800, cursor: teacherGuruLoading || !teacherGuruQuestion.trim() ? 'not-allowed' : 'pointer', fontSize: '1rem',
-                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                    fontWeight: 800, cursor: teacherGuruLoading || !teacherGuruQuestion.trim() ? 'not-allowed' : 'pointer', fontSize: '0.9rem',
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                    transition: 'all 0.2s'
                   }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                 >
                   {teacherGuruLoading ? 'Processing...' : '✨ Ask Digital Sahayak'}
                 </button>
@@ -1440,7 +1486,7 @@ Depending on your specific focus, this represents the vital equation model for t
                   onClick={generateLessonPPT}
                   disabled={pptGenerating || !pptTopic.trim()}
                   className="btn-primary"
-                  style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  style={{ width: '100%', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: 'none' }}
                 >
                   {pptGenerating ? '⚡ Generating Premium Slides...' : '⚡ Generate Premium Lesson Slides & Study Notes'}
                 </button>
@@ -1566,11 +1612,26 @@ Depending on your specific focus, this represents the vital equation model for t
       )}
 
       {activeTab === 'messages' && session?.user && (
-        <ChatWindow currentUserId={(session.user as any).id} onMessagesRead={fetchUnreadCounts} />
+        <ChatWindow 
+          currentUserId={(session.user as any).id} 
+          onMessagesRead={fetchUnreadCounts} 
+          initialSelectedUserId={chatSelectedUserId || undefined}
+        />
       )}
 
       {activeTab === 'notifications' && (
         <NotificationsPanel onUnreadChange={setUnreadNotifications} />
+      )}
+
+      {activeProfileUserId && (
+        <UserProfileModal 
+          userId={activeProfileUserId} 
+          onClose={() => setActiveProfileUserId(null)} 
+          onStartChat={(user) => {
+            setChatSelectedUserId(user.id);
+            handleTabChange('messages');
+          }}
+        />
       )}
     </div>
   );

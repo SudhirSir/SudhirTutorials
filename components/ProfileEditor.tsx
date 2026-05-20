@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { StudentLedger } from './StudentLedger';
 
 interface ProfileEditorProps {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
@@ -165,7 +164,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '2rem', alignItems: 'start' }}>
+    <div className="profile-grid-container">
 
       {/* LEFT: Avatar Card */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -247,7 +246,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                 <label style={labelStyle}>Confirm New Password</label>
                 <input type="password" required style={inputStyle} value={pwForm.confirmPassword} onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))} />
               </div>
-              <button type="submit" disabled={pwSaving} style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: pwSaving ? 0.7 : 1 }}>
+              <button type="submit" disabled={pwSaving} style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: pwSaving ? 0.7 : 1 }}>
                 {pwSaving ? 'Saving...' : 'Update Password'}
               </button>
             </form>
@@ -278,7 +277,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                   setPinForm(f => ({ ...f, newPin: val }));
                 }} placeholder="e.g. 123456" />
               </div>
-              <button type="submit" disabled={pinSaving} style={{ padding: '0.85rem', borderRadius: '12px', background: '#f59e0b', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: pinSaving ? 0.7 : 1 }}>
+              <button type="submit" disabled={pinSaving} style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#f59e0b', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: pinSaving ? 0.7 : 1 }}>
                 {pinSaving ? 'Saving...' : 'Set Secret PIN'}
               </button>
             </form>
@@ -299,7 +298,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           </div>
         )}
 
-        <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        <form onSubmit={handleSave} className="form-grid">
 
           {/* Common Fields */}
           <div>
@@ -318,7 +317,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
             <label style={labelStyle}>Phone Number</label>
             <input style={inputStyle} value={form.phone} onChange={e => setForm((f: any) => ({ ...f, phone: e.target.value }))} />
           </div>
-          <div style={{ gridColumn: 'span 2' }}>
+          <div className="grid-span-2">
             <label style={labelStyle}>Residential Address</label>
             <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} value={form.address} onChange={e => setForm((f: any) => ({ ...f, address: e.target.value }))} />
           </div>
@@ -356,30 +355,52 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                 <label style={labelStyle}>Qualification</label>
                 <input style={inputStyle} value={form.qualification} onChange={e => setForm((f: any) => ({ ...f, qualification: e.target.value }))} />
               </div>
-              <div style={{ gridColumn: 'span 2' }}>
+              <div className="grid-span-2">
                 <label style={labelStyle}>Teaching Experience</label>
                 <input style={inputStyle} value={form.experience} onChange={e => setForm((f: any) => ({ ...f, experience: e.target.value }))} />
               </div>
             </>
           )}
 
-          <div style={{ gridColumn: 'span 2', marginTop: '0.5rem' }}>
-            <button type="submit" disabled={saving} style={{ width: '100%', padding: '1rem', borderRadius: '14px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: '0 4px 20px -5px rgba(99,102,241,0.5)' }}>
+          <div className="grid-span-2" style={{ marginTop: '0.5rem' }}>
+            <button type="submit" disabled={saving} style={{ width: '100%', padding: '0.75rem 1.5rem', borderRadius: '14px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: '0 4px 20px -5px rgba(99,102,241,0.5)' }}>
               {saving ? 'Saving Changes...' : '💾 Save My Profile'}
             </button>
           </div>
         </form>
       </div>
 
-      {role === 'STUDENT' && (
-        <div style={{ gridColumn: 'span 2', marginTop: '2rem' }}>
-          <StudentLedger />
-        </div>
-      )}
-
       <style jsx>{`
+        .profile-grid-container {
+          display: grid;
+          grid-template-columns: 280px 1fr;
+          gap: 2rem;
+          align-items: start;
+        }
+        .form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+        }
+        .grid-span-2 {
+          grid-column: span 2;
+        }
         .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+          .profile-grid-container {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+          }
+          .form-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .grid-span-2 {
+            grid-column: span 1;
+          }
+        }
       `}</style>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: string, onMessagesRead?: () => void }) {
+export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserId }: { currentUserId: string, onMessagesRead?: () => void, initialSelectedUserId?: string | null }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -14,6 +14,37 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!initialSelectedUserId) return;
+    
+    const existing = contacts.find(c => c.id === initialSelectedUserId);
+    if (existing) {
+      setSelectedUser(existing);
+      markAsRead(existing.id);
+      return;
+    }
+
+    async function fetchAndStart() {
+      try {
+        const res = await fetch(`/api/user/profile?userId=${initialSelectedUserId}`);
+        if (res.ok) {
+          const u = await res.json();
+          setSelectedUser(u);
+          setContacts(prev => {
+            if (!prev.find(c => c.id === u.id)) {
+              return [u, ...prev];
+            }
+            return prev;
+          });
+          markAsRead(u.id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchAndStart();
+  }, [initialSelectedUserId]);
 
   useEffect(() => {
     const saved = localStorage.getItem('blocked_users');
@@ -201,12 +232,18 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
           display: flex;
           flex-direction: column;
           background: var(--surface);
+          min-height: 0;
+          height: 100%;
+          overflow: hidden;
         }
 
         .chat-main-area {
           display: flex;
           flex-direction: column;
           background: var(--background);
+          min-height: 0;
+          height: 100%;
+          overflow: hidden;
         }
 
         .chat-back-btn {
@@ -489,7 +526,9 @@ export function ChatWindow({ currentUserId, onMessagesRead }: { currentUserId: s
                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
                        lineHeight: 1.4,
                        position: 'relative',
-                       border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)'
+                       border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                       wordBreak: 'break-word',
+                       overflowWrap: 'break-word'
                      }}>
                        {m.content}
                        <span style={{ fontSize: '0.65rem', color: isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', float: 'right', marginTop: '10px', marginLeft: '15px', fontWeight: 600 }}>

@@ -12,6 +12,23 @@ export async function GET() {
 
     const totalStudents = await prisma.user.count({ where: { role: 'STUDENT' } });
     const totalTeachers = await prisma.user.count({ where: { role: 'TEACHER' } });
+    const totalBatches = await prisma.batch.count();
+    const totalCourses = await prisma.course.count();
+
+    const classStatsGroup = await prisma.studentProfile.groupBy({
+      by: ['className'],
+      _count: {
+        userId: true
+      },
+      where: {
+        className: { not: null }
+      }
+    });
+
+    const classStats = classStatsGroup.map(g => ({
+      className: g.className || 'Unknown',
+      count: g._count.userId
+    }));
 
     const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     const paymentsThisMonth = await prisma.payment.aggregate({
@@ -30,6 +47,9 @@ export async function GET() {
     return NextResponse.json({
       totalStudents,
       totalTeachers,
+      totalBatches,
+      totalCourses,
+      classStats,
       revenueThisMonth: paymentsThisMonth._sum.amount || 0,
       pendingDues: pendingDues._sum.amount || 0
     });

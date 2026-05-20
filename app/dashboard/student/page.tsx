@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
@@ -11,12 +11,24 @@ import { Sidebar } from '@/components/Sidebar';
 import { StudentLedger } from '@/components/StudentLedger';
 import { LecturesSection } from '@/components/LecturesSection';
 import { useTheme } from '@/components/ThemeProvider';
+import { UserProfileModal } from '@/components/UserProfileModal';
 
 function StudentDashboardContent() {
   const { data: session } = useSession();
   const { theme } = useTheme();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
+  const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    router.push(pathname + '?' + params.toString());
+  };
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -324,7 +336,7 @@ function StudentDashboardContent() {
         {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             style={{ 
               padding: '0.75rem 1rem', 
               background: 'transparent', 
@@ -436,7 +448,13 @@ function StudentDashboardContent() {
                                   {t.name?.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                  <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{t.name}</div>
+                                  <div 
+                                    onClick={() => setActiveProfileUserId(t.id)} 
+                                    style={{ fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline decoration-dotted' }} 
+                                    className="clickable-name"
+                                  >
+                                    {t.name}
+                                  </div>
                                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Instructor</div>
                                 </div>
                               </div>
@@ -469,14 +487,14 @@ function StudentDashboardContent() {
                      <p style={{ color: (dashboard as any)?.feeHighlight?.isOverdue ? 'var(--text)' : 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                        {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${((() => { const d = new Date((dashboard as any).feeHighlight.dueDate); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}` : `Status: ${(dashboard as any).feeHighlight.status}`}
                      </p>
-                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : 'rgba(255,255,255,0.15)', color: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '#fff', border: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => setActiveTab('fees')}>Pay Online</button>
+                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : 'rgba(255,255,255,0.15)', color: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '#fff', border: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => handleTabChange('fees')}>Pay Online</button>
                    </>
                  ) : (
                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>No pending fees. You are all caught up!</p>
                  )}
               </div>
 
-              <div className="glass-card" style={{ padding: '2rem', background: 'rgba(16, 185, 129, 0.05)', cursor: 'pointer' }} onClick={() => setActiveTab('attendance')}>
+              <div className="glass-card" style={{ padding: '2rem', background: 'rgba(16, 185, 129, 0.05)', cursor: 'pointer' }} onClick={() => handleTabChange('attendance')}>
                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Overall Attendance</h3>
                  <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10b981' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
                  <div style={{ width: '100%', height: '8px', background: 'var(--border)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
@@ -572,7 +590,13 @@ function StudentDashboardContent() {
                       {mat.title}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                      Course: <strong>{mat.course?.name}</strong> • Uploaded by {mat.teacher?.name}
+                      Course: <strong>{mat.course?.name}</strong> • Uploaded by <span 
+                        onClick={() => setActiveProfileUserId(mat.teacher?.id)} 
+                        style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: 600 }}
+                        className="clickable-name"
+                      >
+                        {mat.teacher?.name}
+                      </span>
                     </div>
                   </div>
                   <a href={mat.url} target="_blank" rel="noreferrer" className="btn-secondary">Open Material →</a>
@@ -1249,7 +1273,7 @@ function StudentDashboardContent() {
       )}
 
       {activeTab === 'messages' && session?.user && (
-        <ChatWindow currentUserId={(session.user as any).id} onMessagesRead={fetchUnreadCounts} />
+        <ChatWindow currentUserId={(session.user as any).id} onMessagesRead={fetchUnreadCounts} initialSelectedUserId={chatSelectedUserId} />
       )}
 
       {activeTab === 'notifications' && (
@@ -1258,6 +1282,17 @@ function StudentDashboardContent() {
 
       {activeTab === 'profile' && (
         <ProfileEditor role="STUDENT" />
+      )}
+
+      {activeProfileUserId && (
+        <UserProfileModal 
+          userId={activeProfileUserId} 
+          onClose={() => setActiveProfileUserId(null)} 
+          onStartChat={(user) => {
+            setChatSelectedUserId(user.id);
+            handleTabChange('messages');
+          }}
+        />
       )}
     </div>
   );

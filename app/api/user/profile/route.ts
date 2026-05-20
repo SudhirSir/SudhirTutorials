@@ -4,13 +4,17 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/user/profile — Get own profile (any role)
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+    const targetUserId = userId || session.user.id;
+
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: targetUserId },
       include: { studentProfile: true, teacherProfile: true }
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -28,6 +32,7 @@ export async function GET() {
       role: user.role,
       isProfileVerified: user.isProfileVerified,
       photoUrl: user.photoUrl,
+      createdAt: user.createdAt,
       profile
     });
   } catch (e) {
