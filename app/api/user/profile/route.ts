@@ -127,6 +127,21 @@ export async function PUT(req: Request) {
       console.warn(`[API PUT /api/user/profile] Unknown or admin role: ${userRole}. Only updated basic User info.`);
     }
 
+    // Notify the user of successful profile update
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: session.user.id,
+          title: '👤 Profile Updated',
+          message: 'Your personal profile information has been successfully updated.',
+          type: 'SYSTEM',
+          isRead: false
+        }
+      });
+    } catch (err) {
+      console.error('[API PUT /api/user/profile] Failed to create notification:', err);
+    }
+
     return NextResponse.json({ success: true });
   } catch (e: any) {
     console.error('[API PUT /api/user/profile] Error:', e);

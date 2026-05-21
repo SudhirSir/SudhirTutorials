@@ -64,6 +64,21 @@ export async function POST(req: Request) {
       console.error('Failed to notify admins of fee payment:', err);
     }
 
+    // Notify the Student that online payment has been submitted
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: session.user.id,
+          title: '💳 Fee Payment Submitted',
+          message: `Your payment of ₹${totalAmount.toFixed(0)} for ${fee.title} (${fee.billingMonth}) was successfully submitted online and is awaiting administrative verification.`,
+          type: 'FEE',
+          isRead: false
+        }
+      });
+    } catch (err) {
+      console.error('Failed to notify student of online payment:', err);
+    }
+
     return NextResponse.json({ success: true, fee: updatedFee, totalPaid: totalAmount });
   } catch (error) {
     console.error('Error processing payment:', error);

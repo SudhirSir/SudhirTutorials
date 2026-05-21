@@ -154,10 +154,11 @@ export async function POST(req: Request) {
         });
         if (existing) continue;
 
+        const finalAssignedAmount = amount || s.studentProfile?.baseFee || 0;
         await prisma.payment.create({
           data: {
             studentId: s.id,
-            amount: amount || s.studentProfile?.baseFee || 0,
+            amount: finalAssignedAmount,
             billingMonth,
             dueDate: finalDueDate,
             createdAt: finalCreatedAt,
@@ -167,6 +168,22 @@ export async function POST(req: Request) {
             remarks
           }
         });
+
+        // Notify Student
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: s.id,
+              title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
+              message: `A new fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${finalDueDate.toLocaleDateString()} to avoid late fines.`,
+              type: 'FEE',
+              isRead: false
+            }
+          });
+        } catch (err) {
+          console.error("Failed to notify student of fee assignment:", err);
+        }
+
         count++;
       }
 
@@ -185,10 +202,11 @@ export async function POST(req: Request) {
       });
       if (existing) return NextResponse.json({ error: 'Fee already assigned for this month' }, { status: 400 });
 
+      const finalAssignedAmount = amount || student.studentProfile?.baseFee || 0;
       const payment = await prisma.payment.create({
         data: {
           studentId: student.id,
-          amount: amount || student.studentProfile?.baseFee || 0,
+          amount: finalAssignedAmount,
           billingMonth,
           dueDate: finalDueDate,
           createdAt: finalCreatedAt,
@@ -198,6 +216,22 @@ export async function POST(req: Request) {
           remarks
         },
       });
+
+      // Notify Student
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: student.id,
+            title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
+            message: `A new individual fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${finalDueDate.toLocaleDateString()} to avoid late fines.`,
+            type: 'FEE',
+            isRead: false
+          }
+        });
+      } catch (err) {
+        console.error("Failed to notify student of fee assignment:", err);
+      }
+
       return NextResponse.json({ success: true, payment });
     }
   } catch (error) {

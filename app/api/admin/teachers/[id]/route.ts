@@ -118,6 +118,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       },
     });
 
+    // Notify the teacher of successful profile update by administration
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: '📝 Profile Updated',
+          message: 'Your teacher profile details have been updated by the administration.',
+          type: 'SYSTEM',
+          isRead: false
+        }
+      });
+    } catch (err) {
+      console.error('Failed to send notification to teacher on update:', err);
+    }
+
     return NextResponse.json({ success: true, profile });
   } catch (error: any) {
     console.error('Error updating teacher profile:', error);

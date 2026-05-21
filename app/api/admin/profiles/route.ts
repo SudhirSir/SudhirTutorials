@@ -60,6 +60,20 @@ export async function PATCH(req: Request) {
         });
       }
     }
+    // Notify the student of successful profile update by administration
+    try {
+      await prisma.notification.create({
+        data: {
+          userId,
+          title: '📝 Profile Updated',
+          message: 'Your student profile details have been updated by the administration.',
+          type: 'SYSTEM',
+          isRead: false
+        }
+      });
+    } catch (err) {
+      console.error('Failed to notify student of profile update:', err);
+    }
 
     return NextResponse.json({ success: true, profile });
   } catch (error) {

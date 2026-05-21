@@ -2004,13 +2004,13 @@ function AdminDashboardContent() {
                       />
                       <div style={{
                         position: 'absolute',
-                        bottom: '100%',
+                        top: '100%',
                         left: 0,
                         right: 0,
                         background: 'var(--surface)',
                         border: '1px solid var(--border)',
                         borderRadius: '16px',
-                        marginBottom: '0.5rem',
+                        marginTop: '0.5rem',
                         maxHeight: '300px',
                         overflowY: 'auto',
                         zIndex: 9999,

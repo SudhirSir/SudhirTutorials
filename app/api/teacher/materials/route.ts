@@ -63,6 +63,35 @@ export async function POST(req: Request) {
       }
     });
 
+    // Notify all students enrolled in batches of this course
+    try {
+      const enrolledStudents = await prisma.user.findMany({
+        where: {
+          role: 'STUDENT',
+          studentBatches: {
+            some: {
+              courseId: courseId
+            }
+          }
+        },
+        select: { id: true }
+      });
+
+      if (enrolledStudents.length > 0) {
+        await prisma.notification.createMany({
+          data: enrolledStudents.map(student => ({
+            userId: student.id,
+            title: '📚 New Material Uploaded',
+            message: `A new ${type.toLowerCase()} "${title}" has been uploaded for "${material.course.name}".`,
+            type: 'SYSTEM',
+            isRead: false
+          }))
+        });
+      }
+    } catch (err) {
+      console.error("Failed to notify students of uploaded material:", err);
+    }
+
     return NextResponse.json({ success: true, material });
   } catch (error) {
     console.error("ERROR UPLOADING STUDY MATERIAL:", error);
