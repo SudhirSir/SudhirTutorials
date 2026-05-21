@@ -28,6 +28,11 @@ export async function GET(req: Request) {
             baseFee: true,
             className: true
           }
+        },
+        studentBatches: {
+          select: {
+            defaultFee: true
+          }
         }
       }
     });
@@ -48,12 +53,33 @@ export async function GET(req: Request) {
 
     const preview = students.map(s => {
       const isBilled = alreadyBilledIds.has(s.id);
+      let calculatedBaseFee = 2500;
+      if (s.studentProfile) {
+        const baseFeeVal = s.studentProfile.baseFee;
+        if (baseFeeVal === null || baseFeeVal === undefined) {
+          calculatedBaseFee = 2500;
+        } else if (baseFeeVal > 0) {
+          calculatedBaseFee = baseFeeVal;
+        } else {
+          // baseFee is explicitly 0
+          const batchFees = s.studentBatches?.map(b => b.defaultFee || 0).filter(f => f > 0) || [];
+          if (batchFees.length > 0) {
+            calculatedBaseFee = Math.max(...batchFees);
+          } else {
+            calculatedBaseFee = 0;
+          }
+        }
+      } else {
+        // No profile, fallback to 2500
+        calculatedBaseFee = 2500;
+      }
+
       return {
         id: s.id,
         name: s.name || 'Unnamed Student',
         username: s.username,
         class: s.studentProfile?.className || 'Unassigned',
-        baseFee: s.studentProfile?.baseFee || 2500,
+        baseFee: calculatedBaseFee,
         alreadyBilled: isBilled
       };
     });
@@ -105,6 +131,11 @@ export async function POST(req: Request) {
           select: {
             baseFee: true
           }
+        },
+        studentBatches: {
+          select: {
+            defaultFee: true
+          }
         }
       }
     });
@@ -128,7 +159,23 @@ export async function POST(req: Request) {
       }
 
       // Automatically calculate fee using student's baseFee, fallback to default 2500 if unset
-      const finalAmount = student.studentProfile?.baseFee || 2500;
+      let finalAmount = 2500;
+      if (student.studentProfile) {
+        const baseFeeVal = student.studentProfile.baseFee;
+        if (baseFeeVal === null || baseFeeVal === undefined) {
+          finalAmount = 2500;
+        } else if (baseFeeVal > 0) {
+          finalAmount = baseFeeVal;
+        } else {
+          // baseFee is explicitly 0
+          const batchFees = student.studentBatches?.map(b => b.defaultFee || 0).filter(f => f > 0) || [];
+          if (batchFees.length > 0) {
+            finalAmount = Math.max(...batchFees);
+          } else {
+            finalAmount = 0;
+          }
+        }
+      }
 
       await prisma.payment.create({
         data: {

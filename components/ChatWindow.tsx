@@ -253,8 +253,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         @media (max-width: 768px) {
           .chat-window-container {
             grid-template-columns: 1fr;
-            height: 80vh;
-            min-height: 500px;
+            height: calc(100vh - 180px);
+            min-height: 450px;
           }
 
           .chat-sidebar {

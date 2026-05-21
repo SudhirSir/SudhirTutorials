@@ -596,7 +596,7 @@ Depending on your specific focus, this represents the vital equation model for t
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       <div className="bg-glow accent" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
-      <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
             जय सियाराम 🙏 <span style={{ color: '#10b981' }}>{session?.user?.name || 'Teacher'}</span>
@@ -636,9 +636,9 @@ Depending on your specific focus, this represents the vital equation model for t
              tab === 'tests' ? '📝 Tests & Marks' :
              tab === 'lectures' ? '📺 Live Classes' :
              tab === 'guru-ai' ? '✨ Guru AI Workspace' :
-             tab === 'messages' ? '💬 Messages' :
-             tab === 'notifications' ? '🔔 Notifications' :
-             tab === 'profile' ? '👤 My Profile' :
+             tab === 'messages' ? 'Messages' :
+             tab === 'notifications' ? 'Notifications' :
+             tab === 'profile' ? 'My Profile' :
              tab}
           </button>
         ))}

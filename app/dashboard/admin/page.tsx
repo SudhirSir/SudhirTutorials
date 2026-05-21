@@ -1373,7 +1373,7 @@ function AdminDashboardContent() {
         }
       `}</style>
       <div className="bg-glow" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
-      <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
             जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{session?.user?.name || 'Admin'}</span>
@@ -1413,15 +1413,15 @@ function AdminDashboardContent() {
             {tab === 'notifications' && unreadNotifications > 0 && (
               <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
-            {tab === 'overview' ? '📊 Dashboard' :
-             tab === 'users' ? '👥 Users Directory' :
-             tab === 'verifications' ? '✅ Pending Approvals' :
-             tab === 'finances' ? '💳 Finances & Fees' :
-             tab === 'academics' ? '🎓 Academic Services' :
-             tab === 'guru-ai' ? '✨ Academic Assistant' :
-             tab === 'messages' ? '💬 Messages' :
-             tab === 'notifications' ? '🔔 Notifications' :
-             tab === 'profile' ? '👤 My Profile' :
+            {tab === 'overview' ? 'Dashboard' :
+             tab === 'users' ? 'Users Directory' :
+             tab === 'verifications' ? 'Pending Approvals' :
+             tab === 'finances' ? 'Finances & Fees' :
+             tab === 'academics' ? 'Academic Services' :
+             tab === 'guru-ai' ? 'Academic Assistant' :
+             tab === 'messages' ? 'Messages' :
+             tab === 'notifications' ? 'Notifications' :
+             tab === 'profile' ? 'My Profile' :
              tab}
           </button>
         ))}
@@ -2004,13 +2004,13 @@ function AdminDashboardContent() {
                       />
                       <div style={{
                         position: 'absolute',
-                        top: '100%',
+                        bottom: '100%',
                         left: 0,
                         right: 0,
                         background: 'var(--surface)',
                         border: '1px solid var(--border)',
                         borderRadius: '16px',
-                        marginTop: '0.5rem',
+                        marginBottom: '0.5rem',
                         maxHeight: '300px',
                         overflowY: 'auto',
                         zIndex: 9999,
@@ -2688,16 +2688,36 @@ function AdminDashboardContent() {
                   </div>
                   
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. May 2026" 
-                      value={autoBillingMonth}
-                      onChange={e => {
-                        setAutoBillingMonth(e.target.value);
-                        if (e.target.value.length >= 6) fetchAutoBillingPreview(e.target.value);
-                      }}
-                      style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', width: '180px', fontWeight: 600 }}
-                    />
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <select
+                        value={autoBillingMonth.split(' ')[0] || "January"}
+                        onChange={e => {
+                          const yearPart = autoBillingMonth.split(' ')[1] || String(new Date().getFullYear());
+                          const newMonth = `${e.target.value} ${yearPart}`;
+                          setAutoBillingMonth(newMonth);
+                          fetchAutoBillingPreview(newMonth);
+                        }}
+                        style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={autoBillingMonth.split(' ')[1] || String(new Date().getFullYear())}
+                        onChange={e => {
+                          const monthPart = autoBillingMonth.split(' ')[0] || "January";
+                          const newMonth = `${monthPart} ${e.target.value}`;
+                          setAutoBillingMonth(newMonth);
+                          fetchAutoBillingPreview(newMonth);
+                        }}
+                        style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
+                          <option key={y} value={String(y)}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
                     
                     <button 
                       onClick={() => fetchAutoBillingPreview()} 
@@ -4590,7 +4610,7 @@ function AdminDashboardContent() {
       )}
       {/* ── Receipt Modal ───────────────────────────── */}
       {activeReceipt && (
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 5000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
             width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px', 

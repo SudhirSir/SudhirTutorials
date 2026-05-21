@@ -321,7 +321,7 @@ function StudentDashboardContent() {
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       <div className="bg-glow" style={{ top: '20%', left: '-10%', opacity: 0.5 }}></div>
-      <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
             जय सियाराम 🙏 <span style={{ color: 'var(--primary)' }}>{dashboard?.name || 'Student'}</span>
@@ -355,16 +355,16 @@ function StudentDashboardContent() {
             {tab === 'notifications' && unreadNotifications > 0 && (
               <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
-            {tab === 'dashboard' ? '📊 Dashboard' :
+            {tab === 'dashboard' ? 'Dashboard' :
              tab === 'attendance' ? '✏️ My Attendance' :
              tab === 'materials' ? '📚 Study Materials' :
              tab === 'tests' ? '📝 Tests & Marks' :
              tab === 'fees' ? '🧾 Student Fee Statement' :
              tab === 'lectures' ? '📺 Live Classes' :
              tab === 'guru-ji' ? '✨ Digital Guru Ji' :
-             tab === 'messages' ? '💬 Messages' :
-             tab === 'notifications' ? '🔔 Notifications' :
-             tab === 'profile' ? '👤 My Profile' :
+             tab === 'messages' ? 'Messages' :
+             tab === 'notifications' ? 'Notifications' :
+             tab === 'profile' ? 'My Profile' :
              tab}
           </button>
         ))}
@@ -687,7 +687,7 @@ function StudentDashboardContent() {
 
 
       {isReceiptOpen && receiptData && (
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 5000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
             width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px',

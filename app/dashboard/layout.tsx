@@ -562,6 +562,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             padding: 1.75rem 1.25rem;
             min-height: calc(100vh - 60px);
           }
+
+          @media (max-width: 768px) {
+            :global(.dashboard-header) {
+              display: none !important;
+            }
+          }
         }
       `}</style>
     </div>

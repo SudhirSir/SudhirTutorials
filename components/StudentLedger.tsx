@@ -257,10 +257,12 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
   };
 
   // Memoized derived data – only recalculates when fees changes
-  const years = useMemo(() =>
-    Array.from(new Set(fees.map(f => getParsedFeeDetails(f).year))).sort((a, b) => b - a),
-    [fees, getParsedFeeDetails]
-  );
+  const years = useMemo(() => {
+    const feeYears = fees.map(f => getParsedFeeDetails(f).year);
+    const currentYear = new Date().getFullYear();
+    const allYears = new Set([currentYear, currentYear - 1, ...feeYears]);
+    return Array.from(allYears).sort((a, b) => b - a);
+  }, [fees, getParsedFeeDetails]);
 
   const yearFees = useMemo(() =>
     fees.filter(f => getParsedFeeDetails(f).year === selectedYear),
