@@ -51,6 +51,8 @@ export async function PUT(req: Request) {
     const { name, email, phone, address, dob, photoUrl, subject, qualification, experience,
             fatherName, parentContact, school, className } = body;
 
+    console.log(`[API PUT /api/user/profile] User ID: ${session.user.id}, Role: ${session.user.role}, Name: ${name}`);
+
     // Update name and photoUrl on User
     if (name !== undefined || photoUrl !== undefined) {
       await prisma.user.update({
@@ -60,9 +62,13 @@ export async function PUT(req: Request) {
           ...(photoUrl !== undefined && { photoUrl }),
         }
       });
+      console.log(`[API PUT /api/user/profile] Updated User model successfully.`);
     }
 
-    if (session.user.role === 'STUDENT') {
+    const userRole = session.user.role?.toUpperCase();
+
+    if (userRole === 'STUDENT') {
+      console.log(`[API PUT /api/user/profile] Upserting StudentProfile for userId: ${session.user.id}`);
       await prisma.studentProfile.upsert({
         where: { userId: session.user.id },
         update: {
@@ -89,7 +95,9 @@ export async function PUT(req: Request) {
           className: className || null,
         }
       });
-    } else if (session.user.role === 'TEACHER') {
+      console.log(`[API PUT /api/user/profile] Upserted StudentProfile successfully.`);
+    } else if (userRole === 'TEACHER') {
+      console.log(`[API PUT /api/user/profile] Upserting TeacherProfile for userId: ${session.user.id}`);
       await prisma.teacherProfile.upsert({
         where: { userId: session.user.id },
         update: {
@@ -114,11 +122,14 @@ export async function PUT(req: Request) {
           experience: experience || null,
         }
       });
+      console.log(`[API PUT /api/user/profile] Upserted TeacherProfile successfully.`);
+    } else {
+      console.warn(`[API PUT /api/user/profile] Unknown or admin role: ${userRole}. Only updated basic User info.`);
     }
 
     return NextResponse.json({ success: true });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  } catch (e: any) {
+    console.error('[API PUT /api/user/profile] Error:', e);
+    return NextResponse.json({ error: 'Server error: ' + e.message }, { status: 500 });
   }
 }

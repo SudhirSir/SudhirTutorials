@@ -362,7 +362,90 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
             </>
           )}
 
-          <div className="grid-span-2" style={{ marginTop: '0.5rem' }}>
+          {/* Administrative Information Section (Read-Only) */}
+          {role === 'STUDENT' && (
+            <div className="grid-span-2" style={{
+              marginTop: '1.5rem',
+              paddingTop: '1.5rem',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.5px' }}>
+                🏫 Administrative Details (Read-Only)
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1rem'
+              }}>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Roll Number</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.rollNumber || 'Not Assigned'}</div>
+                </div>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Registration Number</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.registrationNo || 'Not Assigned'}</div>
+                </div>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Academic Grade</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.grade || 'Not Assigned'}</div>
+                </div>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Academic Batch</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.batch || 'Not Assigned'}</div>
+                </div>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Attendance Rate</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: profile.profile?.attendancePercent >= 75 ? '#10b981' : '#f59e0b' }}>
+                    {profile.profile?.attendancePercent !== null && profile.profile?.attendancePercent !== undefined
+                      ? `${profile.profile.attendancePercent.toFixed(1)}%`
+                      : 'No Records'}
+                  </div>
+                </div>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Academic Performance</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>
+                    {profile.profile?.marksObtained !== null && profile.profile?.marksTotal
+                      ? `${profile.profile.marksObtained} / ${profile.profile.marksTotal} (${((profile.profile.marksObtained / profile.profile.marksTotal) * 100).toFixed(1)}%)`
+                      : 'No Test Results'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {role === 'TEACHER' && (
+            <div className="grid-span-2" style={{
+              marginTop: '1.5rem',
+              paddingTop: '1.5rem',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#10b981', letterSpacing: '0.5px' }}>
+                💼 Employment & Financial Details (Read-Only)
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1rem'
+              }}>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Assigned Monthly Salary</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>
+                    {profile.profile?.salary !== null && profile.profile?.salary !== undefined
+                      ? `₹${profile.profile.salary.toLocaleString('en-IN')}`
+                      : '₹0'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid-span-2" style={{ marginTop: '1.5rem' }}>
             <button type="submit" disabled={saving} style={{ width: '100%', padding: '0.75rem 1.5rem', borderRadius: '14px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: '0 4px 20px -5px rgba(99,102,241,0.5)' }}>
               {saving ? 'Saving Changes...' : '💾 Save My Profile'}
             </button>
