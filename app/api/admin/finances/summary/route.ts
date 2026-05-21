@@ -10,26 +10,26 @@ export async function GET() {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 11); // Get last 12 months for better trend
     sixMonthsAgo.setDate(1);
 
-    // Revenue from verified/paid payments
-    const payments = await prisma.payment.findMany({
-      where: {
-        status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-        paidAt: { gte: sixMonthsAgo }
-      },
-      select: { paidAmount: true, paidAt: true, amount: true, lateFine: true, discount: true }
-    });
-
-    // Expenses
-    const expenses = await prisma.expense.findMany({
-      where: { date: { gte: sixMonthsAgo } }
-    });
+    // Parallelize all financial queries to drastically minimize database round-trip times
+    const [payments, expenses, pendingPayments] = await Promise.all([
+      prisma.payment.findMany({
+        where: {
+          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
+          paidAt: { gte: sixMonthsAgo }
+        },
+        select: { paidAmount: true, paidAt: true, amount: true, lateFine: true, discount: true }
+      }),
+      prisma.expense.findMany({
+        where: { date: { gte: sixMonthsAgo } }
+      }),
+      prisma.payment.findMany({
+        where: { status: 'PENDING' },
+        select: { amount: true }
+      })
+    ]);
 
     const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
     const totalExpenses = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
-    const pendingPayments = await prisma.payment.findMany({
-      where: { status: 'PENDING' },
-      select: { amount: true }
-    });
     const totalPending = pendingPayments.reduce((acc: number, p: any) => acc + p.amount, 0);
 
     // Monthly breakdown (last 6 months)

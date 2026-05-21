@@ -13,25 +13,34 @@ export async function GET() {
 
     const studentId = (session.user as any).id;
 
-    // Fetch batches the student is enrolled in
-    const user = await prisma.user.findUnique({
-      where: { id: studentId },
-      include: {
-        studentBatches: {
-          include: {
-            course: { select: { name: true } },
-            teachers: { select: { name: true } },
-            schedules: true
+    // Parallelize independent database queries for maximum performance
+    const [user, attendanceRecords, testResults] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: studentId },
+        include: {
+          studentBatches: {
+            include: {
+              course: { select: { name: true } },
+              teachers: { select: { name: true } },
+              schedules: true
+            }
+          },
+          studentProfile: true,
+          payments: {
+            orderBy: { dueDate: 'asc' },
+            take: 1, // Get the most urgent or recent fee
+            where: { status: 'PENDING' }
           }
-        },
-        studentProfile: true,
-        payments: {
-          orderBy: { dueDate: 'asc' },
-          take: 1, // Get the most urgent or recent fee
-          where: { status: 'PENDING' }
         }
-      }
-    });
+      }),
+      prisma.attendance.findMany({
+        where: { studentId },
+      }),
+      prisma.testResult.findMany({
+        where: { studentId },
+        include: { test: true }
+      })
+    ]);
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -51,18 +60,11 @@ export async function GET() {
     }
 
     // Calculate dynamic attendance stats
-    const attendanceRecords = await prisma.attendance.findMany({
-      where: { studentId },
-    });
     const totalDays = attendanceRecords.length;
     const presentDays = attendanceRecords.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE').length;
     const attendancePercent = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
 
     // Fetch dynamic test results
-    const testResults = await prisma.testResult.findMany({
-      where: { studentId },
-      include: { test: true }
-    });
     const totalTests = testResults.length;
     const totalObtained = testResults.reduce((acc: number, r: any) => acc + r.marks, 0);
     const totalMax = testResults.reduce((acc: number, r: any) => acc + r.totalMarks, 0);
