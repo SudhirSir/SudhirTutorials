@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const userSchema = z.object({
   role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     const { role, name } = validation.data;
 
     // Generate cryptographically secure 8-character password
-    const password = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+    const password = crypto.randomBytes(4).toString('hex').toUpperCase();
 
 
     // Generate specific ID sequentially

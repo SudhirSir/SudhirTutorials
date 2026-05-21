@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -88,7 +89,7 @@ export const authOptions: NextAuthOptions = {
             }
           }
 
-          const activeToken = require('crypto').randomBytes(16).toString('hex');
+          const activeToken = crypto.randomBytes(16).toString('hex');
           
           // Retry logic for updating user activeToken
           let retriesUpdate = 3;

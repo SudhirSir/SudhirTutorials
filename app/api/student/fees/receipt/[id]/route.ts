@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { calculateLateFine } from '@/lib/feeUtils';
+import { calculateLateFine, generateReceiptNo } from '@/lib/feeUtils';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
 
@@ -46,7 +46,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     });
 
     const serial = 1000 + count;
-    const { generateReceiptNo } = require('@/lib/feeUtils');
     const receiptNo = generateReceiptNo(fee, serial);
 
     // Attach receiptNo

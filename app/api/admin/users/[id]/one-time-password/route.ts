@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import crypto from 'crypto';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,7 +25,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     // 3. Generate a cryptographically secure 8-character temporary one-time password
-    const crypto = require('crypto');
     const tempPassword = crypto.randomBytes(4).toString('hex').toUpperCase(); // e.g. 'F3A8C9DE'
 
     // 4. Hash and update
