@@ -101,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       };
       fetchBadges();
-      const interval = setInterval(fetchBadges, 5000);
+      const interval = setInterval(fetchBadges, 30000);
 
       // Fetch profile photo for sidebar
       const fetchPhoto = async () => {

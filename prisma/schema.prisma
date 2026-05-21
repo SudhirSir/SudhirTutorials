@@ -220,6 +220,7 @@ model TestResult {
   createdAt  DateTime @default(now())
 
   @@unique([testId, studentId])
+  @@index([studentId])
 }
 
 model Attendance {
@@ -232,6 +233,7 @@ model Attendance {
   status    String   // PRESENT, ABSENT, LATE
   
   @@unique([batchId, studentId, date])
+  @@index([studentId])
 }
 
 model Lecture {

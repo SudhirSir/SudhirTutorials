@@ -46,7 +46,7 @@ function TeacherDashboardContent() {
 
   useEffect(() => {
     fetchUnreadCounts();
-    const interval = setInterval(fetchUnreadCounts, 6000);
+    const interval = setInterval(fetchUnreadCounts, 30000);
     return () => clearInterval(interval);
   }, []);
   
@@ -629,13 +629,13 @@ Depending on your specific focus, this represents the vital equation model for t
             {tab === 'notifications' && unreadNotifications > 0 && (
               <span style={{ background: '#10b981', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
-            {tab === 'classes' ? '🏫 Classes & Batches' :
-             tab === 'materials' ? '📚 Study Materials' :
-             tab === 'students' ? '👥 My Students' :
-             tab === 'attendance' ? '✏️ Mark Attendance' :
-             tab === 'tests' ? '📝 Tests & Marks' :
-             tab === 'lectures' ? '📺 Live Classes' :
-             tab === 'guru-ai' ? '✨ Guru AI Workspace' :
+            {tab === 'classes' ? 'Classes & Batches' :
+             tab === 'materials' ? 'Study Materials' :
+             tab === 'students' ? 'My Students' :
+             tab === 'attendance' ? 'Mark Attendance' :
+             tab === 'tests' ? 'Tests & Marks' :
+             tab === 'lectures' ? 'Live Classes' :
+             tab === 'guru-ai' ? 'Guru AI Workspace' :
              tab === 'messages' ? 'Messages' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :

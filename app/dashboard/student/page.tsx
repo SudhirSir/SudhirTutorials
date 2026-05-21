@@ -48,7 +48,7 @@ function StudentDashboardContent() {
 
   useEffect(() => {
     fetchUnreadCounts();
-    const interval = setInterval(fetchUnreadCounts, 6000);
+    const interval = setInterval(fetchUnreadCounts, 30000);
     return () => clearInterval(interval);
   }, []);
   
@@ -356,12 +356,12 @@ function StudentDashboardContent() {
               <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadNotifications}</span>
             )}
             {tab === 'dashboard' ? 'Dashboard' :
-             tab === 'attendance' ? '✏️ My Attendance' :
-             tab === 'materials' ? '📚 Study Materials' :
-             tab === 'tests' ? '📝 Tests & Marks' :
-             tab === 'fees' ? '🧾 Student Fee Statement' :
-             tab === 'lectures' ? '📺 Live Classes' :
-             tab === 'guru-ji' ? '✨ Digital Guru Ji' :
+             tab === 'attendance' ? 'My Attendance' :
+             tab === 'materials' ? 'Study Materials' :
+             tab === 'tests' ? 'Tests & Marks' :
+             tab === 'fees' ? 'Student Fee Statement' :
+             tab === 'lectures' ? 'Live Classes' :
+             tab === 'guru-ji' ? 'Digital Guru Ji' :
              tab === 'messages' ? 'Messages' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
@@ -412,7 +412,7 @@ function StudentDashboardContent() {
             {/* My Batches & Teachers */}
             <div className="glass-card" style={{ padding: '2rem', marginTop: '2rem' }}>
               <h3 style={{ fontSize: '1.4rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🎒 My Batches & Instructors
+                My Batches & Instructors
               </h3>
               {dashboard?.batches && dashboard.batches.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
