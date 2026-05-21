@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 const messageSchema = z.object({
   receiverId: z.string().min(1),
-  content: z.string().min(1).max(500),
+  content: z.string().min(1).max(5000000),
 });
 
 export async function GET() {
