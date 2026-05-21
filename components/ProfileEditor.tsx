@@ -144,6 +144,13 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert('⚠️ Image size exceeds the 3 MB limit.');
+      e.target.value = '';
+      return;
+    }
+
     const compressed = await compressImage(file);
     setForm((f: any) => ({ ...f, photoUrl: compressed }));
   };

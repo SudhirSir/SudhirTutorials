@@ -360,6 +360,12 @@ function AdminDashboardContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 3 * 1024 * 1024) {
+      alert('⚠️ File size exceeds the 3 MB limit.');
+      e.target.value = '';
+      return;
+    }
+
     setSelectedFileName(file.name);
     const sizeKB = Math.round(file.size / 1024);
     setSelectedFileSize(sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`);
@@ -4050,6 +4056,11 @@ function AdminDashboardContent() {
                        onChange={e => {
                          const file = e.target.files?.[0];
                          if (file) {
+                           if (file.size > 3 * 1024 * 1024) {
+                             alert('⚠️ Image size exceeds the 3 MB limit.');
+                             e.target.value = '';
+                             return;
+                           }
                            const reader = new FileReader();
                            reader.onload = (event) => {
                              const img = new Image();

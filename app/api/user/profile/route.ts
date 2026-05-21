@@ -54,6 +54,21 @@ export async function PUT(req: Request) {
     const { name, email, phone, address, dob, photoUrl, subject, qualification, experience,
             fatherName, parentContact, school, className } = body;
 
+    // Backend size check for base64 photo upload (max 3 MB)
+    if (photoUrl && photoUrl.startsWith('data:')) {
+      try {
+        const base64Data = photoUrl.split(',')[1];
+        if (base64Data) {
+          const buffer = Buffer.from(base64Data, 'base64');
+          if (buffer.length > 3 * 1024 * 1024) {
+            return NextResponse.json({ error: 'Profile picture size exceeds the 3 MB limit' }, { status: 400 });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to parse base64 photo size:", err);
+      }
+    }
+
     console.log(`[API PUT /api/user/profile] User ID: ${session.user.id}, Role: ${session.user.role}, Name: ${name}`);
 
     // Update name and photoUrl on User

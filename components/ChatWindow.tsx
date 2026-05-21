@@ -269,9 +269,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     const file = e.target.files?.[0];
     if (!file || !selectedUser) return;
 
-    // Check size limit: max 20MB for local uploads
-    if (file.size > 20 * 1024 * 1024) {
-      alert('⚠️ File is too large. Maximum allowed size is 20MB.');
+    // Check size limit: max 3MB for local uploads
+    if (file.size > 3 * 1024 * 1024) {
+      alert('⚠️ File is too large. Maximum allowed size is 3MB.');
       return;
     }
 

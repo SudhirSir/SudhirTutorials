@@ -86,6 +86,12 @@ function TeacherDashboardContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 3 * 1024 * 1024) {
+      alert('⚠️ File size exceeds the 3 MB limit.');
+      e.target.value = '';
+      return;
+    }
+
     setSelectedFileName(file.name);
     const sizeKB = Math.round(file.size / 1024);
     setSelectedFileSize(sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`);

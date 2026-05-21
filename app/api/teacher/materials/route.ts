@@ -39,6 +39,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Backend size check for base64 file uploads (max 3 MB)
+    if (url && url.startsWith('data:')) {
+      try {
+        const base64Data = url.split(',')[1];
+        if (base64Data) {
+          const buffer = Buffer.from(base64Data, 'base64');
+          if (buffer.length > 3 * 1024 * 1024) {
+            return NextResponse.json({ error: 'Uploaded file size exceeds the 3 MB limit' }, { status: 400 });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to parse base64 file size:", err);
+      }
+    }
+
     // RBAC: Verify teacher teaches at least one batch in this course (skip for Admin)
     if (session.user.role === 'TEACHER') {
       const teacherAssignment = await prisma.batch.findFirst({
