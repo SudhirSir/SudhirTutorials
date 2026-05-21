@@ -243,9 +243,9 @@ export async function PATCH(req: Request) {
     const currentFee = await prisma.payment.findUnique({ where: { id } });
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
-    // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED
+    // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED/PAID_ONLINE
     let lateFine = currentFee.lateFine;
-    if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED')) {
+    if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
       lateFine = calculateLateFine(currentFee.dueDate, 'PENDING');
     }
 
@@ -258,8 +258,8 @@ export async function PATCH(req: Request) {
         remarks,
         discount: discount !== undefined ? discount : currentFee.discount,
         lateFine,
-        paidAmount: status === 'PAID' || status === 'VERIFIED' ? (currentFee.amount + lateFine - (discount ?? currentFee.discount)) : 0,
-        paidAt: status === 'PAID' || status === 'VERIFIED' ? new Date() : null,
+        paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) ? (currentFee.amount + lateFine - (discount ?? currentFee.discount)) : 0,
+        paidAt: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) ? new Date() : null,
       },
     });
 
@@ -314,7 +314,7 @@ export async function PUT(req: Request) {
 
     // If status is being updated, handle paidAmount and paidAt logic
     if (status !== undefined && status !== existing.status) {
-      if (status === 'PAID' || status === 'VERIFIED') {
+      if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') {
         const finalAmount = (updateData.amount ?? existing.amount);
         const finalFine = (updateData.lateFine ?? existing.lateFine);
         const finalDiscount = (updateData.discount ?? existing.discount);

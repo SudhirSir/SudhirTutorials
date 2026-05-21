@@ -46,12 +46,15 @@ export async function GET() {
       const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
       const daysLate = Math.floor((today.getTime() - dueDay.getTime()) / (1000 * 60 * 60 * 24));
 
-      const lateFine = calculateLateFine(fee.dueDate, fee.status);
+      const currentFine = fee.status === 'PENDING'
+        ? calculateLateFine(fee.dueDate, fee.status)
+        : fee.lateFine;
       return {
         ...fee,
         daysLate: daysLate > 0 ? daysLate : 0,
-        lateFine,
-        totalAmount: fee.amount + lateFine
+        lateFine: currentFine,
+        currentLateFine: currentFine,
+        totalAmount: fee.amount + currentFine - fee.discount
       };
     });
 

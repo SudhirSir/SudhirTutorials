@@ -52,7 +52,7 @@ export async function GET() {
       const pendingPayment = user.payments[0];
       const lateFine = calculateLateFine(pendingPayment.dueDate, pendingPayment.status);
       feeHighlight = {
-        amount: pendingPayment.amount + lateFine,
+        amount: pendingPayment.amount + lateFine - pendingPayment.discount,
         dueDate: pendingPayment.dueDate,
         isOverdue: lateFine > 0,
         status: pendingPayment.status
