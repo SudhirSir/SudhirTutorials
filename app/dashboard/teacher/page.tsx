@@ -1549,7 +1549,10 @@ Depending on your specific focus, this represents the vital equation model for t
 
                     {/* Footing with logo */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border)', paddingTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      <span style={{ fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.5px' }}>SUDHIR TUTORIALS</span>
+                      <span style={{ fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <img src="/logo.png" alt="Logo" style={{ width: '18px', height: '18px', objectFit: 'contain', borderRadius: '4px' }} />
+                        SUDHIR TUTORIALS
+                      </span>
                       <span style={{ fontWeight: 700 }}>Slide {activeSlideIndex + 1} of {generatedPpt.slides.length}</span>
                     </div>
                   </div>

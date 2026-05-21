@@ -3866,7 +3866,10 @@ function AdminDashboardContent() {
 
                     {/* Footing with logo */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border)', paddingTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      <span style={{ fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.5px' }}>SUDHIR TUTORIALS</span>
+                      <span style={{ fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <img src="/logo.png" alt="Logo" style={{ width: '18px', height: '18px', objectFit: 'contain', borderRadius: '4px' }} />
+                        SUDHIR TUTORIALS
+                      </span>
                       <span style={{ fontWeight: 700 }}>Slide {activeSlideIndex + 1} of {generatedPpt.slides.length}</span>
                     </div>
                   </div>
@@ -5104,79 +5107,25 @@ function AdminDashboardContent() {
                   💼 Admin profiles have full system-wide permissions and do not maintain restricted student or teacher records.
                 </div>
               )}
+                  
               {selectedUserDetail.role === 'STUDENT' && (
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Complete Fee Statement Ledger</h3>
                   <StudentLedger 
-                                     receiptWindow.document.write(`<!DOCTYPE html><html><head><title>Receipt – ${fee.receiptNo || fee.id}</title><style>
-                            body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1a1a2e;background:#f9f9f9;}
-                            .card{max-width:480px;margin:60px auto auto;background:#fff;border-radius:16px;padding:2.5rem;box-shadow:0 20px 50px rgba(0,0,0,0.12);border:8px solid #f3f4f6;position:relative;}
-                            h1{color:#ef4444;font-size:1.5rem;letter-spacing:1px;margin:0;}
-                            .label{color:#9ca3af;font-size:0.65rem;text-transform:uppercase;font-weight:800;letter-spacing:0.5px;}
-                            .val{font-weight:700;font-size:0.9rem;color:#1a1a2e;}
-                            .row{display:flex;justify-content:space-between;margin-bottom:0.75rem;font-size:0.9rem;}
-                            .total{border-top:2px dashed #e5e7eb;padding-top:1rem;margin-top:1rem;font-size:1.1rem;font-weight:800;}
-                            .stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:5rem;font-weight:900;color:rgba(59,130,246,0.04);pointer-events:none;letter-spacing:10px;}
-                            .footer{text-align:center;font-size:0.65rem;color:#9ca3af;margin-top:2rem;border-top:1px dashed #e5e7eb;padding-top:1rem;}
-                            .actions { position: fixed; top: 0; left: 0; right: 0; background: #fff; padding: 15px; display: flex; justify-content: center; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 100; }
-                            .btn { padding: 8px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit; }
-                            .btn-primary { background: #3b82f6; color: white; }
-                            .btn-secondary { background: #f3f4f6; color: #374151; }
-                            @media print{body{padding:0;background:white;} .card{margin-top:0; border:none; box-shadow:none;} .actions{display:none;}}
-                          </style></head><body>
-                          <div class="actions">
-                            <button class="btn btn-secondary" onclick="window.print()">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                              Print Receipt
-                            </button>
-                            <button class="btn btn-primary" onclick="window.print()">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                              Save as PDF
-                            </button>
-                          </div>
-                          <div class="card">
-                            <div class="stamp">PAID</div>
-                            <div style="text-align:center;margin-bottom:1.5rem">
-                              <h1>SUDHIR TUTORIALS</h1>
-                              <p style="color:#6b7280;font-size:0.75rem;margin:4px 0">Professional Coaching for Academic Excellence</p>
-                              <div style="height:1px;background:#e5e7eb;width:60px;margin:1rem auto"></div>
-                              <h2 style="font-size:0.9rem;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#374151">Payment Receipt</h2>
-                            </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
-                              <div><div class="label">Student Name</div><div class="val">${fee.student?.name || '—'}</div><div style="color:#6b7280;font-size:0.8rem">ID: ${fee.student?.username || '—'}</div></div>
-                              <div style="text-align:right"><div class="label">Receipt No.</div><div class="val">${fee.receiptNo || 'REC-' + fee.id.slice(-6).toUpperCase()}</div><div style="color:#6b7280;font-size:0.8rem">${paidDate}</div></div>
-                            </div>
-                            <div style="border-top:2px solid #f3f4f6;border-bottom:2px solid #f3f4f6;padding:1.25rem 0;margin-bottom:1.25rem">
-                              <div class="row"><span>${fee.title} (${fee.billingMonth})</span><span style="font-weight:700">₹${fee.amount.toFixed(2)}</span></div>
-                              ${fineAmt > 0 ? `<div class="row" style="color:#ef4444"><span>Late Fine</span><span>+₹${fineAmt.toFixed(2)}</span></div>` : ''}
-                              ${discAmt > 0 ? `<div class="row" style="color:#1d4ed8"><span>Discount Applied</span><span>-₹${discAmt.toFixed(2)}</span></div>` : ''}
-                              <div class="row total"><span>TOTAL PAID</span><span>₹${total.toFixed(2)}</span></div>
-                            </div>
-                            <div style="font-size:0.75rem;color:#6b7280">
-                              <div><strong>Method:</strong> ${fee.paymentMethod || 'CASH'}</div>
-                              ${fee.transactionId ? `<div><strong>TXN ID:</strong> ${fee.transactionId}</div>` : ''}
-                            </div>
-                            <div class="footer">Computer-generated receipt. No signature required.<br>&copy; ${new Date().getFullYear()} Sudhir Tutorials</div>
-                          </div>
-                          </body></html>`);
-                          receiptWindow.document.close();ixed(2)}</span></div>` : ''}
-                              ${discAmt > 0 ? `<div class="row" style="color:#1d4ed8"><span>Discount Applied</span><span>-₹${discAmt.toFixed(2)}</span></div>` : ''}
-                              <div class="row total"><span>TOTAL PAID</span><span>₹${total.toFixed(2)}</span></div>
-                            </div>
-                            <div style="font-size:0.75rem;color:#6b7280">
-                              <div><strong>Method:</strong> ${fee.paymentMethod || 'CASH'}</div>
-                              ${fee.transactionId ? `<div><strong>TXN ID:</strong> ${fee.transactionId}</div>` : ''}
-                            </div>
-                            <div class="footer">Computer-generated receipt. No signature required.<br>&copy; ${new Date().getFullYear()} Sudhir Tutorials</div>
-                          </div>
-                          <script>window.onload=function(){window.print();}<\/script>
-                          </body></html>`);
-                          receiptWindow.document.close();
+                    studentId={selectedUserDetail.id}
+                    onViewReceipt={async (feeId) => {
+                      try {
+                        const res = await fetch(`/api/student/fees/receipt/${feeId}`);
+                        if (res.ok) {
+                          const data = await res.json();
+                          setActiveReceipt(data.fee);
                         } else {
-                          alert('Failed to load receipt details.');
+                          const d = await res.json();
+                          alert(d.error || 'Failed to open receipt.');
                         }
                       } catch (e) {
-                        alert('Error loading receipt.');
+                        console.error(e);
+                        alert('Network error. Failed to load receipt.');
                       }
                     }}
                   />

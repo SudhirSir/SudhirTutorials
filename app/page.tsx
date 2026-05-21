@@ -12,8 +12,9 @@ export default function Home() {
       
       {/* Navbar */}
       <header className="header" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--glass-bg)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--glass-border)' }}>
-        <div className="logo" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-          <span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS
+        <div className="logo" style={{ fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '8px' }} />
+          <span><span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS</span>
         </div>
         <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <Link href="#programs" style={{ color: 'var(--text-muted)', fontWeight: 500, transition: 'color 0.2s' }}>Programs</Link>
@@ -146,7 +147,10 @@ export default function Home() {
       <footer style={{ background: 'var(--background)', padding: '4rem 6% 2rem 6%' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '3rem', marginBottom: '3rem' }}>
           <div>
-            <div className="logo" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>SUDHIR TUTORIALS</div>
+            <div className="logo" style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '8px' }} />
+              <span>SUDHIR TUTORIALS</span>
+            </div>
             <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '300px' }}>Empowering students with knowledge, guidance, and the digital tools needed to conquer their academic goals.</p>
             <div style={{ display: 'flex', gap: '1.25rem', marginTop: '1.5rem' }}>
               <a href="https://instagram.com/Sudhir_tutorials" target="_blank" rel="noopener noreferrer" className="footer-link" aria-label="Instagram">

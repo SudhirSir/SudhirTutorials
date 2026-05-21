@@ -120,8 +120,9 @@ export default function LoginPage() {
       <div className="login-form-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3rem', position: 'relative' }}>
 
         <div style={{ marginBottom: '3rem' }}>
-          <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-block' }}>
-            <span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS
+          <Link href="/" className="logo" style={{ fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+            <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px' }} />
+            <span><span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS</span>
           </Link>
         </div>
 

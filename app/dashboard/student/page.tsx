@@ -851,7 +851,10 @@ function StudentDashboardContent() {
               }}>
                 <div>
                   <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.65rem', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Coaching Institute</div>
-                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: '#fff' }}>SUDHIR TUTORIALS</h3>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain', borderRadius: '4px' }} />
+                    SUDHIR TUTORIALS
+                  </h3>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{razorpayFee.title}</div>
                   <div style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '0.5rem' }}>
                     {razorpayFee.billingMonth}

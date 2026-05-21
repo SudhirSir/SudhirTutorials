@@ -166,8 +166,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <Link href="/" className="logo-small-mobile" onClick={handleNavLinkClick}>
-          SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span>
+        <Link href="/" className="logo-small-mobile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }} onClick={handleNavLinkClick}>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
+          <span>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></span>
         </Link>
         <div style={{ transform: 'scale(0.85)', display: 'flex', alignItems: 'center' }}>
           <ThemeToggle />
@@ -188,8 +189,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="sidebar-inner">
           <div className="sidebar-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <Link href="/" className="logo-small" style={{ margin: 0 }} onClick={handleNavLinkClick}>
-                SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span>
+              <Link href="/" className="logo-small" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }} onClick={handleNavLinkClick}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
+                <span>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></span>
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
