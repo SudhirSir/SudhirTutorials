@@ -178,11 +178,11 @@ export default function Home() {
           </div>
           <div>
             <h4 style={{ color: 'var(--text-heading)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Quick Links</h4>
-            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
-              <li>Student Login</li>
-              <li>Teacher Portal</li>
-              <li>Admissions 2026</li>
-              <li>Contact Us</li>
+            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <li><Link href="/login" className="footer-link">Student Login</Link></li>
+              <li><Link href="/login" className="footer-link">Teacher Portal</Link></li>
+              <li><Link href="#programs" className="footer-link">Admissions 2026</Link></li>
+              <li><a href="tel:9914287998" className="footer-link">Contact Us</a></li>
             </ul>
           </div>
           <div>

@@ -4610,6 +4610,7 @@ function AdminDashboardContent() {
 
             <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6', position: 'relative', zIndex: 2 }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.75rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}>SUDHIR TUTORIALS</h1>
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>
                 <div style={{ height: '1px', background: '#e5e7eb', width: '60px', margin: '1rem auto' }}></div>

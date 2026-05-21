@@ -172,9 +172,12 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         </head>
         <body>
           <div class="header">
-            <div>
-              <h1>SUDHIR TUTORIALS</h1>
-              <p>Official Student Fee Statement</p>
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <img src="/logo.png" alt="Sudhir Tutorials Logo" style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px;" />
+              <div>
+                <h1 style="margin: 0; font-size: 24px; color: #ef4444;">SUDHIR TUTORIALS</h1>
+                <p style="margin: 5px 0 0; font-size: 14px; color: #666;">Official Student Fee Statement</p>
+              </div>
             </div>
             <div style="text-align: right;">
               <p style="font-weight: bold; color: #ef4444; margin: 0 0 5px 0;">OFFICIAL STUDENT FEE STATEMENT</p>
