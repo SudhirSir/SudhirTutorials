@@ -50,16 +50,18 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch('/api/user/profile');
+      const res = await fetch(`/api/user/profile?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
+        const profileDob = data.profile?.dob;
+        const formattedDob = profileDob ? (profileDob.includes('T') ? profileDob.split('T')[0] : profileDob) : '';
         setForm({
           name: data.name || '',
           email: data.profile?.email || '',
           phone: data.profile?.phone || '',
           address: data.profile?.address || '',
-          dob: data.profile?.dob || '',
+          dob: formattedDob,
           photoUrl: data.photoUrl || data.profile?.photoUrl || '',
           subject: data.profile?.subject || '',
           qualification: data.profile?.qualification || '',

@@ -63,6 +63,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       attendancePercent,
       marksObtained,
       marksTotal,
+      baseFee,
     } = body;
 
     // Find the user first
@@ -129,6 +130,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(attendancePercent !== undefined && { attendancePercent: parseFloat(String(attendancePercent)) }),
         ...(marksObtained !== undefined && { marksObtained: parseFloat(String(marksObtained)) }),
         ...(marksTotal !== undefined && { marksTotal: parseFloat(String(marksTotal)) }),
+        ...(baseFee !== undefined && { baseFee: baseFee ? parseFloat(String(baseFee)) : 0 }),
       },
       create: {
         userId: user.id,
@@ -148,6 +150,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         attendancePercent: attendancePercent ? parseFloat(String(attendancePercent)) : null,
         marksObtained: marksObtained ? parseFloat(String(marksObtained)) : null,
         marksTotal: marksTotal ? parseFloat(String(marksTotal)) : null,
+        baseFee: baseFee ? parseFloat(String(baseFee)) : 0,
       },
     });
 

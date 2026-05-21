@@ -17,12 +17,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         ],
         role: 'ADMIN',
       },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        role: true,
-        createdAt: true,
+      include: {
+        teacherProfile: true,
       }
     });
 
@@ -42,7 +38,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const { id } = await params;
     const body = await req.json();
-    const { name } = body;
+    const { name, email, phone, address, dob, photoUrl } = body;
 
     const user = await prisma.user.findFirst({
       where: {
@@ -55,14 +51,36 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
     }
 
-    if (name !== undefined) {
+    if (name !== undefined || photoUrl !== undefined) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { name },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(photoUrl !== undefined && { photoUrl }),
+        },
       });
     }
 
-    return NextResponse.json({ success: true });
+    const profile = await prisma.teacherProfile.upsert({
+      where: { userId: user.id },
+      update: {
+        ...(email !== undefined && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(address !== undefined && { address }),
+        ...(dob !== undefined && { dob }),
+        ...(photoUrl !== undefined && { photoUrl }),
+      },
+      create: {
+        userId: user.id,
+        email: email || null,
+        phone: phone || null,
+        address: address || null,
+        dob: dob || null,
+        photoUrl: photoUrl || null,
+      },
+    });
+
+    return NextResponse.json({ success: true, profile });
   } catch (error: any) {
     console.error('Error updating admin profile:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

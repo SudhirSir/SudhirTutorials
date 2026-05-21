@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
@@ -70,18 +73,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Generate quick sequential serials mapping by ascending createdAt
-    const allPayments = await prisma.payment.findMany({
-      select: { id: true },
-      orderBy: { createdAt: 'asc' }
-    });
-    const serialMap = new Map<string, number>();
-    allPayments.forEach((p, idx) => {
-      serialMap.set(p.id, 1001 + idx);
-    });
-
-    const { generateReceiptNo } = require('@/lib/feeUtils');
-
     const enrichedFees = fees.map((fee: any) => {
       // For pending fees, show real-time calculated fine
       // For paid/verified fees, show the fine that was locked in at time of payment
@@ -93,8 +84,8 @@ export async function GET(req: Request) {
       const due = new Date(fee.dueDate);
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
-      const serial = serialMap.get(fee.id) || 1001;
-      const receiptNo = generateReceiptNo(fee, serial);
+      // Fast fallback receipt format, full sequential serial computed only when requesting/downloading receipt
+      const receiptNo = `REC-${fee.id.slice(-6).toUpperCase()}`;
 
       return {
         ...fee,

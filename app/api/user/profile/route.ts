@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
@@ -21,7 +24,7 @@ export async function GET(req: Request) {
 
     const profile = user.role === 'STUDENT'
       ? user.studentProfile
-      : user.role === 'TEACHER'
+      : (user.role === 'TEACHER' || user.role === 'ADMIN')
       ? user.teacherProfile
       : null;
 
@@ -96,8 +99,8 @@ export async function PUT(req: Request) {
         }
       });
       console.log(`[API PUT /api/user/profile] Upserted StudentProfile successfully.`);
-    } else if (userRole === 'TEACHER') {
-      console.log(`[API PUT /api/user/profile] Upserting TeacherProfile for userId: ${session.user.id}`);
+    } else if (userRole === 'TEACHER' || userRole === 'ADMIN') {
+      console.log(`[API PUT /api/user/profile] Upserting TeacherProfile for userId: ${session.user.id} (Role: ${userRole})`);
       await prisma.teacherProfile.upsert({
         where: { userId: session.user.id },
         update: {
@@ -124,7 +127,7 @@ export async function PUT(req: Request) {
       });
       console.log(`[API PUT /api/user/profile] Upserted TeacherProfile successfully.`);
     } else {
-      console.warn(`[API PUT /api/user/profile] Unknown or admin role: ${userRole}. Only updated basic User info.`);
+      console.warn(`[API PUT /api/user/profile] Unknown role: ${userRole}. Only updated basic User info.`);
     }
 
     // Notify the user of successful profile update

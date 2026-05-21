@@ -667,7 +667,7 @@ function AdminDashboardContent() {
   const handleSearchDirectory = async () => {
     setIsSearching(true);
     try {
-      const res = await fetch(`/api/admin/directory?q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`/api/admin/directory?q=${encodeURIComponent(searchQuery)}&t=${Date.now()}`);
       const data = await res.json();
       if (res.ok) {
         setDirectoryUsers(data.users || []);
@@ -681,7 +681,7 @@ function AdminDashboardContent() {
 
   const fetchFinances = async () => {
     try {
-      const res = await fetch('/api/admin/finances');
+      const res = await fetch(`/api/admin/finances?t=${Date.now()}`);
       const data = await res.json();
       if (res.ok) {
         setFees(data.fees || []);
@@ -731,6 +731,22 @@ function AdminDashboardContent() {
       console.error(err);
     } finally {
       setIsAddingFee(false);
+    }
+  };
+
+  const handleViewReceipt = async (feeId: string) => {
+    try {
+      const res = await fetch(`/api/student/fees/receipt/${feeId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveReceipt(data.fee);
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to open receipt.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error. Failed to load receipt.');
     }
   };
 
@@ -1172,18 +1188,23 @@ function AdminDashboardContent() {
         : role === 'TEACHER'
         ? `/api/admin/teachers/${userId}`
         : `/api/admin/admins/${userId}`;
-      const res = await fetch(endpoint);
+      const cacheBustEndpoint = endpoint + (endpoint.includes('?') ? '&' : '?') + 't=' + Date.now();
+      const res = await fetch(cacheBustEndpoint);
       const data = await res.json();
       if (res.ok) {
         const userData = role === 'STUDENT' ? data.student : role === 'TEACHER' ? data.teacher : data.admin;
-        const profileData = role === 'STUDENT' ? userData.studentProfile : role === 'TEACHER' ? userData.teacherProfile : {};
+        const profileData = role === 'STUDENT' ? userData.studentProfile : (role === 'TEACHER' || role === 'ADMIN') ? userData.teacherProfile : {};
         
+        const profileDob = profileData?.dob;
+        const formattedDob = profileDob ? (profileDob.includes('T') ? profileDob.split('T')[0] : profileDob) : '';
+
         setEditingProfile({ 
           userId: userData.id, 
           role,
           name: userData.name || '',
           username: userData.username,
           ...(profileData || {}),
+          dob: formattedDob,
           ...(role === 'TEACHER' && userData.teacherBatches?.length > 0 && { batch: userData.teacherBatches[0].name })
         });
         setShowProfileModal(true);
@@ -1208,6 +1229,22 @@ function AdminDashboardContent() {
       });
       if (res.ok) {
         setShowProfileModal(false);
+        // Sync selectedUserDetail in real-time so details view updates instantly
+        if (selectedUserDetail && selectedUserDetail.id === editingProfile.userId) {
+          setSelectedUserDetail({
+            ...selectedUserDetail,
+            name: editingProfile.name,
+            isActive: editingProfile.isActive,
+            studentProfile: editingProfile.role === 'STUDENT' ? {
+              ...selectedUserDetail.studentProfile,
+              ...editingProfile
+            } : selectedUserDetail.studentProfile,
+            teacherProfile: (editingProfile.role === 'TEACHER' || editingProfile.role === 'ADMIN') ? {
+              ...selectedUserDetail.teacherProfile,
+              ...editingProfile
+            } : selectedUserDetail.teacherProfile
+          });
+        }
         setEditingProfile(null);
         handleSearchDirectory(); // Refresh directory
       } else {
@@ -1277,6 +1314,11 @@ function AdminDashboardContent() {
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       <style>{`
+        .search-panel-overflow {
+          overflow: visible !important;
+          z-index: 100 !important;
+        }
+
         .finances-layout-grid {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 350px;
@@ -1954,7 +1996,7 @@ function AdminDashboardContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               
               {/* Premium Student Fee Statement Search Panel */}
-              <div className="glass-card" style={{ overflow: 'visible', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)', border: '1px solid var(--border)' }}>
+              <div className="glass-card search-panel-overflow" style={{ position: 'relative', zIndex: 20, overflow: 'visible', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)', border: '1px solid var(--border)' }}>
                 <div>
                   <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     Search Student Fee Statement & Ledger
@@ -2100,7 +2142,7 @@ function AdminDashboardContent() {
               </div>
 
               {/* Full-Width Ledger Collection Table */}
-              <div className="glass-card" style={{ padding: '2rem' }}>
+              <div className="glass-card" style={{ padding: '1.25rem 1.5rem', position: 'relative', zIndex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
                   <div>
                     <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Fee Ledger & Collections</h2>
@@ -2204,39 +2246,40 @@ function AdminDashboardContent() {
                 {!isLedgerListOpen ? (
                   <div style={{ 
                     display: 'flex', 
-                    flexDirection: 'column', 
                     alignItems: 'center', 
-                    justifyContent: 'center', 
-                    padding: '3rem', 
-                    border: '2px dashed var(--border)', 
-                    borderRadius: '16px', 
+                    justifyContent: 'space-between', 
+                    padding: '1rem 1.5rem', 
+                    border: '1px dashed var(--border)', 
+                    borderRadius: '12px', 
                     background: 'rgba(255,255,255,0.01)', 
-                    textAlign: 'center', 
-                    gap: '1rem'
+                    gap: '1rem',
+                    flexWrap: 'wrap'
                   }}>
-                    <span style={{ fontSize: '3rem' }}>📁</span>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Ledger Records Table</h4>
-                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        Currently collapsed to optimize page length. Click below to load and view the full interactive ledger.
-                      </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '1.5rem' }}>📁</span>
+                      <div style={{ textAlign: 'left' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Ledger Records Table</h4>
+                        <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Click to load and view the full interactive ledger.
+                        </p>
+                      </div>
                     </div>
                     <button 
                       onClick={() => setIsLedgerListOpen(true)}
                       className="btn-primary"
-                      style={{ padding: '0.75rem 1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px' }}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '8px' }}
                     >
-                      📂 Open & View Ledger Table
+                      📂 Open Ledger Table
                     </button>
                   </div>
                 ) : (
-                  <div style={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.5rem' }}>
+                  <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem' }}>
                     {/* View Mode 1: ALL RECORDS */}
                     {ledgerViewMode === 'ALL' && (
                       <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            <th style={{ padding: '0.75rem 0' }}>Student / ID</th>
+                            <th style={{ padding: '0.5rem 0' }}>Student / ID</th>
                             <th>Billing Details</th>
                             <th>Status</th>
                             <th>Amount Breakup</th>
@@ -2257,7 +2300,7 @@ function AdminDashboardContent() {
                               const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
                               return (
                                 <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
-                                  <td style={{ padding: '1rem 0' }}>
+                                  <td style={{ padding: '0.6rem 0' }}>
                                     <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
                                   </td>
@@ -2291,7 +2334,7 @@ function AdminDashboardContent() {
                                         <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
                                       )}
                                       {(fee.status !== 'PENDING') && (
-                                        <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
+                                        <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
                                       )}
                                       <button onClick={() => { setEditingFeeRecord(fee); setShowEditFeeModal(true); }} style={{ padding: '6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }} title="Edit Fee Record">✎</button>
                                       <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
@@ -2332,7 +2375,7 @@ function AdminDashboardContent() {
                               const formattedDate = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                               return (
                                 <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                  <td style={{ padding: '1rem 0' }}>
+                                  <td style={{ padding: '0.6rem 0' }}>
                                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>REC-{fee.id.slice(-6).toUpperCase()}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
                                   </td>
@@ -2351,7 +2394,7 @@ function AdminDashboardContent() {
                                   </td>
                                   <td style={{ fontWeight: 800, color: '#10b981' }}>₹{fee.totalDue.toFixed(0)}</td>
                                   <td>
-                                    <button onClick={() => setActiveReceipt(fee)} style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>🧾 View Receipt</button>
+                                    <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>🧾 View Receipt</button>
                                   </td>
                                 </tr>
                               );
@@ -2393,7 +2436,7 @@ function AdminDashboardContent() {
 
                               return (
                                 <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                  <td style={{ padding: '1rem 0' }}>
+                                  <td style={{ padding: '0.6rem 0' }}>
                                     <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
                                   </td>
