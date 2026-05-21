@@ -10,44 +10,43 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Enrollment by Course
-    const courseStats = await prisma.course.findMany({
-      select: {
-        name: true,
-        _count: {
-          select: {
-            batches: {
-              // This is a bit complex in Prisma, we'll just sum students in batches
+    // 2. Calculate date range for Revenue Trends (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    // Parallelize all 4 independent database queries to run concurrently
+    const [courseStats, payments, totalAttendance, presentCount] = await Promise.all([
+      // 1. Enrollment by Course
+      prisma.course.findMany({
+        select: {
+          name: true,
+          batches: {
+            select: {
+              _count: { select: { students: true } }
             }
           }
-        },
-        batches: {
-          select: {
-            _count: { select: { students: true } }
-          }
         }
-      }
-    });
+      }),
+      // 2. Revenue Trends (last 6 months)
+      prisma.payment.findMany({
+        where: {
+          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
+          createdAt: { gte: sixMonthsAgo }
+        },
+        select: {
+          amount: true,
+          createdAt: true
+        }
+      }),
+      // 3. Attendance Overview (Global %)
+      prisma.attendance.count(),
+      prisma.attendance.count({ where: { status: 'PRESENT' } })
+    ]);
 
     const enrollmentData = courseStats.map((c: any) => ({
       name: c.name,
       students: c.batches.reduce((sum: number, b: any) => sum + b._count.students, 0)
     }));
-
-    // 2. Revenue Trends (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
-    const payments = await prisma.payment.findMany({
-      where: {
-        status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-        createdAt: { gte: sixMonthsAgo }
-      },
-      select: {
-        amount: true,
-        createdAt: true
-      }
-    });
 
     // Group by month
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -60,9 +59,6 @@ export async function GET() {
 
     const formattedRevenue = Object.entries(revenueTrend).map(([name, amount]) => ({ name, amount }));
 
-    // 3. Attendance Overview (Global %)
-    const totalAttendance = await prisma.attendance.count();
-    const presentCount = await prisma.attendance.count({ where: { status: 'PRESENT' } });
     const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
 
     return NextResponse.json({
