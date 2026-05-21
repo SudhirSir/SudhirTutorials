@@ -821,14 +821,14 @@ function StudentDashboardContent() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="animate-scale-up" style={{ 
             width: '680px', maxWidth: '100%', 
-            background: '#0b132b', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '24px', boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+            background: 'var(--card-bg)', border: '1px solid var(--border)',
+            borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
             position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', margin: 'auto'
           }}>
             {/* Header: Razorpay Secured */}
             <div style={{ 
-              background: '#0f172a', padding: '1.25rem 2rem', 
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              background: 'var(--card-bg-alt)', padding: '1.25rem 2rem', 
+              borderBottom: '1px solid var(--border)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -846,13 +846,13 @@ function StudentDashboardContent() {
               
               {/* Left Side Panel: Merchant and Amount (Locked) */}
               <div style={{ 
-                background: 'rgba(255,255,255,0.02)', padding: '2rem 1.5rem',
-                borderRight: '1px solid rgba(255,255,255,0.05)',
+                background: 'var(--card-bg-alt)', padding: '2rem 1.5rem',
+                borderRight: '1px solid var(--border)',
                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
               }}>
                 <div>
                   <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.65rem', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Coaching Institute</div>
-                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain', borderRadius: '4px' }} />
                     SUDHIR TUTORIALS
                   </h3>
@@ -864,7 +864,7 @@ function StudentDashboardContent() {
 
                 <div style={{ marginTop: '2rem' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Total Fee Amount</span>
-                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text)', marginTop: '4px' }}>
                     ₹{razorpayFee.totalAmount.toFixed(0)}
                   </div>
                   <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'block', marginTop: '4px' }}>
@@ -872,9 +872,9 @@ function StudentDashboardContent() {
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem', marginTop: '1.5rem' }}>
-                  <div><strong>Student ID:</strong> {session?.user?.name}</div>
-                  <div><strong>Email:</strong> {(session?.user as any)?.email || 'student@sudhirtutorials.com'}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.5rem' }}>
+                  <div><strong style={{ color: 'var(--text)' }}>Student ID:</strong> {session?.user?.name}</div>
+                  <div><strong style={{ color: 'var(--text)' }}>Email:</strong> {(session?.user as any)?.email || 'student@sudhirtutorials.com'}</div>
                 </div>
               </div>
 
@@ -882,9 +882,9 @@ function StudentDashboardContent() {
               <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 
                 <div>
-                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>Official Razorpay Gateway</h4>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>Official Razorpay Gateway</h4>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
-                    Please click the button below to complete your payment of <strong style={{ color: '#fff' }}>₹{razorpayFee.totalAmount.toFixed(0)}</strong> securely via Razorpay's official portal.
+                    Please click the button below to complete your payment of <strong style={{ color: 'var(--text)' }}>₹{razorpayFee.totalAmount.toFixed(0)}</strong> securely via Razorpay's official portal.
                   </p>
                   
                   {/* Step 1: Open Link */}
@@ -928,7 +928,7 @@ function StudentDashboardContent() {
                         value={razorpayTxId} 
                         onChange={e => setRazorpayTxId(e.target.value)} 
                         placeholder="e.g. pay_N23sd9fX87 or UPI Txn Ref No" 
-                        style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: '#fff', padding: '0.85rem' }} 
+                        style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', padding: '0.85rem', borderRadius: '12px' }} 
                       />
                     </div>
                   </div>
@@ -944,11 +944,20 @@ function StudentDashboardContent() {
                     }}
                     style={{
                       flex: 1, padding: '0.85rem', borderRadius: '12px',
-                      background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                      color: 'var(--text)', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s'
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#ef4444', cursor: 'pointer', fontWeight: 700,
+                      transition: 'all 0.2s', fontSize: '0.9rem',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                    }}
                   >
                     Cancel
                   </button>
@@ -971,13 +980,13 @@ function StudentDashboardContent() {
             {isRazorpayPaying && (
               <div style={{ 
                 position: 'absolute', inset: 0, 
-                background: 'rgba(11,19,43,0.95)', 
+                background: 'var(--card-bg)', 
                 display: 'flex', flexDirection: 'column', 
                 alignItems: 'center', justifyContent: 'center', 
                 zIndex: 100
               }}>
                 <div className="spinner" style={{ borderTopColor: '#3b82f6', width: '50px', height: '50px' }}></div>
-                <h3 style={{ marginTop: '1.5rem', color: '#fff', fontSize: '1.25rem' }}>Processing Payment Securely</h3>
+                <h3 style={{ marginTop: '1.5rem', color: 'var(--text)', fontSize: '1.25rem' }}>Processing Payment Securely</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                   Do not refresh this page or click back button...
                 </p>

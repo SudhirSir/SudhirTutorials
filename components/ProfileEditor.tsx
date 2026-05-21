@@ -46,10 +46,13 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
   const [pinMsg, setPinMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pinSaving, setPinSaving] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => { fetchProfile(); }, []);
 
   const fetchProfile = async () => {
     try {
+      setError(null);
       const res = await fetch(`/api/user/profile?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
@@ -71,8 +74,14 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           school: data.profile?.school || '',
           className: data.profile?.className || '',
         });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || `Server responded with status ${res.status}`);
       }
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || 'Failed to connect to the server.');
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -164,6 +173,20 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
     fontSize: '0.75rem', color: 'var(--text-muted)',
     textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '0.4rem', display: 'block'
   };
+
+  if (error) return (
+    <div style={{ textAlign: 'center', padding: '4rem', color: '#ef4444' }}>
+      <div style={{ fontSize: '3rem', marginBottom: '1.25rem' }}>⚠️</div>
+      <div style={{ fontWeight: 800, fontSize: '1.3rem', marginBottom: '0.5rem', color: 'var(--text)' }}>Failed to load profile</div>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '1.75rem', fontSize: '0.95rem' }}>{error}</p>
+      <button 
+        onClick={fetchProfile}
+        style={{ padding: '0.75rem 1.75rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}
+      >
+        🔄 Retry Loading Profile
+      </button>
+    </div>
+  );
 
   if (!profile) return (
     <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>

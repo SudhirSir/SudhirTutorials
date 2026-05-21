@@ -3641,46 +3641,58 @@ function AdminDashboardContent() {
             </div>
           </div>
 
-          {/* Mode Selector Option Buttons */}
-          <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.15)', padding: '6px', borderRadius: '14px', border: '1px solid var(--border)', alignSelf: 'center' }}>
-            <button
-              onClick={() => setAiMode('GURU')}
-              style={{
-                padding: '0.6rem 1.25rem',
-                borderRadius: '10px',
-                border: 'none',
-                cursor: 'pointer',
-                background: aiMode === 'GURU' ? 'var(--primary)' : 'transparent',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <span>🤖</span> Academic Assistant Tutor
-            </button>
-            <button
-              onClick={() => setAiMode('PREPARE')}
-              style={{
-                padding: '0.6rem 1.25rem',
-                borderRadius: '10px',
-                border: 'none',
-                cursor: 'pointer',
-                background: aiMode === 'PREPARE' ? 'var(--primary)' : 'transparent',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <span>📝</span> Slide Generator & Planner
-            </button>
+          {/* Sleek, Premium Compact Mode Selector */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              background: 'var(--card-bg-alt)', 
+              padding: '3px', 
+              borderRadius: '30px', 
+              border: '1px solid var(--border)',
+              gap: '2px',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
+            }}>
+              <button
+                onClick={() => setAiMode('GURU')}
+                style={{
+                  padding: '0.4rem 1.1rem',
+                  borderRadius: '25px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: aiMode === 'GURU' ? '#ef4444' : 'transparent',
+                  color: aiMode === 'GURU' ? 'white' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: aiMode === 'GURU' ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
+                }}
+              >
+                <span style={{ fontSize: '0.95rem' }}>🤖</span> Academic Assistant Tutor
+              </button>
+              <button
+                onClick={() => setAiMode('PREPARE')}
+                style={{
+                  padding: '0.4rem 1.1rem',
+                  borderRadius: '25px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: aiMode === 'PREPARE' ? '#ef4444' : 'transparent',
+                  color: aiMode === 'PREPARE' ? 'white' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: aiMode === 'PREPARE' ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
+                }}
+              >
+                <span style={{ fontSize: '0.95rem' }}>📝</span> Slide Generator & Planner
+              </button>
+            </div>
           </div>
 
           {/* ──────────────── MODE A: DIGITAL GURU ──────────────── */}

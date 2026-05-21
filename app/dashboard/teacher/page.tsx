@@ -414,7 +414,7 @@ Depending on your specific focus, this represents the vital equation model for t
       const res = await fetch('/api/teacher/profile');
       if (res.ok) {
         const data = await res.json();
-        setProfile(data.profile);
+        setProfile(data.profile ? { ...data.profile, name: data.name } : { name: data.name });
       }
     } catch (e) { console.error(e); }
   };
@@ -1270,48 +1270,58 @@ Depending on your specific focus, this represents the vital equation model for t
             </div>
           </div>
 
-          {/* Mode Selector Option Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', background: 'rgba(0,0,0,0.15)', padding: '8px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <button
-              onClick={() => setAiMode('GURU')}
-              style={{
-                padding: '1.25rem',
-                borderRadius: '12px',
-                border: 'none',
-                cursor: 'pointer',
-                background: aiMode === 'GURU' ? 'var(--primary)' : 'transparent',
-                color: 'white',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <span style={{ fontSize: '1.5rem' }}>🤖</span>
-              <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Digital Guru AI Tutor</span>
-              <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Solve complex doubts and verify student study materials instantly</span>
-            </button>
-            <button
-              onClick={() => setAiMode('PREPARE')}
-              style={{
-                padding: '1.25rem',
-                borderRadius: '12px',
-                border: 'none',
-                cursor: 'pointer',
-                background: aiMode === 'PREPARE' ? 'var(--primary)' : 'transparent',
-                color: 'white',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <span style={{ fontSize: '1.5rem' }}>📝</span>
-              <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Prepare Lesson Plans & Slides</span>
-              <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Generate beautiful presentation slides and study notes with official branding</span>
-            </button>
+          {/* Sleek, Premium Compact Mode Selector */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              background: 'var(--card-bg-alt)', 
+              padding: '3px', 
+              borderRadius: '30px', 
+              border: '1px solid var(--border)',
+              gap: '2px',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
+            }}>
+              <button
+                onClick={() => setAiMode('GURU')}
+                style={{
+                  padding: '0.4rem 1.1rem',
+                  borderRadius: '25px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: aiMode === 'GURU' ? '#10b981' : 'transparent',
+                  color: aiMode === 'GURU' ? 'white' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: aiMode === 'GURU' ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
+                }}
+              >
+                <span style={{ fontSize: '0.95rem' }}>🤖</span> Digital Guru AI
+              </button>
+              <button
+                onClick={() => setAiMode('PREPARE')}
+                style={{
+                  padding: '0.4rem 1.1rem',
+                  borderRadius: '25px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: aiMode === 'PREPARE' ? '#10b981' : 'transparent',
+                  color: aiMode === 'PREPARE' ? 'white' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: aiMode === 'PREPARE' ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
+                }}
+              >
+                <span style={{ fontSize: '0.95rem' }}>📝</span> Lesson Plans & Slides
+              </button>
+            </div>
           </div>
 
           {/* ──────────────── MODE A: DIGITAL GURU ──────────────── */}

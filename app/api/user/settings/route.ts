@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
@@ -21,13 +21,13 @@ export async function GET() {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = await prisma.user.findUnique({
+    const user = await withDbRetry(() => prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
         studentProfile: true,
         teacherProfile: true
       }
-    });
+    }));
 
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
@@ -60,7 +60,7 @@ export async function PATCH(req: Request) {
       if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
       const { currentPassword, newPassword } = validation.data;
-      const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+      const user = await withDbRetry(() => prisma.user.findUnique({ where: { id: session.user.id } }));
       
       const isMatch = await bcrypt.compare(currentPassword, user!.passwordHash);
       if (!isMatch) return NextResponse.json({ error: 'Current password incorrect' }, { status: 400 });
@@ -68,10 +68,10 @@ export async function PATCH(req: Request) {
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(newPassword, salt);
 
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: session.user.id },
         data: { passwordHash, mustChangePassword: false }
-      });
+      }));
 
       return NextResponse.json({ success: true, message: 'Password updated successfully' });
     }
@@ -85,15 +85,15 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: 'PIN must be exactly 6 digits' }, { status: 400 });
       }
 
-      const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+      const user = await withDbRetry(() => prisma.user.findUnique({ where: { id: session.user.id } }));
       const isMatch = await bcrypt.compare(currentPassword, user!.passwordHash);
       if (!isMatch) return NextResponse.json({ error: 'Password incorrect' }, { status: 400 });
 
       const recoveryPinHash = await bcrypt.hash(newPin, 10);
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: session.user.id },
         data: { recoveryPinHash }
-      });
+      }));
 
       return NextResponse.json({ success: true, message: 'Secret PIN updated successfully' });
     }
@@ -105,18 +105,18 @@ export async function PATCH(req: Request) {
       const { name, email, phone } = validation.data;
 
       // Update basic user name
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: session.user.id },
         data: { name }
-      });
+      }));
 
       // Update profile specific (currently only StudentProfile has email/phone in schema)
       if (session.user.role === 'STUDENT') {
-        await prisma.studentProfile.upsert({
+        await withDbRetry(() => prisma.studentProfile.upsert({
           where: { userId: session.user.id },
           update: { email, phone },
           create: { userId: session.user.id, email, phone }
-        });
+        }));
       }
 
       return NextResponse.json({ success: true, message: 'Profile updated successfully' });

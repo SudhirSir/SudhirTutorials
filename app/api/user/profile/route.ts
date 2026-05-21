@@ -4,7 +4,7 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 // GET /api/user/profile — Get own profile (any role)
 export async function GET(req: Request) {
@@ -16,10 +16,10 @@ export async function GET(req: Request) {
     const userId = searchParams.get('userId');
     const targetUserId = userId || session.user.id;
 
-    const user = await prisma.user.findUnique({
+    const user = await withDbRetry(() => prisma.user.findUnique({
       where: { id: targetUserId },
       include: { studentProfile: true, teacherProfile: true }
-    });
+    }));
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const profile = user.role === 'STUDENT'
@@ -73,13 +73,13 @@ export async function PUT(req: Request) {
 
     // Update name and photoUrl on User
     if (name !== undefined || photoUrl !== undefined) {
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: session.user.id },
         data: {
           ...(name !== undefined && { name }),
           ...(photoUrl !== undefined && { photoUrl }),
         }
-      });
+      }));
       console.log(`[API PUT /api/user/profile] Updated User model successfully.`);
     }
 
@@ -87,7 +87,7 @@ export async function PUT(req: Request) {
 
     if (userRole === 'STUDENT') {
       console.log(`[API PUT /api/user/profile] Upserting StudentProfile for userId: ${session.user.id}`);
-      await prisma.studentProfile.upsert({
+      await withDbRetry(() => prisma.studentProfile.upsert({
         where: { userId: session.user.id },
         update: {
           ...(email !== undefined && { email }),
@@ -112,11 +112,11 @@ export async function PUT(req: Request) {
           school: school || null,
           className: className || null,
         }
-      });
+      }));
       console.log(`[API PUT /api/user/profile] Upserted StudentProfile successfully.`);
     } else if (userRole === 'TEACHER' || userRole === 'ADMIN') {
       console.log(`[API PUT /api/user/profile] Upserting TeacherProfile for userId: ${session.user.id} (Role: ${userRole})`);
-      await prisma.teacherProfile.upsert({
+      await withDbRetry(() => prisma.teacherProfile.upsert({
         where: { userId: session.user.id },
         update: {
           ...(email !== undefined && { email }),
@@ -139,7 +139,7 @@ export async function PUT(req: Request) {
           qualification: qualification || null,
           experience: experience || null,
         }
-      });
+      }));
       console.log(`[API PUT /api/user/profile] Upserted TeacherProfile successfully.`);
     } else {
       console.warn(`[API PUT /api/user/profile] Unknown role: ${userRole}. Only updated basic User info.`);
@@ -147,7 +147,7 @@ export async function PUT(req: Request) {
 
     // Notify the user of successful profile update
     try {
-      await prisma.notification.create({
+      await withDbRetry(() => prisma.notification.create({
         data: {
           userId: session.user.id,
           title: '👤 Profile Updated',
@@ -155,7 +155,7 @@ export async function PUT(req: Request) {
           type: 'SYSTEM',
           isRead: false
         }
-      });
+      }));
     } catch (err) {
       console.error('[API PUT /api/user/profile] Failed to create notification:', err);
     }
