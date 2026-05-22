@@ -159,7 +159,10 @@ function StudentDashboardContent() {
 
   useEffect(() => {
     fetchUnreadCounts();
-    if (activeTab === 'dashboard') fetchDashboard();
+    if (activeTab === 'dashboard') {
+      fetchDashboard();
+      fetchFees();
+    }
     if (activeTab === 'materials') fetchMaterials();
     if (activeTab === 'fees') fetchFees();
     if (activeTab === 'tests') fetchTests();
@@ -512,12 +515,17 @@ function StudentDashboardContent() {
                  {(dashboard as any)?.feeHighlight ? (
                    <>
                      <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: (dashboard as any).feeHighlight.isOverdue ? '#ef4444' : '#fff' }}>
-                       ₹{(dashboard as any).feeHighlight.amount.toFixed(0)}
+                       ₹{((dashboard as any).feeHighlight.totalAmount ?? (dashboard as any).feeHighlight.amount).toFixed(0)}
                      </div>
                      <p style={{ color: (dashboard as any)?.feeHighlight?.isOverdue ? 'var(--text)' : 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                        {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${((() => { const d = new Date((dashboard as any).feeHighlight.dueDate); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}` : `Status: ${(dashboard as any).feeHighlight.status}`}
                      </p>
-                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : 'rgba(255,255,255,0.15)', color: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '#fff', border: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => handleTabChange('fees')}>Pay Online</button>
+                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : 'rgba(255,255,255,0.15)', color: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '#fff', border: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
+                        handleTabChange('fees');
+                        if ((dashboard as any)?.feeHighlight) {
+                          handlePayOnline((dashboard as any).feeHighlight, 'month');
+                        }
+                      }}>Pay Online</button>
                    </>
                  ) : (
                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>No pending fees. You are all caught up!</p>

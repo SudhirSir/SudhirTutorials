@@ -54,10 +54,11 @@ export async function GET() {
       const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
       const lateFine = calculateLateFine(pendingPayment.dueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
       feeHighlight = {
-        amount: pendingPayment.amount + lateFine - pendingPayment.discount,
-        dueDate: pendingPayment.dueDate,
+        ...pendingPayment,
         isOverdue: lateFine > 0,
-        status: pendingPayment.status
+        lateFine: lateFine,
+        currentLateFine: lateFine,
+        totalAmount: pendingPayment.amount + lateFine - pendingPayment.discount,
       };
     }
 

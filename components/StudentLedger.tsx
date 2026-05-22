@@ -19,7 +19,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
   const [loading, setLoading] = useState(true);
   const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [showMonthlyDetails, setShowMonthlyDetails] = useState(false);
+  const [showMonthlyDetails, setShowMonthlyDetails] = useState(true);
 
   useEffect(() => {
     fetchLedger();
