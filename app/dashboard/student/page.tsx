@@ -27,7 +27,7 @@ function StudentDashboardContent() {
     setActiveTab(newTab);
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', newTab);
-    router.push(pathname + '?' + params.toString());
+    router.replace(pathname + '?' + params.toString(), { scroll: false });
   };
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -160,7 +160,6 @@ function StudentDashboardContent() {
   };
 
   useEffect(() => {
-    router.refresh();
     fetchUnreadCounts();
     if (activeTab === 'dashboard') fetchDashboard();
     if (activeTab === 'materials') fetchMaterials();

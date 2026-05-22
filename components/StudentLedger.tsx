@@ -25,7 +25,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
     fetchLedger();
   }, [studentId, refreshTrigger]);
 
-  const fetchLedger = async () => {
+  const fetchLedger = async (retryCount = 0) => {
     setLoading(true);
     try {
       const cacheBust = `t=${Date.now()}`;
@@ -36,6 +36,12 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
       if (res.ok) {
         const data = await res.json();
         setFees(data.fees || []);
+      } else if (res.status === 401 && retryCount < 3) {
+        // Session may not be ready yet after tab navigation — retry with backoff
+        setTimeout(() => fetchLedger(retryCount + 1), 600 * (retryCount + 1));
+        return; // keep loading spinner
+      } else {
+        console.error("Error fetching ledger, status:", res.status);
       }
     } catch (e) {
       console.error("Error fetching ledger:", e);
