@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 // Helper to format months
 const MONTHS_LIST = [
@@ -10,6 +12,11 @@ const MONTHS_LIST = [
 // GET: Preview automated billing status for the selected or current month
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const now = new Date();
     const currentMonthName = MONTHS_LIST[now.getMonth()];
@@ -17,7 +24,7 @@ export async function GET(req: Request) {
     const billingMonth = searchParams.get('billingMonth') || `${currentMonthName} ${currentYear}`;
 
     // Get active students
-    const students = await prisma.user.findMany({
+    const students = await withDbRetry(() => prisma.user.findMany({
       where: { role: 'STUDENT' },
       select: {
         id: true,
@@ -35,10 +42,10 @@ export async function GET(req: Request) {
           }
         }
       }
-    });
+    }));
 
     // Check how many already have billing for this month
-    const existingBills = await prisma.payment.findMany({
+    const existingBills = await withDbRetry(() => prisma.payment.findMany({
       where: {
         billingMonth,
         title: { startsWith: 'Monthly Tuition Fee' }
@@ -47,7 +54,7 @@ export async function GET(req: Request) {
         studentId: true,
         amount: true
       }
-    });
+    }));
 
     const alreadyBilledIds = new Set(existingBills.map(b => b.studentId));
 
@@ -100,6 +107,11 @@ export async function GET(req: Request) {
 // POST: Execute the automated monthly billing and calculate student fees
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const now = new Date();
     const currentMonthName = MONTHS_LIST[now.getMonth()];
@@ -121,7 +133,7 @@ export async function POST(req: Request) {
     const dueDate = new Date(parsedYear, parsedMonthIndex, 10); // Due on 10th of billing month
 
     // Fetch all active students
-    const students = await prisma.user.findMany({
+    const students = await withDbRetry(() => prisma.user.findMany({
       where: { role: 'STUDENT' },
       select: {
         id: true,
@@ -138,20 +150,20 @@ export async function POST(req: Request) {
           }
         }
       }
-    });
+    }));
 
     let createdCount = 0;
     let skippedCount = 0;
 
     for (const student of students) {
       // Check for duplicate billing record for this student and month
-      const existing = await prisma.payment.findFirst({
+      const existing = await withDbRetry(() => prisma.payment.findFirst({
         where: {
           studentId: student.id,
           billingMonth,
           title: `Monthly Tuition Fee - ${billingMonth}`
         }
-      });
+      }));
 
       if (existing) {
         skippedCount++;
@@ -177,7 +189,7 @@ export async function POST(req: Request) {
         }
       }
 
-      await prisma.payment.create({
+      await withDbRetry(() => prisma.payment.create({
         data: {
           studentId: student.id,
           amount: finalAmount,
@@ -188,11 +200,11 @@ export async function POST(req: Request) {
           discount: 0,
           remarks: 'Automated monthly fee assignment'
         }
-      });
+      }));
 
       // Send billing notification to the student
       try {
-        await prisma.notification.create({
+        await withDbRetry(() => prisma.notification.create({
           data: {
             userId: student.id,
             title: `💳 Monthly Fee Generated: ${billingMonth}`,
@@ -200,7 +212,7 @@ export async function POST(req: Request) {
             type: 'FEE',
             isRead: false
           }
-        });
+        }));
       } catch (err) {
         console.error(`Failed to send billing notification for ${student.username}:`, err);
       }

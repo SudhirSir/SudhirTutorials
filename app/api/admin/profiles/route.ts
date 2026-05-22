@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
 const profileSchema = z.object({
@@ -16,13 +18,18 @@ const profileSchema = z.object({
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
 
-    const profile = await prisma.studentProfile.findUnique({
+    const profile = await withDbRetry(() => prisma.studentProfile.findUnique({
       where: { userId }
-    });
+    }));
 
     return NextResponse.json({ profile });
   } catch (error) {
@@ -32,37 +39,42 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const validation = profileSchema.safeParse(body);
     if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
     const { userId, ...data } = validation.data;
 
-    const profile = await prisma.studentProfile.upsert({
+    const profile = await withDbRetry(() => prisma.studentProfile.upsert({
       where: { userId },
       update: data,
       create: { userId, ...data }
-    });
+    }));
 
     // SYNC: If batch name is provided, ensure user is enrolled in that batch
     if (data.batch) {
-      const targetBatch = await prisma.batch.findFirst({
+      const targetBatch = await withDbRetry(() => prisma.batch.findFirst({
         where: { name: data.batch }
-      });
+      }));
       if (targetBatch) {
-        await prisma.user.update({
+        await withDbRetry(() => prisma.user.update({
           where: { id: userId },
           data: {
             studentBatches: {
               connect: { id: targetBatch.id }
             }
           }
-        });
+        }));
       }
     }
     // Notify the student of successful profile update by administration
     try {
-      await prisma.notification.create({
+      await withDbRetry(() => prisma.notification.create({
         data: {
           userId,
           title: '📝 Profile Updated',
@@ -70,7 +82,7 @@ export async function PATCH(req: Request) {
           type: 'SYSTEM',
           isRead: false
         }
-      });
+      }));
     } catch (err) {
       console.error('Failed to notify student of profile update:', err);
     }

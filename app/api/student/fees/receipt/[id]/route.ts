@@ -55,12 +55,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     };
 
     // Allow admin to see any receipt, students can only see their own and only after admin verification
-    if ((session.user as any).role === 'STUDENT') {
-      if (fee.studentId !== (session.user as any).id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      if (fee.status !== 'VERIFIED') {
-        return NextResponse.json({ error: 'Receipt is pending verification from the Admin.' }, { status: 403 });
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
+    if (userRole !== 'ADMIN') {
+      if (userRole === 'STUDENT') {
+        if (fee.studentId !== userId) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (fee.status !== 'VERIFIED') {
+          return NextResponse.json({ error: 'Receipt is pending verification from the Admin.' }, { status: 403 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
       }
     }
 

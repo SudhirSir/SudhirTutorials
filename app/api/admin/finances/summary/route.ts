@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const now = new Date();
     const currentMonth = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -12,20 +19,20 @@ export async function GET() {
 
     // Parallelize all financial queries to drastically minimize database round-trip times
     const [payments, expenses, pendingPayments] = await Promise.all([
-      prisma.payment.findMany({
+      withDbRetry(() => prisma.payment.findMany({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
           paidAt: { gte: sixMonthsAgo }
         },
         select: { paidAmount: true, paidAt: true, amount: true, lateFine: true, discount: true }
-      }),
-      prisma.expense.findMany({
+      })),
+      withDbRetry(() => prisma.expense.findMany({
         where: { date: { gte: sixMonthsAgo } }
-      }),
-      prisma.payment.findMany({
+      })),
+      withDbRetry(() => prisma.payment.findMany({
         where: { status: 'PENDING' },
         select: { amount: true }
-      })
+      }))
     ]);
 
     const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);

@@ -2,14 +2,21 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 // GET /api/admin/teachers/[id] — Fetch full teacher profile
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    const user = await prisma.user.findFirst({
+    const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
         OR: [
           { username: id },
@@ -23,7 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           select: { name: true, id: true }
         }
       },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
@@ -39,6 +46,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 // PUT /api/admin/teachers/[id] — Update teacher profile
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await req.json();
 
@@ -56,45 +68,45 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       batch
     } = body;
 
-    const user = await prisma.user.findFirst({
+    const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
         OR: [{ username: id }, { id }],
         role: 'TEACHER',
       },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
     }
 
     if (name !== undefined) {
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: user.id },
         data: { name },
-      });
+      }));
     }
 
     if (batch !== undefined) {
       // Clear previous batches
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: user.id },
         data: { teacherBatches: { set: [] } }
-      });
+      }));
       
       if (batch) {
-        const matchedBatch = await prisma.batch.findFirst({
+        const matchedBatch = await withDbRetry(() => prisma.batch.findFirst({
           where: { OR: [{ name: batch }, { id: batch }] }
-        });
+        }));
         if (matchedBatch) {
-          await prisma.user.update({
+          await withDbRetry(() => prisma.user.update({
             where: { id: user.id },
             data: { teacherBatches: { connect: { id: matchedBatch.id } } }
-          });
+          }));
         }
       }
     }
 
-    const profile = await prisma.teacherProfile.upsert({
+    const profile = await withDbRetry(() => prisma.teacherProfile.upsert({
       where: { userId: user.id },
       update: {
         ...(subject !== undefined && { subject }),
@@ -119,11 +131,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         experience: experience || null,
         salary: salary ? parseFloat(String(salary)) : 0,
       },
-    });
+    }));
 
     // Notify the teacher of successful profile update by administration
     try {
-      await prisma.notification.create({
+      await withDbRetry(() => prisma.notification.create({
         data: {
           userId: user.id,
           title: '📝 Profile Updated',
@@ -131,7 +143,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           type: 'SYSTEM',
           isRead: false
         }
-      });
+      }));
     } catch (err) {
       console.error('Failed to send notification to teacher on update:', err);
     }
@@ -146,22 +158,27 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 // DELETE /api/admin/teachers/[id] — Delete teacher account
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    const user = await prisma.user.findFirst({
+    const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
         OR: [{ username: id }, { id }],
         role: 'TEACHER',
       },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
     }
 
-    await prisma.user.delete({
+    await withDbRetry(() => prisma.user.delete({
       where: { id: user.id },
-    });
+    }));
 
     return NextResponse.json({ success: true, message: 'Teacher deleted successfully' });
   } catch (error: any) {

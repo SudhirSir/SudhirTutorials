@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import crypto from 'crypto';
@@ -11,6 +13,11 @@ const userSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const validation = userSchema.safeParse(body);
 
@@ -25,15 +32,14 @@ export async function POST(req: Request) {
     // Generate cryptographically secure 8-character password
     const password = crypto.randomBytes(4).toString('hex').toUpperCase();
 
-
     // Generate specific ID sequentially
     let username = '';
     
     if (role === 'TEACHER') {
-      const lastTeacher = await prisma.user.findFirst({
+      const lastTeacher = await withDbRetry(() => prisma.user.findFirst({
         where: { role: 'TEACHER', username: { startsWith: 'FAC' } },
         orderBy: { username: 'desc' } // Gets the highest FAC string
-      });
+      }));
       let nextNumber = 10100;
       if (lastTeacher && lastTeacher.username) {
         const num = parseInt(lastTeacher.username.replace('FAC', ''), 10);
@@ -41,10 +47,10 @@ export async function POST(req: Request) {
       }
       username = `FAC${nextNumber}`;
     } else if (role === 'STUDENT') {
-      const lastStudent = await prisma.user.findFirst({
+      const lastStudent = await withDbRetry(() => prisma.user.findFirst({
         where: { role: 'STUDENT', username: { startsWith: 'STU' } },
         orderBy: { username: 'desc' }
-      });
+      }));
       let nextNumber = 101;
       if (lastStudent && lastStudent.username) {
         const num = parseInt(lastStudent.username.replace('STU', ''), 10);
@@ -52,10 +58,10 @@ export async function POST(req: Request) {
       }
       username = `STU${nextNumber.toString().padStart(5, '0')}`;
     } else if (role === 'ADMIN') {
-      const lastAdmin = await prisma.user.findFirst({
+      const lastAdmin = await withDbRetry(() => prisma.user.findFirst({
         where: { role: 'ADMIN', username: { startsWith: 'ADM' } },
         orderBy: { username: 'desc' }
-      });
+      }));
       let nextNumber = 101;
       if (lastAdmin && lastAdmin.username) {
         const num = parseInt(lastAdmin.username.replace('ADM', ''), 10);
@@ -67,7 +73,7 @@ export async function POST(req: Request) {
     }
 
     // Check if uniquely generated exists (rare but possible in race conditions)
-    const existing = await prisma.user.findUnique({ where: { username } });
+    const existing = await withDbRetry(() => prisma.user.findUnique({ where: { username } }));
     if (existing) {
       return NextResponse.json({ error: "ID collision, please try again." }, { status: 500 });
     }
@@ -75,7 +81,7 @@ export async function POST(req: Request) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const newUser = await prisma.user.create({
+    const newUser = await withDbRetry(() => prisma.user.create({
       data: {
         username,
         name: name || '',
@@ -83,7 +89,7 @@ export async function POST(req: Request) {
         role: role,
         mustChangePassword: true,
       }
-    });
+    }));
 
     return NextResponse.json({
       success: true,

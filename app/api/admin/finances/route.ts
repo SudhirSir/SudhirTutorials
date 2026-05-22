@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 import { z } from 'zod';
@@ -35,6 +35,11 @@ const updateStatusSchema = z.object({
 // ─── GET: list every payment ───────────────────────
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const month = searchParams.get('month');
@@ -47,11 +52,11 @@ export async function GET(req: Request) {
     if (studentId) {
       where.studentId = studentId;
     } else if (studentUsername) {
-      const u = await prisma.user.findUnique({ where: { username: studentUsername } });
+      const u = await withDbRetry(() => prisma.user.findUnique({ where: { username: studentUsername } }));
       if (u) where.studentId = u.id;
     }
 
-    const fees = await prisma.payment.findMany({
+    const fees = await withDbRetry(() => prisma.payment.findMany({
       where,
       include: { 
         student: { 
@@ -75,7 +80,7 @@ export async function GET(req: Request) {
         } 
       },
       orderBy: { createdAt: 'desc' },
-    });
+    }));
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
 
@@ -139,25 +144,25 @@ export async function POST(req: Request) {
         where.studentBatches = { some: { id: batchId } };
       }
 
-      const students = await prisma.user.findMany({ 
+      const students = await withDbRetry(() => prisma.user.findMany({ 
         where,
         select: {
           id: true,
           username: true,
           studentProfile: { select: { baseFee: true } }
         }
-      });
+      }));
       
       let count = 0;
       for (const s of students) {
         // Prevent duplicate for same month and title
-        const existing = await prisma.payment.findFirst({
+        const existing = await withDbRetry(() => prisma.payment.findFirst({
           where: { studentId: s.id, billingMonth, title: title || 'Monthly Fee' }
-        });
+        }));
         if (existing) continue;
 
         const finalAssignedAmount = amount || s.studentProfile?.baseFee || 0;
-        await prisma.payment.create({
+        await withDbRetry(() => prisma.payment.create({
           data: {
             studentId: s.id,
             amount: finalAssignedAmount,
@@ -169,11 +174,11 @@ export async function POST(req: Request) {
             discount: discount || 0,
             remarks
           }
-        });
+        }));
 
         // Notify Student
         try {
-          await prisma.notification.create({
+          await withDbRetry(() => prisma.notification.create({
             data: {
               userId: s.id,
               title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
@@ -181,7 +186,7 @@ export async function POST(req: Request) {
               type: 'FEE',
               isRead: false
             }
-          });
+          }));
         } catch (err) {
           console.error("Failed to notify student of fee assignment:", err);
         }
@@ -198,20 +203,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, count });
     } else {
       // Individual
-      const student = await prisma.user.findUnique({ 
+      const student = await withDbRetry(() => prisma.user.findUnique({ 
         where: { username: studentId },
         select: { id: true, studentProfile: { select: { baseFee: true } } }
-      });
+      }));
       if (!student) return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
 
       // Prevent duplicate
-      const existing = await prisma.payment.findFirst({
+      const existing = await withDbRetry(() => prisma.payment.findFirst({
         where: { studentId: student.id, billingMonth, title: title || 'Monthly Fee' }
-      });
+      }));
       if (existing) return NextResponse.json({ error: 'Fee already assigned for this month' }, { status: 400 });
 
       const finalAssignedAmount = amount || student.studentProfile?.baseFee || 0;
-      const payment = await prisma.payment.create({
+      const payment = await withDbRetry(() => prisma.payment.create({
         data: {
           studentId: student.id,
           amount: finalAssignedAmount,
@@ -223,11 +228,11 @@ export async function POST(req: Request) {
           discount: discount || 0,
           remarks
         },
-      });
+      }));
 
       // Notify Student
       try {
-        await prisma.notification.create({
+        await withDbRetry(() => prisma.notification.create({
           data: {
             userId: student.id,
             title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
@@ -235,7 +240,7 @@ export async function POST(req: Request) {
             type: 'FEE',
             isRead: false
           }
-        });
+        }));
       } catch (err) {
         console.error("Failed to notify student of fee assignment:", err);
       }
@@ -268,7 +273,7 @@ export async function PATCH(req: Request) {
 
     const { id, status, paymentMethod, transactionId, discount, remarks } = validation.data;
 
-    const currentFee = await prisma.payment.findUnique({ where: { id } });
+    const currentFee = await withDbRetry(() => prisma.payment.findUnique({ where: { id } }));
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
@@ -279,7 +284,7 @@ export async function PATCH(req: Request) {
       lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days);
     }
 
-    const updated = await prisma.payment.update({
+    const updated = await withDbRetry(() => prisma.payment.update({
       where: { id },
       data: {
         status,
@@ -291,12 +296,12 @@ export async function PATCH(req: Request) {
         paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) ? (currentFee.amount + lateFine - (discount ?? currentFee.discount)) : 0,
         paidAt: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) ? new Date() : null,
       },
-    });
+    }));
 
     // Notify the student that their payment has been verified & recorded in ledger
     if (status === 'VERIFIED' || status === 'PAID') {
       try {
-        await prisma.notification.create({
+        await withDbRetry(() => prisma.notification.create({
           data: {
             userId: currentFee.studentId,
             title: '✅ Fee Payment Verified',
@@ -304,7 +309,7 @@ export async function PATCH(req: Request) {
             type: 'FEE',
             isRead: false
           }
-        });
+        }));
       } catch (err) {
         console.error('Failed to send notification to student:', err);
       }
@@ -335,7 +340,7 @@ export async function PUT(req: Request) {
     const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks } = body;
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
 
-    const existing = await prisma.payment.findUnique({ where: { id } });
+    const existing = await withDbRetry(() => prisma.payment.findUnique({ where: { id } }));
     if (!existing) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
     const updateData: any = {};
@@ -367,10 +372,10 @@ export async function PUT(req: Request) {
       }
     }
 
-    const updated = await prisma.payment.update({
+    const updated = await withDbRetry(() => prisma.payment.update({
       where: { id },
       data: updateData,
-    });
+    }));
 
     await logActivity(
       session.user.id,
@@ -396,7 +401,7 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
-    await prisma.payment.delete({ where: { id } });
+    await withDbRetry(() => prisma.payment.delete({ where: { id } }));
 
     await logActivity(
       session.user.id,

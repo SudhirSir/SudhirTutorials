@@ -2,15 +2,22 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 // GET /api/admin/students/[id] — Fetch full student profile by username
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
     // Find by username (STU*****) or internal id
-    const user = await prisma.user.findFirst({
+    const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
         OR: [
           { username: id },
@@ -24,7 +31,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           orderBy: { createdAt: 'desc' },
         },
       },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
@@ -40,6 +47,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 // PUT /api/admin/students/[id] — Update student profile fields
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await req.json();
 
@@ -67,12 +79,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     } = body;
 
     // Find the user first
-    const user = await prisma.user.findFirst({
+    const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
         OR: [{ username: id }, { id }],
         role: 'STUDENT',
       },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
@@ -80,37 +92,37 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Update name and isActive on the User model if provided
     if (name !== undefined || isActive !== undefined) {
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: user.id },
         data: { 
           ...(name !== undefined && { name }),
           ...(isActive !== undefined && { isActive: Boolean(isActive) }),
         },
-      });
+      }));
     }
 
     if (batch !== undefined) {
       // Clear previous batches
-      await prisma.user.update({
+      await withDbRetry(() => prisma.user.update({
         where: { id: user.id },
         data: { studentBatches: { set: [] } }
-      });
+      }));
       
       if (batch) {
-        const matchedBatch = await prisma.batch.findFirst({
+        const matchedBatch = await withDbRetry(() => prisma.batch.findFirst({
           where: { OR: [{ name: batch }, { id: batch }] }
-        });
+        }));
         if (matchedBatch) {
-          await prisma.user.update({
+          await withDbRetry(() => prisma.user.update({
             where: { id: user.id },
             data: { studentBatches: { connect: { id: matchedBatch.id } } }
-          });
+          }));
         }
       }
     }
 
     // Upsert the StudentProfile
-    const profile = await prisma.studentProfile.upsert({
+    const profile = await withDbRetry(() => prisma.studentProfile.upsert({
       where: { userId: user.id },
       update: {
         ...(rollNumber !== undefined && { rollNumber }),
@@ -152,10 +164,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         marksTotal: marksTotal ? parseFloat(String(marksTotal)) : null,
         baseFee: baseFee ? parseFloat(String(baseFee)) : 0,
       },
-    });
+    }));
 
     try {
-      await prisma.notification.create({
+      await withDbRetry(() => prisma.notification.create({
         data: {
           userId: user.id,
           title: '📝 Profile Updated',
@@ -163,7 +175,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           type: 'SYSTEM',
           isRead: false
         }
-      });
+      }));
     } catch (err) {
       console.error('Failed to send notification to student:', err);
     }
@@ -178,24 +190,29 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 // DELETE /api/admin/students/[id] — Delete student account
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
     // Find the user first
-    const user = await prisma.user.findFirst({
+    const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
         OR: [{ username: id }, { id }],
         role: 'STUDENT',
       },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
     // Delete the user (cascade will handle StudentProfile)
-    await prisma.user.delete({
+    await withDbRetry(() => prisma.user.delete({
       where: { id: user.id },
-    });
+    }));
 
     return NextResponse.json({ success: true, message: 'Student deleted successfully' });
   } catch (error: any) {

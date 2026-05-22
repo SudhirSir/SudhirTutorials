@@ -22,6 +22,16 @@ export async function GET(req: Request) {
     }));
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+    // Role-based Access Control (RBAC) to prevent IDOR
+    if (session.user.role !== 'ADMIN') {
+      if (session.user.role === 'STUDENT' && targetUserId !== session.user.id) {
+        return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
+      }
+      if (session.user.role === 'TEACHER' && targetUserId !== session.user.id && user.role !== 'STUDENT') {
+        return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
+      }
+    }
+
     const profile = user.role === 'STUDENT'
       ? user.studentProfile
       : (user.role === 'TEACHER' || user.role === 'ADMIN')
