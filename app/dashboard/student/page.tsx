@@ -76,6 +76,8 @@ function StudentDashboardContent() {
   const [razorpayMethod, setRazorpayMethod] = useState('UPI');
   const [razorpayUpiApp, setRazorpayUpiApp] = useState('GPay');
   const [razorpayTxId, setRazorpayTxId] = useState('');
+  const [razorpayLink, setRazorpayLink] = useState('https://razorpay.me/@sudhirtutorials');
+  const [ledgerRefreshTrigger, setLedgerRefreshTrigger] = useState(0);
 
   // Digital Guru Ji AI states
   const [guruQuestion, setGuruQuestion] = useState('');
@@ -185,10 +187,13 @@ function StudentDashboardContent() {
 
   const fetchFees = async () => {
     try {
-      const res = await fetch('/api/student/fees');
+      const res = await fetch('/api/student/fees', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setFees(data.fees || []);
+        if (data.razorpayLink) {
+          setRazorpayLink(data.razorpayLink);
+        }
       }
     } catch (e) { console.error(e); }
   };
@@ -258,6 +263,7 @@ function StudentDashboardContent() {
 
       if (res.ok) {
         setRazorpaySuccess(true);
+        setLedgerRefreshTrigger(prev => prev + 1); // force ledger to re-fetch immediately
         fetchFees(); // refresh fee history
         router.refresh(); // force instant layout refresh
         // Wait 2.5s for success checkmark before closing modal
@@ -656,7 +662,7 @@ function StudentDashboardContent() {
             </div>
           )}
           
-          <StudentLedger onPayOnline={handlePayOnline} onViewReceipt={viewReceipt} />
+          <StudentLedger onPayOnline={handlePayOnline} onViewReceipt={viewReceipt} refreshTrigger={ledgerRefreshTrigger} />
         </div>
       )}
 
@@ -1051,15 +1057,9 @@ function StudentDashboardContent() {
                   <div style={{ marginBottom: '1.5rem' }}>
                     <span style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Step 1: Complete Payment</span>
                     <a
-                      href={`https://razorpay.me/@sudhiir?amount=${payAmount}`}
+                      href={`${razorpayLink}?amount=${payAmount}`}
                       target="_blank"
                       rel="noreferrer"
-                      onClick={() => {
-                        if (!razorpayTxId.trim()) {
-                          const generatedTxId = `pay_${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
-                          setRazorpayTxId(generatedTxId);
-                        }
-                      }}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
                         width: '100%', padding: '1.1rem', borderRadius: '16px',

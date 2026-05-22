@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -14,31 +17,36 @@ export async function GET() {
 
     const studentId = (session.user as any).id;
 
-    const rawFees = await prisma.payment.findMany({
-      where: { studentId },
-      include: {
-        student: {
-          select: {
-            name: true,
-            username: true,
-            studentProfile: {
-              select: {
-                rollNumber: true,
-                registrationNo: true,
-                className: true,
-                grade: true,
-                batch: true,
-                phone: true,
-                email: true,
-                fatherName: true,
-                address: true,
+    const [rawFees, razorpaySettings] = await Promise.all([
+      withDbRetry(() => prisma.payment.findMany({
+        where: { studentId },
+        include: {
+          student: {
+            select: {
+              name: true,
+              username: true,
+              studentProfile: {
+                select: {
+                  rollNumber: true,
+                  registrationNo: true,
+                  className: true,
+                  grade: true,
+                  batch: true,
+                  phone: true,
+                  email: true,
+                  fatherName: true,
+                  address: true,
+                }
               }
             }
           }
-        }
-      },
-      orderBy: { dueDate: 'desc' }
-    });
+        },
+        orderBy: { dueDate: 'desc' }
+      })),
+      withDbRetry(() => prisma.systemSetting.findFirst({
+        where: { key: 'razorpayLink' }
+      }))
+    ]);
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
 
@@ -61,7 +69,15 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ fees });
+    const razorpayLink = razorpaySettings?.value || 'https://razorpay.me/@sudhirtutorials';
+
+    return NextResponse.json({ fees, razorpayLink }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   } catch (error) {
     console.error('Error fetching student fees:', error);
     return NextResponse.json({ error: 'Failed to fetch fee data' }, { status: 500 });

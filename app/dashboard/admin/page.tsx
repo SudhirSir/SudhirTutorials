@@ -111,6 +111,7 @@ function AdminDashboardContent() {
   // System Settings States
   const [perDayFine, setPerDayFine] = useState(10);
   const [flatFineAfter10Days, setFlatFineAfter10Days] = useState(100);
+  const [razorpayLink, setRazorpayLink] = useState('https://razorpay.me/@sudhirtutorials');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
 
@@ -946,6 +947,7 @@ function AdminDashboardContent() {
         const data = await res.json();
         setPerDayFine(data.perDayFine ?? 10);
         setFlatFineAfter10Days(data.flatFineAfter10Days ?? 100);
+        setRazorpayLink(data.razorpayLink || 'https://razorpay.me/@sudhirtutorials');
       }
     } catch (e) {
       console.error(e);
@@ -961,7 +963,7 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ perDayFine, flatFineAfter10Days })
+        body: JSON.stringify({ perDayFine, flatFineAfter10Days, razorpayLink })
       });
       if (res.ok) {
         alert('System settings updated successfully!');
@@ -5335,6 +5337,42 @@ function AdminDashboardContent() {
               </div>
             </div>
           </div>
+
+          {/* Razorpay Gateway Configuration Card */}
+          <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
+              💳 Razorpay Payment Gateway
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              Configure the official Razorpay payment link that students use to pay their fees. This link is shown on the student payment portal. Use format: <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>https://razorpay.me/@your-handle</code>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Razorpay Payment Link URL</label>
+                <input
+                  type="url"
+                  value={razorpayLink}
+                  onChange={e => setRazorpayLink(e.target.value)}
+                  placeholder="https://razorpay.me/@sudhirtutorials"
+                  style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                />
+                <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Students will be redirected to this URL with the fee amount pre-filled when they click "Pay Securely".</small>
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <strong style={{ color: '#10b981' }}>Current Link: </strong>
+                <a href={razorpayLink} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', wordBreak: 'break-all' }}>{razorpayLink}</a>
+              </div>
+              <button
+                type="button"
+                disabled={isSavingSettings}
+                onClick={(e) => handleSaveSettings(e as any)}
+                className="btn-primary"
+                style={{ padding: '1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: isSavingSettings ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isSavingSettings ? 0.7 : 1 }}
+              >
+                {isSavingSettings ? 'Saving...' : '💾 Save Payment Gateway Link'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -5809,6 +5847,7 @@ function AdminDashboardContent() {
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Complete Fee Statement Ledger</h3>
                   <StudentLedger 
                     studentId={selectedUserDetail.id}
+                    refreshTrigger={financeRefreshTrigger}
                     onViewReceipt={async (feeId) => {
                       try {
                         const res = await fetch(`/api/student/fees/receipt/${feeId}`);

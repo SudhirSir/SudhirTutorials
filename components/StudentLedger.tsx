@@ -28,10 +28,11 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
   const fetchLedger = async () => {
     setLoading(true);
     try {
+      const cacheBust = `t=${Date.now()}`;
       const url = studentId
-        ? `/api/admin/finances?studentId=${studentId}`
-        : `/api/student/fees`;
-      const res = await fetch(url);
+        ? `/api/admin/finances?studentId=${studentId}&${cacheBust}`
+        : `/api/student/fees?${cacheBust}`;
+      const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setFees(data.fees || []);
