@@ -16,14 +16,16 @@ prisma.$connect().catch(() => {
 
 /**
  * Executes a Prisma query or operation with automatic retries for transient
- * database connection failures or pool exhaustion.
+ * database connection failures, cold starts, or pool exhaustion.
  */
 export async function withDbRetry<T>(
   fn: () => Promise<T>,
-  retries: number = 3,
-  delayMs: number = 350
+  retries: number = 5,
+  delayMs: number = 500,
+  exponential: boolean = true
 ): Promise<T> {
   let attempt = 0;
+  let currentDelay = delayMs;
   while (true) {
     try {
       return await fn();
@@ -32,9 +34,16 @@ export async function withDbRetry<T>(
       if (attempt >= retries) {
         throw error;
       }
-      console.warn(`[PRISMA DB RETRY] Attempt ${attempt}/${retries} failed. Retrying in ${delayMs}ms. Error:`, error.message || error);
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      console.warn(
+        `[PRISMA DB RETRY] Attempt ${attempt}/${retries} failed. Retrying in ${currentDelay}ms. Error:`,
+        error.message || error
+      );
+      await new Promise((resolve) => setTimeout(resolve, currentDelay));
+      if (exponential) {
+        currentDelay = Math.min(currentDelay * 2, 8000); // Cap backoff at 8 seconds
+      }
     }
   }
 }
+
 
