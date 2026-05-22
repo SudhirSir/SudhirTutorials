@@ -33,6 +33,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [preloadedUsers, setPreloadedUsers] = useState<any[]>([]);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
@@ -171,21 +172,48 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     } catch (e) { console.error(e); }
   };
 
-  const handleSearchUsers = async (q: string) => {
-    setSearchQuery(q);
-    try {
-      const res = await fetch(`/api/messages/directory?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      setSearchResults(data.users || []);
-    } catch (e) { console.error(e); }
-  };
-
-  const openNewChat = () => {
+  // Preload users exactly once when search sidebar is opened
+  const openNewChat = async () => {
     setShowUserSearch(!showUserSearch);
-    if (!showUserSearch && searchResults.length === 0) {
-      handleSearchUsers(''); // Preload some users
+    if (!showUserSearch) {
+      if (preloadedUsers.length === 0) {
+        try {
+          const res = await fetch('/api/messages/directory?q=');
+          if (res.ok) {
+            const data = await res.json();
+            setPreloadedUsers(data.users || []);
+            setSearchResults(data.users || []);
+          }
+        } catch (e) { console.error(e); }
+      } else {
+        setSearchResults(preloadedUsers);
+      }
+      setSearchQuery('');
     }
   };
+
+  // Debounced search trigger for typing searches
+  useEffect(() => {
+    if (!showUserSearch) return;
+    if (searchQuery.trim() === '') {
+      setSearchResults(preloadedUsers);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/messages/directory?q=${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data.users || []);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, showUserSearch, preloadedUsers]);
 
   const markAsRead = async (senderId: string) => {
     try {
@@ -539,7 +567,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                 type="text" 
                 placeholder="Search name or ID..." 
                 value={searchQuery}
-                onChange={e => handleSearchUsers(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', flexShrink: 0 }}
               />
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', flexShrink: 0, marginTop: '0.25rem' }}>Directory</div>
@@ -913,23 +941,23 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                )}
                
                <button 
-                 type="submit" 
-                 disabled={(!newMsg.trim() && !isUploading) || blockedUsers.includes(selectedUser.id) || isSending}
-                 style={{ 
-                   width: '40px', 
-                   height: '40px', 
-                   borderRadius: '50%', 
-                   background: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'var(--primary)' : 'rgba(255,255,255,0.05)', 
-                   color: 'white', 
-                   border: 'none', 
-                   display: 'flex', 
-                   alignItems: 'center', 
-                   justifyContent: 'center', 
-                   cursor: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'pointer' : 'default', 
-                   transition: 'all 0.2s',
-                   flexShrink: 0
-                 }}
-               >
+                  type="submit" 
+                  disabled={(!newMsg.trim() && !isUploading) || blockedUsers.includes(selectedUser.id) || isSending}
+                  style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    borderRadius: '50%', 
+                    background: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'var(--primary)' : 'var(--card-bg-alt)', 
+                    color: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'white' : 'var(--text-muted)', 
+                    border: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'none' : '1px solid var(--border)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    cursor: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'pointer' : 'default', 
+                    transition: 'all 0.2s',
+                    flexShrink: 0
+                  }}
+                >
                  {isSending ? (
                    <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                  ) : (

@@ -45,15 +45,17 @@ function TeacherDashboardContent() {
   };
 
   useEffect(() => {
+    if (!session?.user) return;
     fetchUnreadCounts();
     const interval = setInterval(fetchUnreadCounts, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session]);
   
   useEffect(() => {
+    if (!session?.user) return;
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
-  }, [searchParams]);
+  }, [searchParams, session]);
   
   // States
   const [classes, setClasses] = useState<any[]>([]);
@@ -374,7 +376,7 @@ Depending on your specific focus, this represents the vital equation model for t
   };
 
   useEffect(() => {
-    router.refresh();
+    if (!session?.user) return;
     fetchUnreadCounts();
     if (activeTab === 'classes') {
       fetchClasses();
@@ -394,19 +396,21 @@ Depending on your specific focus, this represents the vital equation model for t
     if (activeTab === 'profile') {
       fetchProfile();
     }
-  }, [activeTab]);
+  }, [activeTab, session]);
 
   useEffect(() => {
+    if (!session?.user) return;
     if (activeTab === 'students') {
       fetchStudents();
     }
-  }, [studentSearchQuery, studentBatchQuery]);
+  }, [studentSearchQuery, studentBatchQuery, session, activeTab]);
 
   useEffect(() => {
+    if (!session?.user) return;
     if (attBatchId) {
       fetchAttendance();
     }
-  }, [attBatchId, attDate]);
+  }, [attBatchId, attDate, session]);
 
   const fetchClasses = async () => {
     try {

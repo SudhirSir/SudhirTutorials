@@ -62,12 +62,14 @@ function AdminDashboardContent() {
   };
 
   useEffect(() => {
+    if (!session?.user) return;
     fetchUnreadCounts();
     const interval = setInterval(fetchUnreadCounts, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session]);
 
   useEffect(() => {
+    if (!session?.user) return;
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
     if (tab === 'courses') {
@@ -77,7 +79,7 @@ function AdminDashboardContent() {
       // Fetch all students automatically for batch enrollment
       fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []));
     }
-  }, [searchParams]);
+  }, [searchParams, session]);
 
   const fetchTeachers = async () => {
     try {
@@ -1203,7 +1205,7 @@ function AdminDashboardContent() {
   };
 
   useEffect(() => {
-    router.refresh();
+    if (!session?.user) return;
     fetchUnreadCounts();
     if (activeTab === 'overview') {
       fetchOverviewStats();
@@ -1253,7 +1255,7 @@ function AdminDashboardContent() {
       fetchTeachers();
       fetchAdminSalaries();
     }
-  }, [activeTab, academicSubTab]);
+  }, [activeTab, academicSubTab, session]);
 
   const fetchReports = async () => {
     setIsReportsLoading(true);

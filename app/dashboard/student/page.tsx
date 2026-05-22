@@ -47,15 +47,17 @@ function StudentDashboardContent() {
   };
 
   useEffect(() => {
+    if (!session?.user) return;
     fetchUnreadCounts();
     const interval = setInterval(fetchUnreadCounts, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session]);
   
   useEffect(() => {
+    if (!session?.user) return;
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
-  }, [searchParams]);
+  }, [searchParams, session]);
   
   const [dashboard, setDashboard] = useState<{ name: string, batches: any[], feeHighlight: any } | null>(null);
   const [materials, setMaterials] = useState<any[]>([]);
@@ -158,6 +160,7 @@ function StudentDashboardContent() {
   };
 
   useEffect(() => {
+    if (!session?.user) return;
     fetchUnreadCounts();
     if (activeTab === 'dashboard') {
       fetchDashboard();
@@ -166,7 +169,7 @@ function StudentDashboardContent() {
     if (activeTab === 'materials') fetchMaterials();
     if (activeTab === 'fees') fetchFees();
     if (activeTab === 'tests') fetchTests();
-  }, [activeTab]);
+  }, [activeTab, session]);
 
   const fetchDashboard = async () => {
     try {
