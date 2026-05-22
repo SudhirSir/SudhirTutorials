@@ -5243,51 +5243,54 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'settings' && (
-        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
           {/* Welcome/Overview Header Banner */}
-          <div className="glass-card" style={{ padding: '2.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, color: '#ef4444' }}>⚙️ System Settings & Control Panel</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.5rem', maxWidth: '750px' }}>
+          <div className="glass-card" style={{ padding: '1.5rem 2rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚙️ System Settings & Control Panel
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.35rem', maxWidth: '700px', lineHeight: '1.5' }}>
               Fine-tune automated operations, penalty matrices, and payment deadlines. These adjustments take effect immediately across all student fee accounts.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
-            <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
-                💰 Late Fee Penalty Policy
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+            {/* Penalty Configuration Card */}
+            <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>💰</span> Late Fee Penalty Policy
               </h3>
               
               {isLoadingSettings ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
-                  <div style={{ width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem', flex: 1, alignItems: 'center' }}>
+                  <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                 </div>
               ) : (
-                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Daily Penalty Rate (₹)</label>
+                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
+                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Daily Penalty Rate (₹)</label>
                     <input 
                       type="number" 
                       min="0"
                       required 
                       value={perDayFine} 
                       onChange={e => setPerDayFine(parseFloat(e.target.value) || 0)} 
-                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
                     />
-                    <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fines accumulated per day for unpaid fees past the specified due date.</small>
+                    <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>Fines accumulated per day for unpaid fees past the specified due date.</small>
                   </div>
 
-                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Flat Fine After 10 Days delay (₹)</label>
+                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Flat Fine After 10 Days delay (₹)</label>
                     <input 
                       type="number" 
                       min="0"
                       required 
                       value={flatFineAfter10Days} 
                       onChange={e => setFlatFineAfter10Days(parseFloat(e.target.value) || 0)} 
-                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
                     />
-                    <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>One-time surcharge automatically tacked onto invoice when payment is overdue by more than 10 days.</small>
+                    <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>One-time surcharge automatically tacked onto invoice when payment is overdue by more than 10 days.</small>
                   </div>
 
                   <button 
@@ -5295,15 +5298,17 @@ function AdminDashboardContent() {
                     disabled={isSavingSettings}
                     className="btn-primary"
                     style={{ 
-                      padding: '1rem', 
+                      padding: '0.65rem 1.25rem', 
                       background: 'var(--primary)', 
                       color: 'white', 
                       border: 'none', 
-                      borderRadius: '12px', 
+                      borderRadius: '10px', 
                       fontWeight: 700, 
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      marginTop: '1rem'
+                      marginTop: '0.75rem',
+                      alignSelf: 'flex-start',
+                      fontSize: '0.875rem'
                     }}
                   >
                     {isSavingSettings ? 'Saving Settings...' : '💾 Apply Penalty Rules'}
@@ -5312,26 +5317,27 @@ function AdminDashboardContent() {
               )}
             </div>
 
-            <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            {/* Explanatory Mechanics Card */}
+            <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
-                  ℹ️ Penalty Calculation Mechanics
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>ℹ️</span> Penalty Calculation Mechanics
                 </h3>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '1rem', lineHeight: '1.6' }}>
-                  <p>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', lineHeight: '1.5' }}>
+                  <p style={{ margin: 0 }}>
                     <strong>Calculation Trigger:</strong> Late fines are generated only when the invoice status remains <code>PENDING</code> beyond its formal due date.
                   </p>
-                  <p>
+                  <p style={{ margin: 0 }}>
                     <strong>Daily Accumulation:</strong> Outstanding invoices increment by the specified <code>Daily Rate</code> each consecutive morning the fee remains unpaid.
                   </p>
-                  <p>
+                  <p style={{ margin: 0 }}>
                     <strong>10-Day Flat Threshold:</strong> Once an invoice is 11 or more days overdue, a secondary flat charge is added on top of the daily incremental fine to prompt urgent settlement.
                   </p>
                 </div>
               </div>
-              <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '12px', marginTop: '1.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>⚠️ Safety Warning</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Changing these settings does not retroactively rewrite already completed checkout invoices, but applies to future daily late fee calculation rounds.</span>
+              <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', borderRadius: '10px', marginTop: '1.25rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>⚠️ Safety Warning</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4', display: 'block' }}>Changing these settings does not retroactively rewrite already completed checkout invoices, but applies to future daily late fee calculation rounds.</span>
               </div>
             </div>
           </div>

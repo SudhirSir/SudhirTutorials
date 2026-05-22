@@ -4,12 +4,28 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 
+async function ensureSystemSettingTable() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "SystemSetting" (
+        "id" TEXT PRIMARY KEY,
+        "key" TEXT UNIQUE NOT NULL,
+        "value" TEXT NOT NULL
+      );
+    `);
+  } catch (err) {
+    console.error('Failed to auto-create SystemSetting table:', err);
+  }
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    await ensureSystemSettingTable();
 
     const settings = await prisma.systemSetting.findMany();
     const settingsMap = settings.reduce((acc: any, s) => {
@@ -40,6 +56,8 @@ export async function POST(req: Request) {
 
     const { perDayFine, flatFineAfter10Days } = await req.json();
 
+    await ensureSystemSettingTable();
+
     if (perDayFine !== undefined) {
       await prisma.systemSetting.upsert({
         where: { key: 'perDayFine' },
@@ -68,3 +86,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 }
+
