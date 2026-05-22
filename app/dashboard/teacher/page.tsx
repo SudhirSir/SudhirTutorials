@@ -57,6 +57,8 @@ function TeacherDashboardContent() {
   
   // States
   const [classes, setClasses] = useState<any[]>([]);
+  const [salaries, setSalaries] = useState<any[]>([]);
+  const [fetchingSalaries, setFetchingSalaries] = useState(false);
   const [materials, setMaterials] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
@@ -356,7 +358,23 @@ Depending on your specific focus, this represents the vital equation model for t
     }
   }, [profile]);
 
+  const fetchSalaries = async () => {
+    setFetchingSalaries(true);
+    try {
+      const res = await fetch('/api/teacher/salaries');
+      if (res.ok) {
+        const data = await res.json();
+        setSalaries(data.salaries || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFetchingSalaries(false);
+    }
+  };
+
   useEffect(() => {
+    router.refresh();
     fetchUnreadCounts();
     if (activeTab === 'classes') {
       fetchClasses();
@@ -369,6 +387,9 @@ Depending on your specific focus, this represents the vital equation model for t
     }
     if (activeTab === 'tests') {
       fetchTests();
+    }
+    if (activeTab === 'salary') {
+      fetchSalaries();
     }
     if (activeTab === 'profile') {
       fetchProfile();
@@ -613,7 +634,7 @@ Depending on your specific focus, this represents the vital equation model for t
       </header>
 
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
-        {['classes', 'materials', 'students', 'attendance', 'tests', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
+        {['classes', 'materials', 'students', 'attendance', 'tests', 'salary', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => handleTabChange(tab)}
@@ -640,6 +661,7 @@ Depending on your specific focus, this represents the vital equation model for t
              tab === 'students' ? 'My Students' :
              tab === 'attendance' ? 'Mark Attendance' :
              tab === 'tests' ? 'Tests & Marks' :
+             tab === 'salary' ? 'Salary Records' :
              tab === 'lectures' ? 'Live Classes' :
              tab === 'guru-ai' ? 'Guru AI Workspace' :
              tab === 'messages' ? 'Messages' :
@@ -1619,6 +1641,116 @@ Depending on your specific focus, this represents the vital equation model for t
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'salary' && (
+        <div className="glass-card animate-scale-up" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>My Salary Records</h2>
+              <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Detailed historical record of your base salary, bonus payments, deductions, and payouts</p>
+            </div>
+            <button
+              onClick={fetchSalaries}
+              disabled={fetchingSalaries}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid #10b981',
+                color: '#34d399',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {fetchingSalaries ? 'Refreshing...' : '🔄 Refresh'}
+            </button>
+          </div>
+
+          {/* Quick Metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ padding: '1.25rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Earnings Received</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', marginTop: '0.4rem', display: 'block' }}>
+                ₹{salaries.filter(s => s.status === 'PAID').reduce((acc, s) => acc + s.netPaid, 0).toLocaleString('en-IN')}
+              </span>
+            </div>
+            <div style={{ padding: '1.25rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Last Paid Salary</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text)', marginTop: '0.4rem', display: 'block' }}>
+                {(() => {
+                  const paid = salaries.filter(s => s.status === 'PAID');
+                  return paid.length > 0 ? `₹${paid[0].netPaid.toLocaleString('en-IN')}` : '₹0';
+                })()}
+              </span>
+            </div>
+            <div style={{ padding: '1.25rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pending Invoices / Slips</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.4rem', display: 'block' }}>
+                {salaries.filter(s => s.status === 'PENDING').length}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--surface-light)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '750px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 800 }}>
+                  <th style={{ padding: '1.1rem 1.5rem' }}>Billing Month</th>
+                  <th>Base Salary</th>
+                  <th>Bonus</th>
+                  <th>Deductions</th>
+                  <th>Net Paid</th>
+                  <th>Status</th>
+                  <th>Transaction Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {salaries.map((s) => (
+                  <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
+                    <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)', fontWeight: 700 }}>{s.month}</td>
+                    <td style={{ color: 'var(--text)', fontWeight: 600 }}>₹{s.baseSalary.toLocaleString('en-IN')}</td>
+                    <td style={{ color: '#10b981', fontWeight: 600 }}>+₹{s.bonus.toLocaleString('en-IN')}</td>
+                    <td style={{ color: '#ef4444', fontWeight: 600 }}>-₹{s.deductions.toLocaleString('en-IN')}</td>
+                    <td style={{ color: 'var(--text)', fontWeight: 800 }}>₹{s.netPaid.toLocaleString('en-IN')}</td>
+                    <td>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        background: s.status === 'PAID' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                        color: s.status === 'PAID' ? '#10b981' : '#f59e0b'
+                      }}>
+                        {s.status}
+                      </span>
+                    </td>
+                    <td>
+                      {s.status === 'PAID' ? (
+                        <div>
+                          <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.transactionId}</div>
+                          {s.paidAt && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Paid {new Date(s.paidAt).toLocaleDateString('en-GB')}</div>}
+                        </div>
+                      ) : (
+                        <span style={{ fontStyle: 'italic', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Processing payout...</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {salaries.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      No salary history or slips generated yet. Please contact the administrator.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -7,7 +7,12 @@
  * - >10 days late: flat Rs 100 cap.
  * - If paid or verified: no fine.
  */
-export function calculateLateFine(dueDate: Date, status: string): number {
+export function calculateLateFine(
+  dueDate: Date,
+  status: string,
+  perDayFine: number = 10,
+  flatFineAfter10Days: number = 100
+): number {
   if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') return 0;
 
   const now = new Date();
@@ -21,12 +26,11 @@ export function calculateLateFine(dueDate: Date, status: string): number {
   const daysLate = Math.floor((today.getTime() - dueDay.getTime()) / msPerDay);
 
   if (daysLate <= 0) return 0;          // Not yet overdue
-  if (daysLate <= 10) return daysLate * 10;  // Rs 10/day
+  if (daysLate <= 10) return daysLate * perDayFine;  // Configurable per-day fine
   
-  // If > 10 days, it's ₹100 per month. 
-  // We calculate months based on 30-day buckets.
+  // If > 10 days, it's configurable cap per month (30-day buckets).
   const monthsLate = Math.floor((daysLate - 1) / 30) + 1;
-  return monthsLate * 100;
+  return monthsLate * flatFineAfter10Days;
 }
 
 export function formatDate(dateVal: any): string {

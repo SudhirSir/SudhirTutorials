@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
+import { getLateFineSettings } from '@/lib/feeSettings';
 
 export async function GET() {
   try {
@@ -39,6 +40,8 @@ export async function GET() {
       orderBy: { dueDate: 'desc' }
     });
 
+    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+
     const fees = rawFees.map((fee: any) => {
       const now = new Date();
       const due = new Date(fee.dueDate);
@@ -47,7 +50,7 @@ export async function GET() {
       const daysLate = Math.floor((today.getTime() - dueDay.getTime()) / (1000 * 60 * 60 * 24));
 
       const currentFine = fee.status === 'PENDING'
-        ? calculateLateFine(fee.dueDate, fee.status)
+        ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days)
         : fee.lateFine;
       return {
         ...fee,

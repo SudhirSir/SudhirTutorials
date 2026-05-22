@@ -69,6 +69,7 @@ function StudentDashboardContent() {
 
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [razorpayFee, setRazorpayFee] = useState<any>(null);
+  const [payAmount, setPayAmount] = useState<string>('');
   const [isRazorpayPaying, setIsRazorpayPaying] = useState(false);
   const [razorpaySuccess, setRazorpaySuccess] = useState(false);
   const [razorpayMethod, setRazorpayMethod] = useState('UPI');
@@ -156,6 +157,7 @@ function StudentDashboardContent() {
   };
 
   useEffect(() => {
+    router.refresh();
     fetchUnreadCounts();
     if (activeTab === 'dashboard') fetchDashboard();
     if (activeTab === 'materials') fetchMaterials();
@@ -201,7 +203,14 @@ function StudentDashboardContent() {
   };
 
   const handlePayOnline = (fee: any) => {
-    setRazorpayFee(fee);
+    const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
+    const calculatedTotal = Math.max(0, fee.amount + fineVal - (fee.discount || 0));
+    
+    setRazorpayFee({
+      ...fee,
+      totalAmount: calculatedTotal
+    });
+    setPayAmount(calculatedTotal.toString());
     setIsRazorpayOpen(true);
     setRazorpaySuccess(false);
     setIsRazorpayPaying(false);
@@ -222,13 +231,15 @@ function StudentDashboardContent() {
         body: JSON.stringify({
           feeId: razorpayFee.id,
           transactionId: razorpayTxId,
-          paymentMethod: 'Razorpay Direct Link'
+          paymentMethod: 'Razorpay Direct Link',
+          customAmount: parseFloat(payAmount)
         })
       });
 
       if (res.ok) {
         setRazorpaySuccess(true);
         fetchFees(); // refresh fee history
+        router.refresh(); // force instant layout refresh
         // Wait 2.5s for success checkmark before closing modal
         setTimeout(() => {
           setIsRazorpayOpen(false);
@@ -359,7 +370,7 @@ function StudentDashboardContent() {
              tab === 'attendance' ? 'My Attendance' :
              tab === 'materials' ? 'Study Materials' :
              tab === 'tests' ? 'Tests & Marks' :
-             tab === 'fees' ? 'Student Fee Statement' :
+             tab === 'fees' ? 'Pay/View fees' :
              tab === 'lectures' ? 'Live Classes' :
              tab === 'guru-ji' ? 'Digital Guru Ji' :
              tab === 'messages' ? 'Messages' :
@@ -862,14 +873,59 @@ function StudentDashboardContent() {
                   </div>
                 </div>
 
-                <div style={{ marginTop: '2rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Total Fee Amount</span>
-                  <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text)', marginTop: '4px' }}>
-                    ₹{razorpayFee.totalAmount.toFixed(0)}
+                <div style={{ marginTop: '1.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Amount to Pay (₹)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '4px' }}>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-muted)' }}>₹</span>
+                    <input
+                      type="number"
+                      value={payAmount}
+                      min="1"
+                      max={razorpayFee.totalAmount}
+                      onChange={(e) => setPayAmount(e.target.value)}
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '10px',
+                        color: 'var(--text)',
+                        fontSize: '1.5rem',
+                        fontWeight: 800,
+                        width: '100%',
+                        padding: '0.4rem 0.8rem',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                    />
                   </div>
-                  <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'block', marginTop: '4px' }}>
-                    ✔ No manual entry required
-                  </span>
+                  {parseFloat(payAmount) < razorpayFee.totalAmount && parseFloat(payAmount) > 0 && (
+                    <div style={{
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      borderRadius: '10px',
+                      padding: '0.65rem 0.75rem',
+                      marginTop: '0.75rem',
+                      fontSize: '0.75rem',
+                      color: '#f59e0b',
+                      lineHeight: '1.3',
+                      backdropFilter: 'blur(4px)'
+                    }}>
+                      ⚠️ <strong>Partial Payment Alert:</strong> The remaining balance of <strong>₹{(razorpayFee.totalAmount - parseFloat(payAmount)).toFixed(2)}</strong> will be added as outstanding dues.
+                    </div>
+                  )}
+                  {parseFloat(payAmount) > razorpayFee.totalAmount && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '10px',
+                      padding: '0.65rem 0.75rem',
+                      marginTop: '0.75rem',
+                      fontSize: '0.75rem',
+                      color: '#ef4444',
+                      lineHeight: '1.3'
+                    }}>
+                      ❌ <strong>Error:</strong> Amount cannot exceed <strong>₹{razorpayFee.totalAmount.toFixed(0)}</strong>.
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.5rem' }}>
@@ -884,7 +940,7 @@ function StudentDashboardContent() {
                 <div>
                   <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>Official Razorpay Gateway</h4>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
-                    Please click the button below to complete your payment of <strong style={{ color: 'var(--text)' }}>₹{razorpayFee.totalAmount.toFixed(0)}</strong> securely via Razorpay's official portal.
+                    Please click the button below to complete your payment of <strong style={{ color: 'var(--text)' }}>₹{parseFloat(payAmount || '0').toFixed(0)}</strong> securely via Razorpay's official portal.
                   </p>
                   
                   {/* Step 1: Open Link */}
@@ -963,10 +1019,15 @@ function StudentDashboardContent() {
                   </button>
                   <button
                     type="button"
-                    disabled={!razorpayTxId.trim()}
+                    disabled={!razorpayTxId.trim() || !payAmount || parseFloat(payAmount) <= 0 || parseFloat(payAmount) > razorpayFee.totalAmount}
                     onClick={handleRazorpaySubmit}
                     className="btn-primary"
-                    style={{ flex: 2, padding: '0.85rem', background: '#10b981', color: '#fff', border: 'none', opacity: razorpayTxId.trim() ? 1 : 0.5, cursor: razorpayTxId.trim() ? 'pointer' : 'not-allowed', fontWeight: 700 }}
+                    style={{
+                      flex: 2, padding: '0.85rem', background: '#10b981', color: '#fff', border: 'none',
+                      opacity: (razorpayTxId.trim() && payAmount && parseFloat(payAmount) > 0 && parseFloat(payAmount) <= razorpayFee.totalAmount) ? 1 : 0.5,
+                      cursor: (razorpayTxId.trim() && payAmount && parseFloat(payAmount) > 0 && parseFloat(payAmount) <= razorpayFee.totalAmount) ? 'pointer' : 'not-allowed',
+                      fontWeight: 700
+                    }}
                   >
                     Confirm & Submit Details
                   </button>
@@ -1014,7 +1075,7 @@ function StudentDashboardContent() {
                 </div>
                 <h2 style={{ color: '#fff', fontSize: '1.75rem', fontWeight: 800 }}>Payment Successful!</h2>
                 <p style={{ color: '#10b981', fontSize: '0.95rem', fontWeight: 600, marginTop: '0.5rem' }}>
-                  ₹{razorpayFee.totalAmount.toFixed(0)} Paid Online via {razorpayMethod}
+                  ₹{parseFloat(payAmount || '0').toFixed(0)} Paid Online via {razorpayMethod}
                 </p>
                 <div style={{ 
                   background: 'rgba(255,255,255,0.02)', 

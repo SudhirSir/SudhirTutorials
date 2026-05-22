@@ -59,7 +59,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'materials', label: 'Study Material' },
     { id: 'tests', label: 'My Tests' },
-    { id: 'fees', label: 'Fee Details & Payments' },
+    { id: 'fees', label: 'Pay/View fees' },
     { id: 'messages', label: 'Messages' },
     { id: 'notifications', label: 'Notifications' },
   ];

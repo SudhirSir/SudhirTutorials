@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { logActivity } from '@/lib/activity';
 
 export async function GET() {
   try {
@@ -43,10 +44,17 @@ export async function PATCH(req: Request) {
     const { userId } = await req.json();
     if (!userId) return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { isProfileVerified: true }
+      data: { isProfileVerified: true },
+      select: { name: true, role: true }
     });
+
+    await logActivity(
+      session.user.id,
+      'VERIFY_USER',
+      `Verified ${updatedUser.role} profile for ${updatedUser.name} (ID: ${userId})`
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

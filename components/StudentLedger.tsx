@@ -19,6 +19,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
   const [loading, setLoading] = useState(true);
   const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [showMonthlyDetails, setShowMonthlyDetails] = useState(false);
 
   useEffect(() => {
     fetchLedger();
@@ -339,107 +340,177 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
 
       {/* 12-MONTH GRID */}
       {viewType === 'month' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
-          {monthlyLedger.map(({ month, record }) => {
-            const hasRecord = !!record;
-            const status = record?.status || 'NO_RECORD';
-            const isOverdue = status === 'PENDING' && (record?.lateFine > 0 || record?.currentLateFine > 0);
-            const isPaid = ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status);
-
-            let borderColor = 'rgba(255,255,255,0.06)';
-            let statusBg = 'rgba(255,255,255,0.03)';
-            let statusColor = 'var(--text-muted)';
-            let statusText = 'Not Assigned';
-
-            if (isPaid) {
-              borderColor = 'var(--secondary)'; statusBg = 'rgba(59,130,246,0.08)';
-              statusColor = 'var(--secondary)'; statusText = status === 'VERIFIED' ? 'Verified' : 'Paid';
-            } else if (isOverdue) {
-              borderColor = 'var(--primary)'; statusBg = 'rgba(239,68,68,0.08)';
-              statusColor = 'var(--primary)'; statusText = 'Overdue';
-            } else if (status === 'PENDING') {
-              borderColor = 'hsl(217,70%,65%)'; statusBg = 'rgba(59,130,246,0.05)';
-              statusColor = 'hsl(217,70%,65%)'; statusText = 'Pending';
-            }
-
-            const fineVal = Math.max(record?.lateFine || 0, record?.currentLateFine || 0);
-
-            return (
-              <div
-                key={month}
-                className="ledger-month-card"
+        <div>
+          {!showMonthlyDetails ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '3.5rem 2rem',
+              background: 'var(--surface-light)',
+              borderRadius: '16px',
+              border: '1px dashed var(--border)',
+              textAlign: 'center',
+              gap: '1rem',
+              transition: 'all 0.3s ease'
+            }}>
+              <div style={{ fontSize: '3rem', animation: 'bounce-slow 3s infinite' }}>📂</div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)' }}>Monthly Fee Structure</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>View month-by-month details, billing status, and fine statements for {selectedYear}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMonthlyDetails(true)}
+                className="btn-secondary"
                 style={{
-                  padding: '1.25rem', borderRadius: '14px',
-                  background: hasRecord ? 'var(--surface-light)' : 'var(--surface)',
-                  border: `1px solid var(--border)`, borderLeft: `4px solid ${borderColor}`,
-                  opacity: hasRecord ? 1 : 0.55,
-                  display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                  minHeight: '190px', transition: 'all 0.25s',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                 }}
               >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>{month}</span>
-                    <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{statusText}</span>
-                  </div>
-                  {hasRecord ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
-                        <span>Base Fee</span>
-                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>₹{record.amount}</span>
-                      </div>
-                      {record.discount > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary)', fontWeight: 600 }}>
-                          <span>Discount (Cr)</span>
-                          <span>-₹{record.discount}</span>
-                        </div>
-                      )}
-                      {fineVal > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 600 }}>
-                          <span>Late Fine (Dr)</span>
-                          <span>+₹{fineVal}</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No bill generated.</div>
-                  )}
-                </div>
-
-                {hasRecord && (
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginTop: '0.875rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Net Amount</span>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text)' }}>
-                          ₹{Math.max(0, record.amount + fineVal - (record.discount || 0))}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        {status === 'PENDING' && onPayOnline && (
-                          <button type="button" onClick={() => onPayOnline(record)}
-                            className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                            Pay
-                          </button>
-                        )}
-                        {isPaid && onViewReceipt && (
-                          <button type="button" onClick={() => onViewReceipt(record.id)}
-                            style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
-                            Receipt
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {record.paidAt && (
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'right' }}>
-                        Paid {new Date(record.paidAt).toLocaleDateString('en-GB')}
-                      </div>
-                    )}
-                  </div>
-                )}
+                📂 Open Monthly Fee Details
+              </button>
+              <style>{`
+                @keyframes bounce-slow {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(-6px); }
+                }
+              `}</style>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowMonthlyDetails(false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderRadius: '8px',
+                    color: '#ef4444',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  📁 Hide Monthly Details
+                </button>
               </div>
-            );
-          })}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+                {monthlyLedger.map(({ month, record }) => {
+                  const hasRecord = !!record;
+                  const status = record?.status || 'NO_RECORD';
+                  const isOverdue = status === 'PENDING' && (record?.lateFine > 0 || record?.currentLateFine > 0);
+                  const isPaid = ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status);
+
+                  let borderColor = 'rgba(255,255,255,0.06)';
+                  let statusBg = 'rgba(255,255,255,0.03)';
+                  let statusColor = 'var(--text-muted)';
+                  let statusText = 'Not Assigned';
+
+                  if (isPaid) {
+                    borderColor = 'var(--secondary)'; statusBg = 'rgba(59,130,246,0.08)';
+                    statusColor = 'var(--secondary)'; statusText = status === 'VERIFIED' ? 'Verified' : 'Paid';
+                  } else if (isOverdue) {
+                    borderColor = 'var(--primary)'; statusBg = 'rgba(239,68,68,0.08)';
+                    statusColor = 'var(--primary)'; statusText = 'Overdue';
+                  } else if (status === 'PENDING') {
+                    borderColor = 'hsl(217,70%,65%)'; statusBg = 'rgba(59,130,246,0.05)';
+                    statusColor = 'hsl(217,70%,65%)'; statusText = 'Pending';
+                  }
+
+                  const fineVal = Math.max(record?.lateFine || 0, record?.currentLateFine || 0);
+
+                  return (
+                    <div
+                      key={month}
+                      className="ledger-month-card"
+                      style={{
+                        padding: '1.25rem', borderRadius: '14px',
+                        background: hasRecord ? 'var(--surface-light)' : 'var(--surface)',
+                        border: `1px solid var(--border)`, borderLeft: `4px solid ${borderColor}`,
+                        opacity: hasRecord ? 1 : 0.55,
+                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                        minHeight: '190px', transition: 'all 0.25s',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>{month}</span>
+                          <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{statusText}</span>
+                        </div>
+                        {hasRecord ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
+                              <span>Base Fee</span>
+                              <span style={{ fontWeight: 600, color: 'var(--text)' }}>₹{record.amount}</span>
+                            </div>
+                            {record.discount > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary)', fontWeight: 600 }}>
+                                <span>Discount (Cr)</span>
+                                <span>-₹{record.discount}</span>
+                              </div>
+                            )}
+                            {fineVal > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 600 }}>
+                                <span>Late Fine (Dr)</span>
+                                <span>+₹{fineVal}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No bill generated.</div>
+                        )}
+                      </div>
+
+                      {hasRecord && (
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginTop: '0.875rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Net Amount</span>
+                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text)' }}>
+                                ₹{Math.max(0, record.amount + fineVal - (record.discount || 0))}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              {status === 'PENDING' && onPayOnline && (
+                                <button type="button" onClick={() => onPayOnline(record)}
+                                  className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                  Pay
+                                </button>
+                              )}
+                              {isPaid && onViewReceipt && (
+                                <button type="button" onClick={() => onViewReceipt(record.id)}
+                                  style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
+                                  Receipt
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {record.paidAt && (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'right' }}>
+                              Paid {new Date(record.paidAt).toLocaleDateString('en-GB')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -45,7 +45,7 @@ export async function GET() {
         _sum: { amount: true },
       }),
       prisma.activityLog.findMany({
-        take: 10,
+        take: 50,
         orderBy: { createdAt: 'desc' },
         include: { user: { select: { name: true } } }
       })

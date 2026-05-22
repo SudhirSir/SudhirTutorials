@@ -170,7 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
           <span>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></span>
         </Link>
-        <div style={{ transform: 'scale(0.85)', display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <ThemeToggle />
         </div>
       </header>
@@ -242,6 +242,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <span className="icon">{icons.courses}</span>
                   Courses & Batches
                 </Link>
+                <Link href="/dashboard/admin?tab=salary" className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.finances}</span>
+                  Staff Salaries
+                </Link>
+                <Link href="/dashboard/admin?tab=settings" className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.settings}</span>
+                  System Settings
+                </Link>
               </div>
             )}
 
@@ -259,6 +267,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link href="/dashboard/teacher?tab=students" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.users}</span>
                   My Students
+                </Link>
+                <Link href="/dashboard/teacher?tab=salary" className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.finances}</span>
+                  Salary Records
                 </Link>
               </div>
             )}

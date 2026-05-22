@@ -4,7 +4,11 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
+import { getLateFineSettings } from '@/lib/feeSettings';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { logActivity } from '@/lib/activity';
 
 const feeSchema = z.object({
   type: z.enum(['INDIVIDUAL', 'BATCH']),
@@ -73,11 +77,13 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
+    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+
     const enrichedFees = fees.map((fee: any) => {
       // For pending fees, show real-time calculated fine
       // For paid/verified fees, show the fine that was locked in at time of payment
       const currentFine = fee.status === 'PENDING' 
-        ? calculateLateFine(fee.dueDate, fee.status)
+        ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days)
         : fee.lateFine;
 
       const now = new Date();
@@ -105,6 +111,11 @@ export async function GET(req: Request) {
 // ─── POST: assign fee (individual or batch) ─────────────────────────────────
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const validation = feeSchema.safeParse(body);
 
@@ -178,6 +189,12 @@ export async function POST(req: Request) {
         count++;
       }
 
+      await logActivity(
+        session.user.id,
+        'ASSIGN_FEE_BATCH',
+        `Assigned fee of ₹${amount || 'Base Fee'} to ${count} students for month ${billingMonth} (${title})`
+      );
+
       return NextResponse.json({ success: true, count });
     } else {
       // Individual
@@ -223,6 +240,12 @@ export async function POST(req: Request) {
         console.error("Failed to notify student of fee assignment:", err);
       }
 
+      await logActivity(
+        session.user.id,
+        'ASSIGN_FEE_INDIVIDUAL',
+        `Assigned fee of ₹${finalAssignedAmount} to student ${studentId} for month ${billingMonth} (${title})`
+      );
+
       return NextResponse.json({ success: true, payment });
     }
   } catch (error) {
@@ -234,6 +257,11 @@ export async function POST(req: Request) {
 // ─── PATCH: update fee status & lock in amounts ────────────────────────────────
 export async function PATCH(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const validation = updateStatusSchema.safeParse(body);
     if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
@@ -243,10 +271,12 @@ export async function PATCH(req: Request) {
     const currentFee = await prisma.payment.findUnique({ where: { id } });
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
+    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+
     // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED/PAID_ONLINE
     let lateFine = currentFee.lateFine;
     if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
-      lateFine = calculateLateFine(currentFee.dueDate, 'PENDING');
+      lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days);
     }
 
     const updated = await prisma.payment.update({
@@ -280,6 +310,12 @@ export async function PATCH(req: Request) {
       }
     }
 
+    await logActivity(
+      session.user.id,
+      'UPDATE_FEE_STATUS',
+      `Updated fee status for record ${id} to ${status}. Paid amount: ₹${updated.paidAmount}`
+    );
+
     return NextResponse.json({ success: true, payment: updated });
   } catch (error) {
     console.error(error);
@@ -290,6 +326,11 @@ export async function PATCH(req: Request) {
 // ─── PUT: edit any payment/fee record details (admin corrective editing) ───────
 export async function PUT(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks } = body;
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
@@ -331,6 +372,12 @@ export async function PUT(req: Request) {
       data: updateData,
     });
 
+    await logActivity(
+      session.user.id,
+      'EDIT_FEE_RECORD',
+      `Edited details for fee record ${id}. Amount: ₹${updated.amount}, Status: ${updated.status}`
+    );
+
     return NextResponse.json({ success: true, payment: updated });
   } catch (error) {
     console.error('Error updating payment:', error);
@@ -341,10 +388,22 @@ export async function PUT(req: Request) {
 // ─── DELETE: remove incorrect fee entry ──────────────────────────────────────
 export async function DELETE(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
     await prisma.payment.delete({ where: { id } });
+
+    await logActivity(
+      session.user.id,
+      'DELETE_FEE_RECORD',
+      `Deleted fee record ${id}`
+    );
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete payment' }, { status: 500 });

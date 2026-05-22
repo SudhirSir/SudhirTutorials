@@ -108,6 +108,33 @@ function AdminDashboardContent() {
   const [reportData, setReportData] = useState<{ enrollmentData: any[], revenueTrend: any[], attendanceRate: number } | null>(null);
   const [isReportsLoading, setIsReportsLoading] = useState(false);
 
+  // System Settings States
+  const [perDayFine, setPerDayFine] = useState(10);
+  const [flatFineAfter10Days, setFlatFineAfter10Days] = useState(100);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+
+  // Staff Salary States
+  const [adminSalaries, setAdminSalaries] = useState<any[]>([]);
+  const [isFetchingSalaries, setIsFetchingSalaries] = useState(false);
+  const [salaryTeacherId, setSalaryTeacherId] = useState('');
+  const [salaryMonth, setSalaryMonth] = useState('May 2026');
+  const [salaryBaseSalary, setSalaryBaseSalary] = useState('');
+  const [salaryBonus, setSalaryBonus] = useState('');
+  const [salaryDeductions, setSalaryDeductions] = useState('');
+  const [salaryRemarks, setSalaryRemarks] = useState('');
+  const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
+
+  // Salary Payout disbursement states
+  const [payoutSalaryRecord, setPayoutSalaryRecord] = useState<any | null>(null);
+  const [payoutTransactionId, setPayoutTransactionId] = useState('');
+  const [payoutRemarks, setPayoutRemarks] = useState('');
+  const [isProcessingPayout, setIsProcessingPayout] = useState(false);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+
+  // Activity Log view state
+  const [showAllActivities, setShowAllActivities] = useState(false);
+
   // Deletion Modal State
   const [showDelModal, setShowDelModal] = useState(false);
   const [delTargetId, setDelTargetId] = useState<string | null>(null);
@@ -911,6 +938,147 @@ function AdminDashboardContent() {
     } catch (err) { console.error(err); }
   };
 
+  const fetchSettings = async () => {
+    setIsLoadingSettings(true);
+    try {
+      const res = await fetch('/api/admin/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setPerDayFine(data.perDayFine ?? 10);
+        setFlatFineAfter10Days(data.flatFineAfter10Days ?? 100);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ perDayFine, flatFineAfter10Days })
+      });
+      if (res.ok) {
+        alert('System settings updated successfully!');
+      } else {
+        alert('Failed to update settings.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error saving settings.');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const fetchAdminSalaries = async () => {
+    setIsFetchingSalaries(true);
+    try {
+      const res = await fetch('/api/admin/salaries');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminSalaries(data.salaries || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsFetchingSalaries(false);
+    }
+  };
+
+  const handleTeacherChange = (teacherId: string) => {
+    setSalaryTeacherId(teacherId);
+    if (!teacherId) {
+      setSalaryBaseSalary('');
+      return;
+    }
+    const teacher = allTeachers.find(t => t.id === teacherId);
+    if (teacher && teacher.teacherProfile) {
+      setSalaryBaseSalary(String(teacher.teacherProfile.salary || ''));
+    } else {
+      setSalaryBaseSalary('');
+    }
+  };
+
+  const handleGenerateSalary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!salaryTeacherId || !salaryMonth || !salaryBaseSalary) {
+      alert("Please fill all required fields!");
+      return;
+    }
+    setIsGeneratingSalary(true);
+    try {
+      const res = await fetch('/api/admin/salaries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacherId: salaryTeacherId,
+          month: salaryMonth,
+          baseSalary: salaryBaseSalary,
+          bonus: salaryBonus || 0,
+          deductions: salaryDeductions || 0,
+          remarks: salaryRemarks
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSalaryTeacherId('');
+        setSalaryBaseSalary('');
+        setSalaryBonus('');
+        setSalaryDeductions('');
+        setSalaryRemarks('');
+        fetchAdminSalaries();
+        alert('Salary slip assigned successfully!');
+      } else {
+        alert(data.error || 'Failed to assign salary.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Connection error occurred.');
+    } finally {
+      setIsGeneratingSalary(false);
+    }
+  };
+
+  const handlePayoutSalary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payoutSalaryRecord) return;
+    setIsProcessingPayout(true);
+    try {
+      const res = await fetch('/api/admin/salaries', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: payoutSalaryRecord.id,
+          transactionId: payoutTransactionId,
+          remarks: payoutRemarks
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPayoutSalaryRecord(null);
+        setPayoutTransactionId('');
+        setPayoutRemarks('');
+        setShowPayoutModal(false);
+        fetchAdminSalaries();
+        fetchFinSummary(); // Sync expense tracking totals
+        alert('Salary marked as PAID and synchronization with ledger complete!');
+      } else {
+        alert(data.error || 'Failed to process payout.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Connection error occurred.');
+    } finally {
+      setIsProcessingPayout(false);
+    }
+  };
+
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAddingCourse(true);
@@ -1035,6 +1203,7 @@ function AdminDashboardContent() {
   };
 
   useEffect(() => {
+    router.refresh();
     fetchUnreadCounts();
     if (activeTab === 'overview') {
       fetchOverviewStats();
@@ -1076,6 +1245,13 @@ function AdminDashboardContent() {
     if (activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) {
       fetchReports();
       fetchFinSummary();
+    }
+    if (activeTab === 'settings') {
+      fetchSettings();
+    }
+    if (activeTab === 'salary') {
+      fetchTeachers();
+      fetchAdminSalaries();
     }
   }, [activeTab, academicSubTab]);
 
@@ -1433,7 +1609,7 @@ function AdminDashboardContent() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
-        {['overview', 'users', 'verifications', 'finances', 'academics', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
+        {['overview', 'users', 'verifications', 'finances', 'salary', 'academics', 'guru-ai', 'messages', 'notifications', 'profile', 'settings'].map(tab => (
           <button 
             key={tab}
             onClick={() => {
@@ -1465,11 +1641,13 @@ function AdminDashboardContent() {
              tab === 'users' ? 'Users Directory' :
              tab === 'verifications' ? 'Pending Approvals' :
              tab === 'finances' ? 'Finances & Fees' :
+             tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
              tab === 'guru-ai' ? 'Academic Assistant' :
              tab === 'messages' ? 'Messages' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
+             tab === 'settings' ? 'System Settings' :
              tab}
           </button>
         ))}
@@ -1639,7 +1817,7 @@ function AdminDashboardContent() {
               </h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
-                {activityLogs.length > 0 ? activityLogs.map((log, idx) => (
+                {(showAllActivities ? activityLogs : activityLogs.slice(0, 5)).length > 0 ? (showAllActivities ? activityLogs : activityLogs.slice(0, 5)).map((log, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.02)' }}>
                     <div style={{ width: '4px', background: '#3b82f6', borderRadius: '4px', flexShrink: 0 }}></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -1660,6 +1838,32 @@ function AdminDashboardContent() {
                   </div>
                 )}
               </div>
+              {activityLogs.length > 5 && (
+                <button
+                  onClick={() => setShowAllActivities(!showAllActivities)}
+                  style={{
+                    marginTop: '1.25rem',
+                    padding: '0.75rem 1.25rem',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    fontSize: '0.85rem'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+                >
+                  {showAllActivities ? '📂 Collapse Operations Log' : `📂 View More Operations (${activityLogs.length - 5} more)`}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -5036,6 +5240,411 @@ function AdminDashboardContent() {
 
       {activeTab === 'profile' && (
         <ProfileEditor role="ADMIN" />
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Welcome/Overview Header Banner */}
+          <div className="glass-card" style={{ padding: '2.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, color: '#ef4444' }}>⚙️ System Settings & Control Panel</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.5rem', maxWidth: '750px' }}>
+              Fine-tune automated operations, penalty matrices, and payment deadlines. These adjustments take effect immediately across all student fee accounts.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+            <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
+                💰 Late Fee Penalty Policy
+              </h3>
+              
+              {isLoadingSettings ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+                  <div style={{ width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Daily Penalty Rate (₹)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      required 
+                      value={perDayFine} 
+                      onChange={e => setPerDayFine(parseFloat(e.target.value) || 0)} 
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                    />
+                    <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fines accumulated per day for unpaid fees past the specified due date.</small>
+                  </div>
+
+                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Flat Fine After 10 Days delay (₹)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      required 
+                      value={flatFineAfter10Days} 
+                      onChange={e => setFlatFineAfter10Days(parseFloat(e.target.value) || 0)} 
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                    />
+                    <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>One-time surcharge automatically tacked onto invoice when payment is overdue by more than 10 days.</small>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={isSavingSettings}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '1rem', 
+                      background: 'var(--primary)', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      fontWeight: 700, 
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      marginTop: '1rem'
+                    }}
+                  >
+                    {isSavingSettings ? 'Saving Settings...' : '💾 Apply Penalty Rules'}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
+                  ℹ️ Penalty Calculation Mechanics
+                </h3>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '1rem', lineHeight: '1.6' }}>
+                  <p>
+                    <strong>Calculation Trigger:</strong> Late fines are generated only when the invoice status remains <code>PENDING</code> beyond its formal due date.
+                  </p>
+                  <p>
+                    <strong>Daily Accumulation:</strong> Outstanding invoices increment by the specified <code>Daily Rate</code> each consecutive morning the fee remains unpaid.
+                  </p>
+                  <p>
+                    <strong>10-Day Flat Threshold:</strong> Once an invoice is 11 or more days overdue, a secondary flat charge is added on top of the daily incremental fine to prompt urgent settlement.
+                  </p>
+                </div>
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '12px', marginTop: '1.5rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>⚠️ Safety Warning</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Changing these settings does not retroactively rewrite already completed checkout invoices, but applies to future daily late fee calculation rounds.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'salary' && (
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          {/* Welcome Banner */}
+          <div className="glass-card" style={{ padding: '2.5rem', background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, color: '#10b981' }}>💵 Staff Salary & Payroll Management</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.5rem', maxWidth: '750px' }}>
+              Assign monthly salary packets, track outstanding payroll obligations, and disburse teacher payments with automated expense ledger updates.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+            
+            {/* Generate Salary Form Card */}
+            <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
+                📝 Assign New Salary Slip
+              </h3>
+              
+              <form onSubmit={handleGenerateSalary} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', alignItems: 'end' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Select Teacher *</label>
+                  <select
+                    required
+                    value={salaryTeacherId}
+                    onChange={e => handleTeacherChange(e.target.value)}
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="" style={{ background: 'var(--card-bg)' }}>Choose Faculty member</option>
+                    {allTeachers.filter(t => t.role === 'TEACHER').map(t => (
+                      <option key={t.id} value={t.id} style={{ background: 'var(--card-bg)' }}>
+                        {t.name} ({t.username})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Salary Month *</label>
+                  <select
+                    required
+                    value={salaryMonth}
+                    onChange={e => setSalaryMonth(e.target.value)}
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}
+                  >
+                    {(() => {
+                      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                      const now = new Date();
+                      const result = [];
+                      for (let i = -6; i <= 6; i++) {
+                        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                        result.push(`${months[d.getMonth()]} ${d.getFullYear()}`);
+                      }
+                      return result.map(m => (
+                        <option key={m} value={m} style={{ background: 'var(--card-bg)' }}>{m}</option>
+                      ));
+                    })()}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Base Salary *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="Enter base salary"
+                    value={salaryBaseSalary}
+                    onChange={e => setSalaryBaseSalary(e.target.value)}
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Bonus (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Bonus amount"
+                    value={salaryBonus}
+                    onChange={e => setSalaryBonus(e.target.value)}
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Deductions (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Deductions"
+                    value={salaryDeductions}
+                    onChange={e => setSalaryDeductions(e.target.value)}
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Remarks</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Festival advance, performance award"
+                    value={salaryRemarks}
+                    onChange={e => setSalaryRemarks(e.target.value)}
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: 'span 1', display: 'flex' }}>
+                  <button
+                    type="submit"
+                    disabled={isGeneratingSalary}
+                    style={{
+                      width: '100%',
+                      padding: '0.85rem',
+                      background: 'var(--secondary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {isGeneratingSalary ? 'Assigning...' : '✨ Assign Salary Slip'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Salary Ledger Card */}
+            <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
+                📋 Payroll Ledger & Salary Disbursements
+              </h3>
+
+              {isFetchingSalaries ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+                  <div style={{ width: '35px', height: '35px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', color: 'var(--text)' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', color: 'var(--text-muted)', fontWeight: 700, textAlign: 'left' }}>
+                        <th style={{ padding: '1rem 0.5rem' }}>Faculty</th>
+                        <th style={{ padding: '1rem 0.5rem' }}>Billing Month</th>
+                        <th style={{ padding: '1rem 0.5rem' }}>Base Salary</th>
+                        <th style={{ padding: '1rem 0.5rem' }}>Bonus / Deductions</th>
+                        <th style={{ padding: '1rem 0.5rem' }}>Net Payout</th>
+                        <th style={{ padding: '1rem 0.5rem' }}>Status</th>
+                        <th style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminSalaries.length > 0 ? adminSalaries.map((s) => (
+                        <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          <td style={{ padding: '1rem 0.5rem' }}>
+                            <div style={{ fontWeight: 700 }}>{s.teacher?.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>@{s.teacher?.username}</div>
+                          </td>
+                          <td style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>{s.month}</td>
+                          <td style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>₹{s.baseSalary.toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '1rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            <span style={{ color: s.bonus > 0 ? '#10b981' : 'inherit' }}>+{s.bonus}</span> / <span style={{ color: s.deductions > 0 ? '#ef4444' : 'inherit' }}>-{s.deductions}</span>
+                          </td>
+                          <td style={{ padding: '1rem 0.5rem', fontWeight: 800, color: 'var(--primary)' }}>₹{s.netPaid.toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '1rem 0.5rem' }}>
+                            {s.status === 'PAID' ? (
+                              <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '2px' }}>
+                                <span style={{ padding: '3px 10px', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', alignSelf: 'flex-start' }}>PAID</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>Txn: {s.transactionId}</span>
+                              </div>
+                            ) : (
+                              <span style={{ padding: '3px 10px', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>PENDING</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>
+                            {s.status === 'PENDING' ? (
+                              <button
+                                onClick={() => {
+                                  setPayoutSalaryRecord(s);
+                                  setPayoutTransactionId(`TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
+                                  setShowPayoutModal(true);
+                                }}
+                                style={{
+                                  padding: '0.45rem 1rem',
+                                  background: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                              >
+                                💸 Pay Salary
+                              </button>
+                            ) : (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {s.paidAt ? new Date(s.paidAt).toLocaleDateString('en-IN') : 'Completed'}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                            No salary sheets generated yet. Assign salary slips using the form above.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Salary Payout Disbursement Modal ─────────────────── */}
+      {showPayoutModal && payoutSalaryRecord && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000, padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', position: 'relative', border: '1px solid var(--secondary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
+            <button 
+              onClick={() => {
+                setShowPayoutModal(false);
+                setPayoutSalaryRecord(null);
+              }} 
+              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ×
+            </button>
+
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', color: '#10b981' }}>💸 Disburse Teacher Salary</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Enter transaction details below to verify payout and auto-sync ledger expenses.</p>
+
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Faculty Name</span>
+                  <strong style={{ fontSize: '1.05rem' }}>{payoutSalaryRecord.teacher?.name}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Salary Month</span>
+                  <strong style={{ fontSize: '1.05rem' }}>{payoutSalaryRecord.month}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Base Salary</span>
+                  <span style={{ fontWeight: 600 }}>₹{payoutSalaryRecord.baseSalary}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Net Payout Amount</span>
+                  <strong style={{ fontSize: '1.15rem', color: 'var(--primary)' }}>₹{payoutSalaryRecord.netPaid}</strong>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handlePayoutSalary} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Transaction ID *</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="e.g. Bank Transfer ID, UPI Ref ID"
+                  value={payoutTransactionId} 
+                  onChange={e => setPayoutTransactionId(e.target.value)} 
+                  style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                />
+              </div>
+
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Payout Remarks</label>
+                <input 
+                  type="text" 
+                  placeholder="Add any specific comments or method info"
+                  value={payoutRemarks} 
+                  onChange={e => setPayoutRemarks(e.target.value)} 
+                  style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isProcessingPayout}
+                className="btn-primary"
+                style={{ 
+                  padding: '1rem', 
+                  background: '#10b981', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  fontWeight: 700, 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  marginTop: '0.5rem'
+                }}
+              >
+                {isProcessingPayout ? 'Processing disbursement...' : '✅ Complete Disbursement'}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* ── View User Details Modal ─────────────────── */}
