@@ -106,14 +106,17 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
       }
 
       // 4. Payment received as CREDIT
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(fee.status)) {
+      if (fee.paidAmount > 0 || ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(fee.status)) {
+        const creditAmt = fee.paidAmount > 0 
+          ? fee.paidAmount 
+          : (fee.amount + fineVal - fee.discount);
         postings.push({
           date: new Date(fee.paidAt || fee.createdAt),
           description: `Payment Received – ${fee.paymentMethod || 'Online'}`,
           reference: fee.transactionId ? `TXN-${fee.transactionId.slice(-8).toUpperCase()}` : `RCPT-${fee.receiptNo}`,
           type: 'CREDIT',
           debit: 0,
-          credit: fee.paidAmount || (fee.amount + fineVal - fee.discount),
+          credit: creditAmt,
         });
       }
     });
@@ -468,6 +471,12 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                                 <span>+₹{fineVal}</span>
                               </div>
                             )}
+                            {record.paidAmount > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary)', fontWeight: 600 }}>
+                                <span>Paid (Cr)</span>
+                                <span>-₹{record.paidAmount}</span>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No bill generated.</div>
@@ -478,13 +487,13 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginTop: '0.875rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Net Amount</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Net Amount Due</span>
                               <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text)' }}>
-                                ₹{Math.max(0, record.amount + fineVal - (record.discount || 0))}
+                                ₹{Math.max(0, record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0))}
                               </span>
                             </div>
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
-                              {status === 'PENDING' && onPayOnline && (
+                              {['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (
                                 <button type="button" onClick={() => onPayOnline(record)}
                                   className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}>
                                   Pay

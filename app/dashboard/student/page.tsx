@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
@@ -70,6 +70,7 @@ function StudentDashboardContent() {
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [razorpayFee, setRazorpayFee] = useState<any>(null);
   const [payAmount, setPayAmount] = useState<string>('');
+  const [paymentOption, setPaymentOption] = useState<'outstanding' | 'month'>('month');
   const [isRazorpayPaying, setIsRazorpayPaying] = useState(false);
   const [razorpaySuccess, setRazorpaySuccess] = useState(false);
   const [razorpayMethod, setRazorpayMethod] = useState('UPI');
@@ -202,15 +203,34 @@ function StudentDashboardContent() {
     } catch (e) { console.error(e); }
   };
 
-  const handlePayOnline = (fee: any) => {
+  const totalOutstanding = useMemo(() => {
+    return fees.reduce((sum, fee) => {
+      if (fee.status === 'PAID_ONLINE' || fee.status === 'VERIFIED' || fee.status === 'PAID') return sum;
+      const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
+      const remainingDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) - (fee.paidAmount || 0));
+      return sum + remainingDue;
+    }, 0);
+  }, [fees]);
+
+  const handlePayOnline = (fee: any, initialOption: 'outstanding' | 'month' = 'month') => {
     const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
-    const calculatedTotal = Math.max(0, fee.amount + fineVal - (fee.discount || 0));
+    const calculatedTotal = Math.max(0, fee.amount + fineVal - (fee.discount || 0) - (fee.paidAmount || 0));
     
     setRazorpayFee({
       ...fee,
       totalAmount: calculatedTotal
     });
-    setPayAmount(calculatedTotal.toString());
+    setPaymentOption(initialOption);
+    
+    // We compute total outstanding at the time of click
+    const outstandingVal = fees.reduce((sum, f) => {
+      if (f.status === 'PAID_ONLINE' || f.status === 'VERIFIED' || f.status === 'PAID') return sum;
+      const fVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+      const rem = Math.max(0, f.amount + fVal - (f.discount || 0) - (f.paidAmount || 0));
+      return sum + rem;
+    }, 0);
+
+    setPayAmount(initialOption === 'outstanding' ? outstandingVal.toString() : calculatedTotal.toString());
     setIsRazorpayOpen(true);
     setRazorpaySuccess(false);
     setIsRazorpayPaying(false);
@@ -229,7 +249,7 @@ function StudentDashboardContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feeId: razorpayFee.id,
+          feeId: paymentOption === 'outstanding' ? 'OUTSTANDING' : razorpayFee.id,
           transactionId: razorpayTxId,
           paymentMethod: 'Razorpay Direct Link',
           customAmount: parseFloat(payAmount)
@@ -629,7 +649,7 @@ function StudentDashboardContent() {
               </div>
               <button onClick={() => {
                 const pending = fees.find(f => f.status === 'PENDING');
-                if (pending) handlePayOnline(pending);
+                if (pending) handlePayOnline(pending, 'outstanding');
               }} className="btn-primary" style={{ padding: '0.75rem 1.5rem' }}>
                 Pay Outstanding Now
               </button>
@@ -863,70 +883,154 @@ function StudentDashboardContent() {
               }}>
                 <div>
                   <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.65rem', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Coaching Institute</div>
-                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
                     <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain', borderRadius: '4px' }} />
                     SUDHIR TUTORIALS
                   </h3>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{razorpayFee.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '0.5rem' }}>
-                    {razorpayFee.billingMonth}
+
+                  {/* Premium Payment Mode Selector */}
+                  <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setPaymentOption('outstanding');
+                        setPayAmount(totalOutstanding.toString());
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: paymentOption === 'outstanding' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent',
+                        color: paymentOption === 'outstanding' ? '#fff' : 'var(--text-muted)',
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      Outstanding
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setPaymentOption('month');
+                        setPayAmount(razorpayFee.totalAmount.toString());
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: paymentOption === 'month' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent',
+                        color: paymentOption === 'month' ? '#fff' : 'var(--text-muted)',
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      Monthly
+                    </button>
                   </div>
+
+                  {paymentOption === 'outstanding' ? (
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>All Pending Dues (FIFO)</div>
+                      <div style={{ fontSize: '0.75rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '0.5rem' }}>
+                        Total Outstanding: ₹{totalOutstanding.toFixed(2)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{razorpayFee.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '0.5rem' }}>
+                        {razorpayFee.billingMonth} (₹{razorpayFee.totalAmount.toFixed(2)} Due)
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div style={{ marginTop: '1.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Amount to Pay (₹)</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '4px' }}>
-                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-muted)' }}>₹</span>
-                    <input
-                      type="number"
-                      value={payAmount}
-                      min="1"
-                      max={razorpayFee.totalAmount}
-                      onChange={(e) => setPayAmount(e.target.value)}
-                      style={{
-                        background: 'var(--input-bg)',
+                {(() => {
+                  const maxAmount = paymentOption === 'outstanding' ? totalOutstanding : razorpayFee.totalAmount;
+                  const leftBalance = Math.max(0, maxAmount - (parseFloat(payAmount) || 0));
+                  return (
+                    <div style={{ marginTop: '1.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Amount to Pay (₹)</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '4px' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-muted)' }}>₹</span>
+                        <input
+                          type="number"
+                          value={payAmount}
+                          min="1"
+                          max={maxAmount}
+                          onChange={(e) => setPayAmount(e.target.value)}
+                          style={{
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '10px',
+                            color: 'var(--text)',
+                            fontSize: '1.5rem',
+                            fontWeight: 800,
+                            width: '100%',
+                            padding: '0.4rem 0.8rem',
+                            outline: 'none',
+                            transition: 'border-color 0.2s'
+                          }}
+                        />
+                      </div>
+
+                      {/* Left Balance Display */}
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
                         border: '1px solid var(--border)',
                         borderRadius: '10px',
-                        color: 'var(--text)',
-                        fontSize: '1.5rem',
-                        fontWeight: 800,
-                        width: '100%',
-                        padding: '0.4rem 0.8rem',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                    />
-                  </div>
-                  {parseFloat(payAmount) < razorpayFee.totalAmount && parseFloat(payAmount) > 0 && (
-                    <div style={{
-                      background: 'rgba(245, 158, 11, 0.1)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
-                      borderRadius: '10px',
-                      padding: '0.65rem 0.75rem',
-                      marginTop: '0.75rem',
-                      fontSize: '0.75rem',
-                      color: '#f59e0b',
-                      lineHeight: '1.3',
-                      backdropFilter: 'blur(4px)'
-                    }}>
-                      ⚠️ <strong>Partial Payment Alert:</strong> The remaining balance of <strong>₹{(razorpayFee.totalAmount - parseFloat(payAmount)).toFixed(2)}</strong> will be added as outstanding dues.
+                        padding: '0.65rem 0.75rem',
+                        marginTop: '0.75rem',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span>Left Balance:</span>
+                        <span style={{ fontWeight: 800, color: leftBalance > 0 ? '#f59e0b' : '#10b981', fontSize: '0.85rem' }}>
+                          ₹{leftBalance.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {parseFloat(payAmount) < maxAmount && parseFloat(payAmount) > 0 && (
+                        <div style={{
+                          background: 'rgba(245, 158, 11, 0.08)',
+                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          borderRadius: '10px',
+                          padding: '0.65rem 0.75rem',
+                          marginTop: '0.75rem',
+                          fontSize: '0.75rem',
+                          color: '#f59e0b',
+                          lineHeight: '1.3',
+                          backdropFilter: 'blur(4px)'
+                        }}>
+                          ⚠️ <strong>Partial Payment Alert:</strong> The remaining balance of <strong>₹{leftBalance.toFixed(2)}</strong> will remain as outstanding dues.
+                        </div>
+                      )}
+                      {parseFloat(payAmount) > maxAmount && (
+                        <div style={{
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          borderRadius: '10px',
+                          padding: '0.65rem 0.75rem',
+                          marginTop: '0.75rem',
+                          fontSize: '0.75rem',
+                          color: '#ef4444',
+                          lineHeight: '1.3'
+                        }}>
+                          ❌ <strong>Error:</strong> Amount cannot exceed <strong>₹{maxAmount.toFixed(2)}</strong>.
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {parseFloat(payAmount) > razorpayFee.totalAmount && (
-                    <div style={{
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      borderRadius: '10px',
-                      padding: '0.65rem 0.75rem',
-                      marginTop: '0.75rem',
-                      fontSize: '0.75rem',
-                      color: '#ef4444',
-                      lineHeight: '1.3'
-                    }}>
-                      ❌ <strong>Error:</strong> Amount cannot exceed <strong>₹{razorpayFee.totalAmount.toFixed(0)}</strong>.
-                    </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.5rem' }}>
                   <div><strong style={{ color: 'var(--text)' }}>Student ID:</strong> {session?.user?.name}</div>
@@ -991,47 +1095,53 @@ function StudentDashboardContent() {
                 </div>
 
                 {/* Confirm Pay Button */}
-                <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRazorpayOpen(false);
-                      setRazorpayFee(null);
-                    }}
-                    style={{
-                      flex: 1, padding: '0.85rem', borderRadius: '12px',
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      color: '#ef4444', cursor: 'pointer', fontWeight: 700,
-                      transition: 'all 0.2s', fontSize: '0.9rem',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
-                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!razorpayTxId.trim() || !payAmount || parseFloat(payAmount) <= 0 || parseFloat(payAmount) > razorpayFee.totalAmount}
-                    onClick={handleRazorpaySubmit}
-                    className="btn-primary"
-                    style={{
-                      flex: 2, padding: '0.85rem', background: '#10b981', color: '#fff', border: 'none',
-                      opacity: (razorpayTxId.trim() && payAmount && parseFloat(payAmount) > 0 && parseFloat(payAmount) <= razorpayFee.totalAmount) ? 1 : 0.5,
-                      cursor: (razorpayTxId.trim() && payAmount && parseFloat(payAmount) > 0 && parseFloat(payAmount) <= razorpayFee.totalAmount) ? 'pointer' : 'not-allowed',
-                      fontWeight: 700
-                    }}
-                  >
-                    Confirm & Submit Details
-                  </button>
-                </div>
+                {(() => {
+                  const maxAmount = paymentOption === 'outstanding' ? totalOutstanding : razorpayFee.totalAmount;
+                  const isValid = razorpayTxId.trim() && payAmount && parseFloat(payAmount) > 0 && parseFloat(payAmount) <= maxAmount;
+                  return (
+                    <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRazorpayOpen(false);
+                          setRazorpayFee(null);
+                        }}
+                        style={{
+                          flex: 1, padding: '0.85rem', borderRadius: '12px',
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#ef4444', cursor: 'pointer', fontWeight: 700,
+                          transition: 'all 0.2s', fontSize: '0.9rem',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isValid}
+                        onClick={handleRazorpaySubmit}
+                        className="btn-primary"
+                        style={{
+                          flex: 2, padding: '0.85rem', background: '#10b981', color: '#fff', border: 'none',
+                          opacity: isValid ? 1 : 0.5,
+                          cursor: isValid ? 'pointer' : 'not-allowed',
+                          fontWeight: 700
+                        }}
+                      >
+                        Confirm & Submit Details
+                      </button>
+                    </div>
+                  );
+                })()}
 
               </div>
 

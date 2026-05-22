@@ -293,8 +293,14 @@ export async function PATCH(req: Request) {
         remarks,
         discount: discount !== undefined ? discount : currentFee.discount,
         lateFine,
-        paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) ? (currentFee.amount + lateFine - (discount ?? currentFee.discount)) : 0,
-        paidAt: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status) ? new Date() : null,
+        paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status)
+          ? (currentFee.paidAmount && currentFee.paidAmount > 0
+              ? currentFee.paidAmount
+              : (currentFee.amount + lateFine - (discount ?? currentFee.discount)))
+          : 0,
+        paidAt: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status)
+          ? (currentFee.paidAt || new Date())
+          : null,
       },
     }));
 

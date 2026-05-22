@@ -15,104 +15,158 @@ export async function POST(req: Request) {
     const { feeId, transactionId, paymentMethod, customAmount } = await req.json();
     if (!feeId) return NextResponse.json({ error: 'Fee ID is required' }, { status: 400 });
 
-    const fee = await prisma.payment.findUnique({
-      where: { id: feeId },
-      include: { student: true }
-    });
-    if (!fee || fee.studentId !== session.user.id) {
-      return NextResponse.json({ error: 'Fee not found' }, { status: 404 });
-    }
-
-    if (fee.status !== 'PENDING') {
-      return NextResponse.json({ error: 'Fee is already paid or processing' }, { status: 400 });
+    const parsedCustom = parseFloat(String(customAmount));
+    if (isNaN(parsedCustom) || parsedCustom <= 0) {
+      return NextResponse.json({ error: 'Valid custom amount is required' }, { status: 400 });
     }
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
-
-    // Determine total
-    const lateFine = calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days);
-    const totalAmount = fee.amount + lateFine - fee.discount;
-
-    let isPartial = false;
-    let actualPaidAmount = totalAmount;
-    let remainingBalance = 0;
-
-    if (customAmount !== undefined && customAmount !== null) {
-      const parsedCustom = parseFloat(String(customAmount));
-      if (!isNaN(parsedCustom) && parsedCustom > 0 && parsedCustom < totalAmount) {
-        isPartial = true;
-        actualPaidAmount = parsedCustom;
-        remainingBalance = totalAmount - parsedCustom;
-      }
-    }
-
-    let updatedFee;
     const txId = transactionId || `pay_${Math.random().toString(36).substr(2, 9)}`;
 
-    if (isPartial) {
-      // 1. Update the existing invoice to reflect exactly what was paid
-      // We set paidAmount = actualPaidAmount, status = PAID_ONLINE,
-      // and adjust the base amount to be: actualPaidAmount - lateFine + fee.discount (balancing the credit/debit perfectly!)
-      const adjustedBaseAmount = Math.max(0, actualPaidAmount - lateFine + fee.discount);
+    let updatedFees = [];
+    let totalApplied = 0;
+    let notifyMsg = "";
+    let studentMsg = "";
 
-      updatedFee = await prisma.payment.update({
-        where: { id: feeId },
-        data: {
-          status: 'PAID_ONLINE',
-          paidAt: new Date(),
-          paymentMethod: paymentMethod || 'RAZORPAY',
-          transactionId: txId,
-          lateFine: lateFine,
-          amount: adjustedBaseAmount,
-          paidAmount: actualPaidAmount,
-          remarks: fee.remarks ? `${fee.remarks} (Partial Payment 1)` : 'Partial Payment 1'
-        }
+    if (feeId === 'OUTSTANDING') {
+      // FIFO Outstanding payment across all pending bills
+      const allPayments = await prisma.payment.findMany({
+        where: { studentId: session.user.id },
+        orderBy: { dueDate: 'asc' },
+        include: { student: true }
       });
 
-      // 2. Create a new PENDING payment for the remaining balance
-      await prisma.payment.create({
-        data: {
-          studentId: fee.studentId,
-          title: fee.title,
-          billingMonth: fee.billingMonth,
-          dueDate: fee.dueDate,
-          amount: remainingBalance,
-          discount: 0,
-          lateFine: 0,
-          status: 'PENDING',
-          remarks: `Remaining balance for ${fee.billingMonth} after partial payment of ₹${actualPaidAmount}`
-        }
+      const studentUser = allPayments[0]?.student;
+      if (!studentUser) {
+        return NextResponse.json({ error: 'No fee records found for student' }, { status: 404 });
+      }
+
+      // Filter outstanding payments
+      const outstandingPayments = allPayments.filter(fee => {
+        if (fee.status === 'PAID_ONLINE') return false; // Already submitted online awaiting verification
+        const storedFine = fee.lateFine || 0;
+        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+        const activeFine = Math.max(storedFine, realTimeFine);
+        const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+        const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
+        return pendingInvoiceDue > 0;
       });
+
+      let remainingPaidPool = parsedCustom;
+      let appliedDetails = [];
+
+      for (const fee of outstandingPayments) {
+        if (remainingPaidPool <= 0) break;
+
+        const storedFine = fee.lateFine || 0;
+        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+        const activeFine = Math.max(storedFine, realTimeFine);
+        const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+        const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
+
+        const paymentToApply = Math.min(remainingPaidPool, pendingInvoiceDue);
+        if (paymentToApply <= 0) continue;
+
+        remainingPaidPool -= paymentToApply;
+        totalApplied += paymentToApply;
+        const updatedPaidAmount = (fee.paidAmount || 0) + paymentToApply;
+
+        const updated = await prisma.payment.update({
+          where: { id: fee.id },
+          data: {
+            status: 'PAID_ONLINE',
+            paidAt: new Date(),
+            paymentMethod: paymentMethod || 'Razorpay Direct Link',
+            transactionId: txId,
+            lateFine: activeFine,
+            paidAmount: updatedPaidAmount,
+            remarks: fee.remarks 
+              ? `${fee.remarks} (Paid ₹${paymentToApply.toFixed(2)})` 
+              : `Paid ₹${paymentToApply.toFixed(2)} online`
+          }
+        });
+
+        updatedFees.push(updated);
+        appliedDetails.push(`${fee.billingMonth}: ₹${paymentToApply.toFixed(0)}`);
+      }
+
+      if (totalApplied === 0) {
+        return NextResponse.json({ error: 'No pending dues to pay or all pending dues are awaiting verification' }, { status: 400 });
+      }
+
+      const leftOutstanding = outstandingPayments.reduce((sum, fee) => {
+        const storedFine = fee.lateFine || 0;
+        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+        const activeFine = Math.max(storedFine, realTimeFine);
+        const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+        const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
+        return sum + pendingInvoiceDue;
+      }, 0) - totalApplied;
+
+      notifyMsg = `Student ${studentUser.name} (${studentUser.username}) has paid a total outstanding of ₹${totalApplied.toFixed(0)} online via FIFO. Applied: [${appliedDetails.join(', ')}]. Remaining Outstanding Dues: ₹${Math.max(0, leftOutstanding).toFixed(0)}. Please verify and approve.`;
+      studentMsg = `Your outstanding payment of ₹${totalApplied.toFixed(0)} was successfully submitted online and is awaiting administrative verification. Details: ${appliedDetails.join(', ')}.`;
+
     } else {
-      // Full Payment
-      updatedFee = await prisma.payment.update({
+      // Month-wise specific fee payment
+      const fee = await prisma.payment.findUnique({
+        where: { id: feeId },
+        include: { student: true }
+      });
+
+      if (!fee || fee.studentId !== session.user.id) {
+        return NextResponse.json({ error: 'Fee record not found' }, { status: 404 });
+      }
+
+      if (fee.status === 'PAID_ONLINE') {
+        return NextResponse.json({ error: 'Payment is already processing and awaiting verification' }, { status: 400 });
+      }
+
+      const storedFine = fee.lateFine || 0;
+      const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+      const activeFine = Math.max(storedFine, realTimeFine);
+      const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+      const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
+
+      if (parsedCustom > pendingInvoiceDue) {
+        return NextResponse.json({ error: `Amount cannot exceed the pending due of ₹${pendingInvoiceDue.toFixed(2)}` }, { status: 400 });
+      }
+
+      totalApplied = parsedCustom;
+      const updatedPaidAmount = (fee.paidAmount || 0) + parsedCustom;
+
+      const updated = await prisma.payment.update({
         where: { id: feeId },
         data: {
           status: 'PAID_ONLINE',
           paidAt: new Date(),
-          paymentMethod: paymentMethod || 'RAZORPAY',
+          paymentMethod: paymentMethod || 'Razorpay Direct Link',
           transactionId: txId,
-          lateFine: lateFine,
-          paidAmount: totalAmount
+          lateFine: activeFine,
+          paidAmount: updatedPaidAmount,
+          remarks: fee.remarks 
+            ? `${fee.remarks} (Paid ₹${parsedCustom.toFixed(2)})` 
+            : `Paid ₹${parsedCustom.toFixed(2)} online`
         }
       });
+
+      updatedFees.push(updated);
+
+      const remainingBalance = Math.max(0, totalInvoiceAmount - updatedPaidAmount);
+
+      notifyMsg = `Student ${fee.student.name} (${fee.student.username}) has paid ₹${parsedCustom.toFixed(0)} online for ${fee.title} (${fee.billingMonth}). Remaining month balance: ₹${remainingBalance.toFixed(0)}. Please verify and approve.`;
+      studentMsg = remainingBalance > 0
+        ? `Your partial payment of ₹${parsedCustom.toFixed(0)} for ${fee.title} (${fee.billingMonth}) was successfully submitted online and is awaiting administrative verification. The remaining balance of ₹${remainingBalance.toFixed(0)} will remain in your outstanding dues.`
+        : `Your payment of ₹${parsedCustom.toFixed(0)} for ${fee.title} (${fee.billingMonth}) was successfully submitted online and is awaiting administrative verification.`;
     }
 
-    // Notify ALL Admins about this payment so they can verify it
+    // Send notifications
     try {
-      const admins = await prisma.user.findMany({
-        where: { role: 'ADMIN' }
-      });
-
-      const notifyMsg = isPartial
-        ? `Student ${fee.student.name} (${fee.student.username}) has paid a partial amount of ₹${actualPaidAmount.toFixed(0)} online for ${fee.title} (${fee.billingMonth}). Remaining balance: ₹${remainingBalance.toFixed(0)}. Please verify and approve.`
-        : `Student ${fee.student.name} (${fee.student.username}) has paid ₹${totalAmount.toFixed(0)} online for ${fee.title} (${fee.billingMonth}). Please verify and approve.`;
-
+      const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
       for (const admin of admins) {
         await prisma.notification.create({
           data: {
             userId: admin.id,
-            title: isPartial ? '💳 Partial Fee Payment Received' : '💳 Fee Payment Received (Online)',
+            title: feeId === 'OUTSTANDING' ? '💳 Outstanding Fees Paid (FIFO)' : '💳 Fee Payment Received (Online)',
             message: notifyMsg,
             type: 'FEE',
             isRead: false
@@ -123,16 +177,11 @@ export async function POST(req: Request) {
       console.error('Failed to notify admins of fee payment:', err);
     }
 
-    // Notify the Student that online payment has been submitted
     try {
-      const studentMsg = isPartial
-        ? `Your partial payment of ₹${actualPaidAmount.toFixed(0)} for ${fee.title} (${fee.billingMonth}) was successfully submitted online and is awaiting administrative verification. The remaining balance of ₹${remainingBalance.toFixed(0)} has been added to your outstanding dues.`
-        : `Your payment of ₹${totalAmount.toFixed(0)} for ${fee.title} (${fee.billingMonth}) was successfully submitted online and is awaiting administrative verification.`;
-
       await prisma.notification.create({
         data: {
           userId: session.user.id,
-          title: isPartial ? '💳 Partial Fee Payment Submitted' : '💳 Fee Payment Submitted',
+          title: feeId === 'OUTSTANDING' ? '💳 Outstanding Fee Payment Submitted' : '💳 Fee Payment Submitted',
           message: studentMsg,
           type: 'FEE',
           isRead: false
@@ -142,7 +191,7 @@ export async function POST(req: Request) {
       console.error('Failed to notify student of online payment:', err);
     }
 
-    return NextResponse.json({ success: true, fee: updatedFee, totalPaid: actualPaidAmount, remainingBalance });
+    return NextResponse.json({ success: true, fees: updatedFees, totalPaid: totalApplied });
   } catch (error) {
     console.error('Error processing payment:', error);
     return NextResponse.json({ error: 'Failed to process payment' }, { status: 500 });
