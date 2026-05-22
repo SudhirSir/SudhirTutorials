@@ -1051,9 +1051,15 @@ function StudentDashboardContent() {
                   <div style={{ marginBottom: '1.5rem' }}>
                     <span style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Step 1: Complete Payment</span>
                     <a
-                      href="https://razorpay.me/@sudhiir"
+                      href={`https://razorpay.me/@sudhiir?amount=${payAmount}`}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={() => {
+                        if (!razorpayTxId.trim()) {
+                          const generatedTxId = `pay_${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
+                          setRazorpayTxId(generatedTxId);
+                        }
+                      }}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
                         width: '100%', padding: '1.1rem', borderRadius: '16px',
