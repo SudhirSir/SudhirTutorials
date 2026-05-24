@@ -108,6 +108,9 @@ function AdminDashboardContent() {
   const [newStudentClass, setNewStudentClass] = useState('');
   const [newStudentBoard, setNewStudentBoard] = useState('');
   const [newStudentScholarship, setNewStudentScholarship] = useState('');
+  const [newTeacherSubject, setNewTeacherSubject] = useState('');
+  const [customClassName, setCustomClassName] = useState('');
+  const [isCustomClass, setIsCustomClass] = useState(false);
   const [createdUser, setCreatedUser] = useState<{username: string, password: string, role: string} | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -690,15 +693,20 @@ function AdminDashboardContent() {
     }
 
     try {
+      const finalClassName = newUserRole === 'STUDENT'
+        ? (newStudentClass === '__CUSTOM__' ? customClassName : newStudentClass)
+        : undefined;
+
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           role: newUserRole, 
           name: newUserName,
-          className: newUserRole === 'STUDENT' ? newStudentClass : undefined,
+          className: finalClassName,
           board: newUserRole === 'STUDENT' ? newStudentBoard : undefined,
           scholarship: (newUserRole === 'STUDENT' && newStudentScholarship) ? parseFloat(newStudentScholarship) : undefined,
+          subject: newUserRole === 'TEACHER' ? newTeacherSubject : undefined,
         })
       });
 
@@ -709,6 +717,9 @@ function AdminDashboardContent() {
         setNewStudentClass('');
         setNewStudentBoard('');
         setNewStudentScholarship('');
+        setNewTeacherSubject('');
+        setCustomClassName('');
+        setIsCustomClass(false);
         handleSearchDirectory(); // Refresh directory list immediately so new user is visible!
       } else {
         setErrorMsg(data.error || "Failed to create user.");
@@ -2104,15 +2115,44 @@ function AdminDashboardContent() {
                       <label>Class</label>
                       <select 
                         value={newStudentClass} 
-                        onChange={e => setNewStudentClass(e.target.value)} 
+                        onChange={e => {
+                          setNewStudentClass(e.target.value);
+                          if (e.target.value === '__CUSTOM__') {
+                            setIsCustomClass(true);
+                          } else {
+                            setIsCustomClass(false);
+                          }
+                        }} 
                         required 
                         style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                       >
                         <option value="">Select Class</option>
+                        {/* Standard Classes */}
                         {Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`).map(cls => (
                           <option key={cls} value={cls}>{cls}</option>
                         ))}
+                        {/* Saved Custom Classes */}
+                        {Object.keys(classFees)
+                          .filter(cls => !cls.match(/^Class \d+$/))
+                          .map(cls => (
+                            <option key={cls} value={cls}>{cls}</option>
+                          ))
+                        }
+                        <option value="__CUSTOM__">✨ Other (Type custom class...)</option>
                       </select>
+
+                      {newStudentClass === '__CUSTOM__' && (
+                        <div style={{ marginTop: '0.75rem' }}>
+                          <input 
+                            type="text" 
+                            placeholder="Type custom class name..." 
+                            value={customClassName} 
+                            onChange={e => setCustomClassName(e.target.value)} 
+                            required 
+                            style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="input-group">
                       <label>Board</label>
@@ -2136,6 +2176,20 @@ function AdminDashboardContent() {
                       <input type="number" placeholder="e.g. 1000" value={newStudentScholarship} onChange={e => setNewStudentScholarship(e.target.value)} />
                     </div>
                   </>
+                )}
+
+                {newUserRole === 'TEACHER' && (
+                  <div className="input-group">
+                    <label>Subject Specialist</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Mathematics, Physics" 
+                      value={newTeacherSubject} 
+                      onChange={e => setNewTeacherSubject(e.target.value)} 
+                      required 
+                      style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    />
+                  </div>
                 )}
 
                 <button type="submit" className="btn-primary" disabled={isCreating} style={{ padding: '0.9rem', marginBottom: '1.25rem' }}>
@@ -5642,7 +5696,7 @@ function AdminDashboardContent() {
               onClick={() => setShowSettingsLateFee(prev => !prev)}
               style={{
                 width: '100%',
-                padding: '1.5rem',
+                padding: '0.85rem 1.25rem',
                 background: showSettingsLateFee ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
                 border: 'none',
                 textAlign: 'left',
@@ -5655,20 +5709,20 @@ function AdminDashboardContent() {
               }}
             >
               <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
                   <span>💰</span> Late Fee Penalty Policy
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0 0', fontWeight: 500 }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
                   Manage daily fine rates and flat surcharges for overdue invoices.
                 </p>
               </div>
-              <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsLateFee ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsLateFee ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
               </span>
             </button>
 
             {showSettingsLateFee && (
-              <div style={{ padding: '2rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
                   {/* Penalty Configuration Form */}
                   <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -5759,7 +5813,7 @@ function AdminDashboardContent() {
               onClick={() => setShowSettingsClassFees(prev => !prev)}
               style={{
                 width: '100%',
-                padding: '1.5rem',
+                padding: '0.85rem 1.25rem',
                 background: showSettingsClassFees ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
                 border: 'none',
                 textAlign: 'left',
@@ -5772,22 +5826,22 @@ function AdminDashboardContent() {
               }}
             >
               <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
                   <span>🏫</span> Class-wise Default Monthly Fees
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0 0', fontWeight: 500 }}>
-                  Configure default tuition fee packets for Class 1 to Class 12.
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
+                  Configure default tuition fee packets for Class 1 to Class 12 & Custom Classes.
                 </p>
               </div>
-              <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsClassFees ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsClassFees ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
               </span>
             </button>
 
             {showSettingsClassFees && (
-              <div style={{ padding: '2rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.5rem 0', lineHeight: '1.5' }}>
-                  Enter the default monthly tuition fee for each grade from Class 1 to Class 12. When creating a new student account, their base monthly fee is automatically populated using these settings.
+              <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
+                  Enter the default monthly tuition fee for each grade from Class 1 to Class 12 or define custom classes. When creating a new student account, their base monthly fee is automatically populated using these settings.
                 </p>
 
                 {isLoadingSettings ? (
@@ -5795,7 +5849,7 @@ function AdminDashboardContent() {
                     <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
                       {Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`).map(cls => (
                         <div key={cls} className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
@@ -5818,6 +5872,92 @@ function AdminDashboardContent() {
                       ))}
                     </div>
 
+                    {/* Custom Classes Section */}
+                    <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '1.25rem', marginTop: '0.75rem' }}>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 0.75rem 0', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span>✨</span> Custom Classes & Default Fees
+                      </h4>
+                      
+                      {/* List of existing custom classes */}
+                      {Object.keys(classFees).filter(cls => !cls.match(/^Class \d+$/)).length > 0 ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                          {Object.keys(classFees).filter(cls => !cls.match(/^Class \d+$/)).map(cls => (
+                            <div key={cls} className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0, position: 'relative' }}>
+                              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>{cls} Fee (₹)</span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    const updated = { ...classFees };
+                                    delete updated[cls];
+                                    setClassFees(updated);
+                                  }}
+                                  style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem', padding: '0 4px', display: 'flex', alignItems: 'center' }}
+                                  title="Delete custom class"
+                                >
+                                  🗑️
+                                </button>
+                              </label>
+                              <input 
+                                type="number" 
+                                min="0"
+                                placeholder="0"
+                                value={classFees[cls] !== undefined ? classFees[cls] : ""} 
+                                onChange={e => {
+                                  const val = parseFloat(e.target.value);
+                                  setClassFees(prev => ({
+                                    ...prev,
+                                    [cls]: isNaN(val) ? 0 : val
+                                  }));
+                                }}
+                                style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>No custom classes added yet. Use the form below to add custom options (e.g. '11th Sci').</p>
+                      )}
+
+                      {/* Form to add a new custom class inline */}
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end', background: 'rgba(0,0,0,0.15)', padding: '0.85rem 1.25rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                        <div style={{ flex: '2 1 180px', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Class Name</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. 11th Sci, Crash Course" 
+                            value={newFeeClassName} 
+                            onChange={e => setNewFeeClassName(e.target.value)} 
+                            style={{ padding: '0.5rem 0.75rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', outline: 'none', fontSize: '0.85rem' }} 
+                          />
+                        </div>
+                        <div style={{ flex: '1 1 100px', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Default Fee (₹)</label>
+                          <input 
+                            type="number" 
+                            min="0"
+                            placeholder="e.g. 4500" 
+                            value={newFeeClassAmount} 
+                            onChange={e => setNewFeeClassAmount(e.target.value)} 
+                            style={{ padding: '0.5rem 0.75rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', outline: 'none', fontSize: '0.85rem' }} 
+                          />
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            if(!newFeeClassName.trim() || !newFeeClassAmount) return;
+                            setClassFees(prev => ({ ...prev, [newFeeClassName.trim()]: parseFloat(newFeeClassAmount) || 0 }));
+                            setNewFeeClassName('');
+                            setNewFeeClassAmount('');
+                          }} 
+                          className="btn-primary" 
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', borderRadius: '8px', height: '36px', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}
+                        >
+                          ➕ Add Custom Class
+                        </button>
+                      </div>
+                    </div>
+
                     <button 
                       type="button" 
                       onClick={handleSaveSettings}
@@ -5833,7 +5973,8 @@ function AdminDashboardContent() {
                         cursor: 'pointer',
                         fontSize: '0.875rem',
                         alignSelf: 'flex-start',
-                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                        marginTop: '0.75rem'
                       }}
                     >
                       {isSavingSettings ? 'Saving Class Fees...' : '💾 Save All Class Fees'}

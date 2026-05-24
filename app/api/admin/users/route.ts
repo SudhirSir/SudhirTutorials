@@ -11,6 +11,7 @@ const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50),
   className: z.string().optional(),
   board: z.string().optional(),
+  subject: z.string().optional(),
   scholarship: z.union([z.string(), z.number()]).optional().transform(val => {
     if (val === undefined || val === '') return undefined;
     const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const { role, name, className, board, scholarship } = validation.data;
+    const { role, name, className, board, scholarship, subject } = validation.data;
 
     // Generate cryptographically secure 8-character password
     const password = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -112,6 +113,11 @@ export async function POST(req: Request) {
             board: board || null,
             scholarship: scholarship !== undefined ? scholarship : 0,
             baseFee: defaultFeeVal,
+          }
+        } : undefined,
+        teacherProfile: role === 'TEACHER' ? {
+          create: {
+            subject: subject || null,
           }
         } : undefined
       }
