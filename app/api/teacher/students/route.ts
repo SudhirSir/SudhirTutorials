@@ -14,6 +14,7 @@ export async function GET(req: Request) {
     const batchId = searchParams.get('batchId');
     const q = searchParams.get('q');
     const batchName = searchParams.get('batch');
+    const courseId = searchParams.get('courseId');
 
     // Base filter: Role is Student
     const where: any = {
@@ -23,6 +24,10 @@ export async function GET(req: Request) {
     if (batchId) {
       where.studentBatches = {
         some: { id: batchId }
+      };
+    } else if (courseId) {
+      where.studentBatches = {
+        some: { courseId: courseId }
       };
     } else if (batchName) {
       where.studentBatches = {
@@ -38,7 +43,7 @@ export async function GET(req: Request) {
     }
 
     // If no search filter is applied, default to only showing students in the teacher's own batches
-    if (!q && !batchName && !batchId) {
+    if (!q && !batchName && !batchId && !courseId) {
       if (session.user.role === 'TEACHER') {
         where.studentBatches = {
           some: { teachers: { some: { id: session.user.id } } }
