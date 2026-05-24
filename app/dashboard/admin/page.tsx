@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
@@ -599,7 +599,9 @@ function AdminDashboardContent() {
   };
 
   // Directory State
-  const [searchQuery, setSearchQuery] = useState('');
+   const [searchQuery, setSearchQuery] = useState('');
+  const searchQueryRef = useRef(searchQuery);
+  searchQueryRef.current = searchQuery;
   const [directoryUsers, setDirectoryUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'>('ALL');
@@ -1247,7 +1249,16 @@ function AdminDashboardContent() {
       const overviewInterval = setInterval(fetchOverviewStats, 30000);
       return () => clearInterval(overviewInterval);
     }
-    if (activeTab === 'users') handleSearchDirectory(''); // always load all users on tab switch
+    if (activeTab === 'users') {
+      handleSearchDirectory(''); // always load all users on tab switch
+      const usersInterval = setInterval(() => {
+        // Auto-sync in the background every 10 seconds if no active search text
+        if (!searchQueryRef.current) {
+          handleSearchDirectory('');
+        }
+      }, 10000);
+      return () => clearInterval(usersInterval);
+    }
     if (activeTab === 'finances') {
       fetchFinances();
       fetchExpenses();
@@ -2018,11 +2029,8 @@ function AdminDashboardContent() {
                   onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
                   style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
-                <button onClick={() => handleSearchDirectory()} className="btn-primary" disabled={isSearching} style={{ padding: '0 1.5rem' }}>
+                <button onClick={() => handleSearchDirectory()} className="btn-primary" disabled={isSearching} style={{ padding: '0 1.5rem', borderRadius: '8px' }}>
                   {isSearching ? '🔄 Loading...' : '🔍 Search'}
-                </button>
-                <button onClick={() => { setSearchQuery(''); handleSearchDirectory(''); }} title="Reload all users" style={{ padding: '0 1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center' }} disabled={isSearching}>
-                  🔃
                 </button>
               </div>
 
