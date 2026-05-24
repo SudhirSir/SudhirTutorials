@@ -720,7 +720,7 @@ function AdminDashboardContent() {
         setNewTeacherSubject('');
         setCustomClassName('');
         setIsCustomClass(false);
-        handleSearchDirectory(''); // Refresh directory list immediately so new user is visible!
+        handleSearchDirectory(); // Refresh directory list immediately so new user is visible!
       } else {
         setErrorMsg(data.error || "Failed to create user.");
       }
@@ -731,11 +731,10 @@ function AdminDashboardContent() {
     }
   };
 
-  const handleSearchDirectory = async (overrideQuery?: string) => {
+  const handleSearchDirectory = async () => {
     setIsSearching(true);
-    const q = overrideQuery !== undefined ? overrideQuery : searchQuery;
     try {
-      const res = await fetch(`/api/admin/directory?q=${encodeURIComponent(q)}&t=${Date.now()}`);
+      const res = await fetch(`/api/admin/directory?q=${encodeURIComponent(searchQuery)}&t=${Date.now()}`);
       const data = await res.json();
       if (res.ok) {
         setDirectoryUsers(data.users || []);
@@ -1247,7 +1246,7 @@ function AdminDashboardContent() {
       const overviewInterval = setInterval(fetchOverviewStats, 30000);
       return () => clearInterval(overviewInterval);
     }
-    if (activeTab === 'users') handleSearchDirectory(''); // always load all users on tab switch
+    if (activeTab === 'users') handleSearchDirectory(); // always load all users on tab switch
     if (activeTab === 'finances') {
       fetchFinances();
       fetchExpenses();
@@ -1996,16 +1995,11 @@ function AdminDashboardContent() {
             <div className="glass-card" style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h2 style={{ fontSize: '1.5rem', margin: 0 }}>User Directory</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    {directoryUsers.length > 0 ? `${directoryUsers.length} total user${directoryUsers.length !== 1 ? 's' : ''} • ${directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).length} shown` : ''}
-                  </span>
-                  <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
-                    <button onClick={() => setDirectoryFilter('ALL')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>All</button>
-                    <button onClick={() => setDirectoryFilter('STUDENT')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'STUDENT' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Students</button>
-                    <button onClick={() => setDirectoryFilter('TEACHER')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Teachers</button>
-                    <button onClick={() => setDirectoryFilter('ADMIN')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ADMIN' ? '#f59e0b' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Admins</button>
-                  </div>
+                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
+                  <button onClick={() => setDirectoryFilter('ALL')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>All</button>
+                  <button onClick={() => setDirectoryFilter('STUDENT')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'STUDENT' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Students</button>
+                  <button onClick={() => setDirectoryFilter('TEACHER')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Teachers</button>
+                  <button onClick={() => setDirectoryFilter('ADMIN')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ADMIN' ? '#f59e0b' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Admins</button>
                 </div>
               </div>
 
@@ -2018,29 +2012,14 @@ function AdminDashboardContent() {
                   onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
                   style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
-                <button onClick={() => handleSearchDirectory()} className="btn-primary" disabled={isSearching} style={{ padding: '0 1.5rem', borderRadius: '8px' }}>
-                  {isSearching ? '🔄 Loading...' : '🔍 Search'}
-                </button>
-                <button onClick={() => { setSearchQuery(''); handleSearchDirectory(''); }} title="Reload all users" style={{ padding: '0 1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center' }} disabled={isSearching}>
-                  🔃
+                <button onClick={handleSearchDirectory} className="btn-primary" disabled={isSearching} style={{ padding: '0 2rem' }}>
+                  {isSearching ? "Searching..." : "Search"}
                 </button>
               </div>
 
-              {isSearching ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', gridColumn: '1/-1' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '36px', height: '36px', border: '3px solid rgba(239,68,68,0.2)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading members...</span>
-                  </div>
-                </div>
-              ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 {directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).length === 0 ? (
-                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem 2rem' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-                    <p style={{ color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>{directoryUsers.length === 0 ? 'No users found. Click 🔃 Refresh to load.' : 'No users match this filter.'}</p>
-                    {directoryUsers.length === 0 && <button onClick={() => handleSearchDirectory('')} className="btn-primary" style={{ marginTop: '1.5rem', padding: '0.75rem 2rem' }}>🔃 Load Users</button>}
-                  </div>
+                  <p style={{ color: 'var(--text-muted)', gridColumn: '1/-1', textAlign: 'center', padding: '3rem 0' }}>No users found.</p>
                 ) : (
                   directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).map(u => (
                     <div key={u.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
@@ -2087,7 +2066,6 @@ function AdminDashboardContent() {
                   ))
                 )}
               </div>
-              )}
             </div>
           )}
 
