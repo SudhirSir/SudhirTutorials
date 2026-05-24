@@ -25,6 +25,18 @@ export default function LoginPage() {
     }
   }, [status, session, router]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get("error");
+      if (err === "concurrent_login") {
+        setError("You have been signed out because your account was logged in from another device/browser.");
+      } else if (err === "session_expired") {
+        setError("Your session has expired. Please sign in again.");
+      }
+    }
+  }, []);
+
   if (status === "loading") {
     return (
       <div style={{
