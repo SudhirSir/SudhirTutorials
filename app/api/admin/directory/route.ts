@@ -48,8 +48,7 @@ export async function GET(req: Request) {
     const users = await withDbRetry(() => prisma.user.findMany({
       where,
       select: selectFields,
-      orderBy: { name: 'asc' },
-      ...(search || role ? {} : { take: 100 })
+      orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
     }));
 
     const mappedUsers = users.map((u: any) => {
