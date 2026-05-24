@@ -124,6 +124,8 @@ function AdminDashboardContent() {
   const [classFees, setClassFees] = useState<Record<string, number>>({});
   const [newFeeClassName, setNewFeeClassName] = useState('');
   const [newFeeClassAmount, setNewFeeClassAmount] = useState('');
+  const [showSettingsLateFee, setShowSettingsLateFee] = useState(false);
+  const [showSettingsClassFees, setShowSettingsClassFees] = useState(false);
 
   // Staff Salary States
   const [adminSalaries, setAdminSalaries] = useState<any[]>([]);
@@ -707,6 +709,7 @@ function AdminDashboardContent() {
         setNewStudentClass('');
         setNewStudentBoard('');
         setNewStudentScholarship('');
+        handleSearchDirectory(); // Refresh directory list immediately so new user is visible!
       } else {
         setErrorMsg(data.error || "Failed to create user.");
       }
@@ -2099,11 +2102,34 @@ function AdminDashboardContent() {
                   <>
                     <div className="input-group">
                       <label>Class</label>
-                      <input type="text" placeholder="e.g. 10th" value={newStudentClass} onChange={e => setNewStudentClass(e.target.value)} required />
+                      <select 
+                        value={newStudentClass} 
+                        onChange={e => setNewStudentClass(e.target.value)} 
+                        required 
+                        style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
+                        <option value="">Select Class</option>
+                        {Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`).map(cls => (
+                          <option key={cls} value={cls}>{cls}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="input-group">
                       <label>Board</label>
-                      <input type="text" placeholder="e.g. CBSE" value={newStudentBoard} onChange={e => setNewStudentBoard(e.target.value)} required />
+                      <select 
+                        value={newStudentBoard} 
+                        onChange={e => setNewStudentBoard(e.target.value)} 
+                        required 
+                        style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
+                        <option value="">Select Board</option>
+                        <option value="CBSE">CBSE</option>
+                        <option value="ICSE">ICSE</option>
+                        <option value="State Board">State Board</option>
+                        <option value="IB">IB</option>
+                        <option value="IGCSE">IGCSE</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
                     <div className="input-group">
                       <label>Scholarship Amount (Optional, ₹)</label>
@@ -5609,230 +5635,219 @@ function AdminDashboardContent() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-            {/* Penalty Configuration Card */}
-            <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>💰</span> Late Fee Penalty Policy
-              </h3>
-              
-              {isLoadingSettings ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem', flex: 1, alignItems: 'center' }}>
-                  <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                </div>
-              ) : (
-                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
-                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Daily Penalty Rate (₹)</label>
-                    <input 
-                      type="number" 
-                      min="0"
-                      required 
-                      value={perDayFine} 
-                      onChange={e => setPerDayFine(parseFloat(e.target.value) || 0)} 
-                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
-                    />
-                    <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>Fines accumulated per day for unpaid fees past the specified due date.</small>
-                  </div>
-
-                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Flat Fine After 10 Days delay (₹)</label>
-                    <input 
-                      type="number" 
-                      min="0"
-                      required 
-                      value={flatFineAfter10Days} 
-                      onChange={e => setFlatFineAfter10Days(parseFloat(e.target.value) || 0)} 
-                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
-                    />
-                    <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>One-time surcharge automatically tacked onto invoice when payment is overdue by more than 10 days.</small>
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    disabled={isSavingSettings}
-                    className="btn-primary"
-                    style={{ 
-                      padding: '0.65rem 1.25rem', 
-                      background: 'var(--primary)', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '10px', 
-                      fontWeight: 700, 
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      marginTop: '0.75rem',
-                      alignSelf: 'flex-start',
-                      fontSize: '0.875rem'
-                    }}
-                  >
-                    {isSavingSettings ? 'Saving Settings...' : '💾 Apply Penalty Rules'}
-                  </button>
-                </form>
-              )}
-            </div>
-
-            {/* Explanatory Mechanics Card */}
-            <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          {/* Collapsible Accordion 1: Late Fee Penalty Policy */}
+          <div className="glass-card" style={{ padding: '0', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+            <button 
+              type="button"
+              onClick={() => setShowSettingsLateFee(prev => !prev)}
+              style={{
+                width: '100%',
+                padding: '1.5rem',
+                background: showSettingsLateFee ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease',
+                color: 'var(--text)'
+              }}
+            >
               <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span>ℹ️</span> Penalty Calculation Mechanics
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
+                  <span>💰</span> Late Fee Penalty Policy
                 </h3>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', lineHeight: '1.5' }}>
-                  <p style={{ margin: 0 }}>
-                    <strong>Calculation Trigger:</strong> Late fines are generated only when the invoice status remains <code>PENDING</code> beyond its formal due date.
-                  </p>
-                  <p style={{ margin: 0 }}>
-                    <strong>Daily Accumulation:</strong> Outstanding invoices increment by the specified <code>Daily Rate</code> each consecutive morning the fee remains unpaid.
-                  </p>
-                  <p style={{ margin: 0 }}>
-                    <strong>10-Day Flat Threshold:</strong> Once an invoice is 11 or more days overdue, a secondary flat charge is added on top of the daily incremental fine to prompt urgent settlement.
-                  </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0 0', fontWeight: 500 }}>
+                  Manage daily fine rates and flat surcharges for overdue invoices.
+                </p>
+              </div>
+              <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsLateFee ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                ▼
+              </span>
+            </button>
+
+            {showSettingsLateFee && (
+              <div style={{ padding: '2rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+                  {/* Penalty Configuration Form */}
+                  <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {isLoadingSettings ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Daily Penalty Rate (₹)</label>
+                          <input 
+                            type="number" 
+                            min="0"
+                            required 
+                            value={perDayFine} 
+                            onChange={e => setPerDayFine(parseFloat(e.target.value) || 0)} 
+                            style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                          />
+                          <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>Fines accumulated per day for unpaid fees past the specified due date.</small>
+                        </div>
+
+                        <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Flat Fine After 10 Days delay (₹)</label>
+                          <input 
+                            type="number" 
+                            min="0"
+                            required 
+                            value={flatFineAfter10Days} 
+                            onChange={e => setFlatFineAfter10Days(parseFloat(e.target.value) || 0)} 
+                            style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                          />
+                          <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>One-time surcharge automatically tacked onto invoice when payment is overdue by more than 10 days.</small>
+                        </div>
+
+                        <button 
+                          type="submit" 
+                          disabled={isSavingSettings}
+                          className="btn-primary"
+                          style={{ 
+                            padding: '0.65rem 1.25rem', 
+                            background: 'var(--primary)', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '10px', 
+                            fontWeight: 700, 
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            marginTop: '0.75rem',
+                            alignSelf: 'flex-start',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {isSavingSettings ? 'Saving Settings...' : '💾 Apply Penalty Rules'}
+                        </button>
+                      </>
+                    )}
+                  </form>
+
+                  {/* Mechanics Card */}
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 1rem 0', color: 'var(--text)' }}>
+                        ℹ️ Penalty Calculation Mechanics
+                      </h4>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', lineHeight: '1.5' }}>
+                        <p style={{ margin: 0 }}>
+                          <strong>Calculation Trigger:</strong> Late fines are generated only when the invoice status remains <code>PENDING</code> beyond its formal due date.
+                        </p>
+                        <p style={{ margin: 0 }}>
+                          <strong>Daily Accumulation:</strong> Outstanding invoices increment by the specified <code>Daily Rate</code> each consecutive morning the fee remains unpaid.
+                        </p>
+                        <p style={{ margin: 0 }}>
+                          <strong>10-Day Flat Threshold:</strong> Once an invoice is 11 or more days overdue, a secondary flat charge is added on top of the daily incremental fine to prompt urgent settlement.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              
-            {/* Class Default Fees Configuration Card */}
-            <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gridColumn: 'span 2' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>🏫</span> Class-wise Default Monthly Fees
-              </h3>
+              </div>
+            )}
+          </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-                {/* Form to add a new class default fee */}
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!newFeeClassName.trim() || !newFeeClassAmount) return;
-                    const amount = parseFloat(newFeeClassAmount);
-                    if (isNaN(amount)) return;
-                    setClassFees(prev => ({
-                      ...prev,
-                      [newFeeClassName.trim()]: amount
-                    }));
-                    setNewFeeClassName('');
-                    setNewFeeClassAmount('');
-                  }} 
-                  style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-                >
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Configure New Class Fee</span>
-                  
-                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Class / Grade Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 10th, 11th (Sci)" 
-                      required 
-                      value={newFeeClassName} 
-                      onChange={e => setNewFeeClassName(e.target.value)} 
-                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
-                    />
+          {/* Collapsible Accordion 2: Class-wise Default Monthly Fees */}
+          <div className="glass-card" style={{ padding: '0', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+            <button 
+              type="button"
+              onClick={() => setShowSettingsClassFees(prev => !prev)}
+              style={{
+                width: '100%',
+                padding: '1.5rem',
+                background: showSettingsClassFees ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease',
+                color: 'var(--text)'
+              }}
+            >
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
+                  <span>🏫</span> Class-wise Default Monthly Fees
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0 0', fontWeight: 500 }}>
+                  Configure default tuition fee packets for Class 1 to Class 12.
+                </p>
+              </div>
+              <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsClassFees ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                ▼
+              </span>
+            </button>
+
+            {showSettingsClassFees && (
+              <div style={{ padding: '2rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.5rem 0', lineHeight: '1.5' }}>
+                  Enter the default monthly tuition fee for each grade from Class 1 to Class 12. When creating a new student account, their base monthly fee is automatically populated using these settings.
+                </p>
+
+                {isLoadingSettings ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem' }}>
+                    <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                   </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                      {Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`).map(cls => (
+                        <div key={cls} className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>{cls} Fee (₹)</label>
+                          <input 
+                            type="number" 
+                            min="0"
+                            placeholder="0"
+                            value={classFees[cls] !== undefined ? classFees[cls] : ""} 
+                            onChange={e => {
+                              const val = parseFloat(e.target.value);
+                              setClassFees(prev => ({
+                                ...prev,
+                                [cls]: isNaN(val) ? 0 : val
+                              }));
+                            }}
+                            style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
 
-                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Default Monthly Fee (₹)</label>
-                    <input 
-                      type="number" 
-                      min="0"
-                      placeholder="e.g. 2500" 
-                      required 
-                      value={newFeeClassAmount} 
-                      onChange={e => setNewFeeClassAmount(e.target.value)} 
-                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
-                    />
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    className="btn-primary"
-                    style={{ 
-                      padding: '0.65rem 1.25rem', 
-                      background: 'var(--primary)', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '10px', 
-                      fontWeight: 700, 
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      alignSelf: 'flex-start'
-                    }}
-                  >
-                    ➕ Add Class Fee Rule
-                  </button>
-                </form>
-
-                {/* List of configured class default fees */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Active Class Default Fees:</span>
-                  
-                  <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          <th style={{ padding: '0.75rem 1rem' }}>Class / Grade</th>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Default Monthly Fee</th>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(classFees).length === 0 ? (
-                          <tr>
-                            <td colSpan={3} style={{ padding: '2rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
-                              No class default fees configured yet.
-                            </td>
-                          </tr>
-                        ) : (
-                          Object.entries(classFees).map(([className, amount]) => (
-                            <tr key={className} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem' }}>
-                              <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>{className}</td>
-                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>₹{amount.toLocaleString()}</td>
-                              <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                                <button 
-                                  type="button"
-                                  onClick={() => {
-                                    if (confirm(`Remove default fee configuration for class "${className}"?`)) {
-                                      const updated = { ...classFees };
-                                      delete updated[className];
-                                      setClassFees(updated);
-                                    }
-                                  }}
-                                  style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem' }}
-                                  title="Delete Configuration"
-                                >
-                                  🗑
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  {Object.entries(classFees).length > 0 && (
                     <button 
                       type="button" 
                       onClick={handleSaveSettings}
                       disabled={isSavingSettings}
-                      className="btn-secondary"
+                      className="btn-primary"
                       style={{ 
-                        padding: '0.65rem 1.25rem', 
+                        padding: '0.65rem 1.5rem', 
+                        background: '#10b981', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '10px', 
                         fontWeight: 700, 
-                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
                         alignSelf: 'flex-start',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
                       }}
                     >
-                      💾 Save All Class Fee Rules
+                      {isSavingSettings ? 'Saving Class Fees...' : '💾 Save All Class Fees'}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-            </div>
-</div>
-              <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', borderRadius: '10px', marginTop: '1.25rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>⚠️ Safety Warning</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4', display: 'block' }}>Changing these settings does not retroactively rewrite already completed checkout invoices, but applies to future daily late fee calculation rounds.</span>
-              </div>
-            </div>
+            )}
+          </div>
+
+          {/* Safety Warning */}
+          <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', borderRadius: '10px', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>⚠️ Safety Warning</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4', display: 'block' }}>Changing these settings does not retroactively rewrite already completed checkout invoices, but applies to future daily late fee calculation rounds.</span>
           </div>
         </div>
       )}

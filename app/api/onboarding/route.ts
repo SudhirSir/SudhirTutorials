@@ -7,8 +7,17 @@ import bcrypt from 'bcryptjs';
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!session || !session.user) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Fetch fresh user data from DB to bypass NextAuth session cache lag
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const { password, email, phone, parentName, parentContact, recoveryPin } = await req.json();
@@ -18,7 +27,7 @@ export async function POST(req: Request) {
       isProfileVerified: false
     };
 
-    if (password && session.user.mustChangePassword) {
+    if (password && user.mustChangePassword) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
       updateData.mustChangePassword = false;
     }
@@ -28,23 +37,23 @@ export async function POST(req: Request) {
     }
 
     await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: user.id },
       data: updateData
     });
 
-    if (session.user.role === 'STUDENT') {
+    if (user.role === 'STUDENT') {
       await prisma.studentProfile.upsert({
-        where: { userId: session.user.id },
+        where: { userId: user.id },
         update: { email, phone, fatherName: parentName, parentContact },
         create: {
-          userId: session.user.id,
+          userId: user.id,
           email,
           phone,
           fatherName: parentName,
           parentContact
         }
       });
-    } else if (session.user.role === 'TEACHER') {
+    } else if (user.role === 'TEACHER') {
       // Not collecting specific profile info for teacher yet, but we ensure profile is verified.
     }
 
