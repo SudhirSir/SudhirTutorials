@@ -28,9 +28,11 @@ function AdminDashboardContent() {
     router.push(pathname + '?' + params.toString());
   };
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
-  const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE'>('OVERVIEW');
+  const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures'>('menu');
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES'>('ALL');
+  const [statementMonth, setStatementMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
+  const [statementYear, setStatementYear] = useState(String(new Date().getFullYear()));
   const [isLedgerListOpen, setIsLedgerListOpen] = useState(false);
   const [courseSubTab, setCourseSubTab] = useState<'COURSES' | 'BATCHES' | 'TIMETABLE'>('COURSES');
   const [pptDifficulty, setPptDifficulty] = useState('Intermediate');
@@ -64,6 +66,7 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
+    fetchSettings();
     const interval = setInterval(fetchUnreadCounts, 6000);
     return () => clearInterval(interval);
   }, [session]);
@@ -102,6 +105,9 @@ function AdminDashboardContent() {
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
   const [newUserName, setNewUserName] = useState('');
+  const [newStudentClass, setNewStudentClass] = useState('');
+  const [newStudentBoard, setNewStudentBoard] = useState('');
+  const [newStudentScholarship, setNewStudentScholarship] = useState('');
   const [createdUser, setCreatedUser] = useState<{username: string, password: string, role: string} | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -115,6 +121,9 @@ function AdminDashboardContent() {
   const [flatFineAfter10Days, setFlatFineAfter10Days] = useState(100);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [classFees, setClassFees] = useState<Record<string, number>>({});
+  const [newFeeClassName, setNewFeeClassName] = useState('');
+  const [newFeeClassAmount, setNewFeeClassAmount] = useState('');
 
   // Staff Salary States
   const [adminSalaries, setAdminSalaries] = useState<any[]>([]);
@@ -682,13 +691,22 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newUserRole, name: newUserName })
+        body: JSON.stringify({ 
+          role: newUserRole, 
+          name: newUserName,
+          className: newUserRole === 'STUDENT' ? newStudentClass : undefined,
+          board: newUserRole === 'STUDENT' ? newStudentBoard : undefined,
+          scholarship: (newUserRole === 'STUDENT' && newStudentScholarship) ? parseFloat(newStudentScholarship) : undefined,
+        })
       });
 
       const data = await res.json();
       if (res.ok) {
         setCreatedUser(data.user);
         setNewUserName('');
+        setNewStudentClass('');
+        setNewStudentBoard('');
+        setNewStudentScholarship('');
       } else {
         setErrorMsg(data.error || "Failed to create user.");
       }
@@ -948,6 +966,7 @@ function AdminDashboardContent() {
         const data = await res.json();
         setPerDayFine(data.perDayFine ?? 10);
         setFlatFineAfter10Days(data.flatFineAfter10Days ?? 100);
+        setClassFees(data.classFees || {});
       }
     } catch (e) {
       console.error(e);
@@ -963,7 +982,7 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ perDayFine, flatFineAfter10Days })
+        body: JSON.stringify({ perDayFine, flatFineAfter10Days, classFees })
       });
       if (res.ok) {
         alert('System settings updated successfully!');
@@ -2076,6 +2095,23 @@ function AdminDashboardContent() {
                   <input type="text" placeholder="e.g. Rahul Kumar" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
                 </div>
 
+                {newUserRole === 'STUDENT' && (
+                  <>
+                    <div className="input-group">
+                      <label>Class</label>
+                      <input type="text" placeholder="e.g. 10th" value={newStudentClass} onChange={e => setNewStudentClass(e.target.value)} required />
+                    </div>
+                    <div className="input-group">
+                      <label>Board</label>
+                      <input type="text" placeholder="e.g. CBSE" value={newStudentBoard} onChange={e => setNewStudentBoard(e.target.value)} required />
+                    </div>
+                    <div className="input-group">
+                      <label>Scholarship Amount (Optional, ₹)</label>
+                      <input type="number" placeholder="e.g. 1000" value={newStudentScholarship} onChange={e => setNewStudentScholarship(e.target.value)} />
+                    </div>
+                  </>
+                )}
+
                 <button type="submit" className="btn-primary" disabled={isCreating} style={{ padding: '0.9rem', marginBottom: '1.25rem' }}>
                   {isCreating ? "Creating..." : "Generate ID & Save"}
                 </button>
@@ -2096,6 +2132,7 @@ function AdminDashboardContent() {
               { id: 'LEDGER', label: 'Fee Ledger', desc: 'Transactions & Dues' },
               { id: 'ASSIGN', label: 'Assign Fee', desc: 'Assign Custom/Batch' },
               { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Outflows & Claims' },
+              { id: 'STATEMENT', label: 'Monthly Statement', desc: 'Monthly Transactions' },
               { id: 'BILLING_ENGINE', label: 'Billing Engine', desc: 'Auto monthly run' }
             ].map(tab => (
               <button 
@@ -3057,6 +3094,306 @@ function AdminDashboardContent() {
             </div>
           )}
 
+
+
+          {financeSubTab === 'STATEMENT' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              
+              {/* Premium Monthly Statement Controls */}
+              <div className="glass-card" style={{ padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)', border: '1px solid var(--border)' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)' }}>
+                    📊 Monthly Financial Transaction Statement
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    Check completed transaction statements, fee inflows, outflows, and paid salary ledgers by month and year.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <select
+                      value={statementMonth}
+                      onChange={e => setStatementMonth(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={statementYear}
+                      onChange={e => setStatementYear(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
+                        <option key={y} value={String(y)}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <button 
+                    onClick={() => {
+                      const printWindow = window.open('', '_blank');
+                      if (!printWindow) return;
+                      
+                      const inflow = fees.filter(f => {
+                        if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
+                        const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
+                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                      });
+                      
+                      const outExpenses = expenses.filter(e => {
+                        const date = new Date(e.date || e.createdAt);
+                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                      });
+                      
+                      const outSalaries = adminSalaries.filter(s => {
+                        if (s.status !== 'PAID') return false;
+                        const date = s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt);
+                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                      });
+                      
+                      const totalIn = inflow.reduce((sum, f) => sum + (f.paidAmount || (f.amount + f.lateFine - f.discount)), 0);
+                      const totalExp = outExpenses.reduce((sum, e) => sum + e.amount, 0);
+                      const totalSal = outSalaries.reduce((sum, s) => sum + s.netPaid, 0);
+                      const net = totalIn - (totalExp + totalSal);
+
+                      const formatD = (dStr: any) => {
+                        const d = new Date(dStr);
+                        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                      };
+
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Sudhir Tutorials - Financial Statement: ${statementMonth} ${statementYear}</title>
+                            <style>
+                              body { font-family: sans-serif; padding: 40px; color: #1f2937; }
+                              .header { border-bottom: 3px solid #ef4444; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; }
+                              .title { font-size: 24px; font-weight: bold; color: #ef4444; }
+                              .meta { font-size: 14px; color: #4b5563; }
+                              .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+                              .card { padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
+                              .card-title { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: bold; }
+                              .card-value { font-size: 18px; font-weight: bold; margin-top: 5px; }
+                              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                              th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db; }
+                              td { padding: 10px; font-size: 13px; border-bottom: 1px solid #e5e7eb; }
+                              .inflow { color: #059669; font-weight: bold; }
+                              .outflow { color: #dc2626; font-weight: bold; }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="header">
+                              <div>
+                                <div class="title">SUDHIR TUTORIALS</div>
+                                <div class="meta">Institute Financial Statement</div>
+                              </div>
+                              <div style="text-align: right">
+                                <div style="font-weight: bold">${statementMonth.toUpperCase()} ${statementYear}</div>
+                                <div class="meta">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
+                              </div>
+                            </div>
+
+                            <div class="grid">
+                              <div class="card">
+                                <div class="card-title">Fee Inflows</div>
+                                <div class="card-value" style="color: #059669">₹${totalIn.toLocaleString()}</div>
+                              </div>
+                              <div class="card">
+                                <div class="card-title">Admin Expenses</div>
+                                <div class="card-value" style="color: #dc2626">₹${totalExp.toLocaleString()}</div>
+                              </div>
+                              <div class="card">
+                                <div class="card-title">Salaries Paid</div>
+                                <div class="card-value" style="color: #dc2626">₹${totalSal.toLocaleString()}</div>
+                              </div>
+                              <div class="card" style="border-left: 4px solid ${net >= 0 ? '#059669' : '#dc2626'}">
+                                <div class="card-title">Net Cash Flow</div>
+                                <div class="card-value" style="color: ${net >= 0 ? '#059669' : '#dc2626'}">₹${net.toLocaleString()}</div>
+                              </div>
+                            </div>
+
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Reference No.</th>
+                                  <th>Transaction Description</th>
+                                  <th>Type</th>
+                                  <th style="text-align: right">Inflow (Cr)</th>
+                                  <th style="text-align: right">Outflow (Dr)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${[
+                                  ...inflow.map(f => ({
+                                    date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
+                                    ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
+                                    desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
+                                    type: 'FEE_INFLOW',
+                                    inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
+                                    outflow: 0
+                                  })),
+                                  ...outExpenses.map(e => ({
+                                    date: new Date(e.date || e.createdAt),
+                                    ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
+                                    desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
+                                    type: 'EXPENSE_OUTFLOW',
+                                    inflow: 0,
+                                    outflow: e.amount
+                                  })),
+                                  ...outSalaries.map(s => ({
+                                    date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
+                                    ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
+                                    desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
+                                    type: 'SALARY_OUTFLOW',
+                                    inflow: 0,
+                                    outflow: s.netPaid
+                                  }))
+                                ].sort((a,b) => a.date.getTime() - b.date.getTime()).map(t => `
+                                  <tr>
+                                    <td>${formatD(t.date)}</td>
+                                    <td style="font-family: monospace">${t.ref}</td>
+                                    <td>${t.desc}</td>
+                                    <td>${t.type}</td>
+                                    <td class="inflow" style="text-align: right">${t.inflow > 0 ? '₹' + t.inflow.toLocaleString() : '-'}</td>
+                                    <td class="outflow" style="text-align: right">${t.outflow > 0 ? '₹' + t.outflow.toLocaleString() : '-'}</td>
+                                  </tr>
+                                `).join('')}
+                              </tbody>
+                            </table>
+                            <script>window.onload = function() { window.print(); }</script>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                    }}
+                    className="btn-secondary" 
+                    style={{ padding: '0.75rem 1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
+                  >
+                    🖨️ Print Statement
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary Cards */}
+              {(() => {
+                const inflow = fees.filter(f => {
+                  if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
+                  const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
+                  return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                });
+                
+                const outExpenses = expenses.filter(e => {
+                  const date = new Date(e.date || e.createdAt);
+                  return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                });
+                
+                const outSalaries = adminSalaries.filter(s => {
+                  if (s.status !== 'PAID') return false;
+                  const date = s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt);
+                  return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                });
+                
+                const totalIn = inflow.reduce((sum, f) => sum + (f.paidAmount || (f.amount + f.lateFine - f.discount)), 0);
+                const totalExp = outExpenses.reduce((sum, e) => sum + e.amount, 0);
+                const totalSal = outSalaries.reduce((sum, s) => sum + s.netPaid, 0);
+                const net = totalIn - (totalExp + totalSal);
+
+                const ledgerData = [
+                  ...inflow.map(f => ({
+                    date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
+                    ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
+                    desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
+                    type: 'FEE_INFLOW',
+                    inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
+                    outflow: 0
+                  })),
+                  ...outExpenses.map(e => ({
+                    date: new Date(e.date || e.createdAt),
+                    ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
+                    desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
+                    type: 'EXPENSE_OUTFLOW',
+                    inflow: 0,
+                    outflow: e.amount
+                  })),
+                  ...outSalaries.map(s => ({
+                    date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
+                    ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
+                    desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
+                    type: 'SALARY_OUTFLOW',
+                    inflow: 0,
+                    outflow: s.netPaid
+                  }))
+                ].sort((a,b) => a.date.getTime() - b.date.getTime());
+
+                return (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--secondary)' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Collected Revenue (Cr)</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--secondary)' }}>₹{totalIn.toLocaleString()}</div>
+                      </div>
+                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Expenses paid (Dr)</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--primary)' }}>₹{totalExp.toLocaleString()}</div>
+                      </div>
+                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Salaries Disbursed (Dr)</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--primary)' }}>₹{totalSal.toLocaleString()}</div>
+                      </div>
+                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${net >= 0 ? 'var(--secondary)' : 'var(--primary)'}` }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Net cash balance</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: net >= 0 ? 'var(--secondary)' : 'var(--primary)' }}>₹{net.toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    {/* Chronological ledger table */}
+                    <div className="glass-card" style={{ padding: '2rem' }}>
+                      <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)' }}>Chronological Transaction Postings</h4>
+                      <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '14px', background: 'rgba(0,0,0,0.1)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
+                              <th style={{ padding: '1.1rem 1.5rem' }}>Date</th>
+                              <th>Ref No.</th>
+                              <th>Transaction Description</th>
+                              <th>Type</th>
+                              <th style={{ textAlign: 'right' }}>Credit (Cr)</th>
+                              <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Debit (Dr)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ledgerData.map((t, idx) => (
+                              <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.88rem' }}>
+                                <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{t.date.toLocaleDateString('en-GB')}</td>
+                                <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{t.ref}</td>
+                                <td style={{ color: 'var(--text)', fontWeight: 600 }}>{t.desc}</td>
+                                <td>
+                                  <span style={{ 
+                                    padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, 
+                                    background: t.type === 'FEE_INFLOW' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)', 
+                                    color: t.type === 'FEE_INFLOW' ? 'var(--secondary)' : 'var(--primary)' 
+                                  }}>{t.type}</span>
+                                </td>
+                                <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{t.inflow > 0 ? `₹${t.inflow.toLocaleString()}` : '–'}</td>
+                                <td style={{ textAlign: 'right', paddingRight: '1.5rem', color: 'var(--primary)', fontWeight: 700 }}>{t.outflow > 0 ? `₹${t.outflow.toLocaleString()}` : '–'}</td>
+                              </tr>
+                            ))}
+                            {ledgerData.length === 0 && (
+                              <tr><td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transactions recorded for {statementMonth} {statementYear}.</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
       {(activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) && (
@@ -4373,7 +4710,15 @@ function AdminDashboardContent() {
                      <label>Class / Grade</label>
                      <select 
                        value={editingProfile.className || ''} 
-                       onChange={e => setEditingProfile({...editingProfile, className: e.target.value})}
+                       onChange={e => {
+                          const cls = e.target.value;
+                          const defaultFee = classFees[cls] !== undefined ? classFees[cls] : editingProfile.baseFee;
+                          setEditingProfile({
+                            ...editingProfile,
+                            className: cls,
+                            baseFee: defaultFee
+                          });
+                        }}
                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                      >
                        <option value="">Select Class...</option>
@@ -4381,6 +4726,14 @@ function AdminDashboardContent() {
                          <option key={c} value={c}>{c}</option>
                        ))}
                      </select>
+                   </div>
+                   <div className="input-group">
+                     <label>Board</label>
+                     <input type="text" value={editingProfile.board || ''} onChange={e => setEditingProfile({...editingProfile, board: e.target.value})} placeholder="e.g. CBSE / ICSE" />
+                   </div>
+                   <div className="input-group">
+                     <label>Scholarship Amount (₹)</label>
+                     <input type="number" value={editingProfile.scholarship !== undefined && editingProfile.scholarship !== null ? editingProfile.scholarship : ''} onChange={e => setEditingProfile({...editingProfile, scholarship: parseFloat(e.target.value) || 0})} placeholder="e.g. 1000" />
                    </div>
                    <div className="input-group">
                      <label>Batch Name</label>
@@ -5336,7 +5689,145 @@ function AdminDashboardContent() {
                     <strong>10-Day Flat Threshold:</strong> Once an invoice is 11 or more days overdue, a secondary flat charge is added on top of the daily incremental fine to prompt urgent settlement.
                   </p>
                 </div>
+              
+            {/* Class Default Fees Configuration Card */}
+            <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gridColumn: 'span 2' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>🏫</span> Class-wise Default Monthly Fees
+              </h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+                {/* Form to add a new class default fee */}
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!newFeeClassName.trim() || !newFeeClassAmount) return;
+                    const amount = parseFloat(newFeeClassAmount);
+                    if (isNaN(amount)) return;
+                    setClassFees(prev => ({
+                      ...prev,
+                      [newFeeClassName.trim()]: amount
+                    }));
+                    setNewFeeClassName('');
+                    setNewFeeClassAmount('');
+                  }} 
+                  style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                >
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Configure New Class Fee</span>
+                  
+                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Class / Grade Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 10th, 11th (Sci)" 
+                      required 
+                      value={newFeeClassName} 
+                      onChange={e => setNewFeeClassName(e.target.value)} 
+                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Default Monthly Fee (₹)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      placeholder="e.g. 2500" 
+                      required 
+                      value={newFeeClassAmount} 
+                      onChange={e => setNewFeeClassAmount(e.target.value)} 
+                      style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="btn-primary"
+                    style={{ 
+                      padding: '0.65rem 1.25rem', 
+                      background: 'var(--primary)', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '10px', 
+                      fontWeight: 700, 
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      alignSelf: 'flex-start'
+                    }}
+                  >
+                    ➕ Add Class Fee Rule
+                  </button>
+                </form>
+
+                {/* List of configured class default fees */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Active Class Default Fees:</span>
+                  
+                  <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <th style={{ padding: '0.75rem 1rem' }}>Class / Grade</th>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Default Monthly Fee</th>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(classFees).length === 0 ? (
+                          <tr>
+                            <td colSpan={3} style={{ padding: '2rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
+                              No class default fees configured yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          Object.entries(classFees).map(([className, amount]) => (
+                            <tr key={className} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem' }}>
+                              <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>{className}</td>
+                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 800, color: '#10b981' }}>₹{amount.toLocaleString()}</td>
+                              <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Remove default fee configuration for class "${className}"?`)) {
+                                      const updated = { ...classFees };
+                                      delete updated[className];
+                                      setClassFees(updated);
+                                    }
+                                  }}
+                                  style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem' }}
+                                  title="Delete Configuration"
+                                >
+                                  🗑
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {Object.entries(classFees).length > 0 && (
+                    <button 
+                      type="button" 
+                      onClick={handleSaveSettings}
+                      disabled={isSavingSettings}
+                      className="btn-secondary"
+                      style={{ 
+                        padding: '0.65rem 1.25rem', 
+                        fontWeight: 700, 
+                        fontSize: '0.85rem',
+                        alignSelf: 'flex-start',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      💾 Save All Class Fee Rules
+                    </button>
+                  )}
+                </div>
               </div>
+            </div>
+</div>
               <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', borderRadius: '10px', marginTop: '1.25rem' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>⚠️ Safety Warning</span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4', display: 'block' }}>Changing these settings does not retroactively rewrite already completed checkout invoices, but applies to future daily late fee calculation rounds.</span>
@@ -5728,6 +6219,17 @@ function AdminDashboardContent() {
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.dob || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Board</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.board || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Scholarship Amount</div>
+                      <div style={{ fontWeight: 800, color: '#f59e0b' }}>₹{selectedUserDetail.studentProfile.scholarship || 0}</div>
                     </div>
                   </div>
 

@@ -37,9 +37,18 @@ export async function GET() {
     const perDayFine = settingsMap.perDayFine || "10";
     const flatFineAfter10Days = settingsMap.flatFineAfter10Days || "100";
 
+    const classFees: Record<string, number> = {};
+    for (const key of Object.keys(settingsMap)) {
+      if (key.startsWith('classFee_')) {
+        const className = key.replace('classFee_', '');
+        classFees[className] = parseFloat(settingsMap[key]) || 0;
+      }
+    }
+
     return NextResponse.json({
       perDayFine: parseFloat(perDayFine),
       flatFineAfter10Days: parseFloat(flatFineAfter10Days),
+      classFees,
     });
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -54,7 +63,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { perDayFine, flatFineAfter10Days } = await req.json();
+    const { perDayFine, flatFineAfter10Days, classFees } = await req.json();
 
     await ensureSystemSettingTable();
 
@@ -74,10 +83,35 @@ export async function POST(req: Request) {
       });
     }
 
+    if (classFees !== undefined) {
+      // Find all existing keys starting with classFee_
+      const existingSettings = await prisma.systemSetting.findMany({
+        where: { key: { startsWith: 'classFee_' } }
+      });
+      
+      const newKeys = Object.keys(classFees).map(c => `classFee_${c}`);
+      
+      // Delete any setting that is no longer in newKeys
+      for (const s of existingSettings) {
+        if (!newKeys.includes(s.key)) {
+          await prisma.systemSetting.delete({ where: { id: s.id } });
+        }
+      }
+
+      // Upsert new ones
+      for (const [className, fee] of Object.entries(classFees)) {
+        await prisma.systemSetting.upsert({
+          where: { key: `classFee_${className}` },
+          update: { value: String(fee) },
+          create: { key: `classFee_${className}`, value: String(fee) }
+        });
+      }
+    }
+
     await logActivity(
       session.user.id,
       'UPDATE_SETTINGS',
-      `Updated late fines: per day = ₹${perDayFine}, flat after 10 days = ₹${flatFineAfter10Days}`
+      `Updated late fines: per day = ₹${perDayFine}, flat after 10 days = ₹${flatFineAfter10Days}, and updated class default fees.`
     );
 
     return NextResponse.json({ success: true });

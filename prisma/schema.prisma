@@ -67,6 +67,8 @@ model StudentProfile {
   registrationNo    String?
   grade             String?
   className         String?
+  board             String?
+  scholarship       Float?  @default(0)
   batch             String?
   school            String?
   email             String?

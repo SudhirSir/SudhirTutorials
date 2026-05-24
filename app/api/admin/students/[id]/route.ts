@@ -76,6 +76,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       marksObtained,
       marksTotal,
       baseFee,
+      board,
+      scholarship,
     } = body;
 
     // Find the user first
@@ -129,6 +131,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(registrationNo !== undefined && { registrationNo }),
         ...(grade !== undefined && { grade }),
         ...(className !== undefined && { className }),
+        ...(board !== undefined && { board }),
+        ...(scholarship !== undefined && { scholarship: scholarship ? parseFloat(String(scholarship)) : 0 }),
         ...(batch !== undefined && { batch }),
         ...(school !== undefined && { school }),
         ...(email !== undefined && { email }),
@@ -150,6 +154,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         registrationNo: registrationNo || null,
         grade: grade || null,
         className: className || null,
+        board: board || null,
+        scholarship: scholarship ? parseFloat(String(scholarship)) : 0,
         batch: batch || null,
         school: school || null,
         email: email || null,

@@ -9,6 +9,13 @@ import crypto from 'crypto';
 const userSchema = z.object({
   role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
   name: z.string().min(2, "Name must be at least 2 characters").max(50),
+  className: z.string().optional(),
+  board: z.string().optional(),
+  scholarship: z.union([z.string(), z.number()]).optional().transform(val => {
+    if (val === undefined || val === '') return undefined;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? undefined : num;
+  }),
 });
 
 export async function POST(req: Request) {
@@ -27,7 +34,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const { role, name } = validation.data;
+    const { role, name, className, board, scholarship } = validation.data;
 
     // Generate cryptographically secure 8-character password
     const password = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -81,6 +88,17 @@ export async function POST(req: Request) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    // Auto reflect class default fee if it exists in settings
+    let defaultFeeVal = 0;
+    if (role === 'STUDENT' && className) {
+      const setting = await prisma.systemSetting.findUnique({
+        where: { key: `classFee_${className}` }
+      });
+      if (setting && setting.value) {
+        defaultFeeVal = parseFloat(setting.value) || 0;
+      }
+    }
+
     const newUser = await withDbRetry(() => prisma.user.create({
       data: {
         username,
@@ -88,6 +106,14 @@ export async function POST(req: Request) {
         passwordHash,
         role: role,
         mustChangePassword: true,
+        studentProfile: role === 'STUDENT' ? {
+          create: {
+            className: className || null,
+            board: board || null,
+            scholarship: scholarship !== undefined ? scholarship : 0,
+            baseFee: defaultFeeVal,
+          }
+        } : undefined
       }
     }));
 
