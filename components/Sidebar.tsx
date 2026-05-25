@@ -17,6 +17,24 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  const handleLogout = async () => {
+    if (typeof window !== "undefined") {
+      (window as any).isLoggingOut = true;
+      sessionStorage.setItem('isLoggingOut', 'true');
+      
+      // Clear sessionStorage (tabSessionActive, etc.)
+      sessionStorage.clear();
+      
+      // Keep theme but clear custom localStorage user-related keys
+      const theme = localStorage.getItem('theme');
+      localStorage.clear();
+      if (theme) {
+        localStorage.setItem('theme', theme);
+      }
+    }
+    await signOut({ callbackUrl: '/login' });
+  };
+
   const fetchBadgeCounts = async () => {
     try {
       const res = await fetch('/api/user/badges');
@@ -186,7 +204,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
         </div>
         
         <button 
-          onClick={() => signOut()}
+          onClick={handleLogout}
           style={{
             width: '100%',
             padding: '1rem',

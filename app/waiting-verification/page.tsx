@@ -8,9 +8,29 @@ export default function WaitingVerificationPage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
 
+  const handleLogout = async () => {
+    if (typeof window !== "undefined") {
+      (window as any).isLoggingOut = true;
+      sessionStorage.setItem('isLoggingOut', 'true');
+      
+      // Clear sessionStorage (tabSessionActive, etc.)
+      sessionStorage.clear();
+      
+      // Keep theme but clear custom localStorage user-related keys
+      const theme = localStorage.getItem('theme');
+      localStorage.clear();
+      if (theme) {
+        localStorage.setItem('theme', theme);
+      }
+    }
+    await signOut({ callbackUrl: '/login' });
+  };
+
   useEffect(() => {
     // Poll for verification status every 5 seconds
     const interval = setInterval(async () => {
+       if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+       if (sessionStorage.getItem('isLoggingOut') === 'true') return;
        try {
          const res = await fetch('/api/auth/check-session');
          if (res.ok) {
@@ -21,6 +41,8 @@ export default function WaitingVerificationPage() {
            }
          }
        } catch (err) {
+         if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+         if (sessionStorage.getItem('isLoggingOut') === 'true') return;
          console.error('Failed to poll status', err);
        }
     }, 5000);
@@ -61,7 +83,7 @@ export default function WaitingVerificationPage() {
             Check Status Now
           </button>
           <button 
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={handleLogout}
             className="btn-secondary" 
             style={{ flex: 1 }}
           >

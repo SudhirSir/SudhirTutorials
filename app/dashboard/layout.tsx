@@ -83,6 +83,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
+  const handleLogout = async () => {
+    if (typeof window !== "undefined") {
+      (window as any).isLoggingOut = true;
+      sessionStorage.setItem('isLoggingOut', 'true');
+      
+      // Clear sessionStorage (tabSessionActive, etc.)
+      sessionStorage.clear();
+      
+      // Keep theme but clear custom localStorage user-related keys
+      const theme = localStorage.getItem('theme');
+      localStorage.clear();
+      if (theme) {
+        localStorage.setItem('theme', theme);
+      }
+    }
+    await signOut({ callbackUrl: '/login' });
+  };
+
   const handleNavLinkClick = () => {
     setIsMobileSidebarOpen(false);
   };
@@ -105,16 +123,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       // Check session validity to prevent concurrent logins
       const checkSessionValidity = async () => {
+        if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+        if (sessionStorage.getItem('isLoggingOut') === 'true') return;
+
         try {
           const res = await fetch('/api/auth/check-session');
           if (res.ok) {
             const data = await res.json();
             if (data.valid === false) {
+              if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+              if (sessionStorage.getItem('isLoggingOut') === 'true') return;
               console.log("Session invalidated:", data.error);
               signOut({ callbackUrl: `/login?error=${data.error === "Logged in elsewhere" ? "concurrent_login" : "session_expired"}` });
             }
           }
         } catch (error) {
+          if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+          if (sessionStorage.getItem('isLoggingOut') === 'true') return;
           console.error("Error during session validation check:", error);
         }
       };
@@ -354,7 +379,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </nav>
 
           <div className="sidebar-footer">
-            <button onClick={() => signOut({ callbackUrl: '/login' })} className="btn-logout-modern">
+            <button onClick={handleLogout} className="btn-logout-modern">
               <span className="icon">{icons.logout}</span>
               Sign Out
             </button>

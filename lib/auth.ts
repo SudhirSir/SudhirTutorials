@@ -138,8 +138,21 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
+  events: {
+    async signOut({ token }) {
+      if (token?.id) {
+        try {
+          await prisma.user.update({
+            where: { id: token.id as string },
+            data: { activeToken: null }
+          });
+        } catch (error) {
+          console.error("Error clearing activeToken on signOut:", error);
+        }
+      }
+    }
+  },
   pages: { signIn: "/login" },
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
-
 };

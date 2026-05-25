@@ -15,16 +15,23 @@ export function SessionGuard() {
     let isMounted = true;
 
     const checkSession = async () => {
+      if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+      if (sessionStorage.getItem('isLoggingOut') === 'true') return;
+
       try {
         const res = await fetch("/api/auth/check-session");
         if (!res.ok) return;
         const data = await res.json();
         
         if (data.valid === false && isMounted) {
+          if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+          if (sessionStorage.getItem('isLoggingOut') === 'true') return;
           console.warn("Session invalidated (logged in elsewhere or no session). Terminating session...");
           signOut({ callbackUrl: "/login" });
         }
       } catch (err) {
+        if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
+        if (sessionStorage.getItem('isLoggingOut') === 'true') return;
         console.error("Failed to verify active session", err);
       }
     };
