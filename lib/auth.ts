@@ -142,10 +142,14 @@ export const authOptions: NextAuthOptions = {
     async signOut({ token }) {
       if (token?.id) {
         try {
-          await prisma.user.update({
-            where: { id: token.id as string },
-            data: { activeToken: null }
-          });
+          await withDbRetry(
+            () => prisma.user.update({
+              where: { id: token.id as string },
+              data: { activeToken: null }
+            }),
+            3,
+            200
+          );
         } catch (error) {
           console.error("Error clearing activeToken on signOut:", error);
         }

@@ -67,8 +67,9 @@ export async function GET() {
       activityLogs
     });
 
-    // Cache for 15 s, serve stale for 30 s while revalidating
-    response.headers.set('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
+    // Prevent caching to guarantee real-time data delivery
+    response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
     return response;
   } catch (error) {
     console.error(error);
