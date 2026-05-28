@@ -218,8 +218,8 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
               </div>
               <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
                 <h3>Outstanding Balance</h3>
-                <p style="color: ${finalBalance >= 0 ? '#1d4ed8' : '#dc2626'}">
-                  ${finalBalance >= 0 ? 'Settled' : '₹' + Math.abs(finalBalance).toFixed(2) + ' Due'}
+                <p style="color: ${finalBalance > 0 ? '#10b981' : finalBalance < 0 ? '#dc2626' : '#1d4ed8'}">
+                  ${finalBalance > 0 ? '+₹' + finalBalance.toFixed(2) + ' Credit (Advance)' : finalBalance < 0 ? '₹' + Math.abs(finalBalance).toFixed(2) + ' Due' : 'Settled'}
                 </p>
               </div>
             </div>
@@ -296,9 +296,21 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         const totalFines = yrFees.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
         const totalDiscounts = yrFees.reduce((acc, f) => acc + (f.discount || 0), 0);
         const totalPaid = yrFees.reduce((acc, f) => acc + (f.paidAmount || 0), 0);
-        const totalOutstanding = yrFees.filter(f => f.status === 'PENDING')
-          .reduce((acc, f) => acc + (f.amount + Math.max(f.lateFine || 0, f.currentLateFine || 0) - (f.discount || 0)), 0);
-        return { year: yr, totalBilled, totalFines, totalDiscounts, totalPaid, totalOutstanding, recordsCount: yrFees.length };
+        
+        // Dynamic outstanding balance subtracting credits
+        const yrOutstanding = yrFees.reduce((acc, f) => {
+          if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
+            const netDue = f.amount + (f.lateFine || 0) - f.discount;
+            const excess = Math.max(0, (f.paidAmount || 0) - netDue);
+            return acc - excess;
+          } else {
+            const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+            const remaining = Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+            return acc + remaining;
+          }
+        }, 0);
+
+        return { year: yr, totalBilled, totalFines, totalDiscounts, totalPaid, totalOutstanding: yrOutstanding, recordsCount: yrFees.length };
       }),
     [fees, getParsedFeeDetails]
   );
@@ -563,7 +575,15 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
               {[
                 { label: 'Total Charged', value: `₹${totalDebit.toFixed(2)}`, color: 'var(--primary)' },
                 { label: 'Total Settled', value: `₹${totalCredit.toFixed(2)}`, color: 'var(--secondary)' },
-                { label: 'Net Balance', value: finalBalance >= 0 ? 'Settled' : `-₹${Math.abs(finalBalance).toFixed(2)}`, color: finalBalance >= 0 ? 'var(--secondary)' : 'var(--primary)' },
+                { 
+                  label: 'Net Balance', 
+                  value: finalBalance > 0 
+                    ? `+₹${finalBalance.toFixed(2)} Credit` 
+                    : finalBalance < 0 
+                      ? `₹${Math.abs(finalBalance).toFixed(2)} Due` 
+                      : 'Settled', 
+                  color: finalBalance >= 0 ? 'var(--secondary)' : 'var(--primary)' 
+                },
               ].map(s => (
                 <div key={s.label} style={{ padding: '1.1rem 1.5rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>

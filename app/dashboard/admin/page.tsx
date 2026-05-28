@@ -505,7 +505,7 @@ function AdminDashboardContent() {
   const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
-  const [newTest, setNewTest] = useState({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
   const [testStudents, setTestStudents] = useState<any[]>([]);
 
   const fetchTests = async () => {
@@ -532,7 +532,7 @@ function AdminDashboardContent() {
         body: JSON.stringify(newTest)
       });
       if (res.ok) {
-        setNewTest({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
         fetchTests();
         alert('Test created successfully!');
       } else alert('Failed to create test');
@@ -627,7 +627,7 @@ function AdminDashboardContent() {
   const [newExpense, setNewExpense] = useState({ title: '', category: 'OTHER', amount: '', remarks: '' });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [payingFee, setPayingFee] = useState<any>(null);
-  const [paymentDetails, setPaymentDetails] = useState({ paymentMethod: 'CASH', transactionId: '', discount: 0, remarks: '' });
+  const [paymentDetails, setPaymentDetails] = useState({ paymentMethod: 'CASH', transactionId: '', discount: 0, remarks: '', paidAmount: '', paidAt: '' });
 
   // Courses & Batches State
   const [courses, setCourses] = useState<any[]>([]);
@@ -2657,7 +2657,7 @@ function AdminDashboardContent() {
                                   <td>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                       {fee.status === 'PENDING' && (
-                                        <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({...paymentDetails, discount: fee.discount}); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
+                                        <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
                                       )}
                                       {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
                                         <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
@@ -2755,11 +2755,25 @@ function AdminDashboardContent() {
                             return students.map(s => {
                               const studentInvoices = fees.filter(f => f.studentId === s.id);
                               const totalPaid = studentInvoices
+                                .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0))
+                                .reduce((acc, f) => acc + (f.paidAmount || 0), 0);
+
+                              const excessPaid = studentInvoices
                                 .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
-                                .reduce((acc, f) => acc + f.totalDue, 0);
-                              const outstanding = studentInvoices
+                                .reduce((acc, f) => {
+                                  const netDue = f.amount + (f.lateFine || 0) - f.discount;
+                                  return acc + Math.max(0, (f.paidAmount || 0) - netDue);
+                                }, 0);
+                              
+                              const pendingDues = studentInvoices
                                 .filter(f => f.status === 'PENDING')
-                                .reduce((acc, f) => acc + f.totalDue, 0);
+                                .reduce((acc, f) => {
+                                  const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+                                  return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+                                }, 0);
+                              
+                              const outstanding = Math.max(0, pendingDues - excessPaid);
+                              const creditBalance = Math.max(0, excessPaid - pendingDues);
                               const baseFee = s.studentProfile?.baseFee || 0;
                               const pendingCount = studentInvoices.filter(f => f.status === 'PENDING').length;
 
@@ -2775,8 +2789,14 @@ function AdminDashboardContent() {
                                   <td style={{ fontWeight: 700, color: '#10b981' }}>
                                     ₹{totalPaid.toLocaleString()}
                                   </td>
-                                  <td style={{ fontWeight: 700, color: outstanding > 0 ? '#ef4444' : 'var(--text-muted)' }}>
-                                    ₹{outstanding.toLocaleString()}
+                                  <td style={{ fontWeight: 700 }}>
+                                    {outstanding > 0 ? (
+                                      <span style={{ color: '#ef4444' }}>₹{outstanding.toLocaleString()}</span>
+                                    ) : creditBalance > 0 ? (
+                                      <span style={{ color: '#10b981' }}>+ ₹{creditBalance.toLocaleString()} Credit</span>
+                                    ) : (
+                                      <span style={{ color: 'var(--text-muted)' }}>₹0</span>
+                                    )}
                                   </td>
                                   <td>
                                     {pendingCount > 0 ? (
@@ -3737,6 +3757,11 @@ function AdminDashboardContent() {
                           <span title="Weekly Schedule">🗓️ <strong>{batch.schedules?.length || 0}</strong> Slots/Week</span>
                           <span title="Default Batch Fee">💰 <strong>₹{batch.defaultFee || 0}</strong>/mo</span>
                         </div>
+                        {batch.teachers && batch.teachers.length > 0 && (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.5rem' }}>
+                            Assigned Instructors: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{batch.teachers.map((t: any) => t.name).join(', ')}</span>
+                          </div>
+                        )}
                       </div>
                       <button 
                         onClick={() => { setEditingBatch(batch); setShowBatchEditModal(true); }}
@@ -4132,7 +4157,7 @@ function AdminDashboardContent() {
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong> • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
+                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
                          Marks recorded: {test.results?.length || 0} students
@@ -4155,8 +4180,12 @@ function AdminDashboardContent() {
             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>Schedule New Test</h3>
             <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Test Title / Subject</label>
-                <input type="text" required placeholder="e.g. Chemistry Unit 1 Test" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+                <label style={{ fontWeight: 600 }}>Test Title</label>
+                <input type="text" required placeholder="e.g. Unit 1 Exam" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Subject</label>
+                <input type="text" required placeholder="e.g. Chemistry" value={newTest.subject} onChange={e => setNewTest({ ...newTest, subject: e.target.value })} />
               </div>
               <div className="input-group">
                 <label style={{ fontWeight: 600 }}>Course Category</label>
@@ -5024,22 +5053,74 @@ function AdminDashboardContent() {
 
                   <section>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>👨‍🏫 Teaching Staff</h3>
-                    <div style={{ maxHeight: '180px', overflowY: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                      {allTeachers.map(t => (
-                        <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)', flexWrap: 'wrap' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={editingBatch.teachers?.some((te:any) => te.id === t.id)}
-                            onChange={e => {
-                              const checked = e.target.checked;
-                              const newTeachers = checked ? [...(editingBatch.teachers || []), t] : editingBatch.teachers.filter((te:any) => te.id !== t.id);
-                              setEditingBatch({...editingBatch, teachers: newTeachers});
-                            }}
-                          />
-                          <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{t.name}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({t.username})</span>
-                        </label>
-                      ))}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                      {/* Currently Assigned */}
+                      <div className="glass-card" style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)' }}>
+                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          👨‍🏫 Assigned Instructors ({editingBatch.teachers?.length || 0})
+                        </h4>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {(!editingBatch.teachers || editingBatch.teachers.length === 0) ? (
+                            <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                              No teachers assigned yet.
+                            </div>
+                          ) : (
+                            editingBatch.teachers.map((t: any) => (
+                              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{t.name}</span>
+                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.username}</span>
+                                </div>
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const newTeachers = editingBatch.teachers.filter((te: any) => te.id !== t.id);
+                                    setEditingBatch({ ...editingBatch, teachers: newTeachers });
+                                  }}
+                                  style={{ padding: '2px 8px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 600 }}
+                                >
+                                  ✕ Remove
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Add Teachers */}
+                      <div className="glass-card" style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)' }}>
+                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          ➕ Available Teachers
+                        </h4>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {allTeachers.filter(t => !editingBatch.teachers?.some((te: any) => te.id === t.id)).length === 0 ? (
+                            <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                              All teachers assigned.
+                            </div>
+                          ) : (
+                            allTeachers
+                              .filter(t => !editingBatch.teachers?.some((te: any) => te.id === t.id))
+                              .map((t: any) => (
+                                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px dashed var(--border)' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t.name}</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.username}</span>
+                                  </div>
+                                  <button 
+                                    type="button"
+                                    onClick={() => {
+                                      const newTeachers = [...(editingBatch.teachers || []), t];
+                                      setEditingBatch({ ...editingBatch, teachers: newTeachers });
+                                    }}
+                                    style={{ padding: '4px 10px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
+                                  >
+                                    + Assign
+                                  </button>
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </section>
                 </div>
@@ -5500,6 +5581,12 @@ function AdminDashboardContent() {
                     <span>+₹{payingFee.currentLateFine}</span>
                  </div>
                )}
+               {payingFee.paidAmount > 0 && (
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#3b82f6' }}>
+                    <span>Previously Paid:</span>
+                    <span>-₹{payingFee.paidAmount}</span>
+                 </div>
+               )}
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981' }}>
                   <span>Discount:</span>
                   <input 
@@ -5511,11 +5598,21 @@ function AdminDashboardContent() {
                </div>
                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
                   <span>Total Payable:</span>
-                  <span>₹{Math.max(0, payingFee.amount + (payingFee.currentLateFine || 0) - paymentDetails.discount)}</span>
+                  <span>₹{Math.max(0, payingFee.amount + (payingFee.currentLateFine || 0) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
                </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                 <div className="input-group">
+                   <label>Amount Paid (₹)</label>
+                   <input type="number" required value={paymentDetails.paidAmount} onChange={e => setPaymentDetails({...paymentDetails, paidAmount: e.target.value})} style={{ width: '100%' }} />
+                 </div>
+                 <div className="input-group">
+                   <label>Date of Payment</label>
+                   <input type="date" required value={paymentDetails.paidAt} onChange={e => setPaymentDetails({...paymentDetails, paidAt: e.target.value})} style={{ width: '100%' }} />
+                 </div>
+               </div>
                <div className="input-group">
                  <label>Payment Method</label>
                  <select value={paymentDetails.paymentMethod} onChange={e => setPaymentDetails({...paymentDetails, paymentMethod: e.target.value})}>
@@ -5537,7 +5634,7 @@ function AdminDashboardContent() {
                </div>
                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                  <button type="button" onClick={() => setShowPaymentModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
-                 <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', paymentDetails)} className="btn-primary" style={{ flex: 1 }}>Confirm Payment</button>
+                 <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', { ...paymentDetails, paidAmount: parseFloat(paymentDetails.paidAmount || '0') })} className="btn-primary" style={{ flex: 1 }}>Confirm Payment</button>
                </div>
             </div>
           </div>

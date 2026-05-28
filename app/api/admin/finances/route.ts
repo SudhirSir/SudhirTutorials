@@ -30,6 +30,8 @@ const updateStatusSchema = z.object({
   transactionId: z.string().optional(),
   discount: z.number().optional(),
   remarks: z.string().optional(),
+  paidAmount: z.number().optional(),
+  paidAt: z.string().optional(),
 });
 
 // ─── GET: list every payment ───────────────────────
@@ -102,7 +104,7 @@ export async function GET(req: Request) {
         ...fee,
         daysLate: daysLate > 0 ? daysLate : 0,
         currentLateFine: currentFine,
-        totalDue: fee.amount + currentFine - fee.discount,
+        totalDue: Math.max(0, fee.amount + currentFine - fee.discount - (fee.paidAmount || 0)),
         receiptNo
       };
     });
@@ -271,7 +273,7 @@ export async function PATCH(req: Request) {
     const validation = updateStatusSchema.safeParse(body);
     if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
-    const { id, status, paymentMethod, transactionId, discount, remarks } = validation.data;
+    const { id, status, paymentMethod, transactionId, discount, remarks, paidAmount, paidAt } = validation.data;
 
     const currentFee = await withDbRetry(() => prisma.payment.findUnique({ where: { id } }));
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
@@ -284,22 +286,37 @@ export async function PATCH(req: Request) {
       lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days);
     }
 
+    const netDueBefore = currentFee.amount + lateFine - (discount ?? currentFee.discount);
+    const remainingDueBefore = Math.max(0, netDueBefore - (currentFee.paidAmount || 0));
+
+    // Custom paidAmount can be passed
+    const inputPaidAmount = paidAmount !== undefined ? paidAmount : remainingDueBefore;
+
+    // Accumulate total paid amount
+    const newTotalPaidAmount = (currentFee.paidAmount || 0) + inputPaidAmount;
+
+    // Decide new status: if accumulated paid is still less than total due, keep status as PENDING (partial payment)
+    let finalStatus = status;
+    if (status === 'PAID' || status === 'VERIFIED') {
+      if (newTotalPaidAmount < netDueBefore - 0.01) {
+        finalStatus = 'PENDING';
+      }
+    }
+
     const updated = await withDbRetry(() => prisma.payment.update({
       where: { id },
       data: {
-        status,
+        status: finalStatus,
         paymentMethod,
         transactionId,
         remarks,
         discount: discount !== undefined ? discount : currentFee.discount,
         lateFine,
-        paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status)
-          ? (currentFee.paidAmount && currentFee.paidAmount > 0
-              ? currentFee.paidAmount
-              : (currentFee.amount + lateFine - (discount ?? currentFee.discount)))
+        paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus)
+          ? newTotalPaidAmount
           : 0,
-        paidAt: ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(status)
-          ? (currentFee.paidAt || new Date())
+        paidAt: ['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus) && newTotalPaidAmount > 0
+          ? (paidAt ? new Date(paidAt) : (currentFee.paidAt || new Date()))
           : null,
       },
     }));

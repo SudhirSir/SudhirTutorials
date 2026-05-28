@@ -678,9 +678,9 @@ function StudentDashboardContent() {
         <div className="glass-card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>My Test Performance</h2>
-             {(dashboard as any)?.testStats?.averageScore !== null && (
+             {(dashboard as any)?.testStats?.averageScore != null && (
                 <div style={{ background: 'var(--primary)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800 }}>
-                   Avg. Score: {(dashboard as any).testStats.averageScore}%
+                   Avg. Score: {(dashboard as any)?.testStats?.averageScore}%
                 </div>
              )}
           </div>
@@ -698,7 +698,10 @@ function StudentDashboardContent() {
                   <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: `1px solid ${isUpcoming ? 'var(--primary)' : 'var(--border)'}`, borderRadius: '12px', background: isUpcoming ? 'rgba(79, 70, 229, 0.05)' : 'rgba(255,255,255,0.02)' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.25rem' }}>{test.title}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Course: <strong>{test.course?.name}</strong></div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        Course: <strong>{test.course?.name}</strong>
+                        {test.subject && <> • Subject: <strong>{test.subject}</strong></>}
+                      </div>
                       {result && (
                         <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>Score: {result.marks} / {result.totalMarks}</span>

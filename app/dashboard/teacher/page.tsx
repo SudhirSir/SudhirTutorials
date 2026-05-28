@@ -133,7 +133,7 @@ function TeacherDashboardContent() {
   const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
-  const [newTest, setNewTest] = useState({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
   
   // Profile State
   const [profile, setProfile] = useState<any>(null);
@@ -563,7 +563,7 @@ Depending on your specific focus, this represents the vital equation model for t
         body: JSON.stringify(newTest)
       });
       if (res.ok) {
-        setNewTest({ title: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
         fetchTests();
         alert('Test created successfully!');
       } else alert('Failed to create test');
@@ -1160,7 +1160,7 @@ Depending on your specific focus, this represents the vital equation model for t
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong> • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
+                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
                          Results recorded: {test.results?.length || 0} students
@@ -1181,7 +1181,11 @@ Depending on your specific focus, this represents the vital equation model for t
             <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="input-group">
                 <label>Test Title</label>
-                <input type="text" required placeholder="e.g. Chemistry Unit 1 Test" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+                <input type="text" required placeholder="e.g. Unit 1 Exam" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>Subject</label>
+                <input type="text" required placeholder="e.g. Chemistry" value={newTest.subject} onChange={e => setNewTest({ ...newTest, subject: e.target.value })} />
               </div>
               <div className="input-group">
                 <label>Course</label>

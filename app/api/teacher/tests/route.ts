@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 const testSchema = z.object({
   title: z.string().min(1),
+  subject: z.string().optional(),
   courseId: z.string().min(1),
   date: z.string().min(1)
 });
@@ -75,11 +76,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid data', details: validation.error.format() }, { status: 400 });
     }
 
-    const { title, courseId, date } = validation.data;
+    const { title, subject, courseId, date } = validation.data;
 
     const test = await prisma.test.create({
       data: {
         title,
+        subject,
         courseId,
         date: new Date(date)
       }
