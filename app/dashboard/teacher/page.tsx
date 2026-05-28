@@ -21,6 +21,44 @@ function TeacherDashboardContent() {
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
+  const teacherQuotes = [
+    {
+      sanskrit: "गुरुर्ब्रह्मा गुरुर्विष्णुः गुरुर्देवो महेश्वरः...",
+      translation: "The Guru is the guide who leads us from darkness to light.",
+      insight: "A teacher affects eternity; he can never tell where his influence stops. — Henry Adams. Thank you for inspiring our scholars today."
+    },
+    {
+      sanskrit: "स्वदेशे पूज्यते राजा विद्वान् सर्वत्र पूज्यते",
+      translation: "A king is respected in his own country, but a wise teacher is respected everywhere.",
+      insight: "Teaching is the greatest act of optimism. Let us nurture creative minds, spark intellectual curiosity, and lead with empathy. — Colleen Wilcox"
+    },
+    {
+      sanskrit: "ज्ञानं परमं बलम्",
+      translation: "Knowledge is the supreme strength.",
+      insight: "The art of teaching is the art of assisting discovery. Enable students to discover the beauty of logical science and critical reasoning. — Mark Van Doren"
+    },
+    {
+      sanskrit: "सा विद्या या विमुक्तये",
+      translation: "True learning is that which liberates the mind.",
+      insight: "If you have to put someone on a pedestal, put teachers. They are society's heroes. Thank you for giving wings to student aspirations. — Guy Kawasaki"
+    },
+    {
+      sanskrit: "गुरुमुखात् ज्ञायते धर्मः",
+      translation: "Righteousness and wisdom are understood through the words of the Guru.",
+      insight: "Education is not the filling of a pail, but the lighting of a fire. Let us ignite the fires of learning in every classroom today. — William Butler Yeats"
+    },
+    {
+      sanskrit: "शिशुत्वं हि सर्वत्र सुलभं ज्ञानं दुर्लभम्",
+      translation: "Childhood is easy to attain, but true guidance and wisdom are rare treasures.",
+      insight: "It is the supreme art of the teacher to awaken joy in creative expression and knowledge. Let us make every lecture memorable. — Albert Einstein"
+    },
+    {
+      sanskrit: "श्रद्धावान् लभते ज्ञानं",
+      translation: "The one who has faith and dedication attains true wisdom. (Bhagavad Gita)",
+      insight: "Better than a thousand days of diligent study is one day with a great teacher. Let us guide them with patience, mastery, and passion. — Japanese Proverb"
+    }
+  ];
+
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
     const params = new URLSearchParams(searchParams.toString());
@@ -636,6 +674,41 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
         <LiveClock />
       </header>
+
+      {/* Inspiring Sanskrit & English Quote Banner (Rotates Daily) */}
+      {(() => {
+        const quoteIndex = new Date().getDate() % teacherQuotes.length;
+        const currentQuote = teacherQuotes[quoteIndex];
+        return (
+          <div 
+            className="glass-card animate-scale-up" 
+            style={{ 
+              padding: '1.25rem 2rem', 
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.01))',
+              borderLeft: '4px solid #10b981', 
+              borderRadius: '12px',
+              marginBottom: '2rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.5rem',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(255, 255, 255, 0.04)',
+              borderLeftWidth: '4px'
+            }}
+          >
+            <span style={{ fontSize: '2rem', lineHeight: 1 }}>🪔</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--text)', fontWeight: 600, letterSpacing: '0.2px' }}>
+                "{currentQuote.sanskrit}" &nbsp;—&nbsp; <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{currentQuote.translation}</span>
+              </p>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {currentQuote.insight}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
         {['classes', 'materials', 'students', 'attendance', 'tests', 'salary', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (

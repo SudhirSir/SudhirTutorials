@@ -21,6 +21,44 @@ function AdminDashboardContent() {
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
+  const adminQuotes = [
+    {
+      sanskrit: "विद्ययाऽमृतमश्नुते",
+      translation: "Through Knowledge, Immortality is Attained. (Yajur Veda)",
+      insight: "Leadership is not about being in charge. It is about taking care of those in our charge. Let us lead with wisdom, service, and excellence today."
+    },
+    {
+      sanskrit: "संङ्घशक्तिः कलौ युगे",
+      translation: "Strength lies in unity and community in this age.",
+      insight: "The best way to predict the future is to create it. Let us collaborate and build an outstanding academy together."
+    },
+    {
+      sanskrit: "धीमहि धियो यो नः प्रचोदयात्",
+      translation: "May divine intellect illuminate our path and decisions. (Rig Veda)",
+      insight: "Management is doing things right; leadership is doing the right things. May we govern with clarity and vision today."
+    },
+    {
+      sanskrit: "उदारचरितानां तु वसुधैव कुटुम्बकम्",
+      translation: "For the broad-minded, the entire world is one family.",
+      insight: "An institution is the lengthened shadow of its leaders. Let us construct a welcoming, globally minded environment."
+    },
+    {
+      sanskrit: "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन",
+      translation: "You have a right to perform your duties, but not to the fruits thereof. (Bhagavad Gita)",
+      insight: "Focus on duty, quality, and processes; success and growth will naturally follow as a byproduct of our dedication."
+    },
+    {
+      sanskrit: "सत्यमेव जयते नानृतम्",
+      translation: "Truth alone triumphs, not untruth. (Upanishads)",
+      insight: "Let integrity, transparency, and truth form the indestructible foundation of all our academic operations."
+    },
+    {
+      sanskrit: "परस्परं भावयन्तः श्रेयः परमवाप्स्यथ",
+      translation: "By mutually fostering one another, you shall attain the supreme good. (Bhagavad Gita)",
+      insight: "Great institutions are never built by one person; they are nurtured by a unified team dedicated to education."
+    }
+  ];
+
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
     const params = new URLSearchParams(searchParams.toString());
@@ -1641,6 +1679,41 @@ function AdminDashboardContent() {
         </div>
         <LiveClock />
       </header>
+
+      {/* Inspiring Sanskrit & English Quote Banner (Rotates Daily) */}
+      {(() => {
+        const quoteIndex = new Date().getDate() % adminQuotes.length;
+        const currentQuote = adminQuotes[quoteIndex];
+        return (
+          <div 
+            className="glass-card animate-scale-up" 
+            style={{ 
+              padding: '1.25rem 2rem', 
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.01))',
+              borderLeft: '4px solid #ef4444', 
+              borderRadius: '12px',
+              marginBottom: '2rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.5rem',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(255, 255, 255, 0.04)',
+              borderLeftWidth: '4px'
+            }}
+          >
+            <span style={{ fontSize: '2rem', lineHeight: 1 }}>🪔</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--text)', fontWeight: 600, letterSpacing: '0.2px' }}>
+                "{currentQuote.sanskrit}" &nbsp;—&nbsp; <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{currentQuote.translation}</span>
+              </p>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {currentQuote.insight}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">

@@ -23,6 +23,44 @@ function StudentDashboardContent() {
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
+  const studentQuotes = [
+    {
+      sanskrit: "विद्या ददाति विनयम्",
+      translation: "Knowledge gives humility, humility gives capability, capability gives wealth. (Hitopadesha)",
+      insight: "Arise, awake, and stop not until the goal is reached. Stay dedicated to your dreams and focus on continuous progress today. — Swami Vivekananda"
+    },
+    {
+      sanskrit: "उद्यमेन हि सिध्यन्ति कार्याणि न मनोरथैः",
+      translation: "Works are completed by effort and hard work, not by mere wishes.",
+      insight: "The beautiful thing about learning is that no one can take it away from you. Practice, revise, and excel today! — B.B. King"
+    },
+    {
+      sanskrit: "ज्ञानं ददाति शौर्यम्",
+      translation: "Knowledge bestows courage, confidence, and strength.",
+      insight: "Success is the sum of small efforts, repeated day in and day out. Be proud of the efforts you put in today! — Robert Collier"
+    },
+    {
+      sanskrit: "न चोरहार्यं न च राजहार्यं... विद्याधनं सर्वधनप्रधानम्",
+      translation: "It cannot be stolen by thieves or seized by kings; the wealth of knowledge is supreme of all wealth.",
+      insight: "Education is the passport to the future, for tomorrow belongs to those who prepare for it today. Let's make today count! — Malcolm X"
+    },
+    {
+      sanskrit: "आलस्यं हि मनुष्याणां शरीरस्थो महान् रिपुः",
+      translation: "Laziness is the greatest enemy residing inside a human body.",
+      insight: "Believe you can and you're halfway there. Discard all doubts, embrace curiosity, and master new concepts today. — Theodore Roosevelt"
+    },
+    {
+      sanskrit: "क्षणशः कणशश्चैव विद्यामर्थं च साधयेत्",
+      translation: "Every single moment and particle should be utilized to acquire knowledge.",
+      insight: "The mind is not a vessel to be filled, but a fire to be kindled. Let your passion for learning burn bright today! — Plutarch"
+    },
+    {
+      sanskrit: "सत्यं वद, धर्मं चर",
+      translation: "Speak the truth, practice righteousness and moral duty. (Taittiriya Upanishad)",
+      insight: "There are no shortcuts to any place worth going. Walk the path of discipline and dedication, and watch yourself grow. — Beverly Sills"
+    }
+  ];
+
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
     const params = new URLSearchParams(searchParams.toString());
@@ -366,6 +404,41 @@ function StudentDashboardContent() {
         </div>
         <LiveClock />
       </header>
+
+      {/* Inspiring Sanskrit & English Quote Banner (Rotates Daily) */}
+      {(() => {
+        const quoteIndex = new Date().getDate() % studentQuotes.length;
+        const currentQuote = studentQuotes[quoteIndex];
+        return (
+          <div 
+            className="glass-card animate-scale-up" 
+            style={{ 
+              padding: '1.25rem 2rem', 
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(99, 102, 241, 0.01))',
+              borderLeft: '4px solid var(--primary)', 
+              borderRadius: '12px',
+              marginBottom: '2rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.5rem',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(255, 255, 255, 0.04)',
+              borderLeftWidth: '4px'
+            }}
+          >
+            <span style={{ fontSize: '2rem', lineHeight: 1 }}>🪔</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--text)', fontWeight: 600, letterSpacing: '0.2px' }}>
+                "{currentQuote.sanskrit}" &nbsp;—&nbsp; <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{currentQuote.translation}</span>
+              </p>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {currentQuote.insight}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
