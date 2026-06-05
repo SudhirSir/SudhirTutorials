@@ -12,8 +12,14 @@ export function SessionGuard() {
   useEffect(() => {
     if (status !== "authenticated") return;
 
-    // Force re-authentication if tab was closed/reopened (sessionStorage is cleared)
-    if (typeof window !== "undefined" && !sessionStorage.getItem('tabSessionActive')) {
+    // Force re-authentication if tab was closed/reopened (sessionStorage is cleared) and accessing a protected route
+    const isProtectedPath = pathname && (
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/onboarding") ||
+      pathname.startsWith("/waiting-verification")
+    );
+
+    if (isProtectedPath && typeof window !== "undefined" && !sessionStorage.getItem('tabSessionActive')) {
       console.warn("New tab or browser session. Redirecting to login for re-authentication.");
       signOut({ callbackUrl: "/login?error=session_expired" });
       return;

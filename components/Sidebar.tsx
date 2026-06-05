@@ -105,7 +105,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
       {/* Brand */}
       <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
         <img src="/logo.png" alt="Institute Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '16px', margin: '0 auto 1rem' }} />
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, letterSpacing: '1px' }}>SUDHIR TUTORIALS</h2>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, letterSpacing: '1px' }}><span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span></h2>
         <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '2px' }}>{role} PORTAL</p>
       </div>
 

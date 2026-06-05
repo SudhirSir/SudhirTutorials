@@ -634,6 +634,7 @@ function AdminDashboardContent() {
 
   const [selectedFinanceMonth, setSelectedFinanceMonth] = useState<string>('');
   const [ledgerFilterMonth, setLedgerFilterMonth] = useState<string>('ALL');
+  const [ledgerFilterYear, setLedgerFilterYear] = useState<string>('ALL');
 
   // Generate 36 months for Assign Fee billing month select dropdown
   const billingMonthOptions = (() => {
@@ -673,6 +674,7 @@ function AdminDashboardContent() {
 
   // Extract unique months from fees array
   const uniqueBillingMonths = Array.from(new Set(fees.map(f => f.billingMonth).filter(Boolean))).sort((a, b) => b.localeCompare(a));
+  const uniqueLedgerYears = Array.from(new Set(uniqueBillingMonths.map((m: string) => m.split(' ').pop()).filter(Boolean))).sort((a: any, b: any) => b.localeCompare(a));
 
   useEffect(() => {
     if (fees.length > 0 && !selectedFinanceMonth) {
@@ -2666,12 +2668,23 @@ function AdminDashboardContent() {
                     )}
 
                     <select
+                      value={ledgerFilterYear}
+                      onChange={e => setLedgerFilterYear(e.target.value)}
+                      style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      <option value="ALL">All Years</option>
+                      {(uniqueLedgerYears as string[]).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+
+                    <select
                       value={ledgerFilterMonth}
                       onChange={e => setLedgerFilterMonth(e.target.value)}
                       style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
                     >
                       <option value="ALL">All Months</option>
-                      {uniqueBillingMonths.map(m => (
+                      {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
                         <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
@@ -2747,7 +2760,10 @@ function AdminDashboardContent() {
                             const filteredFees = fees.filter(f => {
                               const matchesSearch = f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
                                                     f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
-                              const matchesMonth = ledgerFilterMonth === 'ALL' || f.billingMonth === ledgerFilterMonth;
+                              const matchesMonth = (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
+                                (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
+                                (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
+                                (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`);
                               return matchesSearch && matchesMonth;
                             });
 
@@ -3097,15 +3113,32 @@ function AdminDashboardContent() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div className="input-group">
                     <label>Billing Month</label>
-                    <select 
-                      value={feeBillingMonth} 
-                      onChange={e => setFeeBillingMonth(e.target.value)}
-                      style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
-                    >
-                      {billingMonthOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <select
+                        value={feeBillingMonth.split(' ')[0] || 'January'}
+                        onChange={e => {
+                          const yearPart = feeBillingMonth.split(' ')[1] || String(new Date().getFullYear());
+                          setFeeBillingMonth(`${e.target.value} ${yearPart}`);
+                        }}
+                        style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
+                        {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={feeBillingMonth.split(' ')[1] || String(new Date().getFullYear())}
+                        onChange={e => {
+                          const monthPart = feeBillingMonth.split(' ')[0] || 'January';
+                          setFeeBillingMonth(`${monthPart} ${e.target.value}`);
+                        }}
+                        style={{ width: '110px', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
+                        {Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - 1 + i)).map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="input-group">
                     <label>Category</label>
@@ -4774,7 +4807,7 @@ function AdminDashboardContent() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border)', paddingTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       <span style={{ fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <img src="/logo.png" alt="Logo" style={{ width: '18px', height: '18px', objectFit: 'contain', borderRadius: '4px' }} />
-                        SUDHIR TUTORIALS
+                        <span style={{ color: 'var(--primary)', fontWeight: 900 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 900 }}>TUTORIALS</span>
                       </span>
                       <span style={{ fontWeight: 700 }}>Slide {activeSlideIndex + 1} of {generatedPpt.slides.length}</span>
                     </div>
@@ -5612,7 +5645,7 @@ function AdminDashboardContent() {
             <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.75rem', display: 'block' }} />
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}>SUDHIR TUTORIALS</h1>
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>
                 <div style={{ height: '1px', background: '#e5e7eb', width: '60px', margin: '1rem auto' }}></div>
                 <h2 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: '#374151' }}>Payment Receipt</h2>
@@ -5669,7 +5702,7 @@ function AdminDashboardContent() {
                   * This is a computer-generated receipt. No signature is required.
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}>SUDHIR TUTORIALS</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></div>
                   <div style={{ fontSize: '0.55rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '2px' }}>Online Fee Desk</div>
                 </div>
               </div>
@@ -5862,14 +5895,33 @@ function AdminDashboardContent() {
               
               <div className="input-group">
                 <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Billing Month</label>
-                <input 
-                  type="text" 
-                  required 
-                  placeholder="e.g. May 2026"
-                  value={editingFeeRecord.billingMonth || ''} 
-                  onChange={e => setEditingFeeRecord({...editingFeeRecord, billingMonth: e.target.value})} 
-                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
-                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select
+                    value={(editingFeeRecord.billingMonth || '').split(' ')[0] || 'January'}
+                    onChange={e => {
+                      const yearPart = (editingFeeRecord.billingMonth || '').split(' ')[1] || String(new Date().getFullYear());
+                      setEditingFeeRecord({...editingFeeRecord, billingMonth: `${e.target.value} ${yearPart}`});
+                    }}
+                    required
+                    style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  >
+                    {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={(editingFeeRecord.billingMonth || '').split(' ')[1] || String(new Date().getFullYear())}
+                    onChange={e => {
+                      const monthPart = (editingFeeRecord.billingMonth || '').split(' ')[0] || 'January';
+                      setEditingFeeRecord({...editingFeeRecord, billingMonth: `${monthPart} ${e.target.value}`});
+                    }}
+                    style={{ width: '110px', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  >
+                    {Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - 1 + i)).map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="input-group">

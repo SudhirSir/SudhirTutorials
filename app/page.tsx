@@ -450,7 +450,7 @@ export default function Home() {
         </div>
 
         <div className="arena-grid">
-          {/* Item 1: Dream College Predictor */}
+          {/* Item 1: Scholarship Predictor */}
           <div className="glass-card arena-card predictor-card-tilt" style={{
             transformStyle: 'preserve-3d',
             perspective: '1000px',
@@ -458,13 +458,13 @@ export default function Home() {
             cursor: 'pointer'
           }}>
             <div className="card-header-icon">
-              <span className="icon">🎯</span>
-              <h3>Dream College Predictor</h3>
+              <span className="icon">🏅</span>
+              <h3>Scholarship Predictor</h3>
             </div>
-            <p className="card-desc">Simulate your mock scores and dedication level to map your target IIT or medical college.</p>
+            <p className="card-desc">Find out instantly how much scholarship you qualify for at <strong style={{ color: 'var(--primary)' }}>SUDHIR</strong> <strong style={{ color: 'var(--secondary)' }}>TUTORIALS</strong>!</p>
             
             <div className="input-group">
-              <label className="input-label">Select Target Exam</label>
+              <label className="input-label">Select Program</label>
               <div className="selector-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <button 
                   onClick={() => setTargetExam('JEE')}
@@ -493,8 +493,8 @@ export default function Home() {
 
             <div className="input-group" style={{ marginTop: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <label className="input-label">Study Hours Per Day</label>
-                <span className="scholarship-badge" style={{ background: 'rgba(37, 99, 235, 0.12)', color: 'var(--secondary)' }}>{studyHours} Hours</span>
+                <label className="input-label">Daily Study Dedication</label>
+                <span className="scholarship-badge" style={{ background: 'rgba(37, 99, 235, 0.12)', color: 'var(--secondary)' }}>{studyHours} hrs/day</span>
               </div>
               <input 
                 type="range" 
@@ -515,8 +515,8 @@ export default function Home() {
 
             <div className="input-group" style={{ marginTop: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <label className="input-label">Mock Test Score / Target %</label>
-                <span className="scholarship-badge">{mockScore}% Score</span>
+                <label className="input-label">Last Exam Score (%)</label>
+                <span className="scholarship-badge">{mockScore}%</span>
               </div>
               <input 
                 type="range" 
@@ -535,31 +535,37 @@ export default function Home() {
               </div>
             </div>
 
-            {predictorResult && (
-              <div className="fee-output-box" style={{ marginTop: '1.5rem', background: 'rgba(0,0,0,0.15)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Predicted Rank</span>
-                  <span style={{
-                    padding: '0.25rem 0.6rem',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    background: targetExam === 'JEE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(37, 99, 235, 0.15)',
-                    color: targetExam === 'JEE' ? 'var(--primary)' : 'var(--secondary)'
-                  }}>
-                    {predictorResult.rank}
-                  </span>
+            {(() => {
+              const score = mockScore;
+              const hours = studyHours;
+              let scholarshipPct = 0;
+              let schLabel = '';
+              let feeDiscount = '';
+              let motivational = '';
+              if (score >= 95 && hours >= 10) { scholarshipPct = 100; schLabel = '💎 Full Merit Scholarship'; feeDiscount = '100% Fee Waiver'; motivational = 'Exceptional! You are a rank-topper. We invest in brilliant minds like yours — study FREE at SUDHIR TUTORIALS!'; }
+              else if (score >= 90 && hours >= 8) { scholarshipPct = 75; schLabel = '🥇 Gold Scholarship'; feeDiscount = '75% Fee Waiver'; motivational = 'Outstanding performance! You qualify for our prestigious Gold Scholarship. Join us and secure your dream rank!'; }
+              else if (score >= 80 && hours >= 6) { scholarshipPct = 50; schLabel = '🥈 Silver Scholarship'; feeDiscount = '50% Fee Waiver'; motivational = 'Impressive score! With our structured program, you will leap to the top percentile. A 50% scholarship awaits you!'; }
+              else if (score >= 70 && hours >= 4) { scholarshipPct = 25; schLabel = '🥉 Merit Award'; feeDiscount = '25% Fee Discount'; motivational = 'You show great potential! Our expert mentors will multiply your rank. Claim your 25% merit award today!'; }
+              else { scholarshipPct = 10; schLabel = '🌟 Welcome Bonus'; feeDiscount = '10% Enrollment Discount'; motivational = 'Every topper started where you are. Join SUDHIR TUTORIALS and watch your score skyrocket with expert guidance!'; }
+              return (
+                <div style={{ marginTop: '1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(37,99,235,0.08) 100%)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Your Scholarship</span>
+                    <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, background: 'rgba(239,68,68,0.15)', color: 'var(--primary)' }}>{schLabel}</span>
+                  </div>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 900, background: 'linear-gradient(135deg, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{scholarshipPct}% OFF</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>{feeDiscount}</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '0.75rem', border: '1px dashed var(--border)' }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.45', margin: 0, fontStyle: 'italic' }}>"{motivational}"</p>
+                  </div>
+                  <button onClick={() => setShowAdmissionsModal(true)} className="btn-primary" style={{ width: '100%', marginTop: '1rem', border: 'none', fontSize: '0.9rem', padding: '0.75rem', fontWeight: 800 }}>
+                    🎓 Claim Your Scholarship Now
+                  </button>
                 </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target College Match</span>
-                  <strong style={{ fontSize: '1.1rem', color: 'var(--text-heading)' }}>{predictorResult.college}</strong>
-                </div>
-                <hr className="fee-divider" style={{ margin: '0.75rem 0' }} />
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.4', margin: 0, fontStyle: 'italic' }}>
-                  "{predictorResult.quote}"
-                </p>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Item 2: Daily Math Challenge */}
@@ -644,7 +650,7 @@ export default function Home() {
           {[
             { title: 'JEE Main & Advanced', subtitle: 'Class 11, 12 & Droppers', desc: 'Rigorous engineering preparation focusing on fundamental physics, organic chemistry, and advanced calculus.', color: 'var(--primary)' },
             { title: 'NEET (UG) Medical', subtitle: 'Class 11, 12 & Droppers', desc: 'Focused pre-medical training detailing human physiology, botanical systems, and organic chemistry mechanisms.', color: 'var(--secondary)' },
-            { title: 'Pre-Foundation Academy', subtitle: 'Class 8, 9 & 10', desc: 'Pre-enrollment program constructing analytical frameworks for NTSE, Olympiads, and future competitive courses.', color: '#f59e0b' }
+            { title: 'Pre-Foundation Academy', subtitle: 'Class 6 to 10', desc: 'Pre-enrollment program constructing analytical frameworks for NTSE, Olympiads, and future competitive courses.', color: '#f59e0b' }
           ].map((prog, i) => (
             <div key={i} className="glass-card program-card">
               <div className="card-top-accent" style={{ backgroundColor: prog.color }}></div>
@@ -716,8 +722,8 @@ export default function Home() {
               Over the last decade, we have watched thousands of students walk through our doors, overcome their academic anxieties, and secure premium ranks in IITs, AIIMS, and state boards. Our pedagogy is built strictly on three core pillars: structured offline practice, transparent cognitive tracking, and empathetic personal mentorship. We don't just prepare you for examinations; we teach you how to think, learn, and conquer any analytical hurdle. Welcome to your bridge to academic excellence.
             </p>
             <div style={{ marginTop: '1rem' }}>
-              <strong style={{ fontSize: '1.25rem', color: 'var(--text-heading)', display: 'block' }}>Sudhir Kumar</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 650 }}>Founder & Director, Sudhir Tutorials</span>
+              <strong style={{ fontSize: '1.25rem', color: 'var(--text-heading)', display: 'block' }}>Sudhir Singh</strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 650 }}>Founder & Maths Educator, <span style={{ color: 'var(--primary)', fontWeight: 800 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>TUTORIALS</span></span>
             </div>
           </div>
         </div>
@@ -796,7 +802,7 @@ export default function Home() {
           <div className="footer-brand-col">
             <div className="footer-logo">
               <img src="/logo.png" alt="Sudhir Tutorials Logo" className="footer-logo-img" />
-              <span>SUDHIR TUTORIALS</span>
+              <span><span style={{ color: 'var(--primary)', fontWeight: 900 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 900 }}>TUTORIALS</span></span>
             </div>
             <p className="footer-desc">Constructing foundational excellence and securing top-tier competitive results for over a decade.</p>
             <div className="social-links">
@@ -808,6 +814,9 @@ export default function Home() {
               </a>
               <a href="https://youtube.com/@Sudhir_tutorials" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="YouTube">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>
+              </a>
+              <a href="https://twitter.com/sudhir_tutorial" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Twitter / X">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l16 16M4 20L20 4"/><path d="M20 4H4l8 8-8 8h16L12 12l8-8z" style={{display:'none'}}/><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L2.25 2.25h6.934l4.265 5.636L18.244 2.25zM17.0 20.75h1.833L7.083 4.132H5.117L17.0 20.75z"/></svg>
               </a>
             </div>
           </div>
@@ -1023,7 +1032,7 @@ export default function Home() {
                         style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
                       >
                         <option value="">Select Class</option>
-                        {Array.from({ length: 5 }, (_, i) => `Class ${i + 8}`).map(cls => (
+                        {Array.from({ length: 7 }, (_, i) => `Class ${i + 6}`).map(cls => (
                           <option key={cls} value={cls}>{cls}</option>
                         ))}
                         <option value="Droppers Batch">Droppers Batch</option>

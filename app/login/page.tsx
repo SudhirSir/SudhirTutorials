@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Role = "student" | "teacher" | "admin";
@@ -20,6 +20,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
+      if (typeof window !== "undefined" && !sessionStorage.getItem('tabSessionActive')) {
+        signOut({ redirect: false });
+        return;
+      }
       const role = (session.user as any).role || "STUDENT";
       router.push(`/dashboard/${role.toLowerCase()}`);
     }
@@ -80,6 +84,7 @@ export default function LoginPage() {
     }
 
     try {
+      sessionStorage.setItem('tabSessionActive', 'true');
       const res = await signIn("credentials", {
         redirect: false,
         username,
@@ -88,6 +93,7 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
+        sessionStorage.removeItem('tabSessionActive');
         if (res.error === "USER_NOT_FOUND") {
           setError("This ID / Username is not registered.");
         } else if (res.error === "INVALID_PASSWORD") {
@@ -103,11 +109,11 @@ export default function LoginPage() {
         }
         setLoading(false);
       } else {
-        sessionStorage.setItem('tabSessionActive', 'true');
         router.push(`/dashboard/${activeTab}`);
         router.refresh();
       }
     } catch (err) {
+      sessionStorage.removeItem('tabSessionActive');
       setError("An unexpected error occurred.");
       setLoading(false);
     }
@@ -133,8 +139,8 @@ export default function LoginPage() {
 
         <div style={{ marginBottom: '3rem' }}>
           <Link href="/" className="logo" style={{ fontSize: '1.6rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
-            <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '8px' }} />
-            <span><span style={{ color: 'var(--primary)' }}>SUDHIR</span> TUTORIALS</span>
+            <img src="/logo.png" alt="SUDHIR TUTORIALS Logo" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '8px' }} />
+            <span><span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span></span>
           </Link>
         </div>
 
@@ -307,7 +313,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginTop: 'auto', paddingTop: '3rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          © 2026 Sudhir Tutorials
+          © 2026 <span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span>
         </div>
       </div>
 
@@ -347,9 +353,9 @@ export default function LoginPage() {
             {/* Smaller, Elegant Shilpy Quote Card */}
             <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
                <div style={{ color: activeColor, fontSize: '1.5rem', marginBottom: '0.25rem', lineHeight: 1 }}>❝</div>
-               <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: '1rem', fontWeight: 500 }}>
-                 "Sudhir Tutorials didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
-               </p>
+                <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: '1rem', fontWeight: 500 }}>
+                  "<span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span> didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
+                </p>
                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '1rem' }}>S</div>
                  <div>

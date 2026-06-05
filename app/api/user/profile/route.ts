@@ -24,19 +24,37 @@ export async function GET(req: Request) {
 
     // Role-based Access Control (RBAC) to prevent IDOR
     if (session.user.role !== 'ADMIN') {
-      if (session.user.role === 'STUDENT' && targetUserId !== session.user.id) {
-        return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
-      }
-      if (session.user.role === 'TEACHER' && targetUserId !== session.user.id && user.role !== 'STUDENT') {
+      if (session.user.role === 'STUDENT') {
+        if (targetUserId !== session.user.id && user.role !== 'TEACHER') {
+          return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
+        }
+      } else if (session.user.role === 'TEACHER') {
+        if (targetUserId !== session.user.id && user.role !== 'STUDENT') {
+          return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
+        }
+      } else {
         return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
       }
     }
 
-    const profile = user.role === 'STUDENT'
+    let profile = user.role === 'STUDENT'
       ? user.studentProfile
       : (user.role === 'TEACHER' || user.role === 'ADMIN')
       ? user.teacherProfile
       : null;
+
+    // Strip sensitive contact/financial fields of teachers from student viewers
+    if (session.user.role === 'STUDENT' && user.role === 'TEACHER' && profile) {
+      profile = {
+        id: (profile as any).id,
+        userId: (profile as any).userId,
+        subject: (profile as any).subject,
+        qualification: (profile as any).qualification,
+        experience: (profile as any).experience,
+        photoUrl: (profile as any).photoUrl,
+        email: (profile as any).email
+      } as any;
+    }
 
     return NextResponse.json({
       id: user.id,

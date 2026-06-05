@@ -62,8 +62,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         if (fee.studentId !== userId) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        if (fee.status !== 'VERIFIED') {
-          return NextResponse.json({ error: 'Receipt is pending verification from the Admin.' }, { status: 403 });
+        if (fee.status !== 'VERIFIED' && fee.status !== 'PAID' && fee.status !== 'PAID_ONLINE') {
+          return NextResponse.json({ error: 'Receipt is pending payment or verification from the Admin.' }, { status: 403 });
         }
       } else {
         return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
