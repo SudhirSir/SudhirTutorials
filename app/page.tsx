@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 // Math/science formulas for the floating background animation
@@ -326,7 +327,7 @@ export default function Home() {
       {/* Sticky Premium Navbar */}
       <header className="navbar-container">
         <div className="navbar-logo">
-          <img src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+          <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain' }} priority />
           <span className="logo-text">
             <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
@@ -693,7 +694,7 @@ export default function Home() {
 
       {/* Founder's Message Section */}
       <section className="features-section" style={{
-        background: 'url(/abstract_math_bg.png) center/cover no-repeat',
+        background: 'linear-gradient(135deg, rgba(15,23,42,1) 0%, rgba(30,41,59,1) 100%)',
         borderTop: '1px solid var(--glass-border)',
         zIndex: 2,
         position: 'relative',
@@ -713,20 +714,22 @@ export default function Home() {
               perspective: '1000px',
               transition: 'transform 0.3s ease',
               maxWidth: '380px',
-              padding: '0.5rem',
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid var(--glass-border)',
+              padding: '1.25rem',
+              background: '#ffffff',
+              border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: '24px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
             }}>
-              <img 
+              <Image 
                 src="/founder.jpg" 
                 alt="Founder Sudhir Sir" 
+                width={380}
+                height={380}
                 className="features-img"
                 style={{
-                  borderRadius: '20px',
-                  boxShadow: '0 15px 35px rgba(239, 68, 68, 0.2)',
-                  border: '2px solid rgba(239, 68, 68, 0.15)',
+                  borderRadius: '16px',
+                  boxShadow: '0 10px 20px rgba(0, 0, 0, 0.05)',
                   transform: 'translateZ(20px)',
                   transition: 'all 0.3s',
                   display: 'block',
@@ -811,9 +814,12 @@ export default function Home() {
               transition: 'transform 0.3s ease',
               cursor: 'pointer'
             }}>
-              <img 
+              <Image 
                 src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop" 
                 alt="Students studying collaboratively" 
+                width={1200}
+                height={800}
+                priority
                 className="features-img"
                 style={{
                   borderRadius: '20px',
@@ -831,7 +837,7 @@ export default function Home() {
         <div className="footer-grid">
           <div className="footer-brand-col">
             <div className="footer-logo">
-              <img src="/logo.png" alt="Sudhir Tutorials Logo" className="footer-logo-img" width={32} height={32} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+              <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="footer-logo-img" width={32} height={32} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
               <span><span style={{ color: 'var(--primary)', fontWeight: 900 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 900 }}>TUTORIALS</span></span>
             </div>
             <p className="footer-desc">Constructing foundational excellence and securing top-tier competitive results for over a decade.</p>
