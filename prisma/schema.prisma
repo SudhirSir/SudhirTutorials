@@ -82,6 +82,7 @@ model StudentProfile {
   attendancePercent Float?
   marksObtained     Float?
   marksTotal        Float?
+  aadhaarNumber     String?
 }
 
 model TeacherProfile {
@@ -116,6 +117,7 @@ model Payment {
   remarks       String?
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
+  collectedBy   String?   // Admin who collected/verified the fee
 
   @@index([studentId])
   @@index([status])
@@ -208,6 +210,8 @@ model Test {
   courseId  String
   course    Course   @relation(fields: [courseId], references: [id])
   date      DateTime
+  time      String?
+  syllabus  String?
   results   TestResult[]
 }
 

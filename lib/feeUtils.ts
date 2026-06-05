@@ -11,11 +11,12 @@ export function calculateLateFine(
   dueDate: Date,
   status: string,
   perDayFine: number = 10,
-  flatFineAfter10Days: number = 100
+  flatFineAfter10Days: number = 100,
+  paymentDate?: Date
 ): number {
   if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') return 0;
 
-  const now = new Date();
+  const now = paymentDate || new Date();
   const due = new Date(dueDate);
 
   // Reset times to midnight so we count whole days only

@@ -21,43 +21,6 @@ function TeacherDashboardContent() {
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
-  const teacherQuotes = [
-    {
-      sanskrit: "गुरुर्ब्रह्मा गुरुर्विष्णुः गुरुर्देवो महेश्वरः...",
-      translation: "The Guru is the guide who leads us from darkness to light.",
-      insight: "A teacher affects eternity; he can never tell where his influence stops. — Henry Adams. Thank you for inspiring our scholars today."
-    },
-    {
-      sanskrit: "स्वदेशे पूज्यते राजा विद्वान् सर्वत्र पूज्यते",
-      translation: "A king is respected in his own country, but a wise teacher is respected everywhere.",
-      insight: "Teaching is the greatest act of optimism. Let us nurture creative minds, spark intellectual curiosity, and lead with empathy. — Colleen Wilcox"
-    },
-    {
-      sanskrit: "ज्ञानं परमं बलम्",
-      translation: "Knowledge is the supreme strength.",
-      insight: "The art of teaching is the art of assisting discovery. Enable students to discover the beauty of logical science and critical reasoning. — Mark Van Doren"
-    },
-    {
-      sanskrit: "सा विद्या या विमुक्तये",
-      translation: "True learning is that which liberates the mind.",
-      insight: "If you have to put someone on a pedestal, put teachers. They are society's heroes. Thank you for giving wings to student aspirations. — Guy Kawasaki"
-    },
-    {
-      sanskrit: "गुरुमुखात् ज्ञायते धर्मः",
-      translation: "Righteousness and wisdom are understood through the words of the Guru.",
-      insight: "Education is not the filling of a pail, but the lighting of a fire. Let us ignite the fires of learning in every classroom today. — William Butler Yeats"
-    },
-    {
-      sanskrit: "शिशुत्वं हि सर्वत्र सुलभं ज्ञानं दुर्लभम्",
-      translation: "Childhood is easy to attain, but true guidance and wisdom are rare treasures.",
-      insight: "It is the supreme art of the teacher to awaken joy in creative expression and knowledge. Let us make every lecture memorable. — Albert Einstein"
-    },
-    {
-      sanskrit: "श्रद्धावान् लभते ज्ञानं",
-      translation: "The one who has faith and dedication attains true wisdom. (Bhagavad Gita)",
-      insight: "Better than a thousand days of diligent study is one day with a great teacher. Let us guide them with patience, mastery, and passion. — Japanese Proverb"
-    }
-  ];
 
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
@@ -171,7 +134,7 @@ function TeacherDashboardContent() {
   const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
-  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
   
   // Profile State
   const [profile, setProfile] = useState<any>(null);
@@ -601,7 +564,7 @@ Depending on your specific focus, this represents the vital equation model for t
         body: JSON.stringify(newTest)
       });
       if (res.ok) {
-        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
         fetchTests();
         alert('Test created successfully!');
       } else alert('Failed to create test');
@@ -675,40 +638,6 @@ Depending on your specific focus, this represents the vital equation model for t
         <LiveClock />
       </header>
 
-      {/* Inspiring Sanskrit & English Quote Banner (Rotates Daily) */}
-      {(() => {
-        const quoteIndex = new Date().getDate() % teacherQuotes.length;
-        const currentQuote = teacherQuotes[quoteIndex];
-        return (
-          <div 
-            className="glass-card animate-scale-up" 
-            style={{ 
-              padding: '1.25rem 2rem', 
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.01))',
-              borderLeft: '4px solid #10b981', 
-              borderRadius: '12px',
-              marginBottom: '2rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1.5rem',
-              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
-              backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255, 255, 255, 0.04)',
-              borderLeftWidth: '4px'
-            }}
-          >
-            <span style={{ fontSize: '2rem', lineHeight: 1 }}>🪔</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--text)', fontWeight: 600, letterSpacing: '0.2px' }}>
-                "{currentQuote.sanskrit}" &nbsp;—&nbsp; <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{currentQuote.translation}</span>
-              </p>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {currentQuote.insight}
-              </p>
-            </div>
-          </div>
-        );
-      })()}
 
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
         {['classes', 'materials', 'students', 'attendance', 'tests', 'salary', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
@@ -1235,6 +1164,12 @@ Depending on your specific focus, this represents the vital equation model for t
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                         Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
+                      {(test.time || test.syllabus) && (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                          {test.time && <span>🕒 Time: <strong>{test.time}</strong></span>}
+                          {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
+                        </div>
+                      )}
                       <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
                          Results recorded: {test.results?.length || 0} students
                       </div>
@@ -1270,6 +1205,14 @@ Depending on your specific focus, this represents the vital equation model for t
               <div className="input-group">
                 <label>Test Date</label>
                 <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>Test Time / Duration (Optional)</label>
+                <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={newTest.time} onChange={e => setNewTest({ ...newTest, time: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label>Syllabus (Optional)</label>
+                <textarea placeholder="e.g. Chapters 1 to 4, Laws of Motion" value={newTest.syllabus} onChange={e => setNewTest({ ...newTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
               </div>
               <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: '#10b981', boxShadow: 'none' }}>
                 {isCreatingTest ? 'Creating...' : 'Schedule Test'}

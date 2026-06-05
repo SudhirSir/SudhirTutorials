@@ -495,6 +495,12 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                                 <span>-₹{record.paidAmount}</span>
                               </div>
                             )}
+                            {record.collectedBy && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                                <span>Collected By</span>
+                                <span style={{ fontWeight: 600 }}>{record.collectedBy}</span>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No bill generated.</div>
@@ -667,6 +673,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--text)' }}>{p.title || 'Monthly Fee'}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.billingMonth}</div>
+                      {p.collectedBy && <div style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 600 }}>By: {p.collectedBy}</div>}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--secondary)' }}>
                       ₹{(p.paidAmount || p.amount).toFixed(2)}

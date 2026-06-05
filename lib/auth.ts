@@ -157,6 +157,9 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: { signIn: "/login" },
-  session: { strategy: "jwt" },
+  session: { 
+    strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours (86400 seconds)
+  },
   secret: process.env.NEXTAUTH_SECRET,
 };

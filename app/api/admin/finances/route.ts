@@ -280,10 +280,24 @@ export async function PATCH(req: Request) {
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
 
+    let paymentDateForFine = new Date();
+    if (paidAt) {
+      const parts = paidAt.split('-');
+      if (parts.length === 3) {
+        paymentDateForFine = new Date(
+          parseInt(parts[0], 10),
+          parseInt(parts[1], 10) - 1,
+          parseInt(parts[2], 10)
+        );
+      } else {
+        paymentDateForFine = new Date(paidAt);
+      }
+    }
+
     // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED/PAID_ONLINE
     let lateFine = currentFee.lateFine;
     if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
-      lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days);
+      lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
     }
 
     const netDueBefore = currentFee.amount + lateFine - (discount ?? currentFee.discount);
@@ -303,6 +317,32 @@ export async function PATCH(req: Request) {
       }
     }
 
+    let finalPaidAt: Date | null = null;
+    if (['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus) && newTotalPaidAmount > 0) {
+      if (paidAt) {
+        const parts = paidAt.split('-');
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          const liveNow = new Date();
+          finalPaidAt = new Date(
+            year,
+            month,
+            day,
+            liveNow.getHours(),
+            liveNow.getMinutes(),
+            liveNow.getSeconds(),
+            liveNow.getMilliseconds()
+          );
+        } else {
+          finalPaidAt = new Date(paidAt);
+        }
+      } else {
+        finalPaidAt = currentFee.paidAt || new Date();
+      }
+    }
+
     const updated = await withDbRetry(() => prisma.payment.update({
       where: { id },
       data: {
@@ -315,9 +355,10 @@ export async function PATCH(req: Request) {
         paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus)
           ? newTotalPaidAmount
           : 0,
-        paidAt: ['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus) && newTotalPaidAmount > 0
-          ? (paidAt ? new Date(paidAt) : (currentFee.paidAt || new Date()))
-          : null,
+        paidAt: finalPaidAt,
+        ...((finalStatus === 'PAID' || finalStatus === 'VERIFIED') && {
+          collectedBy: session.user.name || session.user.username || 'Admin'
+        })
       },
     }));
 
@@ -389,9 +430,13 @@ export async function PUT(req: Request) {
         const finalDiscount = (updateData.discount ?? existing.discount);
         updateData.paidAmount = Math.max(0, finalAmount + finalFine - finalDiscount);
         updateData.paidAt = new Date();
+        if (status === 'PAID' || status === 'VERIFIED') {
+          updateData.collectedBy = session.user.name || session.user.username || 'Admin';
+        }
       } else if (status === 'PENDING') {
         updateData.paidAmount = 0;
         updateData.paidAt = null;
+        updateData.collectedBy = null;
       }
     }
 

@@ -78,8 +78,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       baseFee,
       board,
       scholarship,
+      aadhaarNumber,
     } = body;
-
+ 
     // Find the user first
     const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
@@ -87,11 +88,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         role: 'STUDENT',
       },
     }));
-
+ 
     if (!user) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
-
+ 
     // Update name and isActive on the User model if provided
     if (name !== undefined || isActive !== undefined) {
       await withDbRetry(() => prisma.user.update({
@@ -102,7 +103,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         },
       }));
     }
-
+ 
     if (batch !== undefined) {
       // Clear previous batches
       await withDbRetry(() => prisma.user.update({
@@ -122,7 +123,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
       }
     }
-
+ 
     // Upsert the StudentProfile
     const profile = await withDbRetry(() => prisma.studentProfile.upsert({
       where: { userId: user.id },
@@ -147,6 +148,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(marksObtained !== undefined && { marksObtained: parseFloat(String(marksObtained)) }),
         ...(marksTotal !== undefined && { marksTotal: parseFloat(String(marksTotal)) }),
         ...(baseFee !== undefined && { baseFee: baseFee ? parseFloat(String(baseFee)) : 0 }),
+        ...(aadhaarNumber !== undefined && { aadhaarNumber }),
       },
       create: {
         userId: user.id,
@@ -169,6 +171,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         marksObtained: marksObtained ? parseFloat(String(marksObtained)) : null,
         marksTotal: marksTotal ? parseFloat(String(marksTotal)) : null,
         baseFee: baseFee ? parseFloat(String(baseFee)) : 0,
+        aadhaarNumber: aadhaarNumber || null,
       },
     }));
 

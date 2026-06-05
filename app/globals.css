@@ -729,4 +729,37 @@ textarea:focus {
   color: hsl(220,12%,38%) !important;
 }
 
+.receipt-inner-container {
+  padding: 2.5rem;
+  border: 8px solid #f3f4f6;
+}
 
+/* Responsive and scroll styles */
+@media (max-width: 600px) {
+  .receipt-inner-container {
+    padding: 1.25rem 1.25rem !important;
+    border-width: 4px !important;
+  }
+  .flex-mobile-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+}
+
+.scrollable-ledger-container {
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.scrollable-ledger-container::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollable-ledger-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollable-ledger-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}

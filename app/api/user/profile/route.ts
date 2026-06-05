@@ -81,12 +81,14 @@ export async function PUT(req: Request) {
 
     console.log(`[API PUT /api/user/profile] User ID: ${session.user.id}, Role: ${session.user.role}, Name: ${name}`);
 
+    const isAdmin = session.user.role === 'ADMIN';
+
     // Update name and photoUrl on User
-    if (name !== undefined || photoUrl !== undefined) {
+    if ((name !== undefined && isAdmin) || photoUrl !== undefined) {
       await withDbRetry(() => prisma.user.update({
         where: { id: session.user.id },
         data: {
-          ...(name !== undefined && { name }),
+          ...(name !== undefined && isAdmin && { name }),
           ...(photoUrl !== undefined && { photoUrl }),
         }
       }));
@@ -108,7 +110,8 @@ export async function PUT(req: Request) {
           ...(fatherName !== undefined && { fatherName }),
           ...(parentContact !== undefined && { parentContact }),
           ...(school !== undefined && { school }),
-          ...(className !== undefined && { className }),
+          // Only admin can update className
+          ...(className !== undefined && isAdmin && { className }),
         },
         create: {
           userId: session.user.id,
@@ -120,7 +123,7 @@ export async function PUT(req: Request) {
           fatherName: fatherName || null,
           parentContact: parentContact || null,
           school: school || null,
-          className: className || null,
+          className: isAdmin ? (className || null) : null,
         }
       }));
       console.log(`[API PUT /api/user/profile] Upserted StudentProfile successfully.`);

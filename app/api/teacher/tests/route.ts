@@ -8,7 +8,9 @@ const testSchema = z.object({
   title: z.string().min(1),
   subject: z.string().optional(),
   courseId: z.string().min(1),
-  date: z.string().min(1)
+  date: z.string().min(1),
+  time: z.string().optional(),
+  syllabus: z.string().optional()
 });
 
 export async function GET(req: Request) {
@@ -76,14 +78,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid data', details: validation.error.format() }, { status: 400 });
     }
 
-    const { title, subject, courseId, date } = validation.data;
+    const { title, subject, courseId, date, time, syllabus } = validation.data;
 
     const test = await prisma.test.create({
       data: {
         title,
         subject,
         courseId,
-        date: new Date(date)
+        date: new Date(date),
+        time,
+        syllabus
       }
     });
 

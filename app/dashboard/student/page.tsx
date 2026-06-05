@@ -23,43 +23,6 @@ function StudentDashboardContent() {
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
-  const studentQuotes = [
-    {
-      sanskrit: "विद्या ददाति विनयम्",
-      translation: "Knowledge gives humility, humility gives capability, capability gives wealth. (Hitopadesha)",
-      insight: "Arise, awake, and stop not until the goal is reached. Stay dedicated to your dreams and focus on continuous progress today. — Swami Vivekananda"
-    },
-    {
-      sanskrit: "उद्यमेन हि सिध्यन्ति कार्याणि न मनोरथैः",
-      translation: "Works are completed by effort and hard work, not by mere wishes.",
-      insight: "The beautiful thing about learning is that no one can take it away from you. Practice, revise, and excel today! — B.B. King"
-    },
-    {
-      sanskrit: "ज्ञानं ददाति शौर्यम्",
-      translation: "Knowledge bestows courage, confidence, and strength.",
-      insight: "Success is the sum of small efforts, repeated day in and day out. Be proud of the efforts you put in today! — Robert Collier"
-    },
-    {
-      sanskrit: "न चोरहार्यं न च राजहार्यं... विद्याधनं सर्वधनप्रधानम्",
-      translation: "It cannot be stolen by thieves or seized by kings; the wealth of knowledge is supreme of all wealth.",
-      insight: "Education is the passport to the future, for tomorrow belongs to those who prepare for it today. Let's make today count! — Malcolm X"
-    },
-    {
-      sanskrit: "आलस्यं हि मनुष्याणां शरीरस्थो महान् रिपुः",
-      translation: "Laziness is the greatest enemy residing inside a human body.",
-      insight: "Believe you can and you're halfway there. Discard all doubts, embrace curiosity, and master new concepts today. — Theodore Roosevelt"
-    },
-    {
-      sanskrit: "क्षणशः कणशश्चैव विद्यामर्थं च साधयेत्",
-      translation: "Every single moment and particle should be utilized to acquire knowledge.",
-      insight: "The mind is not a vessel to be filled, but a fire to be kindled. Let your passion for learning burn bright today! — Plutarch"
-    },
-    {
-      sanskrit: "सत्यं वद, धर्मं चर",
-      translation: "Speak the truth, practice righteousness and moral duty. (Taittiriya Upanishad)",
-      insight: "There are no shortcuts to any place worth going. Walk the path of discipline and dedication, and watch yourself grow. — Beverly Sills"
-    }
-  ];
 
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
@@ -96,7 +59,7 @@ function StudentDashboardContent() {
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
   }, [searchParams, session]);
-  
+
   const [dashboard, setDashboard] = useState<{ name: string, batches: any[], feeHighlight: any } | null>(null);
   const [materials, setMaterials] = useState<any[]>([]);
   const [fees, setFees] = useState<any[]>([]);
@@ -116,6 +79,17 @@ function StudentDashboardContent() {
   const [razorpayMethod, setRazorpayMethod] = useState('UPI');
   const [razorpayUpiApp, setRazorpayUpiApp] = useState('GPay');
   const [razorpayTxId, setRazorpayTxId] = useState('');
+
+  useEffect(() => {
+    if (isReceiptOpen || activeProfileUserId) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isReceiptOpen, activeProfileUserId]);
 
   // Digital Guru Ji AI states
   const [guruQuestion, setGuruQuestion] = useState('');
@@ -405,40 +379,6 @@ function StudentDashboardContent() {
         <LiveClock />
       </header>
 
-      {/* Inspiring Sanskrit & English Quote Banner (Rotates Daily) */}
-      {(() => {
-        const quoteIndex = new Date().getDate() % studentQuotes.length;
-        const currentQuote = studentQuotes[quoteIndex];
-        return (
-          <div 
-            className="glass-card animate-scale-up" 
-            style={{ 
-              padding: '1.25rem 2rem', 
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(99, 102, 241, 0.01))',
-              borderLeft: '4px solid var(--primary)', 
-              borderRadius: '12px',
-              marginBottom: '2rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1.5rem',
-              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
-              backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255, 255, 255, 0.04)',
-              borderLeftWidth: '4px'
-            }}
-          >
-            <span style={{ fontSize: '2rem', lineHeight: 1 }}>🪔</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--text)', fontWeight: 600, letterSpacing: '0.2px' }}>
-                "{currentQuote.sanskrit}" &nbsp;—&nbsp; <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{currentQuote.translation}</span>
-              </p>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {currentQuote.insight}
-              </p>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
@@ -682,7 +622,7 @@ function StudentDashboardContent() {
               <p style={{ color: 'var(--text-muted)' }}>No materials have been uploaded for your courses yet.</p>
             ) : (
               materials.map(mat => (
-                <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                <div key={mat.id} className="flex-mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
                   <div>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
                       <span style={{ 
@@ -768,13 +708,19 @@ function StudentDashboardContent() {
                 const result = (dashboard as any)?.testStats?.results?.find((r: any) => r.testId === test.id);
                 
                 return (
-                  <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: `1px solid ${isUpcoming ? 'var(--primary)' : 'var(--border)'}`, borderRadius: '12px', background: isUpcoming ? 'rgba(79, 70, 229, 0.05)' : 'rgba(255,255,255,0.02)' }}>
+                  <div key={test.id} className="flex-mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: `1px solid ${isUpcoming ? 'var(--primary)' : 'var(--border)'}`, borderRadius: '12px', background: isUpcoming ? 'rgba(79, 70, 229, 0.05)' : 'rgba(255,255,255,0.02)' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.25rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         Course: <strong>{test.course?.name}</strong>
                         {test.subject && <> • Subject: <strong>{test.subject}</strong></>}
                       </div>
+                      {(test.time || test.syllabus) && (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                          {test.time && <span>🕒 Time: <strong>{test.time}</strong></span>}
+                          {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
+                        </div>
+                      )}
                       {result && (
                         <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>Score: {result.marks} / {result.totalMarks}</span>
@@ -787,7 +733,7 @@ function StudentDashboardContent() {
                         {((() => { const d = new Date(testDate); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {testDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        {test.time || testDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                       {isUpcoming && <div style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 800, marginTop: '4px' }}>UPCOMING</div>}
                     </div>
@@ -822,7 +768,7 @@ function StudentDashboardContent() {
               </div>
             )}
 
-            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6', position: 'relative', zIndex: 2 }}>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.75rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}>SUDHIR TUTORIALS</h1>
@@ -873,7 +819,8 @@ function StudentDashboardContent() {
 
               <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '2rem' }}>
                 <div style={{ marginBottom: '0.25rem' }}><strong>Method:</strong> {receiptData.paymentMethod || 'ONLINE'}</div>
-                {receiptData.transactionId && <div><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
+                {receiptData.transactionId && <div style={{ marginBottom: '0.25rem' }}><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
+                {receiptData.collectedBy && <div><strong>Collected/Verified By:</strong> {receiptData.collectedBy}</div>}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>

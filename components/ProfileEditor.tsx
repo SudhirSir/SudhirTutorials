@@ -335,7 +335,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           {/* Common Fields */}
           <div>
             <label style={labelStyle}>Full Name</label>
-            <input style={inputStyle} value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} required />
+            <input style={inputStyle} value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} required disabled={role !== 'ADMIN'} title={role !== 'ADMIN' ? "Only Admin can edit Full Name" : ""} />
           </div>
           <div>
             <label style={labelStyle}>Date of Birth</label>
@@ -371,7 +371,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
               </div>
               <div>
                 <label style={labelStyle}>Class / Grade</label>
-                <input style={inputStyle} value={form.className} onChange={e => setForm((f: any) => ({ ...f, className: e.target.value }))} />
+                <input style={inputStyle} value={form.className} onChange={e => setForm((f: any) => ({ ...f, className: e.target.value }))} disabled title="Only Admin can edit Class / Grade" />
               </div>
             </>
           )}
@@ -381,7 +381,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
             <>
               <div>
                 <label style={labelStyle}>Subject Expertise</label>
-                <input style={inputStyle} value={form.subject} onChange={e => setForm((f: any) => ({ ...f, subject: e.target.value }))} />
+                <input style={inputStyle} value={form.subject} onChange={e => setForm((f: any) => ({ ...f, subject: e.target.value }))} disabled title="Only Admin can edit Subject Expertise" />
               </div>
               <div>
                 <label style={labelStyle}>Qualification</label>
@@ -419,6 +419,10 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                 <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Registration Number</div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.registrationNo || 'Not Assigned'}</div>
+                </div>
+                <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Aadhaar Number</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.aadhaarNumber || 'Not Provided'}</div>
                 </div>
                 <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Academic Grade</div>

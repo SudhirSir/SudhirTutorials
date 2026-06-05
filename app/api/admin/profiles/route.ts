@@ -14,6 +14,7 @@ const profileSchema = z.object({
   baseFee: z.number().optional(),
   phone: z.string().optional(),
   dob: z.string().optional(),
+  aadhaarNumber: z.string().optional(),
 });
 
 export async function GET(req: Request) {

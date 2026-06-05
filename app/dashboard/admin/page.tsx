@@ -21,43 +21,7 @@ function AdminDashboardContent() {
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
-  const adminQuotes = [
-    {
-      sanskrit: "विद्ययाऽमृतमश्नुते",
-      translation: "Through Knowledge, Immortality is Attained. (Yajur Veda)",
-      insight: "Leadership is not about being in charge. It is about taking care of those in our charge. Let us lead with wisdom, service, and excellence today."
-    },
-    {
-      sanskrit: "संङ्घशक्तिः कलौ युगे",
-      translation: "Strength lies in unity and community in this age.",
-      insight: "The best way to predict the future is to create it. Let us collaborate and build an outstanding academy together."
-    },
-    {
-      sanskrit: "धीमहि धियो यो नः प्रचोदयात्",
-      translation: "May divine intellect illuminate our path and decisions. (Rig Veda)",
-      insight: "Management is doing things right; leadership is doing the right things. May we govern with clarity and vision today."
-    },
-    {
-      sanskrit: "उदारचरितानां तु वसुधैव कुटुम्बकम्",
-      translation: "For the broad-minded, the entire world is one family.",
-      insight: "An institution is the lengthened shadow of its leaders. Let us construct a welcoming, globally minded environment."
-    },
-    {
-      sanskrit: "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन",
-      translation: "You have a right to perform your duties, but not to the fruits thereof. (Bhagavad Gita)",
-      insight: "Focus on duty, quality, and processes; success and growth will naturally follow as a byproduct of our dedication."
-    },
-    {
-      sanskrit: "सत्यमेव जयते नानृतम्",
-      translation: "Truth alone triumphs, not untruth. (Upanishads)",
-      insight: "Let integrity, transparency, and truth form the indestructible foundation of all our academic operations."
-    },
-    {
-      sanskrit: "परस्परं भावयन्तः श्रेयः परमवाप्स्यथ",
-      translation: "By mutually fostering one another, you shall attain the supreme good. (Bhagavad Gita)",
-      insight: "Great institutions are never built by one person; they are nurtured by a unified team dedicated to education."
-    }
-  ];
+
 
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
@@ -543,7 +507,7 @@ function AdminDashboardContent() {
   const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
-  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
   const [testStudents, setTestStudents] = useState<any[]>([]);
 
   const fetchTests = async () => {
@@ -570,7 +534,7 @@ function AdminDashboardContent() {
         body: JSON.stringify(newTest)
       });
       if (res.ok) {
-        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0] });
+        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
         fetchTests();
         alert('Test created successfully!');
       } else alert('Failed to create test');
@@ -653,11 +617,67 @@ function AdminDashboardContent() {
   const [feeStudentId, setFeeStudentId] = useState('');
   const [feeStudentSearch, setFeeStudentSearch] = useState(''); // for combobox display text
   const [feeAmount, setFeeAmount] = useState('');
-  const [feeBillingMonth, setFeeBillingMonth] = useState('April 2026');
+  const [feeBillingMonth, setFeeBillingMonth] = useState(() => {
+    const d = new Date();
+    return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  });
   const [feeTitle, setFeeTitle] = useState('Monthly Fee');
   const [feeDueDate, setFeeDueDate] = useState('');
   const [feeCreatedAt, setFeeCreatedAt] = useState(new Date().toISOString().split('T')[0]);
   const [isAddingFee, setIsAddingFee] = useState(false);
+
+  const [selectedFinanceMonth, setSelectedFinanceMonth] = useState<string>('');
+  const [ledgerFilterMonth, setLedgerFilterMonth] = useState<string>('ALL');
+
+  // Generate 36 months for Assign Fee billing month select dropdown
+  const billingMonthOptions = (() => {
+    const options = [];
+    const d = new Date();
+    d.setMonth(d.getMonth() - 12);
+    for (let i = 0; i < 36; i++) {
+      options.push(d.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+      d.setMonth(d.getMonth() + 1);
+    }
+    return options;
+  })();
+
+  const calculateLiveLateFine = (dueDateStr: string, paidAtStr: string) => {
+    if (!dueDateStr) return 0;
+    const due = new Date(dueDateStr);
+    let now = new Date();
+    if (paidAtStr) {
+      const parts = paidAtStr.split('-');
+      if (parts.length === 3) {
+        now = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        now = new Date(paidAtStr);
+      }
+    }
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysLate = Math.floor((today.getTime() - dueDay.getTime()) / msPerDay);
+
+    if (daysLate <= 0) return 0;
+    if (daysLate <= 10) return daysLate * perDayFine;
+    const monthsLate = Math.floor((daysLate - 1) / 30) + 1;
+    return monthsLate * flatFineAfter10Days;
+  };
+
+  // Extract unique months from fees array
+  const uniqueBillingMonths = Array.from(new Set(fees.map(f => f.billingMonth).filter(Boolean))).sort((a, b) => b.localeCompare(a));
+
+  useEffect(() => {
+    if (fees.length > 0 && !selectedFinanceMonth) {
+      const currentMonthYear = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      if (fees.some(f => f.billingMonth === currentMonthYear)) {
+        setSelectedFinanceMonth(currentMonthYear);
+      } else {
+        setSelectedFinanceMonth(fees[0].billingMonth);
+      }
+    }
+  }, [fees]);
   const [finSummary, setFinSummary] = useState<{ totalRevenue: number, totalExpenses: number, totalPending: number, netProfit: number, monthlyData: any[] } | null>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
@@ -716,6 +736,18 @@ function AdminDashboardContent() {
   const [autoBillingPreview, setAutoBillingPreview] = useState<any>(null);
   const [loadingAutoBillingPreview, setLoadingAutoBillingPreview] = useState(false);
   const [runningAutoBilling, setRunningAutoBilling] = useState(false);
+
+  useEffect(() => {
+    const isModalOpen = !!(selectedUserDetail || activeProfileUserId || showProfileModal || activeReceipt);
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedUserDetail, activeProfileUserId, showProfileModal, activeReceipt]);
 
   // --- Handlers ---
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -1680,40 +1712,7 @@ function AdminDashboardContent() {
         <LiveClock />
       </header>
 
-      {/* Inspiring Sanskrit & English Quote Banner (Rotates Daily) */}
-      {(() => {
-        const quoteIndex = new Date().getDate() % adminQuotes.length;
-        const currentQuote = adminQuotes[quoteIndex];
-        return (
-          <div 
-            className="glass-card animate-scale-up" 
-            style={{ 
-              padding: '1.25rem 2rem', 
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.01))',
-              borderLeft: '4px solid #ef4444', 
-              borderRadius: '12px',
-              marginBottom: '2rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1.5rem',
-              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
-              backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255, 255, 255, 0.04)',
-              borderLeftWidth: '4px'
-            }}
-          >
-            <span style={{ fontSize: '2rem', lineHeight: 1 }}>🪔</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--text)', fontWeight: 600, letterSpacing: '0.2px' }}>
-                "{currentQuote.sanskrit}" &nbsp;—&nbsp; <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{currentQuote.translation}</span>
-              </p>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {currentQuote.insight}
-              </p>
-            </div>
-          </div>
-        );
-      })()}
+
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
@@ -1936,7 +1935,13 @@ function AdminDashboardContent() {
                         </span>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {log.details || 'No details'} (by {log.user?.name || 'System'})
+                        {log.details || 'No details'} (by <span 
+                          onClick={() => { if (log.userId) setActiveProfileUserId(log.userId); }}
+                          style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: 600 }}
+                          className="clickable-name"
+                        >
+                          {log.user?.name || 'System'}
+                        </span>)
                       </div>
                     </div>
                   </div>
@@ -2623,6 +2628,17 @@ function AdminDashboardContent() {
                       </div>
                     )}
 
+                    <select
+                      value={ledgerFilterMonth}
+                      onChange={e => setLedgerFilterMonth(e.target.value)}
+                      style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      <option value="ALL">All Months</option>
+                      {uniqueBillingMonths.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+
                     <button
                       onClick={() => setIsLedgerListOpen(!isLedgerListOpen)}
                       style={{
@@ -2691,10 +2707,12 @@ function AdminDashboardContent() {
                         </thead>
                         <tbody>
                           {(() => {
-                            const filteredFees = fees.filter(f => 
-                              f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
-                              f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
-                            );
+                            const filteredFees = fees.filter(f => {
+                              const matchesSearch = f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
+                                                    f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
+                              const matchesMonth = ledgerFilterMonth === 'ALL' || f.billingMonth === ledgerFilterMonth;
+                              return matchesSearch && matchesMonth;
+                            });
 
                             if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
 
@@ -2703,7 +2721,13 @@ function AdminDashboardContent() {
                               return (
                                 <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
                                   <td style={{ padding: '0.6rem 0' }}>
-                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fee.student?.name}</div>
+                                    <div 
+                                      onClick={() => setActiveProfileUserId(fee.student?.id)} 
+                                      style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
+                                      className="clickable-name"
+                                    >
+                                      {fee.student?.name}
+                                    </div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
                                   </td>
                                   <td>
@@ -2719,6 +2743,11 @@ function AdminDashboardContent() {
                                     }}>
                                       {fee.status}
                                     </span>
+                                    {fee.collectedBy && (
+                                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                        👤 By: <strong>{fee.collectedBy}</strong>
+                                      </div>
+                                    )}
                                     {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
                                   </td>
                                   <td style={{ fontSize: '0.8rem' }}>
@@ -2853,7 +2882,13 @@ function AdminDashboardContent() {
                               return (
                                 <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                   <td style={{ padding: '0.6rem 0' }}>
-                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</div>
+                                    <div 
+                                      onClick={() => setActiveProfileUserId(s.id)} 
+                                      style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
+                                      className="clickable-name"
+                                    >
+                                      {s.name}
+                                    </div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
                                   </td>
                                   <td style={{ fontWeight: 700, color: 'var(--text)' }}>
@@ -3025,7 +3060,15 @@ function AdminDashboardContent() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div className="input-group">
                     <label>Billing Month</label>
-                    <input type="text" value={feeBillingMonth} onChange={e => setFeeBillingMonth(e.target.value)} />
+                    <select 
+                      value={feeBillingMonth} 
+                      onChange={e => setFeeBillingMonth(e.target.value)}
+                      style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    >
+                      {billingMonthOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="input-group">
                     <label>Category</label>
@@ -4232,6 +4275,12 @@ function AdminDashboardContent() {
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                         Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                       </div>
+                      {(test.time || test.syllabus) && (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                          {test.time && <span>🕒 Time: <strong>{test.time}</strong></span>}
+                          {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
+                        </div>
+                      )}
                       <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
                          Marks recorded: {test.results?.length || 0} students
                       </div>
@@ -4271,6 +4320,14 @@ function AdminDashboardContent() {
                 <label style={{ fontWeight: 600 }}>Test Date</label>
                 <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
               </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Time / Duration (Optional)</label>
+                <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={newTest.time} onChange={e => setNewTest({ ...newTest, time: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Syllabus (Optional)</label>
+                <textarea placeholder="e.g. Chapters 1 to 4, Laws of Motion" value={newTest.syllabus} onChange={e => setNewTest({ ...newTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
+              </div>
               <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: '#10b981', border: 'none' }}>
                 {isCreatingTest ? 'Scheduling...' : '📝 Schedule Test'}
               </button>
@@ -4294,7 +4351,13 @@ function AdminDashboardContent() {
                   return (
                     <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{s.name}</div>
+                        <div 
+                          onClick={() => setActiveProfileUserId(s.id)} 
+                          style={{ fontWeight: 600, cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
+                          className="clickable-name"
+                        >
+                          {s.name}
+                        </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</div>
                       </div>
                       <div className="input-group" style={{ margin: 0 }}>
@@ -5345,8 +5408,14 @@ function AdminDashboardContent() {
                         editingBatch.students.map((s: any) => (
                           <div key={s.id} className="enrolled-student-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                              <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>{s.name}</span>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.username}</span>
+                              <span 
+                                onClick={() => setActiveProfileUserId(s.id)} 
+                                style={{ fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
+                                className="clickable-name"
+                              >
+                                {s.name}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</span>
                             </div>
                             <button 
                               onClick={() => {
@@ -5487,7 +5556,7 @@ function AdminDashboardContent() {
               </div>
             )}
 
-            <div style={{ padding: '2.5rem', border: '8px solid #f3f4f6', position: 'relative', zIndex: 2 }}>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.75rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}>SUDHIR TUTORIALS</h1>
@@ -5538,7 +5607,8 @@ function AdminDashboardContent() {
 
               <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '2rem' }}>
                 <div style={{ marginBottom: '0.25rem' }}><strong>Method:</strong> {activeReceipt.paymentMethod || 'CASH'}</div>
-                {activeReceipt.transactionId && <div><strong>TXN ID:</strong> {activeReceipt.transactionId}</div>}
+                {activeReceipt.transactionId && <div style={{ marginBottom: '0.25rem' }}><strong>TXN ID:</strong> {activeReceipt.transactionId}</div>}
+                {activeReceipt.collectedBy && <div><strong>Collected/Verified By:</strong> {activeReceipt.collectedBy}</div>}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
@@ -5648,30 +5718,42 @@ function AdminDashboardContent() {
                   <span>Base Fee:</span>
                   <span>₹{payingFee.amount}</span>
                </div>
-               {payingFee.currentLateFine > 0 && (
-                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
-                    <span>Late Fine:</span>
-                    <span>+₹{payingFee.currentLateFine}</span>
-                 </div>
-               )}
+               {(() => {
+                 const liveFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt);
+                 return liveFine > 0 && (
+                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
+                      <span>Late Fine:</span>
+                      <span>+₹{liveFine}</span>
+                   </div>
+                 );
+               })()}
                {payingFee.paidAmount > 0 && (
                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#3b82f6' }}>
                     <span>Previously Paid:</span>
                     <span>-₹{payingFee.paidAmount}</span>
-                 </div>
+                  </div>
                )}
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981' }}>
                   <span>Discount:</span>
                   <input 
                     type="number" 
                     value={paymentDetails.discount} 
-                    onChange={e => setPaymentDetails({...paymentDetails, discount: parseFloat(e.target.value || '0')})}
+                    onChange={e => {
+                      const newDiscount = parseFloat(e.target.value || '0');
+                      const currentFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt);
+                      const newTotal = Math.max(0, payingFee.amount + currentFine - newDiscount - (payingFee.paidAmount || 0));
+                      setPaymentDetails({
+                        ...paymentDetails,
+                        discount: newDiscount,
+                        paidAmount: newTotal.toString()
+                      });
+                    }}
                     style={{ width: '80px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: '#10b981', textAlign: 'right' }}
                   />
                </div>
                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
                   <span>Total Payable:</span>
-                  <span>₹{Math.max(0, payingFee.amount + (payingFee.currentLateFine || 0) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
+                  <span>₹{Math.max(0, payingFee.amount + calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
                </div>
             </div>
 
@@ -6474,7 +6556,7 @@ function AdminDashboardContent() {
 
       {/* ── View User Details Modal ─────────────────── */}
       {selectedUserDetail && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 3000, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: selectedUserDetail.role === 'STUDENT' ? '850px' : '550px', padding: '2.5rem', margin: 'auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <button 
               onClick={() => setSelectedUserDetail(null)} 
@@ -6548,7 +6630,7 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Board</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.board || 'N/A'}</div>
@@ -6564,7 +6646,7 @@ function AdminDashboardContent() {
                     <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.email || 'N/A'}</div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Student Phone</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.phone || 'N/A'}</div>
@@ -6578,6 +6660,11 @@ function AdminDashboardContent() {
                   <div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Father Name</div>
                     <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.fatherName || 'N/A'}</div>
+                  </div>
+
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Aadhaar Number</div>
+                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.aadhaarNumber || 'N/A'}</div>
                   </div>
 
                   <div>
@@ -6643,8 +6730,9 @@ function AdminDashboardContent() {
               {selectedUserDetail.role === 'STUDENT' && (
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Complete Fee Statement Ledger</h3>
-                  <StudentLedger 
-                    studentId={selectedUserDetail.id}
+                  <div className="scrollable-ledger-container">
+                    <StudentLedger 
+                      studentId={selectedUserDetail.id}
                     onViewReceipt={async (feeId) => {
                       try {
                         const res = await fetch(`/api/student/fees/receipt/${feeId}`);
@@ -6660,7 +6748,8 @@ function AdminDashboardContent() {
                         alert('Network error. Failed to load receipt.');
                       }
                     }}
-                  />
+                    />
+                  </div>
                 </div>
               )}
 
