@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
@@ -1764,7 +1765,7 @@ function AdminDashboardContent() {
             )}
             {tab === 'overview' ? 'Dashboard' :
              tab === 'users' ? 'Users Directory' :
-             tab === 'verifications' ? 'Pending Approvals' :
+             tab === 'verifications' ? 'Approvals & Queries' :
              tab === 'finances' ? 'Finances & Fees' :
              tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
@@ -2003,7 +2004,7 @@ function AdminDashboardContent() {
 
       {activeTab === 'verifications' && (
         <div className="glass-card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Pending Profile Verifications</h2>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Pending Profile & Fee Verifications</h2>
           {pendingVerifications.length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>No profiles are currently awaiting verification.</p>
           ) : (
@@ -4866,20 +4867,22 @@ function AdminDashboardContent() {
         <LecturesSection />
       )}
 
-      {(activeTab === 'admissions' || (activeTab === 'academics' && academicSubTab === 'admissions')) && (
-        <AdmissionsSection
-          setActiveTab={setActiveTab}
-          setUserSubTab={setUserSubTab}
-          setNewUserRole={setNewUserRole}
-          setNewUserName={setNewUserName}
-          setNewStudentClass={setNewStudentClass}
-          setNewStudentBoard={setNewStudentBoard}
-          setNewStudentFatherName={setNewStudentFatherName}
-          setNewStudentPhone={setNewStudentPhone}
-          setNewStudentEmail={setNewStudentEmail}
-          setNewStudentAddress={setNewStudentAddress}
-          setNewStudentDob={setNewStudentDob}
-        />
+      {(activeTab === 'admissions' || activeTab === 'verifications' || (activeTab === 'academics' && academicSubTab === 'admissions')) && (
+        <div style={{ marginTop: activeTab === 'verifications' ? '2rem' : '0' }}>
+          <AdmissionsSection
+            setActiveTab={setActiveTab}
+            setUserSubTab={setUserSubTab}
+            setNewUserRole={setNewUserRole}
+            setNewUserName={setNewUserName}
+            setNewStudentClass={setNewStudentClass}
+            setNewStudentBoard={setNewStudentBoard}
+            setNewStudentFatherName={setNewStudentFatherName}
+            setNewStudentPhone={setNewStudentPhone}
+            setNewStudentEmail={setNewStudentEmail}
+            setNewStudentAddress={setNewStudentAddress}
+            setNewStudentDob={setNewStudentDob}
+          />
+        </div>
       )}
 
       {activeTab === 'messages' && session?.user && (
@@ -5623,12 +5626,12 @@ function AdminDashboardContent() {
         </div>
       )}
       {/* ── Receipt Modal ───────────────────────────── */}
-      {activeReceipt && (
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 5000, overflowY: 'auto', padding: '2rem 1rem' }}>
+      {activeReceipt && typeof window !== 'undefined' && createPortal(
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
-            width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
+            width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', margin: '2rem auto', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px', 
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: 'auto' 
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative' 
           }}>
             {/* PAID Stamp Overlay */}
             {(activeReceipt.status === 'PAID' || activeReceipt.status === 'VERIFIED' || activeReceipt.status === 'PAID_ONLINE') && (
@@ -5751,7 +5754,8 @@ function AdminDashboardContent() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Add Expense Modal ───────────────────────── */}
@@ -6660,9 +6664,9 @@ function AdminDashboardContent() {
       )}
 
       {/* ── View User Details Modal ─────────────────── */}
-      {selectedUserDetail && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, overflowY: 'auto', padding: '2rem 1rem' }}>
-          <div className="glass-card" style={{ width: '100%', maxWidth: selectedUserDetail.role === 'STUDENT' ? '850px' : '550px', padding: '2.5rem', margin: 'auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
+      {selectedUserDetail && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: selectedUserDetail.role === 'STUDENT' ? '850px' : '550px', padding: '2.5rem', margin: '2rem auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <button 
               onClick={() => setSelectedUserDetail(null)} 
               style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -6881,7 +6885,8 @@ function AdminDashboardContent() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Security / Password Verification Backdrop Modal ─────────────────── */}

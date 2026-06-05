@@ -12,6 +12,7 @@ const applySchema = z.object({
   board: z.string().min(1, "Board is required"),
   program: z.string().min(1, "Program is required"),
   dob: z.string().min(1, "Date of birth is required"),
+  message: z.string().optional().or(z.literal('')),
 });
 
 export async function POST(req: Request) {

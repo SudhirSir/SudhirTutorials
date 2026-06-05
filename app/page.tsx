@@ -39,6 +39,7 @@ export default function Home() {
   const [admBoard, setAdmBoard] = useState("");
   const [admProgram, setAdmProgram] = useState("");
   const [admDob, setAdmDob] = useState("");
+  const [admMessage, setAdmMessage] = useState("");
 
   // AI Assistant states
   const [doubtText, setDoubtText] = useState<string>("");
@@ -214,7 +215,8 @@ export default function Home() {
           className: admClass,
           board: admBoard,
           program: admProgram,
-          dob: admDob
+          dob: admDob,
+          message: admMessage
         })
       });
       const data = await res.json();
@@ -230,6 +232,7 @@ export default function Home() {
         setAdmBoard("");
         setAdmProgram("");
         setAdmDob("");
+        setAdmMessage("");
       } else {
         setAdmissionsError(data.error || "Submission failed. Please try again.");
       }
@@ -716,7 +719,7 @@ export default function Home() {
               A Message from Our Founder
             </h2>
             <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, fontStyle: 'italic' }}>
-              "At <span style={{ fontWeight: 800, color: 'var(--primary)' }}>Sudhir Tutorials</span>, we believe that education is not merely the transmission of textbook knowledge, but the ignition of a lifelong passion for critical thinking."
+              "At <span style={{ fontWeight: 800, color: 'var(--primary)' }}>SUDHIR</span> <span style={{ fontWeight: 800, color: 'var(--secondary)' }}>TUTORIALS</span>, we believe that education is not merely the transmission of textbook knowledge, but the ignition of a lifelong passion for critical thinking."
             </p>
             <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
               Over the last decade, we have watched thousands of students walk through our doors, overcome their academic anxieties, and secure premium ranks in IITs, AIIMS, and state boards. Our pedagogy is built strictly on three core pillars: structured offline practice, transparent cognitive tracking, and empathetic personal mentorship. We don't just prepare you for examinations; we teach you how to think, learn, and conquer any analytical hurdle. Welcome to your bridge to academic excellence.
@@ -732,7 +735,7 @@ export default function Home() {
       {/* Why Us / Features Section */}
       <section id="about" className="features-section">
         <div className="section-header">
-          <h2 className="section-title">Why Choose Sudhir Tutorials?</h2>
+          <h2 className="section-title">Why Choose <span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span>?</h2>
           <p className="section-subtitle" style={{ maxWidth: '800px' }}>
             We don't just teach subjects; we engineer learning habits. Discover how our hybrid ecosystem changes students' and parents' minds.
           </p>
@@ -1076,15 +1079,27 @@ export default function Home() {
                   </div>
 
                   <div className="input-group">
-                    <label className="input-label" style={{ marginBottom: '4px' }}>Residential Address *</label>
+                    <label className="input-label" style={{ marginBottom: '4px' }}>Address *</label>
                     <textarea 
                       required 
-                      rows={2}
-                      placeholder="Enter full communication address..." 
+                      rows={2} 
                       value={admAddress} 
                       onChange={e => setAdmAddress(e.target.value)} 
-                      style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', fontFamily: 'inherit', resize: 'none' }}
-                    />
+                      style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', resize: 'vertical' }}
+                      placeholder="Full residential address"
+                    ></textarea>
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" style={{ marginBottom: '4px' }}>Message or Query</label>
+                    <textarea 
+                      rows={2} 
+                      value={admMessage} 
+                      onChange={e => setAdmMessage(e.target.value)} 
+                      style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', resize: 'vertical' }}
+                      placeholder="Any questions or remarks? (Optional)"
+                    ></textarea>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '4px', fontWeight: 600 }}>* Your query will be answered through mail.</span>
                   </div>
 
                   <button 

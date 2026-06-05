@@ -12,6 +12,7 @@ interface AdmissionApplication {
   board: string;
   program: string;
   dob: string;
+  message?: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 }
@@ -337,6 +338,12 @@ export function AdmissionsSection({
                 <span style={{ color: 'var(--text-muted)' }}>Father's Name</span>
                 <strong>{selectedApp.fatherName}</strong>
               </div>
+              {selectedApp.message && (
+                <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Message / Query</span>
+                  <strong style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>{selectedApp.message}</strong>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Date of Birth</span>
                 <strong>{selectedApp.dob}</strong>

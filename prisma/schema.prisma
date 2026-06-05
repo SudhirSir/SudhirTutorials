@@ -308,6 +308,7 @@ model AdmissionApplication {
   board        String
   program      String
   dob          String
+  message      String?
   status       String   @default("PENDING")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
