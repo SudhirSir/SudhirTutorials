@@ -2173,7 +2173,7 @@ function AdminDashboardContent() {
                           🔍 Details
                         </button>
                         <button 
-                          type=" button\ disabled={isFetchingProfile === u.id} onClick={(e) => { e.preventDefault(); fetchProfile(u.id, u.role); }}
+                          type="button" disabled={isFetchingProfile === u.id} onClick={(e) => { e.preventDefault(); fetchProfile(u.id, u.role); }}
                           style={{ flex: 1, padding: '0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
                         >
                           ✎ Edit
