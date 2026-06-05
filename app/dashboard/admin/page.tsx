@@ -2022,8 +2022,8 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'verifications' && (
-        <div className="glass-card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Pending Profile & Fee Verifications</h2>
+        <div className="glass-card" style={{ padding: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Pending Profile & Fee Verifications</h2>
           {pendingVerifications.length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>No profiles are currently awaiting verification.</p>
           ) : (
@@ -2380,8 +2380,8 @@ function AdminDashboardContent() {
           {financeSubTab === 'OVERVIEW' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               {/* Premium Welcome Banner */}
-              <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(59,130,246,0.05) 100%)', border: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: '1.6rem', margin: 0, fontWeight: 800 }}>Smart Financial Command Center</h3>
+              <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(59,130,246,0.05) 100%)', border: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '1.3rem', margin: 0, fontWeight: 800 }}>Smart Financial Command Center</h3>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem', maxWidth: '700px' }}>
                   Monitor institute collections, record administrative expenses, and automate student invoice generation seamlessly in one unified interface.
                 </p>
@@ -4935,8 +4935,8 @@ function AdminDashboardContent() {
           </div>
         </div>
       )}
-      {showProfileModal && editingProfile && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '2rem' }}>
+      {showProfileModal && editingProfile && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '2rem' }}>
           <div className="glass-card" style={{ width: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', border: '1px solid var(--primary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                <div>
@@ -5215,7 +5215,8 @@ function AdminDashboardContent() {
                </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {showBatchEditModal && editingBatch && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '1rem' }}>
@@ -6060,8 +6061,8 @@ function AdminDashboardContent() {
       {activeTab === 'settings' && (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
           {/* Welcome/Overview Header Banner */}
-          <div className="glass-card" style={{ padding: '1.5rem 2rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)', borderRadius: '16px' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               ⚙️ System Settings & Control Panel
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.35rem', maxWidth: '700px', lineHeight: '1.5' }}>
@@ -6377,8 +6378,8 @@ function AdminDashboardContent() {
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Welcome Banner */}
-          <div className="glass-card" style={{ padding: '2.5rem', background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, color: '#10b981' }}>💵 Staff Salary & Payroll Management</h2>
+          <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#10b981' }}>💵 Staff Salary & Payroll Management</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.5rem', maxWidth: '750px' }}>
               Assign monthly salary packets, track outstanding payroll obligations, and disburse teacher payments with automated expense ledger updates.
             </p>
