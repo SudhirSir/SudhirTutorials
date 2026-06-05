@@ -181,7 +181,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
       <p style={{ color: 'var(--text-muted)', marginBottom: '1.75rem', fontSize: '0.95rem' }}>{error}</p>
       <button 
         onClick={fetchProfile}
-        style={{ padding: '0.75rem 1.75rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}
+        style={{ padding: '0.75rem 1.75rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(239,68,68,0.4)' }}
       >
         🔄 Retry Loading Profile
       </button>
@@ -229,7 +229,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{profile.name}</div>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '4px' }}>{profile.username}</div>
           <div style={{ marginTop: '0.75rem' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '4px 12px', borderRadius: '20px', background: 'rgba(99,102,241,0.15)', color: 'var(--primary)' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '4px 12px', borderRadius: '20px', background: 'rgba(239,68,68,0.15)', color: 'var(--primary)' }}>
               {role}
             </span>
           </div>
@@ -242,7 +242,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           {/* Quick password change button */}
           <button
             onClick={() => { setChangingPassword(v => !v); setChangingPin(false); }}
-            style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(99,102,241,0.1)', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+            style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
           >
             🔑 Change Password
           </button>
@@ -482,7 +482,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           )}
 
           <div className="grid-span-2" style={{ marginTop: '1.5rem' }}>
-            <button type="submit" disabled={saving} style={{ width: '100%', padding: '0.75rem 1.5rem', borderRadius: '14px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: '0 4px 20px -5px rgba(99,102,241,0.5)' }}>
+            <button type="submit" disabled={saving} style={{ width: '100%', padding: '0.75rem 1.5rem', borderRadius: '14px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: '0 4px 20px -5px rgba(239,68,68,0.5)' }}>
               {saving ? 'Saving Changes...' : '💾 Save My Profile'}
             </button>
           </div>

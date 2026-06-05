@@ -17,6 +17,11 @@ const userSchema = z.object({
     const num = typeof val === 'string' ? parseFloat(val) : val;
     return isNaN(num) ? undefined : num;
   }),
+  fatherName: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  address: z.string().optional(),
+  dob: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -35,7 +40,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const { role, name, className, board, scholarship, subject } = validation.data;
+    const { role, name, className, board, scholarship, subject, fatherName, phone, email, address, dob } = validation.data;
 
     // Generate cryptographically secure 8-character password
     const password = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -113,6 +118,11 @@ export async function POST(req: Request) {
             board: board || null,
             scholarship: scholarship !== undefined ? scholarship : 0,
             baseFee: defaultFeeVal,
+            fatherName: fatherName || null,
+            phone: phone || null,
+            email: email || null,
+            address: address || null,
+            dob: dob || null,
           }
         } : undefined,
         teacherProfile: role === 'TEACHER' ? {

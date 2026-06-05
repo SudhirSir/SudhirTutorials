@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { StudentLedger } from '@/components/StudentLedger';
 import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
+import { AdmissionsSection } from '@/components/AdmissionsSection';
 
 function AdminDashboardContent() {
   const { data: session } = useSession();
@@ -31,7 +32,7 @@ function AdminDashboardContent() {
   };
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
   const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
-  const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures'>('menu');
+  const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions'>('menu');
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES'>('ALL');
   const [statementMonth, setStatementMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
   const [statementYear, setStatementYear] = useState(String(new Date().getFullYear()));
@@ -43,7 +44,7 @@ function AdminDashboardContent() {
 
   useEffect(() => {
     // Intercept separate tab clicks to open nested sub-tab layout under academics
-    if (['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures'].includes(activeTab)) {
+    if (['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'admissions'].includes(activeTab)) {
       setAcademicSubTab(activeTab as any);
       setActiveTab('academics');
     }
@@ -111,6 +112,11 @@ function AdminDashboardContent() {
   const [newStudentBoard, setNewStudentBoard] = useState('');
   const [newStudentScholarship, setNewStudentScholarship] = useState('');
   const [newTeacherSubject, setNewTeacherSubject] = useState('');
+  const [newStudentFatherName, setNewStudentFatherName] = useState('');
+  const [newStudentPhone, setNewStudentPhone] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentAddress, setNewStudentAddress] = useState('');
+  const [newStudentDob, setNewStudentDob] = useState('');
   const [customClassName, setCustomClassName] = useState('');
   const [isCustomClass, setIsCustomClass] = useState(false);
   const [createdUser, setCreatedUser] = useState<{username: string, password: string, role: string} | null>(null);
@@ -777,6 +783,11 @@ function AdminDashboardContent() {
           board: newUserRole === 'STUDENT' ? newStudentBoard : undefined,
           scholarship: (newUserRole === 'STUDENT' && newStudentScholarship) ? parseFloat(newStudentScholarship) : undefined,
           subject: newUserRole === 'TEACHER' ? newTeacherSubject : undefined,
+          fatherName: newUserRole === 'STUDENT' ? newStudentFatherName : undefined,
+          phone: newUserRole === 'STUDENT' ? newStudentPhone : undefined,
+          email: newUserRole === 'STUDENT' ? newStudentEmail : undefined,
+          address: newUserRole === 'STUDENT' ? newStudentAddress : undefined,
+          dob: newUserRole === 'STUDENT' ? newStudentDob : undefined,
         })
       });
 
@@ -788,6 +799,11 @@ function AdminDashboardContent() {
         setNewStudentBoard('');
         setNewStudentScholarship('');
         setNewTeacherSubject('');
+        setNewStudentFatherName('');
+        setNewStudentPhone('');
+        setNewStudentEmail('');
+        setNewStudentAddress('');
+        setNewStudentDob('');
         setCustomClassName('');
         setIsCustomClass(false);
         handleSearchDirectory(); // Refresh directory list immediately so new user is visible!
@@ -1784,7 +1800,7 @@ function AdminDashboardContent() {
             ⬅ Back to Academic Services Menu
           </button>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
-            Academic Service / {academicSubTab === 'courses' ? 'Courses & Batches' : academicSubTab === 'attendance' ? 'Attendance Logs' : academicSubTab === 'materials' ? 'Study Materials' : academicSubTab === 'tests' ? 'Tests & Exams' : academicSubTab === 'analytics' ? 'Performance Analytics' : academicSubTab === 'lectures' ? 'Live Classes' : academicSubTab}
+            Academic Service / {academicSubTab === 'courses' ? 'Courses & Batches' : academicSubTab === 'attendance' ? 'Attendance Logs' : academicSubTab === 'materials' ? 'Study Materials' : academicSubTab === 'tests' ? 'Tests & Exams' : academicSubTab === 'analytics' ? 'Performance Analytics' : academicSubTab === 'lectures' ? 'Live Classes' : academicSubTab === 'admissions' ? 'Admissions Inquiries' : academicSubTab}
           </span>
         </div>
       )}
@@ -1803,6 +1819,7 @@ function AdminDashboardContent() {
               { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
               { id: 'analytics', title: '📈 Performance Analytics', desc: 'Get graphical insights on class progress, marks distribution, and attendance trends.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
               { id: 'lectures', title: '📺 Live Online Lectures', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
+              { id: 'admissions', title: '🏫 Admissions Inquiries', desc: 'Review, approve, or reject student enrollment inquiries, and register them as students.', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
             ].map(svc => (
               <div 
                 key={svc.id}
@@ -1843,7 +1860,7 @@ function AdminDashboardContent() {
           {/* Key Metrics Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
             {[
-              { label: 'Total Students', value: overviewStats?.totalStudents ?? 0, icon: '👥', color: '#6366f1' },
+              {label: 'Total Students', value: overviewStats?.totalStudents ?? 0, icon: '👥', color: '#ef4444' },
               { label: 'Active Teachers', value: overviewStats?.totalTeachers ?? 0, icon: '👨‍🏫', color: '#10b981' },
               { label: 'Revenue This Month', value: `₹${(overviewStats?.revenueThisMonth ?? 0).toLocaleString()}`, icon: '💰', color: '#3b82f6' },
               { label: 'Pending Dues', value: `₹${(overviewStats?.pendingDues ?? 0).toLocaleString()}`, icon: '⚠️', color: '#ef4444' }
@@ -2252,6 +2269,26 @@ function AdminDashboardContent() {
                     <div className="input-group">
                       <label>Scholarship Amount (Optional, ₹)</label>
                       <input type="number" placeholder="e.g. 1000" value={newStudentScholarship} onChange={e => setNewStudentScholarship(e.target.value)} />
+                    </div>
+                    <div className="input-group">
+                      <label>Father's Name</label>
+                      <input type="text" placeholder="e.g. Ramesh Kumar" value={newStudentFatherName} onChange={e => setNewStudentFatherName(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                    </div>
+                    <div className="input-group">
+                      <label>Contact Phone</label>
+                      <input type="text" placeholder="e.g. 9876543210" value={newStudentPhone} onChange={e => setNewStudentPhone(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                    </div>
+                    <div className="input-group">
+                      <label>Email Address</label>
+                      <input type="email" placeholder="e.g. student@gmail.com" value={newStudentEmail} onChange={e => setNewStudentEmail(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                    </div>
+                    <div className="input-group">
+                      <label>Residential Address</label>
+                      <input type="text" placeholder="e.g. 123 Street, City" value={newStudentAddress} onChange={e => setNewStudentAddress(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                    </div>
+                    <div className="input-group">
+                      <label>Date of Birth</label>
+                      <input type="date" value={newStudentDob} onChange={e => setNewStudentDob(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                     </div>
                   </>
                 )}
@@ -3945,8 +3982,8 @@ function AdminDashboardContent() {
                     const height = (d.amount / max) * 100;
                     return (
                       <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '40px', gap: '0.5rem' }}>
-                         <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>₹{d.amount > 1000 ? (d.amount/1000).toFixed(1)+'k' : d.amount}</div>
-                         <div style={{ width: '100%', height: `${height}%`, background: 'linear-gradient(to top, #6366f1, #8B5CF6)', borderRadius: '4px 4px 0 0', transition: 'height 1s ease-out' }}></div>
+                         <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700 }}>₹{d.amount > 1000 ? (d.amount/1000).toFixed(1)+'k' : d.amount}</div>
+                         <div style={{ width: '100%', height: `${height}%`, background: 'linear-gradient(to top, #ef4444, #3b82f6)', borderRadius: '4px 4px 0 0', transition: 'height 1s ease-out' }}></div>
                          <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>{d.name}</div>
                       </div>
                     );
@@ -4119,7 +4156,7 @@ function AdminDashboardContent() {
                           background: mat.type === 'PDF' ? '#ef4444' : 
                                       mat.type === 'VIDEO' ? '#8b5cf6' : 
                                       mat.type === 'WORD' ? '#3b82f6' : 
-                                      mat.type === 'IMAGE' ? '#10b981' : '#6366f1'
+                                      mat.type === 'IMAGE' ? '#10b981' : '#3b82f6'
                         }}>
                           {mat.type === 'PDF' ? '📄 PDF' : 
                            mat.type === 'VIDEO' ? '🎥 VIDEO' : 
@@ -4794,6 +4831,22 @@ function AdminDashboardContent() {
 
       {(activeTab === 'lectures' || (activeTab === 'academics' && academicSubTab === 'lectures')) && (
         <LecturesSection />
+      )}
+
+      {(activeTab === 'admissions' || (activeTab === 'academics' && academicSubTab === 'admissions')) && (
+        <AdmissionsSection
+          setActiveTab={setActiveTab}
+          setUserSubTab={setUserSubTab}
+          setNewUserRole={setNewUserRole}
+          setNewUserName={setNewUserName}
+          setNewStudentClass={setNewStudentClass}
+          setNewStudentBoard={setNewStudentBoard}
+          setNewStudentFatherName={setNewStudentFatherName}
+          setNewStudentPhone={setNewStudentPhone}
+          setNewStudentEmail={setNewStudentEmail}
+          setNewStudentAddress={setNewStudentAddress}
+          setNewStudentDob={setNewStudentDob}
+        />
       )}
 
       {activeTab === 'messages' && session?.user && (

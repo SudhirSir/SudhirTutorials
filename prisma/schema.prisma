@@ -296,4 +296,21 @@ model SystemSetting {
   value String
 }
 
+model AdmissionApplication {
+  id           String   @id @default(cuid())
+  appNumber    String   @unique
+  name         String
+  fatherName   String
+  phone        String
+  email        String?
+  address      String
+  className    String
+  board        String
+  program      String
+  dob          String
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 

@@ -12,46 +12,232 @@ const floatingFormulas = [
 ];
 
 export default function Home() {
-  const [selectedClass, setSelectedClass] = useState<'foundation' | 'jee' | 'neet' | 'droppers'>('jee');
-  const [scholarship, setScholarship] = useState<number>(0);
+  // Target Exam state for College Matcher
+  const [targetExam, setTargetExam] = useState<'JEE' | 'NEET'>('JEE');
+  const [studyHours, setStudyHours] = useState<number>(6);
+  const [mockScore, setMockScore] = useState<number>(75);
+  const [predictorResult, setPredictorResult] = useState<{ rank: string; college: string; quote: string } | null>(null);
+
+  // Daily Math Challenge states
+  const [currentDay, setCurrentDay] = useState(0);
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
+
+  // Admissions modal states
+  const [showAdmissionsModal, setShowAdmissionsModal] = useState<boolean>(false);
+  const [admissionsLoading, setAdmissionsLoading] = useState<boolean>(false);
+  const [admissionsError, setAdmissionsError] = useState<string>("");
+  const [admissionsSuccess, setAdmissionsSuccess] = useState<string | null>(null);
+
+  // Admission form state
+  const [admName, setAdmName] = useState("");
+  const [admFatherName, setAdmFatherName] = useState("");
+  const [admPhone, setAdmPhone] = useState("");
+  const [admEmail, setAdmEmail] = useState("");
+  const [admAddress, setAdmAddress] = useState("");
+  const [admClass, setAdmClass] = useState("");
+  const [admBoard, setAdmBoard] = useState("");
+  const [admProgram, setAdmProgram] = useState("");
+  const [admDob, setAdmDob] = useState("");
+
+  // AI Assistant states
   const [doubtText, setDoubtText] = useState<string>("");
   const [doubtResponse, setDoubtResponse] = useState<string>("");
   const [typingDoubt, setTypingDoubt] = useState<boolean>(false);
 
-  // Fee rates mapping
-  const feeRates = {
-    foundation: { base: 4500, name: "Class 8-10 Foundation" },
-    jee: { base: 7500, name: "11th / 12th JEE Main & Advanced" },
-    neet: { base: 7500, name: "11th / 12th NEET (Medical)" },
-    droppers: { base: 8500, name: "JEE/NEET Droppers Batch" }
+  // Math problems rotating daily (Index 0-6 corresponding to new Date().getDay())
+  const mathQuestions = [
+    {
+      q: "Find the limit: lim (x->0) [sin(5x) / x].",
+      options: [
+        { id: "A", text: "1", correct: false },
+        { id: "B", text: "5", correct: true },
+        { id: "C", text: "1/5", correct: false },
+        { id: "D", text: "0", correct: false }
+      ],
+      explanation: "Using the standard limit formula: lim (u->0) [sin(u) / u] = 1. Multiply and divide by 5: lim (x->0) [5 * sin(5x) / 5x] = 5 * 1 = 5."
+    },
+    {
+      q: "If log₂ (x - 3) = 4, what is the value of x?",
+      options: [
+        { id: "A", text: "19", correct: true },
+        { id: "B", text: "11", correct: false },
+        { id: "C", text: "7", correct: false },
+        { id: "D", text: "16", correct: false }
+      ],
+      explanation: "Convert the logarithmic equation to exponential form: x - 3 = 2⁴. Since 2⁴ = 16, we get x - 3 = 16, which simplifies to x = 19."
+    },
+    {
+      q: "What is the derivative of x * ln(x) with respect to x?",
+      options: [
+        { id: "A", text: "ln(x) + 1", correct: true },
+        { id: "B", text: "ln(x)", correct: false },
+        { id: "C", text: "1/x", correct: false },
+        { id: "D", text: "1", correct: false }
+      ],
+      explanation: "Use the product rule: d/dx [f(x)g(x)] = f'(x)g(x) + f(x)g'(x). Here, d/dx [x * ln(x)] = (1)*ln(x) + x*(1/x) = ln(x) + 1."
+    },
+    {
+      q: "Find the area bounded by the curve y = x² and the x-axis from x = 0 to x = 3.",
+      options: [
+        { id: "A", text: "3", correct: false },
+        { id: "B", text: "9", correct: true },
+        { id: "C", text: "27", correct: false },
+        { id: "D", text: "6", correct: false }
+      ],
+      explanation: "Evaluate the definite integral of x² from 0 to 3: ∫[0 to 3] x² dx = [x³/3] evaluated from 0 to 3 = 3³/3 - 0 = 9."
+    },
+    {
+      q: "What is the sum of the infinite geometric series: 12 + 6 + 3 + 1.5 + ... ?",
+      options: [
+        { id: "A", text: "18", correct: false },
+        { id: "B", text: "24", correct: true },
+        { id: "C", text: "16", correct: false },
+        { id: "D", text: "30", correct: false }
+      ],
+      explanation: "Use the infinite sum formula: S = a / (1 - r), where first term a = 12, and common ratio r = 0.5. S = 12 / (1 - 0.5) = 12 / 0.5 = 24."
+    },
+    {
+      q: "If sin(θ) + cos(θ) = √2, what is the value of sin(2θ)?",
+      options: [
+        { id: "A", text: "1", correct: true },
+        { id: "B", text: "1/2", correct: false },
+        { id: "C", text: "0", correct: false },
+        { id: "D", text: "√2", correct: false }
+      ],
+      explanation: "Square both sides: (sin(θ) + cos(θ))² = (√2)². This gives sin²(θ) + cos²(θ) + 2sin(θ)cos(θ) = 2. Since sin²(θ) + cos²(θ) = 1, we get 1 + sin(2θ) = 2, so sin(2θ) = 1."
+    },
+    {
+      q: "What is the value of the determinant of the matrix [[3, 5], [2, 4]]?",
+      options: [
+        { id: "A", text: "2", correct: true },
+        { id: "B", text: "22", correct: false },
+        { id: "C", text: "7", correct: false },
+        { id: "D", text: "-2", correct: false }
+      ],
+      explanation: "The determinant of a 2x2 matrix [[a, b], [c, d]] is ad - bc. Thus, det = (3 * 4) - (5 * 2) = 12 - 10 = 2."
+    }
+  ];
+
+  useEffect(() => {
+    setCurrentDay(new Date().getDay());
+  }, []);
+
+  const quizQuestion = mathQuestions[currentDay];
+
+  // College matching logic
+  const calculateDreamCollege = () => {
+    let rank = "";
+    let college = "";
+    let quote = "";
+
+    if (targetExam === 'JEE') {
+      if (studyHours >= 10 && mockScore >= 90) {
+        rank = "AIR 100 - 500";
+        college = "IIT Bombay / IIT Delhi (Computer Science)";
+        quote = "Outstanding! You are operating at the level of top-tier IITians. Sudhir Tutorials' advanced rank files will help you cement this target!";
+      } else if (studyHours >= 8 && mockScore >= 75) {
+        rank = "AIR 800 - 2500";
+        college = "IIT Roorkee / IIT Kharagpur (Electrical / Mechanical)";
+        quote = "Excellent core strength. Directing focused mock test analysis will safely elevate you into the core IIT branches.";
+      } else if (studyHours >= 6 && mockScore >= 60) {
+        rank = "AIR 3000 - 8000";
+        college = "NIT Trichy / DTU Delhi (Computer Science / IT)";
+        quote = "Highly promising! With Sudhir Tutorials' structured practice matrices, you can easily turn this into a premium IIT selection.";
+      } else {
+        rank = "AIR 10000 - 25000";
+        college = "Newer NITs / Top State Engineering Colleges";
+        quote = "You have the talent, now let's build the discipline. Structured coaching and daily review will amplify your study hours by 3x.";
+      }
+    } else {
+      // NEET
+      if (studyHours >= 10 && mockScore >= 90) {
+        rank = "AIR 50 - 300";
+        college = "AIIMS New Delhi / Maulana Azad Medical College (MAMC)";
+        quote = "Sensational biology speed and chemistry recall! MAMC/AIIMS is within your grasp. Maintain this peak conceptual state.";
+      } else if (studyHours >= 8 && mockScore >= 75) {
+        rank = "AIR 500 - 1500";
+        college = "VMMC New Delhi / Lady Hardinge Medical College";
+        quote = "Excellent baseline. Focus on resolving minor physics errors. Your government medical seat is well within range.";
+      } else if (studyHours >= 6 && mockScore >= 60) {
+        rank = "AIR 2000 - 6000";
+        college = "Top State Government Medical Colleges";
+        quote = "Very strong. Our intense test series will help you transition from the state-level lists into the national elite ranks.";
+      } else {
+        rank = "AIR 8000 - 20000";
+        college = "State Colleges / Reputed Semi-Govt Universities";
+        quote = "Consistency beats intensity. Leveraging our concept maps and mock test feedback will safely double your output.";
+      }
+    }
+
+    setPredictorResult({ rank, college, quote });
   };
 
-  const calculatedBase = feeRates[selectedClass].base;
-  const calculatedDiscount = Math.round(calculatedBase * (scholarship / 100));
-  const calculatedNet = calculatedBase - calculatedDiscount;
-
-  // Mini-Quiz Question
-  const quizQuestion = {
-    q: "A car accelerates from rest at a constant rate of 3 m/s² for 4 seconds. What is its final velocity?",
-    options: [
-      { id: "A", text: "7 m/s", correct: false },
-      { id: "B", text: "12 m/s", correct: true },
-      { id: "C", text: "24 m/s", correct: false },
-      { id: "D", text: "1.5 m/s", correct: false }
-    ],
-    explanation: "Using the first equation of motion: v = u + at. Since the car starts from rest, u = 0. Therefore, v = 0 + (3 m/s² * 4 s) = 12 m/s."
-  };
-
-  const handleSubmitQuiz = (optId: string) => {
-    setQuizAnswer(optId);
-    setQuizSubmitted(true);
-  };
+  useEffect(() => {
+    calculateDreamCollege();
+  }, [targetExam, studyHours, mockScore]);
 
   const resetQuiz = () => {
     setQuizAnswer(null);
     setQuizSubmitted(false);
+  };
+
+  // Admissions submit handler
+  const handleAdmissionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdmissionsLoading(true);
+    setAdmissionsError("");
+    setAdmissionsSuccess(null);
+
+    // Validate
+    if (!admName.trim() || !admFatherName.trim() || !admPhone.trim() || !admAddress.trim() || !admClass || !admBoard || !admProgram || !admDob) {
+      setAdmissionsError("Please fill out all required fields.");
+      setAdmissionsLoading(false);
+      return;
+    }
+    if (admPhone.trim().length < 10) {
+      setAdmissionsError("Phone number must be at least 10 digits.");
+      setAdmissionsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admissions/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: admName,
+          fatherName: admFatherName,
+          phone: admPhone,
+          email: admEmail,
+          address: admAddress,
+          className: admClass,
+          board: admBoard,
+          program: admProgram,
+          dob: admDob
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAdmissionsSuccess(data.appNumber);
+        // Reset fields
+        setAdmName("");
+        setAdmFatherName("");
+        setAdmPhone("");
+        setAdmEmail("");
+        setAdmAddress("");
+        setAdmClass("");
+        setAdmBoard("");
+        setAdmProgram("");
+        setAdmDob("");
+      } else {
+        setAdmissionsError(data.error || "Submission failed. Please try again.");
+      }
+    } catch (err) {
+      setAdmissionsError("Network error. Could not connect to system.");
+    } finally {
+      setAdmissionsLoading(false);
+    }
   };
 
   // Simulated AI Doubt Solver
@@ -119,13 +305,13 @@ export default function Home() {
         <div className="navbar-logo">
           <img src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" />
           <span className="logo-text">
-            <span className="text-red">SUDHIR</span> <span className="text-light">TUTORIALS</span>
+            <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
         </div>
         <nav className="navbar-links">
           <Link href="#programs" className="nav-link">Flagship Programs</Link>
           <Link href="#about" className="nav-link">Why Us</Link>
-          <Link href="#calculator" className="nav-link">Fee Calculator</Link>
+          <span onClick={() => setShowAdmissionsModal(true)} className="nav-link" style={{ cursor: 'pointer' }}>Apply Admissions</span>
           <Link href="/login" className="login-portal-btn">
             🎓 Portal Login <span className="arrow">→</span>
           </Link>
@@ -135,8 +321,8 @@ export default function Home() {
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
-          <div className="admission-pill animate-float">
-            <span className="pill-emoji">🎒</span> Admissions Active for Academic Year 2026-27
+          <div className="admission-pill animate-float" onClick={() => setShowAdmissionsModal(true)} style={{ cursor: 'pointer' }}>
+            <span className="pill-emoji">🎒</span> Admissions Active for Academic Year 2026-27 (Apply Now)
           </div>
           <h1 className="hero-title">
             Unlock Academic Excellence.<br/>
@@ -147,7 +333,9 @@ export default function Home() {
           </p>
           <div className="hero-cta-buttons">
             <Link href="/login" className="btn-primary-hero">Student Login</Link>
-            <Link href="#programs" className="btn-secondary-hero">Explore Courses</Link>
+            <button onClick={() => setShowAdmissionsModal(true)} className="btn-secondary-hero" style={{ cursor: 'pointer', border: '1.5px solid var(--border)' }}>
+              📝 Admission Form
+            </button>
           </div>
         </div>
 
@@ -190,135 +378,255 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Interactive Micro-Quiz & Fee Calculator Grid */}
+      {/* 3D Showcase Highlights Section */}
+      <section className="interactive-arena-section" style={{
+        background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.02) 0%, var(--background) 100%)',
+        padding: '3rem 6% 2rem 6%',
+        zIndex: 2,
+        position: 'relative'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '2rem',
+          perspective: '1000px'
+        }}>
+          {[
+            { value: '98.4%', label: 'JEE/NEET Selection Rate', icon: '🏆', border: 'var(--primary)' },
+            { value: '12 : 1', label: 'Student-Teacher Ratio', icon: '👨‍🏫', border: 'var(--secondary)' },
+            { value: '24/7', label: 'AI + Offline Doubt Desk', icon: '⚡', border: '#f59e0b' },
+            { value: '10K+', label: 'Successful Alumni', icon: '🎓', border: '#10b981' }
+          ].map((stat, idx) => (
+            <div 
+              key={idx}
+              className="glass-card stat-3d-card"
+              style={{
+                padding: '2rem 1.5rem',
+                textAlign: 'center',
+                borderRadius: '20px',
+                border: `1px solid ${stat.border}33`,
+                background: 'var(--glass-bg)',
+                transformStyle: 'preserve-3d',
+                transform: 'translateZ(0)',
+                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{
+                fontSize: '2.5rem',
+                marginBottom: '0.5rem',
+                transform: 'translateZ(30px)',
+                display: 'inline-block'
+              }}>{stat.icon}</div>
+              <h4 style={{
+                fontSize: '2.2rem',
+                fontWeight: 900,
+                color: 'var(--text-heading)',
+                margin: '0 0 0.5rem 0',
+                background: `linear-gradient(135deg, ${stat.border} 0%, var(--text-heading) 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                transform: 'translateZ(40px)'
+              }}>{stat.value}</h4>
+              <p style={{
+                fontSize: '0.85rem',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                margin: 0,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transform: 'translateZ(20px)'
+              }}>{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Interactive Matcher & Maths Challenge Grid */}
       <section id="calculator" className="interactive-arena-section">
         <div className="section-header">
           <h2 className="section-title">Interactive Learning Arena</h2>
-          <p className="section-subtitle">Test your knowledge with our physics quiz, or estimate your monthly fee structures instantly.</p>
+          <p className="section-subtitle">Map your academic dedication to target college ranks, or test your intelligence with our rotating daily mathematics challenges.</p>
         </div>
 
         <div className="arena-grid">
-          {/* Item 1: Interactive Fee Calculator */}
-          <div className="glass-card arena-card">
+          {/* Item 1: Dream College Predictor */}
+          <div className="glass-card arena-card predictor-card-tilt" style={{
+            transformStyle: 'preserve-3d',
+            perspective: '1000px',
+            transition: 'transform 0.3s ease, border-color 0.3s ease',
+            cursor: 'pointer'
+          }}>
             <div className="card-header-icon">
-              <span className="icon">💳</span>
-              <h3>Tuition Fee Estimator</h3>
+              <span className="icon">🎯</span>
+              <h3>Dream College Predictor</h3>
             </div>
-            <p className="card-desc">Select your course and scholarship tier to preview monthly payment rates.</p>
+            <p className="card-desc">Simulate your mock scores and dedication level to map your target IIT or medical college.</p>
             
             <div className="input-group">
-              <label className="input-label">Select Target Program</label>
-              <div className="selector-grid">
-                {(Object.keys(feeRates) as Array<keyof typeof feeRates>).map(key => (
-                  <button 
-                    key={key} 
-                    onClick={() => setSelectedClass(key)}
-                    className={`selector-btn ${selectedClass === key ? 'active' : ''}`}
-                  >
-                    {feeRates[key].name.split(' ')[0]}
-                  </button>
-                ))}
+              <label className="input-label">Select Target Exam</label>
+              <div className="selector-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <button 
+                  onClick={() => setTargetExam('JEE')}
+                  className={`selector-btn ${targetExam === 'JEE' ? 'active' : ''}`}
+                  style={{
+                    background: targetExam === 'JEE' ? 'var(--primary)' : 'var(--input-bg)',
+                    color: targetExam === 'JEE' ? '#fff' : 'var(--text-muted)',
+                    borderColor: targetExam === 'JEE' ? 'var(--primary)' : 'var(--border)'
+                  }}
+                >
+                  🚀 JEE (IIT/NIT)
+                </button>
+                <button 
+                  onClick={() => setTargetExam('NEET')}
+                  className={`selector-btn ${targetExam === 'NEET' ? 'active' : ''}`}
+                  style={{
+                    background: targetExam === 'NEET' ? 'var(--secondary)' : 'var(--input-bg)',
+                    color: targetExam === 'NEET' ? '#fff' : 'var(--text-muted)',
+                    borderColor: targetExam === 'NEET' ? 'var(--secondary)' : 'var(--border)'
+                  }}
+                >
+                  🩺 NEET (Medical)
+                </button>
               </div>
             </div>
 
-            <div className="input-group" style={{ marginTop: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <label className="input-label">Admission Test Scholarship</label>
-                <span className="scholarship-badge">{scholarship}% Scholarship</span>
+            <div className="input-group" style={{ marginTop: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <label className="input-label">Study Hours Per Day</label>
+                <span className="scholarship-badge" style={{ background: 'rgba(37, 99, 235, 0.12)', color: 'var(--secondary)' }}>{studyHours} Hours</span>
               </div>
               <input 
                 type="range" 
-                min="0" 
-                max="90" 
-                step="10" 
-                value={scholarship} 
-                onChange={e => setScholarship(parseInt(e.target.value))}
+                min="2" 
+                max="14" 
+                step="1" 
+                value={studyHours} 
+                onChange={e => setStudyHours(parseInt(e.target.value))}
                 className="slider-input"
               />
               <div className="slider-ticks">
-                <span>0%</span>
-                <span>30%</span>
-                <span>60%</span>
-                <span>90%</span>
+                <span>2 hrs</span>
+                <span>6 hrs</span>
+                <span>10 hrs</span>
+                <span>14 hrs</span>
               </div>
             </div>
 
-            <div className="fee-output-box">
-              <div className="fee-row">
-                <span>Base Monthly Fee:</span>
-                <span>₹{calculatedBase}</span>
+            <div className="input-group" style={{ marginTop: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <label className="input-label">Mock Test Score / Target %</label>
+                <span className="scholarship-badge">{mockScore}% Score</span>
               </div>
-              <div className="fee-row discount">
-                <span>Scholarship Concession:</span>
-                <span>-₹{calculatedDiscount}</span>
-              </div>
-              <hr className="fee-divider" />
-              <div className="fee-row total">
-                <span>Estimated Net Fee:</span>
-                <span className="fee-net-price">₹{calculatedNet} <span className="month-span">/month</span></span>
+              <input 
+                type="range" 
+                min="50" 
+                max="100" 
+                step="5" 
+                value={mockScore} 
+                onChange={e => setMockScore(parseInt(e.target.value))}
+                className="slider-input"
+              />
+              <div className="slider-ticks">
+                <span>50%</span>
+                <span>65%</span>
+                <span>80%</span>
+                <span>100%</span>
               </div>
             </div>
+
+            {predictorResult && (
+              <div className="fee-output-box" style={{ marginTop: '1.5rem', background: 'rgba(0,0,0,0.15)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Predicted Rank</span>
+                  <span style={{
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    background: targetExam === 'JEE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(37, 99, 235, 0.15)',
+                    color: targetExam === 'JEE' ? 'var(--primary)' : 'var(--secondary)'
+                  }}>
+                    {predictorResult.rank}
+                  </span>
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target College Match</span>
+                  <strong style={{ fontSize: '1.1rem', color: 'var(--text-heading)' }}>{predictorResult.college}</strong>
+                </div>
+                <hr className="fee-divider" style={{ margin: '0.75rem 0' }} />
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.4', margin: 0, fontStyle: 'italic' }}>
+                  "{predictorResult.quote}"
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Item 2: Physics Practice Quiz */}
+          {/* Item 2: Daily Math Challenge */}
           <div className="glass-card arena-card">
             <div className="card-header-icon">
-              <span className="icon">📝</span>
-              <h3>Daily Physics Challenge</h3>
+              <span className="icon">📐</span>
+              <h3>Daily Math Challenge</h3>
             </div>
-            <p className="card-desc">Try out a quick kinematics question. Real students receive automated grading and analysis.</p>
+            <p className="card-desc">Practice daily rotating Mathematics questions. Students receive automated step-by-step grading logs.</p>
 
             <div className="quiz-question-box">
-              <p className="quiz-question-text">{quizQuestion.q}</p>
-              
-              <div className="quiz-options-list">
-                {quizQuestion.options.map(opt => {
-                  let btnBg = 'var(--card-bg-alt)';
-                  let btnBorder = 'var(--border)';
-                  if (quizSubmitted) {
-                    if (opt.correct) {
-                      btnBg = 'rgba(16, 185, 129, 0.15)';
-                      btnBorder = '#10b981';
-                    } else if (quizAnswer === opt.id) {
-                      btnBg = 'rgba(239, 68, 68, 0.15)';
-                      btnBorder = '#ef4444';
-                    }
-                  } else if (quizAnswer === opt.id) {
-                    btnBg = 'rgba(99, 102, 241, 0.15)';
-                    btnBorder = 'var(--primary)';
-                  }
+              {quizQuestion ? (
+                <>
+                  <p className="quiz-question-text" style={{ minHeight: '3.5rem' }}>{quizQuestion.q}</p>
+                  
+                  <div className="quiz-options-list">
+                    {quizQuestion.options.map(opt => {
+                      let btnBg = 'var(--card-bg-alt)';
+                      let btnBorder = 'var(--border)';
+                      if (quizSubmitted) {
+                        if (opt.correct) {
+                          btnBg = 'rgba(16, 185, 129, 0.15)';
+                          btnBorder = '#10b981';
+                        } else if (quizAnswer === opt.id) {
+                          btnBg = 'rgba(239, 68, 68, 0.15)';
+                          btnBorder = '#ef4444';
+                        }
+                      } else if (quizAnswer === opt.id) {
+                        btnBg = 'rgba(37, 99, 235, 0.15)';
+                        btnBorder = 'var(--secondary)';
+                      }
 
-                  return (
-                    <button 
-                      key={opt.id}
-                      onClick={() => !quizSubmitted && setQuizAnswer(opt.id)}
-                      className="quiz-option-btn"
-                      style={{ background: btnBg, borderColor: btnBorder }}
-                      disabled={quizSubmitted}
-                    >
-                      <span className="opt-letter">{opt.id}.</span> {opt.text}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {!quizSubmitted ? (
-                <button 
-                  onClick={() => quizAnswer && handleSubmitQuiz(quizAnswer)}
-                  className="btn-primary"
-                  style={{ width: '100%', marginTop: '1rem', border: 'none' }}
-                  disabled={!quizAnswer}
-                >
-                  Submit Answer
-                </button>
-              ) : (
-                <div className="quiz-explanation-box">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: quizQuestion.options.find(o => o.id === quizAnswer)?.correct ? '#10b981' : '#ef4444', marginBottom: '0.5rem' }}>
-                    {quizQuestion.options.find(o => o.id === quizAnswer)?.correct ? "🎉 Correct Answer!" : "❌ Incorrect. Try again!"}
+                      return (
+                        <button 
+                          key={opt.id}
+                          onClick={() => !quizSubmitted && setQuizAnswer(opt.id)}
+                          className="quiz-option-btn"
+                          style={{ background: btnBg, borderColor: btnBorder }}
+                          disabled={quizSubmitted}
+                        >
+                          <span className="opt-letter">{opt.id}.</span> {opt.text}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <p className="explanation-text">{quizQuestion.explanation}</p>
-                  <button onClick={resetQuiz} className="btn-secondary" style={{ width: '100%', marginTop: '1rem', padding: '0.6rem' }}>Try Another Quiz</button>
-                </div>
+
+                  {!quizSubmitted ? (
+                    <button 
+                      onClick={() => quizAnswer && setQuizSubmitted(true)}
+                      className="btn-primary"
+                      style={{ width: '100%', marginTop: '1rem', border: 'none', background: 'var(--primary)' }}
+                      disabled={!quizAnswer}
+                    >
+                      Submit Answer
+                    </button>
+                  ) : (
+                    <div className="quiz-explanation-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: quizQuestion.options.find(o => o.id === quizAnswer)?.correct ? '#10b981' : '#ef4444', marginBottom: '0.5rem' }}>
+                        {quizQuestion.options.find(o => o.id === quizAnswer)?.correct ? "🎉 Correct Answer!" : "❌ Incorrect. Try again!"}
+                      </div>
+                      <p className="explanation-text">{quizQuestion.explanation}</p>
+                      <button onClick={resetQuiz} className="btn-secondary" style={{ width: '100%', marginTop: '1rem', padding: '0.6rem' }}>Reset Challenge</button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p style={{ color: 'var(--text-muted)' }}>Loading today's challenge...</p>
               )}
             </div>
           </div>
@@ -344,13 +652,74 @@ export default function Home() {
               <div className="program-subtitle" style={{ color: prog.color }}>{prog.subtitle}</div>
               <p className="program-desc">{prog.desc}</p>
               <ul className="program-bullets">
-                <li><span className="bullet-check">✓</span> 500+ Hours Smart Lectures</li>
-                <li><span className="bullet-check">✓</span> Weekly Mock Papers & Ranks</li>
-                <li><span className="bullet-check">✓</span> Specialized Offline Doubt Counters</li>
+                <li><span className="bullet-check" style={{ color: prog.color }}>✓</span> 500+ Hours Smart Lectures</li>
+                <li><span className="bullet-check" style={{ color: prog.color }}>✓</span> Weekly Mock Papers & Ranks</li>
+                <li><span className="bullet-check" style={{ color: prog.color }}>✓</span> Specialized Offline Doubt Counters</li>
               </ul>
-              <Link href="/login" className="program-btn">Register / Enroll Now</Link>
+              <button onClick={() => setShowAdmissionsModal(true)} className="program-btn" style={{ cursor: 'pointer' }}>Apply & Enroll Now</button>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Founder's Message Section */}
+      <section className="features-section" style={{
+        background: 'linear-gradient(180deg, var(--background) 0%, rgba(239, 68, 68, 0.02) 100%)',
+        borderTop: '1px solid var(--glass-border)',
+        zIndex: 2,
+        position: 'relative'
+      }}>
+        <div className="features-layout" style={{ gridTemplateColumns: '0.85fr 1.15fr' }}>
+          {/* Founder Image on Left */}
+          <div className="features-right" style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="image-card founder-img-tilt" style={{
+              transformStyle: 'preserve-3d',
+              perspective: '1000px',
+              transition: 'transform 0.3s ease',
+              maxWidth: '380px',
+              padding: '0.5rem',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '24px',
+              cursor: 'pointer'
+            }}>
+              <img 
+                src="/founder.jpg" 
+                alt="Founder Sudhir Sir" 
+                className="features-img"
+                style={{
+                  borderRadius: '20px',
+                  boxShadow: '0 15px 35px rgba(239, 68, 68, 0.2)',
+                  border: '2px solid rgba(239, 68, 68, 0.15)',
+                  transform: 'translateZ(20px)',
+                  transition: 'all 0.3s',
+                  display: 'block',
+                  width: '100%',
+                  height: 'auto'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Founder Text on Right */}
+          <div className="features-left" style={{ gap: '1.5rem' }}>
+            <div className="admission-pill" style={{ margin: 0 }}>
+              🎯 Leadership Message
+            </div>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>
+              A Message from Our Founder
+            </h2>
+            <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, fontStyle: 'italic' }}>
+              "At <span style={{ fontWeight: 800, color: 'var(--primary)' }}>Sudhir Tutorials</span>, we believe that education is not merely the transmission of textbook knowledge, but the ignition of a lifelong passion for critical thinking."
+            </p>
+            <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
+              Over the last decade, we have watched thousands of students walk through our doors, overcome their academic anxieties, and secure premium ranks in IITs, AIIMS, and state boards. Our pedagogy is built strictly on three core pillars: structured offline practice, transparent cognitive tracking, and empathetic personal mentorship. We don't just prepare you for examinations; we teach you how to think, learn, and conquer any analytical hurdle. Welcome to your bridge to academic excellence.
+            </p>
+            <div style={{ marginTop: '1rem' }}>
+              <strong style={{ fontSize: '1.25rem', color: 'var(--text-heading)', display: 'block' }}>Sudhir Kumar</strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 650 }}>Founder & Director, Sudhir Tutorials</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -358,32 +727,63 @@ export default function Home() {
       <section id="about" className="features-section">
         <div className="section-header">
           <h2 className="section-title">Why Choose Sudhir Tutorials?</h2>
-          <p className="section-subtitle">Connecting traditional tutoring rigor with modern digital capabilities.</p>
+          <p className="section-subtitle" style={{ maxWidth: '800px' }}>
+            We don't just teach subjects; we engineer learning habits. Discover how our hybrid ecosystem changes students' and parents' minds.
+          </p>
         </div>
 
         <div className="features-layout">
           <div className="features-left">
             {[
-              { title: 'LMS Academic Dashboard', desc: 'Students can watch recorded lecture files, log attendance metrics, and access offline study documents directly from their dashboards.', icon: '💻' },
-              { title: 'Transparent Financial Ledgers', desc: 'Integrated fee collections, detailed bank-style ledgers, and automated digital receipts showing verified administrator attributions.', icon: '💳' },
-              { title: 'Doubt Resolution Desks', desc: 'Weekly interactive sessions combined with our AI companion to ensure no question is left unanswered.', icon: '🎓' }
+              { 
+                title: '🧠 Elite IITian & Doctor Mentorship', 
+                desc: 'Learn directly from battle-tested educators who have cleared these elite exams themselves. Our faculty focuses on cognitive concept building rather than rote learning, bridging the gap between effort and high rank results.', 
+                icon: '🎓' 
+              },
+              { 
+                title: '📊 Cognitive Tracking & Transparency', 
+                desc: 'Say goodbye to guesswork. Through our proprietary LMS dashboard, parents receive real-time, bank-style fee ledgers, detailed student attendance tracking, and micro-conceptual mock test performance analytics.', 
+                icon: '💻' 
+              },
+              { 
+                title: '⚡ Instant 12-Hour Doubt Counter', 
+                desc: 'A student\'s doubt left unsolved is a rank compromised. We operate dedicated face-to-face offline doubt counters 12 hours a day, backed by our 24/7 AI-powered Doubt Solver for learning support at home.', 
+                icon: '🔥' 
+              }
             ].map((feat, i) => (
-              <div key={i} className="feature-row">
-                <div className="feature-icon">{feat.icon}</div>
+              <div key={i} className="feature-row feature-card-tilt" style={{
+                background: 'rgba(255,255,255,0.01)',
+                border: '1px solid var(--border)',
+                borderRadius: '16px',
+                padding: '1.25rem 1.5rem',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}>
+                <div className="feature-icon" style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)', color: 'var(--primary)' }}>{feat.icon}</div>
                 <div>
-                  <h3 className="feature-row-title">{feat.title}</h3>
-                  <p className="feature-row-desc">{feat.desc}</p>
+                  <h3 className="feature-row-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.25rem 0' }}>{feat.title}</h3>
+                  <p className="feature-row-desc" style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>{feat.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="features-right">
-            <div className="image-card">
+            <div className="image-card features-img-tilt" style={{
+              transformStyle: 'preserve-3d',
+              perspective: '1000px',
+              transition: 'transform 0.3s ease',
+              cursor: 'pointer'
+            }}>
               <img 
                 src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop" 
                 alt="Students studying collaboratively" 
                 className="features-img"
+                style={{
+                  borderRadius: '20px',
+                  boxShadow: '0 15px 35px rgba(37, 99, 235, 0.15)',
+                  border: '1px solid var(--border)'
+                }}
               />
             </div>
           </div>
@@ -445,6 +845,253 @@ export default function Home() {
           © {new Date().getFullYear()} Sudhir Tutorials Coaching Institute. All rights reserved.
         </div>
       </footer>
+
+      {/* Admissions Inquiry Form Modal */}
+      {showAdmissionsModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem',
+          overflowY: 'auto'
+        }}>
+          <div className="glass-card animate-scale-up" style={{
+            width: '100%',
+            maxWidth: '700px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2.5rem',
+            border: '1px solid var(--border)',
+            borderRadius: '24px',
+            position: 'relative'
+          }}>
+            {/* Close Button */}
+            <button 
+              onClick={() => {
+                setShowAdmissionsModal(false);
+                setAdmissionsSuccess(null);
+                setAdmissionsError("");
+              }}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                borderRadius: '50%',
+                width: '36px',
+                height: '36px',
+                cursor: 'pointer',
+                fontSize: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+            >
+              ×
+            </button>
+
+            {admissionsSuccess ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🎉</div>
+                <h3 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--secondary)' }}>Inquiry Submitted!</h3>
+                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+                  Thank you for choosing Sudhir Tutorials. Your admission application has been registered successfully.
+                </p>
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px dashed var(--primary)',
+                  padding: '1.25rem',
+                  borderRadius: '16px',
+                  display: 'inline-block',
+                  marginBottom: '2rem'
+                }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800 }}>Application Number</span>
+                  <strong style={{ fontSize: '2rem', color: 'var(--primary)', letterSpacing: '1px' }}>{admissionsSuccess}</strong>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Our academic counselors will contact you on your registered phone number shortly.
+                </p>
+                <button 
+                  onClick={() => {
+                    setShowAdmissionsModal(false);
+                    setAdmissionsSuccess(null);
+                  }}
+                  className="btn-primary"
+                  style={{ marginTop: '2rem', border: 'none', width: '100%' }}
+                >
+                  Close Window
+                </button>
+              </div>
+            ) : (
+              <div>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                  🏫 Academic Admission Form
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: '1.5' }}>
+                  Academic Year 2026-27 Enrollment. Please enter authentic academic and contact credentials to submit your admission inquiry.
+                </p>
+
+                {admissionsError && (
+                  <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                    ⚠️ {admissionsError}
+                  </div>
+                )}
+
+                <form onSubmit={handleAdmissionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Grid for two columns */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
+                    <style>{`
+                      @media (max-width: 600px) {
+                        .form-grid-2col {
+                          grid-template-columns: 1fr !important;
+                        }
+                      }
+                    `}</style>
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Student Name *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="e.g. Rahul Kumar" 
+                        value={admName} 
+                        onChange={e => setAdmName(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Father's Name *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="e.g. Rajesh Kumar" 
+                        value={admFatherName} 
+                        onChange={e => setAdmFatherName(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Contact Phone *</label>
+                      <input 
+                        type="tel" 
+                        required 
+                        placeholder="e.g. 9876543210" 
+                        value={admPhone} 
+                        onChange={e => setAdmPhone(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Email Address (Optional)</label>
+                      <input 
+                        type="email" 
+                        placeholder="e.g. rahul@gmail.com" 
+                        value={admEmail} 
+                        onChange={e => setAdmEmail(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Date of Birth *</label>
+                      <input 
+                        type="date" 
+                        required 
+                        value={admDob} 
+                        onChange={e => setAdmDob(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Target Class *</label>
+                      <select 
+                        required 
+                        value={admClass} 
+                        onChange={e => setAdmClass(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      >
+                        <option value="">Select Class</option>
+                        {Array.from({ length: 5 }, (_, i) => `Class ${i + 8}`).map(cls => (
+                          <option key={cls} value={cls}>{cls}</option>
+                        ))}
+                        <option value="Droppers Batch">Droppers Batch</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Board *</label>
+                      <select 
+                        required 
+                        value={admBoard} 
+                        onChange={e => setAdmBoard(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      >
+                        <option value="">Select Board</option>
+                        <option value="CBSE">CBSE</option>
+                        <option value="ICSE">ICSE</option>
+                        <option value="State Board">State Board</option>
+                        <option value="IB">IB</option>
+                        <option value="IGCSE">IGCSE</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label" style={{ marginBottom: '4px' }}>Academic Program *</label>
+                      <select 
+                        required 
+                        value={admProgram} 
+                        onChange={e => setAdmProgram(e.target.value)} 
+                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      >
+                        <option value="">Select Program</option>
+                        <option value="JEE">JEE (Main & Advanced)</option>
+                        <option value="NEET">NEET (Medical)</option>
+                        <option value="Foundation">Pre-Foundation Academy</option>
+                        <option value="Boards">Boards Masterclass</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" style={{ marginBottom: '4px' }}>Residential Address *</label>
+                    <textarea 
+                      required 
+                      rows={2}
+                      placeholder="Enter full communication address..." 
+                      value={admAddress} 
+                      onChange={e => setAdmAddress(e.target.value)} 
+                      style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', fontFamily: 'inherit', resize: 'none' }}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    style={{ border: 'none', padding: '0.9rem', fontWeight: 800, marginTop: '0.5rem' }}
+                    disabled={admissionsLoading}
+                  >
+                    {admissionsLoading ? "Submitting Inquiry..." : "🚀 Submit Admission Inquiry"}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Embedded CSS styling for rich responsive aesthetics and human-coded micro-animations */}
       <style jsx global>{`
@@ -534,8 +1181,8 @@ export default function Home() {
         .text-red {
           color: var(--primary);
         }
-        .text-light {
-          color: var(--text-heading);
+        .text-blue {
+          color: var(--secondary);
         }
         .navbar-links {
           display: flex;
@@ -603,6 +1250,11 @@ export default function Home() {
           color: var(--primary);
           margin-bottom: 2rem;
           box-shadow: 0 4px 15px rgba(239, 68, 68, 0.05);
+          transition: all 0.25s;
+        }
+        .admission-pill:hover {
+          background: rgba(239, 68, 68, 0.15);
+          transform: translateY(-2px);
         }
         .hero-title {
           font-size: 4rem;
@@ -836,9 +1488,6 @@ export default function Home() {
           transition: all 0.2s;
         }
         .selector-btn.active {
-          background: var(--secondary);
-          color: #fff;
-          border-color: var(--secondary);
           box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
         }
         .slider-input {
@@ -1207,6 +1856,40 @@ export default function Home() {
           font-weight: 600;
         }
 
+        /* 3D Animations & Tilts classes */
+        .stat-3d-card:hover {
+          transform: translateY(-8px) rotateX(8deg) rotateY(-8deg) translateZ(10px) !important;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(239, 68, 68, 0.1) !important;
+          border-color: var(--primary) !important;
+        }
+        
+        .predictor-card-tilt:hover {
+          transform: perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-5px);
+          box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15) !important;
+          border-color: var(--secondary) !important;
+        }
+
+        .founder-img-tilt:hover {
+          transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) translateY(-5px);
+          box-shadow: 0 20px 45px rgba(239, 68, 68, 0.25) !important;
+        }
+        .founder-img-tilt:hover img {
+          transform: translateZ(30px) !important;
+          border-color: var(--primary) !important;
+        }
+
+        .features-img-tilt:hover {
+          transform: perspective(1000px) rotateX(-5deg) rotateY(5deg) translateY(-5px);
+          box-shadow: 0 20px 45px rgba(37, 99, 235, 0.2) !important;
+        }
+
+        .feature-card-tilt:hover {
+          transform: translateY(-3px) scale(1.02);
+          border-color: var(--primary) !important;
+          background: rgba(239, 68, 68, 0.02) !important;
+          box-shadow: 0 10px 25px rgba(239, 68, 68, 0.04) !important;
+        }
+
         @media (max-width: 1024px) {
           .hero-section {
             flex-direction: column;
@@ -1234,7 +1917,7 @@ export default function Home() {
             grid-template-columns: 1fr 1fr;
           }
           .features-layout {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr !important;
             gap: 3rem;
           }
           .footer-grid {
