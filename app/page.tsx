@@ -29,6 +29,26 @@ export default function Home() {
   const [admissionsError, setAdmissionsError] = useState<string>("");
   const [admissionsSuccess, setAdmissionsSuccess] = useState<string | null>(null);
 
+  // Dynamic 3D Tilt Handlers
+  const handle3DTilt = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * -8;
+    const rotateY = ((x - centerX) / centerX) * 8;
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
+    card.style.transition = 'transform 0.1s ease-out';
+  };
+
+  const handle3DLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+    card.style.transition = 'transform 0.5s ease-out';
+  };
+
   // Admission form state
   const [admName, setAdmName] = useState("");
   const [admFatherName, setAdmFatherName] = useState("");
@@ -306,7 +326,7 @@ export default function Home() {
       {/* Sticky Premium Navbar */}
       <header className="navbar-container">
         <div className="navbar-logo">
-          <img src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" />
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
           <span className="logo-text">
             <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
@@ -673,15 +693,22 @@ export default function Home() {
 
       {/* Founder's Message Section */}
       <section className="features-section" style={{
-        background: 'linear-gradient(180deg, var(--background) 0%, rgba(239, 68, 68, 0.02) 100%)',
+        background: 'url(/abstract_math_bg.png) center/cover no-repeat',
         borderTop: '1px solid var(--glass-border)',
         zIndex: 2,
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <div className="features-layout" style={{ gridTemplateColumns: '0.85fr 1.15fr' }}>
+        {/* Dark overlay for contrast */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', zIndex: -1 }}></div>
+        <div className="features-layout" style={{ gridTemplateColumns: '0.85fr 1.15fr', position: 'relative', zIndex: 1 }}>
           {/* Founder Image on Left */}
           <div className="features-right" style={{ display: 'flex', justifyContent: 'center' }}>
-            <div className="image-card founder-img-tilt" style={{
+            <div 
+              className="image-card founder-img-tilt" 
+              onMouseMove={handle3DTilt}
+              onMouseLeave={handle3DLeave}
+              style={{
               transformStyle: 'preserve-3d',
               perspective: '1000px',
               transition: 'transform 0.3s ease',
@@ -804,7 +831,7 @@ export default function Home() {
         <div className="footer-grid">
           <div className="footer-brand-col">
             <div className="footer-logo">
-              <img src="/logo.png" alt="Sudhir Tutorials Logo" className="footer-logo-img" />
+              <img src="/logo.png" alt="Sudhir Tutorials Logo" className="footer-logo-img" width={32} height={32} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
               <span><span style={{ color: 'var(--primary)', fontWeight: 900 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 900 }}>TUTORIALS</span></span>
             </div>
             <p className="footer-desc">Constructing foundational excellence and securing top-tier competitive results for over a decade.</p>
@@ -1255,7 +1282,7 @@ export default function Home() {
           position: relative;
           z-index: 2;
         }
-        .hero-content {
+        .hero-content { animation: slideUp3D 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; transform-origin: bottom center; 
           flex: 1.2;
           display: flex;
           flex-direction: column;
@@ -1921,7 +1948,7 @@ export default function Home() {
             gap: 3rem;
             padding-top: 4rem;
           }
-          .hero-content {
+          .hero-content { animation: slideUp3D 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; transform-origin: bottom center; 
             align-items: center;
           }
           .hero-title {

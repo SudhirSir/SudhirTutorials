@@ -459,7 +459,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .nav-group {
           display: flex;
           flex-direction: column;
-          gap: 0.4rem;
+          gap: 0.2rem;
         }
 
         .nav-label {
@@ -475,12 +475,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .nav-link-modern {
           display: flex;
           align-items: center;
-          gap: 1rem;
-          padding: 0.85rem 1rem;
-          border-radius: 14px;
+          gap: 0.75rem;
+          padding: 0.5rem 0.75rem;
+          border-radius: 10px;
           color: var(--text-muted);
           font-weight: 600;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 

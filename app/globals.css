@@ -693,8 +693,8 @@ textarea:focus {
   border-left: 4px solid var(--primary) !important;
   box-shadow: 0 4px 15px -4px rgba(239,68,68,0.22) !important;
   font-weight: 700 !important;
-  transform: translateX(6px);
-  padding-left: 1.25rem !important;
+  transform: translateX(4px);
+  padding-left: 1rem !important;
 }
 [data-theme="light"] .nav-link-modern.active {
   background: linear-gradient(135deg, rgba(239,68,68,0.07) 0%, rgba(59,130,246,0.04) 100%) !important;
@@ -762,4 +762,9 @@ textarea:focus {
 .scrollable-ledger-container::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
+}
+
+@keyframes slideUp3D {
+  0% { opacity: 0; transform: translateY(60px) rotateX(10deg) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) rotateX(0deg) scale(1); }
 }

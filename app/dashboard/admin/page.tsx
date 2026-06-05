@@ -675,7 +675,15 @@ function AdminDashboardContent() {
 
   // Extract unique months from fees array
   const uniqueBillingMonths = Array.from(new Set(fees.map(f => f.billingMonth).filter(Boolean))).sort((a, b) => b.localeCompare(a));
-  const uniqueLedgerYears = Array.from(new Set(uniqueBillingMonths.map((m: string) => m.split(' ').pop()).filter(Boolean))).sort((a: any, b: any) => b.localeCompare(a));
+  
+  const uniqueLedgerYears = Array.from(new Set(fees.map(f => {
+    const m = f.billingMonth || '';
+    const match = m.match(/\d{4}/);
+    if (match) return match[0];
+    const createdDate = new Date(f.createdAt);
+    if (!isNaN(createdDate.getTime())) return createdDate.getFullYear().toString();
+    return new Date().getFullYear().toString();
+  }).filter(Boolean))).sort((a: any, b: any) => b.localeCompare(a));
 
   useEffect(() => {
     if (fees.length > 0 && !selectedFinanceMonth) {
@@ -730,6 +738,15 @@ function AdminDashboardContent() {
   const [financeRefreshTrigger, setFinanceRefreshTrigger] = useState(0);
   const [editingProfile, setEditingProfile] = useState<any>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isFetchingProfile, setIsFetchingProfile] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // Close modals on route change
+  useEffect(() => {
+    setShowProfileModal(false);
+    setSelectedUserDetail(null);
+    setEditingProfile(null);
+  }, [pathname, searchParams]);
   
   // One-Time Password State
   const [otpValue, setOtpValue] = useState("");
@@ -1488,6 +1505,7 @@ function AdminDashboardContent() {
   };
 
   const fetchProfile = async (userId: string, role: string) => {
+    setIsFetchingProfile(userId);
     try {
       const endpoint = role === 'STUDENT' 
         ? `/api/admin/students/${userId}` 
@@ -1516,6 +1534,7 @@ function AdminDashboardContent() {
         setShowProfileModal(true);
       }
     } catch (e) { console.error(e); }
+    finally { setIsFetchingProfile(null); }
   };
 
   const saveProfile = async (e: React.FormEvent) => {
@@ -2124,7 +2143,7 @@ function AdminDashboardContent() {
                       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
                         <div style={{ width: '50px', height: '50px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold', border: '2px solid var(--primary)', flexShrink: 0 }}>
                           {u.photoUrl ? (
-                            <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={u.photoUrl} alt={u.name} onClick={() => setLightboxUrl(u.photoUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }} />
                           ) : (
                             (u.name || 'U').charAt(0).toUpperCase()
                           )}
@@ -2154,7 +2173,7 @@ function AdminDashboardContent() {
                           🔍 Details
                         </button>
                         <button 
-                          onClick={() => fetchProfile(u.id, u.role)}
+                          type=" button\ disabled={isFetchingProfile === u.id} onClick={(e) => { e.preventDefault(); fetchProfile(u.id, u.role); }}
                           style={{ flex: 1, padding: '0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
                         >
                           ✎ Edit
@@ -6664,6 +6683,8 @@ function AdminDashboardContent() {
       )}
 
       {/* ── View User Details Modal ─────────────────── */}
+      {lightboxUrl && typeof window !== 'undefined' && createPortal(<div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setLightboxUrl(null)}><button onClick={() => setLightboxUrl(null)} style={{ position: 'absolute', top: '20px', right: '30px', background: 'none', border: 'none', color: 'white', fontSize: '2.5rem', cursor: 'pointer' }}>&times;</button><img src={lightboxUrl} style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()} /></div>, document.body)}
+
       {selectedUserDetail && typeof window !== 'undefined' && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: selectedUserDetail.role === 'STUDENT' ? '850px' : '550px', padding: '2.5rem', margin: '2rem auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
@@ -6678,7 +6699,7 @@ function AdminDashboardContent() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2rem' }}>
               <div style={{ width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', border: '3px solid var(--primary)', marginBottom: '1rem', boxShadow: '0 8px 25px rgba(99,102,241,0.2)' }}>
                 {selectedUserDetail.photoUrl ? (
-                  <img src={selectedUserDetail.photoUrl} alt={selectedUserDetail.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={selectedUserDetail.photoUrl} alt={selectedUserDetail.name} onClick={() => setLightboxUrl(selectedUserDetail.photoUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }} />
                 ) : (
                   (selectedUserDetail.name || 'U').charAt(0).toUpperCase()
                 )}
