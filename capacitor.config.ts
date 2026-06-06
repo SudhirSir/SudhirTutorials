@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Sudhir Tutorials',
   webDir: 'out',
   server: {
-    // Allows Android Emulator to loop back to the host's Next.js dev server
-    url: 'http://10.0.2.2:3000',
+    // Allows physical phone on the same Wi-Fi to connect to the host's Next.js dev server
+    url: 'http://10.69.234.49:3000',
     cleartext: true
   }
 };
