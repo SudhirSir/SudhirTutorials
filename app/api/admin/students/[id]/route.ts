@@ -79,6 +79,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       board,
       scholarship,
       aadhaarNumber,
+      createdAt,
     } = body;
  
     // Find the user first
@@ -93,13 +94,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
  
-    // Update name and isActive on the User model if provided
-    if (name !== undefined || isActive !== undefined) {
+    // Update name, isActive, and createdAt on the User model if provided
+    if (name !== undefined || isActive !== undefined || createdAt !== undefined) {
       await withDbRetry(() => prisma.user.update({
         where: { id: user.id },
         data: { 
           ...(name !== undefined && { name }),
           ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+          ...(createdAt && { createdAt: new Date(createdAt) }),
         },
       }));
     }

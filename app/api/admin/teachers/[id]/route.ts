@@ -65,7 +65,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       qualification,
       experience,
       salary,
-      batch
+      batch,
+      createdAt
     } = body;
 
     const user = await withDbRetry(() => prisma.user.findFirst({
@@ -79,10 +80,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
     }
 
-    if (name !== undefined) {
+    if (name !== undefined || createdAt !== undefined) {
       await withDbRetry(() => prisma.user.update({
         where: { id: user.id },
-        data: { name },
+        data: { 
+          ...(name !== undefined && { name }),
+          ...(createdAt && { createdAt: new Date(createdAt) }),
+        },
       }));
     }
 

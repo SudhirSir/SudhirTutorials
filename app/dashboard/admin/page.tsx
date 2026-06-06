@@ -2073,7 +2073,7 @@ function AdminDashboardContent() {
             <button 
               onClick={() => setUserSubTab('DIRECTORY')}
               style={{
-                padding: '0.75rem 1.5rem',
+                padding: '0.55rem 1rem',
                 border: 'none',
                 background: userSubTab === 'DIRECTORY' ? 'var(--primary)' : 'transparent',
                 color: userSubTab === 'DIRECTORY' ? '#fff' : 'var(--text-muted)',
@@ -2091,7 +2091,7 @@ function AdminDashboardContent() {
             <button 
               onClick={() => setUserSubTab('CREATE')}
               style={{
-                padding: '0.75rem 1.5rem',
+                padding: '0.55rem 1rem',
                 border: 'none',
                 background: userSubTab === 'CREATE' ? 'var(--primary)' : 'transparent',
                 color: userSubTab === 'CREATE' ? '#fff' : 'var(--text-muted)',
@@ -3330,7 +3330,7 @@ function AdminDashboardContent() {
                       onClick={runAutoBillingEngine}
                       disabled={runningAutoBilling}
                       className="btn-primary" 
-                      style={{ padding: '0.75rem 1.5rem', fontWeight: 800 }}
+                      style={{ padding: '0.55rem 1rem', fontWeight: 800 }}
                     >
                       {runningAutoBilling ? 'Generating Invoices...' : '🚀 Run Auto-Billing'}
                     </button>
@@ -3577,7 +3577,7 @@ function AdminDashboardContent() {
                       printWindow.document.close();
                     }}
                     className="btn-secondary" 
-                    style={{ padding: '0.75rem 1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
+                    style={{ padding: '0.55rem 1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
                   >
                     🖨️ Print Statement
                   </button>
@@ -3710,7 +3710,7 @@ function AdminDashboardContent() {
             <button 
               onClick={() => setCourseSubTab('COURSES')}
               style={{
-                padding: '0.75rem 1.5rem',
+                padding: '0.55rem 1rem',
                 border: 'none',
                 background: courseSubTab === 'COURSES' ? 'var(--primary)' : 'transparent',
                 color: courseSubTab === 'COURSES' ? '#fff' : 'var(--text-muted)',
@@ -3728,7 +3728,7 @@ function AdminDashboardContent() {
             <button 
               onClick={() => setCourseSubTab('BATCHES')}
               style={{
-                padding: '0.75rem 1.5rem',
+                padding: '0.55rem 1rem',
                 border: 'none',
                 background: courseSubTab === 'BATCHES' ? 'var(--primary)' : 'transparent',
                 color: courseSubTab === 'BATCHES' ? '#fff' : 'var(--text-muted)',
@@ -3746,7 +3746,7 @@ function AdminDashboardContent() {
             <button 
               onClick={() => setCourseSubTab('TIMETABLE')}
               style={{
-                padding: '0.75rem 1.5rem',
+                padding: '0.55rem 1rem',
                 border: 'none',
                 background: courseSubTab === 'TIMETABLE' ? 'var(--primary)' : 'transparent',
                 color: courseSubTab === 'TIMETABLE' ? '#fff' : 'var(--text-muted)',
@@ -3972,7 +3972,7 @@ function AdminDashboardContent() {
                       <button 
                         onClick={() => { setEditingBatch(batch); setShowBatchEditModal(true); }}
                         className="btn-secondary"
-                        style={{ padding: '0.75rem 1.5rem', borderRadius: '12px' }}
+                        style={{ padding: '0.55rem 1rem', borderRadius: '12px' }}
                       >
                         Manage & Timings
                       </button>
@@ -4839,7 +4839,7 @@ function AdminDashboardContent() {
                       disabled={activeSlideIndex === 0}
                       onClick={() => setActiveSlideIndex(prev => prev - 1)}
                       style={{
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border)',
+                        padding: '0.55rem 1rem', borderRadius: '12px', border: '1px solid var(--border)',
                         background: activeSlideIndex === 0 ? 'rgba(0,0,0,0.1)' : 'var(--input-bg)',
                         color: activeSlideIndex === 0 ? 'var(--text-muted)' : 'var(--text)',
                         cursor: activeSlideIndex === 0 ? 'not-allowed' : 'pointer', fontWeight: 700, transition: 'all 0.2s'
@@ -4866,7 +4866,7 @@ function AdminDashboardContent() {
                       disabled={activeSlideIndex === generatedPpt.slides.length - 1}
                       onClick={() => setActiveSlideIndex(prev => prev + 1)}
                       style={{
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border)',
+                        padding: '0.55rem 1rem', borderRadius: '12px', border: '1px solid var(--border)',
                         background: activeSlideIndex === generatedPpt.slides.length - 1 ? 'rgba(0,0,0,0.1)' : 'var(--input-bg)',
                         color: activeSlideIndex === generatedPpt.slides.length - 1 ? 'var(--text-muted)' : 'var(--text)',
                         cursor: activeSlideIndex === generatedPpt.slides.length - 1 ? 'not-allowed' : 'pointer', fontWeight: 700, transition: 'all 0.2s'
@@ -5030,6 +5030,11 @@ function AdminDashboardContent() {
                  <input type="email" value={editingProfile.email || ''} onChange={e => setEditingProfile({...editingProfile, email: e.target.value})} placeholder="mail@example.com" />
                </div>
 
+               <div className="input-group">
+                 <label>Join Date (System Record)</label>
+                 <input type="date" value={editingProfile.createdAt ? new Date(editingProfile.createdAt).toISOString().split('T')[0] : ''} onChange={e => setEditingProfile({...editingProfile, createdAt: e.target.value})} />
+               </div>
+
                {editingProfile.role === 'STUDENT' ? (
                  <>
                    <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: '1 / -1' }}>
@@ -5083,6 +5088,10 @@ function AdminDashboardContent() {
                    <div className="input-group">
                      <label>Board</label>
                      <input type="text" value={editingProfile.board || ''} onChange={e => setEditingProfile({...editingProfile, board: e.target.value})} placeholder="e.g. CBSE / ICSE" />
+                   </div>
+                   <div className="input-group">
+                     <label>Aadhaar Number</label>
+                     <input type="text" value={editingProfile.aadhaarNumber || ''} onChange={e => setEditingProfile({...editingProfile, aadhaarNumber: e.target.value})} placeholder="12-digit Aadhaar" />
                    </div>
                    <div className="input-group">
                      <label>Scholarship Amount (₹)</label>

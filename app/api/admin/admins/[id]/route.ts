@@ -50,7 +50,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const { id } = await params;
     const body = await req.json();
-    const { name, email, phone, address, dob, photoUrl } = body;
+    const { name, email, phone, address, dob, photoUrl, createdAt } = body;
 
     const user = await withDbRetry(() => prisma.user.findFirst({
       where: {
@@ -63,11 +63,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
     }
 
-    if (name !== undefined || photoUrl !== undefined) {
+    if (name !== undefined || photoUrl !== undefined || createdAt !== undefined) {
       await withDbRetry(() => prisma.user.update({
         where: { id: user.id },
         data: {
           ...(name !== undefined && { name }),
+          ...(createdAt && { createdAt: new Date(createdAt) }),
           ...(photoUrl !== undefined && { photoUrl }),
         },
       }));

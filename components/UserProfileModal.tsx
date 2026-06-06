@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface UserProfileModalProps {
   userId: string;
@@ -12,8 +13,10 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     async function fetchProfile() {
       try {
         setLoading(true);
@@ -30,8 +33,10 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
     fetchProfile();
   }, [userId]);
 
+  if (!mounted || typeof window === 'undefined') return null;
+
   if (loading) {
-    return (
+    return createPortal(
       <div style={backdropStyle} onClick={onClose}>
         <div style={modalStyle} onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
@@ -42,28 +47,32 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
             @keyframes spin { to { transform: rotate(360deg); } }
           `}</style>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   if (error || !profileData) {
-    return (
+    return createPortal(
       <div style={backdropStyle} onClick={onClose}>
         <div style={modalStyle} onClick={e => e.stopPropagation()}>
-          <button onClick={onClose} style={closeBtnStyle}>×</button>
+          <div style={{ position: 'relative', height: '140px', background: 'linear-gradient(135deg, var(--primary), #818cf8)' }}>
+            <button onClick={onClose} style={closeBtnStyle}>×</button>
+          </div>
           <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
             <span style={{ fontSize: '2rem' }}>⚠️</span>
             <p style={{ marginTop: '0.5rem', fontWeight: 600 }}>{error || 'Profile could not be loaded'}</p>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   const { name, username, role, isProfileVerified, photoUrl, createdAt, profile } = profileData;
   const joinDate = createdAt ? new Date(createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
 
-  return (
+  return createPortal(
     <div style={backdropStyle} onClick={onClose}>
       <div className="glass-card animate-scale-up" style={modalStyle} onClick={e => e.stopPropagation()}>
         <button onClick={onClose} style={closeBtnStyle} title="Close Profile">×</button>
@@ -247,7 +256,8 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
