@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import ScholarshipPredictor3D from '@/components/ScholarshipPredictor3D';
 
 // Math/science formulas for the floating background animation
 const floatingFormulas = [
@@ -29,6 +30,13 @@ export default function Home() {
   const [admissionsLoading, setAdmissionsLoading] = useState<boolean>(false);
   const [admissionsError, setAdmissionsError] = useState<string>("");
   const [admissionsSuccess, setAdmissionsSuccess] = useState<string | null>(null);
+
+  // Bug Report states
+  const [showReportBugModal, setShowReportBugModal] = useState<boolean>(false);
+  const [reportTitle, setReportTitle] = useState<string>("");
+  const [reportMessage, setReportMessage] = useState<string>("");
+  const [reportLoading, setReportLoading] = useState<boolean>(false);
+  const [reportSuccess, setReportSuccess] = useState<boolean>(false);
 
   // Dynamic 3D Tilt Handlers
   const handle3DTilt = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -474,123 +482,8 @@ export default function Home() {
         </div>
 
         <div className="arena-grid">
-          {/* Item 1: Scholarship Predictor */}
-          <div className="glass-card arena-card predictor-card-tilt" style={{
-            transformStyle: 'preserve-3d',
-            perspective: '1000px',
-            transition: 'transform 0.3s ease, border-color 0.3s ease',
-            cursor: 'pointer'
-          }}>
-            <div className="card-header-icon">
-              <span className="icon">🏅</span>
-              <h3>Scholarship Predictor</h3>
-            </div>
-            <p className="card-desc">Find out instantly how much scholarship you qualify for at <strong style={{ color: 'var(--primary)' }}>SUDHIR</strong> <strong style={{ color: 'var(--secondary)' }}>TUTORIALS</strong>!</p>
-            
-            <div className="input-group">
-              <label className="input-label">Select Program</label>
-              <div className="selector-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <button 
-                  onClick={() => setTargetExam('JEE')}
-                  className={`selector-btn ${targetExam === 'JEE' ? 'active' : ''}`}
-                  style={{
-                    background: targetExam === 'JEE' ? 'var(--primary)' : 'var(--input-bg)',
-                    color: targetExam === 'JEE' ? '#fff' : 'var(--text-muted)',
-                    borderColor: targetExam === 'JEE' ? 'var(--primary)' : 'var(--border)'
-                  }}
-                >
-                  🚀 JEE (IIT/NIT)
-                </button>
-                <button 
-                  onClick={() => setTargetExam('NEET')}
-                  className={`selector-btn ${targetExam === 'NEET' ? 'active' : ''}`}
-                  style={{
-                    background: targetExam === 'NEET' ? 'var(--secondary)' : 'var(--input-bg)',
-                    color: targetExam === 'NEET' ? '#fff' : 'var(--text-muted)',
-                    borderColor: targetExam === 'NEET' ? 'var(--secondary)' : 'var(--border)'
-                  }}
-                >
-                  🩺 NEET (Medical)
-                </button>
-              </div>
-            </div>
-
-            <div className="input-group" style={{ marginTop: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <label className="input-label">Daily Study Dedication</label>
-                <span className="scholarship-badge" style={{ background: 'rgba(37, 99, 235, 0.12)', color: 'var(--secondary)' }}>{studyHours} hrs/day</span>
-              </div>
-              <input 
-                type="range" 
-                min="2" 
-                max="14" 
-                step="1" 
-                value={studyHours} 
-                onChange={e => setStudyHours(parseInt(e.target.value))}
-                className="slider-input"
-              />
-              <div className="slider-ticks">
-                <span>2 hrs</span>
-                <span>6 hrs</span>
-                <span>10 hrs</span>
-                <span>14 hrs</span>
-              </div>
-            </div>
-
-            <div className="input-group" style={{ marginTop: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <label className="input-label">Last Exam Score (%)</label>
-                <span className="scholarship-badge">{mockScore}%</span>
-              </div>
-              <input 
-                type="range" 
-                min="50" 
-                max="100" 
-                step="5" 
-                value={mockScore} 
-                onChange={e => setMockScore(parseInt(e.target.value))}
-                className="slider-input"
-              />
-              <div className="slider-ticks">
-                <span>50%</span>
-                <span>65%</span>
-                <span>80%</span>
-                <span>100%</span>
-              </div>
-            </div>
-
-            {(() => {
-              const score = mockScore;
-              const hours = studyHours;
-              let scholarshipPct = 0;
-              let schLabel = '';
-              let feeDiscount = '';
-              let motivational = '';
-              if (score >= 95 && hours >= 10) { scholarshipPct = 100; schLabel = '💎 Full Merit Scholarship'; feeDiscount = '100% Fee Waiver'; motivational = 'Exceptional! You are a rank-topper. We invest in brilliant minds like yours — study FREE at SUDHIR TUTORIALS!'; }
-              else if (score >= 90 && hours >= 8) { scholarshipPct = 75; schLabel = '🥇 Gold Scholarship'; feeDiscount = '75% Fee Waiver'; motivational = 'Outstanding performance! You qualify for our prestigious Gold Scholarship. Join us and secure your dream rank!'; }
-              else if (score >= 80 && hours >= 6) { scholarshipPct = 50; schLabel = '🥈 Silver Scholarship'; feeDiscount = '50% Fee Waiver'; motivational = 'Impressive score! With our structured program, you will leap to the top percentile. A 50% scholarship awaits you!'; }
-              else if (score >= 70 && hours >= 4) { scholarshipPct = 25; schLabel = '🥉 Merit Award'; feeDiscount = '25% Fee Discount'; motivational = 'You show great potential! Our expert mentors will multiply your rank. Claim your 25% merit award today!'; }
-              else { scholarshipPct = 10; schLabel = '🌟 Welcome Bonus'; feeDiscount = '10% Enrollment Discount'; motivational = 'Every topper started where you are. Join SUDHIR TUTORIALS and watch your score skyrocket with expert guidance!'; }
-              return (
-                <div style={{ marginTop: '1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(37,99,235,0.08) 100%)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Your Scholarship</span>
-                    <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, background: 'rgba(239,68,68,0.15)', color: 'var(--primary)' }}>{schLabel}</span>
-                  </div>
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ fontSize: '2.5rem', fontWeight: 900, background: 'linear-gradient(135deg, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{scholarshipPct}% OFF</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>{feeDiscount}</div>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '0.75rem', border: '1px dashed var(--border)' }}>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.45', margin: 0, fontStyle: 'italic' }}>"{motivational}"</p>
-                  </div>
-                  <button onClick={() => setShowAdmissionsModal(true)} className="btn-primary" style={{ width: '100%', marginTop: '1rem', border: 'none', fontSize: '0.9rem', padding: '0.75rem', fontWeight: 800 }}>
-                    🎓 Claim Your Scholarship Now
-                  </button>
-                </div>
-              );
-            })()}
-          </div>
+          {/* Item 1: Scholarship Predictor 3D */}
+          <ScholarshipPredictor3D />
 
           {/* Item 2: Daily Math Challenge */}
           <div className="glass-card arena-card">
@@ -715,8 +608,8 @@ export default function Home() {
               transition: 'transform 0.3s ease',
               maxWidth: '380px',
               padding: '1.25rem',
-              background: '#ffffff',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-border)',
               borderRadius: '24px',
               cursor: 'pointer',
               boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
@@ -881,7 +774,7 @@ export default function Home() {
             <ul>
               <li>📍 <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" className="footer-link">Haibowal, Ludhiana, Punjab</a></li>
               <li>📞 <a href="tel:9914287998" className="footer-link">99142-87998</a></li>
-              <li>✉️ <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" className="footer-link" style={{ wordBreak: 'break-all' }}>sudhir.tutorials.ludhiana@gmail.com</a></li>
+              <li>✉️ <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" className="footer-link">sudhir.tutorials.ludhiana@gmail.com</a></li>
             </ul>
           </div>
         </div>
@@ -926,7 +819,7 @@ export default function Home() {
                 position: 'absolute',
                 top: '1.25rem',
                 right: '1.25rem',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--card-bg-alt)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 borderRadius: '50%',
@@ -988,12 +881,59 @@ export default function Home() {
                   <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
                     ⚠️ {admissionsError}
                   </div>
-                )}
-
                 <form onSubmit={handleAdmissionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   {/* Grid for two columns */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
-                    <style>{`
+                    <style jsx>{`
+        /* ── Report Bug Floating Button & Modal ── */
+        .report-fab {
+          position: fixed;
+          bottom: 2rem;
+          right: 2rem;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--primary), #b91c1c);
+          color: white;
+          font-size: 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+          z-index: 1000;
+          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+          border: 2px solid var(--glass-border);
+        }
+        .report-fab:hover {
+          transform: scale(1.1) translateY(-5px);
+          box-shadow: 0 15px 35px rgba(239, 68, 68, 0.6);
+        }
+
+        .report-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.85);
+          backdrop-filter: blur(12px);
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1rem;
+        }
+        .report-modal {
+          width: 100%;
+          max-width: 450px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 2.5rem;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+          position: relative;
+          color: var(--text);
+        }
+
+        /* ── Advanced 3D Hover & Dark Mode Aesthetics ── */
                       @media (max-width: 600px) {
                         .form-grid-2col {
                           grid-template-columns: 1fr !important;
@@ -1999,6 +1939,67 @@ export default function Home() {
           }
         }
       `}</style>
-    </main>
+      {/* Report Bug Floating Action Button */}
+      <button 
+        className="report-fab" 
+        onClick={() => setShowReportBugModal(true)}
+        title="Report Bug or Suggestion"
+      >
+        🐞
+      </button>
+
+      {/* Report Bug Modal */}
+      {showReportBugModal && (
+        <div className="report-modal-overlay" onClick={() => setShowReportBugModal(false)}>
+          <div className="report-modal animate-scale-up" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowReportBugModal(false)} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--primary)', fontWeight: 800 }}>Report a Bug / Suggestion</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Found an issue or have an idea to improve the platform? Let our admins know!</p>
+            
+            {reportSuccess ? (
+              <div style={{ padding: '2rem', textAlign: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', borderRadius: '12px', color: '#10b981' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                <h3 style={{ margin: 0, fontWeight: 700 }}>Thank you!</h3>
+                <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Your report has been sent directly to the administrative team.</p>
+                <button onClick={() => { setShowReportBugModal(false); setReportSuccess(false); setReportTitle(''); setReportMessage(''); }} className="btn-primary" style={{ marginTop: '1.5rem', width: '100%', background: '#10b981' }}>Close</button>
+              </div>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setReportLoading(true);
+                try {
+                  await fetch('/api/reports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      title: reportTitle,
+                      message: reportMessage,
+                      isBugReport: true
+                    })
+                  });
+                  setReportSuccess(true);
+                } catch(err) {
+                  alert("Failed to submit report. Try again later.");
+                }
+                setReportLoading(false);
+              }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label className="input-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Subject / Title</label>
+                  <input type="text" required value={reportTitle} onChange={e => setReportTitle(e.target.value)} className="modal-input" placeholder="e.g. Broken link on homepage" style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label className="input-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Description</label>
+                  <textarea required value={reportMessage} onChange={e => setReportMessage(e.target.value)} className="modal-input" placeholder="Describe the bug or feature suggestion in detail..." rows={5} style={{ width: '100%', resize: 'none' }}></textarea>
+                </div>
+                <button type="submit" disabled={reportLoading} className="btn-primary" style={{ marginTop: '1rem', padding: '1rem' }}>
+                  {reportLoading ? 'Sending...' : 'Submit Report 🚀'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 }

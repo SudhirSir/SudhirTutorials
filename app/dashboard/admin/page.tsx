@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
@@ -80,11 +80,12 @@ function AdminDashboardContent() {
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
     if (tab === 'courses') {
-      fetchCourses();
-      fetchBatches();
-      fetchTeachers();
-      // Fetch all students automatically for batch enrollment
-      fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []));
+      Promise.all([
+        fetchCourses(),
+        fetchBatches(),
+        fetchTeachers(),
+        fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []))
+      ]);
     }
   }, [searchParams, session]);
 
@@ -613,7 +614,9 @@ function AdminDashboardContent() {
   const [isSearching, setIsSearching] = useState(false);
   const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'>('ALL');
 
-  // Finance State
+  const filteredDirectoryUsers = useMemo(() => {
+    return directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter);
+  }, [directoryUsers, directoryFilter]);  // Finance State
   const [financeStudentSearchQuery, setFinanceStudentSearchQuery] = useState('');
   const [showFinanceSuggestions, setShowFinanceSuggestions] = useState(false);
   const [fees, setFees] = useState<any[]>([]);
@@ -1367,10 +1370,12 @@ function AdminDashboardContent() {
     }
     if (activeTab === 'verifications') fetchPendingVerifications();
     if (activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) {
-      fetchCourses();
-      fetchBatches();
-      fetchTeachers();
-      fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []));
+      Promise.all([
+        fetchCourses(),
+        fetchBatches(),
+        fetchTeachers(),
+        fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || []))
+      ]);
     }
     if (activeTab === 'attendance' || (activeTab === 'academics' && academicSubTab === 'attendance')) {
       fetchBatches();
@@ -2135,10 +2140,10 @@ function AdminDashboardContent() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                {directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).length === 0 ? (
+                {filteredDirectoryUsers.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', gridColumn: '1/-1', textAlign: 'center', padding: '3rem 0' }}>No users found.</p>
                 ) : (
-                  directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter).map(u => (
+                  filteredDirectoryUsers.map(u => (
                     <div key={u.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
                         <div style={{ width: '50px', height: '50px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold', border: '2px solid var(--primary)', flexShrink: 0 }}>
@@ -6921,8 +6926,8 @@ function AdminDashboardContent() {
       )}
 
       {/* ── Security / Password Verification Backdrop Modal ─────────────────── */}
-      {securityConfirm.isOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }} className="no-print">
+      {securityConfirm.isOpen && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, padding: '1rem' }} className="no-print">
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '420px', padding: '2.5rem', border: '2px solid #ef4444', background: '#111', borderRadius: '24px', boxShadow: '0 10px 40px rgba(239, 68, 68, 0.2)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '1.5rem' }}>
               <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', marginBottom: '1rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
@@ -6964,7 +6969,8 @@ function AdminDashboardContent() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {activeProfileUserId && (

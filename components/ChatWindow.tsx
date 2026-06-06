@@ -1048,8 +1048,22 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                 🗑️ Delete Chat Thread
               </button>
               <button 
-                onClick={() => {
-                  alert('Report submitted. Our administrative team will review this user shortly.');
+                onClick={async () => {
+                  try {
+                    await fetch('/api/reports', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        title: 'Suspicious Behavior / Harassment',
+                        message: 'A user has been reported from the Chat Interface for violating platform guidelines.',
+                        reportedUserId: selectedUser.id,
+                        isBugReport: false
+                      })
+                    });
+                    alert('Report submitted. Our administrative team will review this user shortly.');
+                  } catch (e) {
+                    alert('Failed to submit report. Please try again later.');
+                  }
                 }}
                 style={{
                   width: '100%',
