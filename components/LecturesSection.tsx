@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
 interface Lecture {
@@ -35,6 +35,19 @@ export function LecturesSection() {
   
   // Theater Player State
   const [activeLecture, setActiveLecture] = useState<Lecture | null>(null);
+  
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleFullscreen = () => {
+    if (!videoContainerRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      videoContainerRef.current.requestFullscreen().catch(err => {
+        console.error("Failed to enter fullscreen:", err);
+      });
+    }
+  };
 
   // Assignment Modal & Form State
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -269,14 +282,28 @@ export function LecturesSection() {
               <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
                 {/* Main Video Embed */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'black' }}>
+                  <div 
+                    ref={videoContainerRef}
+                    className="video-fullscreen-wrapper"
+                    style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'black' }}
+                  >
                     <iframe
-                      src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=1&rel=0&modestbranding=1`}
+                      src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=1&rel=0&modestbranding=1&fs=1`}
                       title={activeLecture.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                       allowFullScreen
                       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
                     />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button 
+                      type="button"
+                      onClick={handleToggleFullscreen}
+                      className="btn-secondary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      📺 Watch Full Screen
+                    </button>
                   </div>
                 </div>
 
@@ -712,6 +739,13 @@ export function LecturesSection() {
       )}
 
       <style jsx>{`
+        .video-fullscreen-wrapper:fullscreen {
+          padding-top: 0 !important;
+          height: 100vh !important;
+          width: 100vw !important;
+          border-radius: 0 !important;
+          border: none !important;
+        }
         .lecture-grid-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 10px 30px rgba(0,0,0,0.1);

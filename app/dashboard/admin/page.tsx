@@ -1770,6 +1770,24 @@ function AdminDashboardContent() {
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       <style>{`
+        .user-details-modal-grid-2col {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+          .user-details-modal-card {
+            padding: 1.25rem !important;
+            border-radius: 16px !important;
+            margin: 1rem auto !important;
+          }
+          .user-details-modal-grid-2col {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+        }
+
         .search-panel-overflow {
           overflow: visible !important;
           z-index: 100 !important;
@@ -4205,7 +4223,7 @@ function AdminDashboardContent() {
                 <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Active Batches</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   {batches.map(batch => (
-                    <div key={batch.id} style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '18px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={batch.id} style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '18px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                           <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>{batch.name}</span>
@@ -6964,7 +6982,7 @@ function AdminDashboardContent() {
 
       {selectedUserDetail && typeof window !== 'undefined' && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, overflowY: 'auto', padding: '2rem 1rem' }}>
-          <div className="glass-card" style={{ width: '100%', maxWidth: selectedUserDetail.role === 'STUDENT' ? '850px' : '550px', padding: '2.5rem', margin: '2rem auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
+          <div className="glass-card user-details-modal-card" style={{ width: '100%', maxWidth: selectedUserDetail.role === 'STUDENT' ? '850px' : '550px', padding: '2.5rem', margin: '2rem auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <button 
               onClick={() => setSelectedUserDetail(null)} 
               style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -7004,7 +7022,7 @@ function AdminDashboardContent() {
 
               {selectedUserDetail.role === 'STUDENT' && selectedUserDetail.studentProfile && (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Roll Number</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.rollNumber || 'N/A'}</div>
@@ -7015,7 +7033,7 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Grade/Class</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.className || 'N/A'}</div>
@@ -7026,7 +7044,7 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Base Fee (Monthly)</div>
                       <div style={{ fontWeight: 800, color: '#10b981' }}>₹{selectedUserDetail.studentProfile.baseFee || 0}</div>
@@ -7083,7 +7101,7 @@ function AdminDashboardContent() {
 
               {selectedUserDetail.role === 'TEACHER' && selectedUserDetail.teacherProfile && (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Subject Expertise</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.subject || 'N/A'}</div>
@@ -7094,7 +7112,7 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Experience</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.experience || 'N/A'}</div>
@@ -7110,7 +7128,7 @@ function AdminDashboardContent() {
                     <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.email || 'N/A'}</div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Phone</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.phone || 'N/A'}</div>

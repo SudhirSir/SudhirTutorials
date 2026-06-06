@@ -29,7 +29,10 @@ export function PushNotificationManager() {
         }
 
         // Register with Apple / Google to receive push token
-        await PushNotifications.register();
+        // SAFEGUARD: Temporarily disabled to prevent native crash because google-services.json is missing in android/app/.
+        // Once FCM is configured with a google-services.json file, you can uncomment this line.
+        console.warn("Push notifications permission granted, but native registration is bypassed because google-services.json is missing.");
+        // await PushNotifications.register();
 
         // On success, we get a token
         await PushNotifications.addListener("registration", async (token) => {

@@ -817,6 +817,7 @@ textarea:focus {
 .scrollable-ledger-container {
   max-height: 350px;
   overflow-y: auto;
+  overflow-x: auto;
   padding-right: 0.5rem;
   margin-bottom: 1.5rem;
 }
