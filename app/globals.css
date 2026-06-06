@@ -823,3 +823,18 @@ textarea:focus {
   0% { opacity: 0; transform: translateY(60px) rotateX(10deg) scale(0.95); }
   100% { opacity: 1; transform: translateY(0) rotateX(0deg) scale(1); }
 }
+
+/* Skeleton loading shimmer */
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Spinner for inline loading indicators */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-scale-up {
+  animation: fadeScale 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}

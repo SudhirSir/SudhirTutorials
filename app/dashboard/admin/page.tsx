@@ -141,6 +141,7 @@ function AdminDashboardContent() {
     pendingDues: number;
     classStats?: Array<{ className: string; count: number }>;
   } | null>(null);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
   const [newUserName, setNewUserName] = useState('');
@@ -1145,14 +1146,20 @@ function AdminDashboardContent() {
   };
 
   const fetchOverviewStats = async () => {
+    setIsLoadingOverview(true);
     try {
-      const res = await fetch('/api/admin/overview');
+      // cache: 'no-store' + timestamp param guarantees a fresh DB hit every call
+      const res = await fetch(`/api/admin/overview?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       if (res.ok) {
         const data = await res.json();
         setOverviewStats(data);
         if (data.activityLogs) setActivityLogs(data.activityLogs);
       }
     } catch (err) { console.error(err); }
+    finally { setIsLoadingOverview(false); }
   };
 
   const fetchSettings = async () => {
@@ -1995,7 +2002,14 @@ function AdminDashboardContent() {
               <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.75rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '2rem', opacity: 0.12 }}>{stat.icon}</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem', fontWeight: 700 }}>{stat.label}</div>
-                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text)' }}>{stat.value}</div>
+                {isLoadingOverview && overviewStats === null ? (
+                  <div style={{ height: '2.2rem', width: '60%', borderRadius: '8px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                ) : (
+                  <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {stat.value}
+                    {isLoadingOverview && <span style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -2014,11 +2028,19 @@ function AdminDashboardContent() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? 0}</div>
+                  {isLoadingOverview && overviewStats === null ? (
+                    <div style={{ height: '1.8rem', width: '40px', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', margin: '4px 0' }} />
+                  ) : (
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? 0}</div>
+                  )}
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? 0}</div>
+                  {isLoadingOverview && overviewStats === null ? (
+                    <div style={{ height: '1.8rem', width: '40px', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', margin: '4px 0' }} />
+                  ) : (
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? 0}</div>
+                  )}
                 </div>
               </div>
 
