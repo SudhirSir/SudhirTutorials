@@ -1,5 +1,8 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -51,7 +54,7 @@ export async function GET(req: Request) {
       }
     }
 
-    const students = await prisma.user.findMany({
+    const students = await withDbRetry(() => prisma.user.findMany({
       where,
       select: {
         id: true,
@@ -70,7 +73,7 @@ export async function GET(req: Request) {
           select: { status: true }
         }
       }
-    });
+    }));
 
     return NextResponse.json({ students });
   } catch (error) {

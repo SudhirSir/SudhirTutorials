@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -14,10 +17,10 @@ export async function GET() {
     const userId = (session.user as any).id;
     const sessionToken = (session.user as any).activeToken;
 
-    const user = await prisma.user.findUnique({
+    const user = await withDbRetry(() => prisma.user.findUnique({
       where: { id: userId },
       select: { activeToken: true, isProfileVerified: true, onboardingCompleted: true }
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ valid: false, error: "User not found" });

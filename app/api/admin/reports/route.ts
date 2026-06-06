@@ -4,7 +4,7 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -20,7 +20,7 @@ export async function GET() {
     // Parallelize all 4 independent database queries to run concurrently
     const [courseStats, payments, totalAttendance, presentCount] = await Promise.all([
       // 1. Enrollment by Course
-      prisma.course.findMany({
+      withDbRetry(() => prisma.course.findMany({
         select: {
           name: true,
           batches: {
@@ -29,9 +29,9 @@ export async function GET() {
             }
           }
         }
-      }),
+      })),
       // 2. Revenue Trends (last 6 months)
-      prisma.payment.findMany({
+      withDbRetry(() => prisma.payment.findMany({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
           createdAt: { gte: sixMonthsAgo }
@@ -40,10 +40,10 @@ export async function GET() {
           amount: true,
           createdAt: true
         }
-      }),
+      })),
       // 3. Attendance Overview (Global %)
-      prisma.attendance.count(),
-      prisma.attendance.count({ where: { status: 'PRESENT' } })
+      withDbRetry(() => prisma.attendance.count()),
+      withDbRetry(() => prisma.attendance.count({ where: { status: 'PRESENT' } }))
     ]);
 
     const enrollmentData = courseStats.map((c: any) => ({

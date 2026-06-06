@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
@@ -10,9 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await withDbRetry(() => prisma.user.findUnique({
       where: { username }
-    });
+    }));
 
     if (!user || !user.recoveryPinHash) {
       return NextResponse.json({ error: 'User not found or Recovery PIN not set' }, { status: 404 });
@@ -25,13 +25,13 @@ export async function POST(req: Request) {
 
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
-    await prisma.user.update({
+    await withDbRetry(() => prisma.user.update({
       where: { id: user.id },
       data: {
         passwordHash: newPasswordHash,
         mustChangePassword: false // They just changed it manually
       }
-    });
+    }));
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 
@@ -16,7 +19,7 @@ export async function GET() {
 
     // Parallelize independent database queries for maximum performance
     const [user, attendanceRecords, testResults] = await Promise.all([
-      prisma.user.findUnique({
+      withDbRetry(() => prisma.user.findUnique({
         where: { id: studentId },
         include: {
           studentBatches: {
@@ -33,14 +36,14 @@ export async function GET() {
             where: { status: 'PENDING' }
           }
         }
-      }),
-      prisma.attendance.findMany({
+      })),
+      withDbRetry(() => prisma.attendance.findMany({
         where: { studentId },
-      }),
-      prisma.testResult.findMany({
+      })),
+      withDbRetry(() => prisma.testResult.findMany({
         where: { studentId },
         include: { test: true }
-      })
+      }))
     ]);
 
     if (!user) {

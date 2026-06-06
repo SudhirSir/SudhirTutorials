@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
@@ -16,9 +16,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Password is required' }, { status: 400 });
     }
 
-    const admin = await prisma.user.findUnique({
+    const admin = await withDbRetry(() => prisma.user.findUnique({
       where: { id: session.user.id }
-    });
+    }));
 
     if (!admin) {
       return NextResponse.json({ error: 'Admin account not found' }, { status: 404 });

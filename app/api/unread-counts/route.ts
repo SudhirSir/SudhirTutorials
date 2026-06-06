@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -14,18 +17,18 @@ export async function GET() {
 
     // Fetch counts in parallel for optimal speed
     const [unreadNotifications, unreadMessages] = await Promise.all([
-      prisma.notification.count({
+      withDbRetry(() => prisma.notification.count({
         where: {
           userId,
           isRead: false
         }
-      }),
-      prisma.message.count({
+      })),
+      withDbRetry(() => prisma.message.count({
         where: {
           receiverId: userId,
           isRead: false
         }
-      })
+      }))
     ]);
 
     return NextResponse.json({ unreadNotifications, unreadMessages });

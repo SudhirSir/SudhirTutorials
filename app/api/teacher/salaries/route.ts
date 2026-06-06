@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -10,10 +13,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const salaries = await prisma.salaryRecord.findMany({
+    const salaries = await withDbRetry(() => prisma.salaryRecord.findMany({
       where: { teacherId: session.user.id },
       orderBy: { createdAt: 'desc' },
-    });
+    }));
 
     return NextResponse.json({ salaries });
   } catch (error) {

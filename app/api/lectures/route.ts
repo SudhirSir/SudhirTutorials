@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 // Extract YouTube Video ID from any standard or live YouTube URL
 function extractYoutubeVideoId(url: string): string | null {
@@ -29,10 +32,10 @@ export async function GET(req: Request) {
 
     if (role === 'STUDENT') {
       // Find batches this student belongs to
-      const student = await prisma.user.findUnique({
+      const student = await withDbRetry(() => prisma.user.findUnique({
         where: { id: userId },
         include: { studentBatches: true }
-      });
+      }));
       const batchIds = student?.studentBatches.map(b => b.id) || [];
       where.batchId = { in: batchIds };
     } else if (role === 'TEACHER') {
@@ -40,10 +43,10 @@ export async function GET(req: Request) {
       if (batchId) {
         where.batchId = batchId;
       } else {
-        const teacher = await prisma.user.findUnique({
+        const teacher = await withDbRetry(() => prisma.user.findUnique({
           where: { id: userId },
           include: { teacherBatches: true }
-        });
+        }));
         const batchIds = teacher?.teacherBatches.map(b => b.id) || [];
         where.batchId = { in: batchIds };
       }
@@ -58,7 +61,7 @@ export async function GET(req: Request) {
       where.subject = subject;
     }
 
-    const lectures = await prisma.lecture.findMany({
+    const lectures = await withDbRetry(() => prisma.lecture.findMany({
       where,
       include: {
         batch: {
@@ -69,7 +72,7 @@ export async function GET(req: Request) {
         }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    }));
 
     const enriched = lectures.map(lecture => {
       const videoId = extractYoutubeVideoId(lecture.youtubeUrl);
@@ -114,7 +117,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 });
     }
 
-    const lecture = await prisma.lecture.create({
+    const lecture = await withDbRetry(() => prisma.lecture.create({
       data: {
         title,
         description,
@@ -124,20 +127,20 @@ export async function POST(req: Request) {
         batchId,
         assignedById: (session.user as any).id
       }
-    });
+    }));
 
     // Notify students of the batch about the new lecture
     try {
-      const students = await prisma.user.findMany({
+      const students = await withDbRetry(() => prisma.user.findMany({
         where: { studentBatches: { some: { id: batchId } } },
         select: { id: true }
-      });
+      }));
 
       const emoji = type === 'LIVE' ? '🔴' : '🎥';
       const notificationTitle = type === 'LIVE' ? 'Live Lecture Scheduled!' : 'New Lecture Video Assigned';
       const notificationMsg = `${emoji} ${title} for Subject "${subject}" has been assigned. Watch now!`;
 
-      await prisma.notification.createMany({
+      await withDbRetry(() => prisma.notification.createMany({
         data: students.map(s => ({
           userId: s.id,
           title: notificationTitle,
@@ -145,7 +148,7 @@ export async function POST(req: Request) {
           type: 'ALERT',
           isRead: false
         }))
-      });
+      }));
     } catch (err) {
       console.error('Failed to dispatch student notifications for lecture:', err);
     }
@@ -176,7 +179,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Missing lecture ID' }, { status: 400 });
     }
 
-    const lecture = await prisma.lecture.findUnique({ where: { id } });
+    const lecture = await withDbRetry(() => prisma.lecture.findUnique({ where: { id } }));
     if (!lecture) {
       return NextResponse.json({ error: 'Lecture not found' }, { status: 404 });
     }
@@ -186,7 +189,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Unauthorized: Can only delete your own assigned lectures' }, { status: 401 });
     }
 
-    await prisma.lecture.delete({ where: { id } });
+    await withDbRetry(() => prisma.lecture.delete({ where: { id } }));
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting lecture:', error);

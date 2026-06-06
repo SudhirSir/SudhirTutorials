@@ -2,17 +2,20 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
+// NOTE: Do NOT call prisma.$connect() eagerly here.
+// Prisma manages connections lazily per-query. Calling $connect() at module
+// load time holds a PgBouncer session-mode slot open for the entire server
+// lifetime, rapidly exhausting the pool_size limit (EMAXCONNSESSION).
 export const prisma = globalForPrisma.prisma || new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
 });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
-// Eager warm-up: pre-connect the Prisma connection pool on module load
-// so the first real API request does not incur cold-start latency.
-prisma.$connect().catch(() => {
-  // Silently swallow – server may not be running yet at build time
-});
 
 /**
  * Executes a Prisma query or operation with automatic retries for transient

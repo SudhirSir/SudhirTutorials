@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -14,14 +17,14 @@ export async function GET() {
     const teacherId = (session.user as any).id;
 
     // Fetch batches assigned to this teacher
-    const batches = await prisma.batch.findMany({
+    const batches = await withDbRetry(() => prisma.batch.findMany({
       where: { teachers: { some: { id: teacherId } } },
       include: {
         course: { select: { id: true, name: true } },
         schedules: true,
         _count: { select: { students: true } }
       }
-    });
+    }));
 
     return NextResponse.json({ batches });
   } catch (error) {

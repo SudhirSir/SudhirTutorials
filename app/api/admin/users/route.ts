@@ -110,9 +110,9 @@ export async function POST(req: Request) {
     // Auto reflect class default fee if it exists in settings
     let defaultFeeVal = 0;
     if (role === 'STUDENT' && className) {
-      const setting = await prisma.systemSetting.findUnique({
+      const setting = await withDbRetry(() => prisma.systemSetting.findUnique({
         where: { key: `classFee_${className}` }
-      });
+      }));
       if (setting && setting.value) {
         defaultFeeVal = parseFloat(setting.value) || 0;
       }

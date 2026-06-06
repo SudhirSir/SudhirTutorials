@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
 const attendanceSchema = z.object({
@@ -28,9 +31,9 @@ export async function GET(req: Request) {
 
     // RBAC: Ensure teacher is assigned to this batch
     if (session.user.role === 'TEACHER') {
-      const batch = await prisma.batch.findFirst({
+      const batch = await withDbRetry(() => prisma.batch.findFirst({
         where: { id: batchId, teachers: { some: { id: session.user.id } } }
-      });
+      }));
       if (!batch) {
         return NextResponse.json({ error: 'Access Denied: You are not assigned to this batch' }, { status: 403 });
       }
@@ -39,7 +42,7 @@ export async function GET(req: Request) {
     const date = dateStr ? new Date(dateStr) : new Date();
     date.setHours(0, 0, 0, 0);
 
-    const attendance = await prisma.attendance.findMany({
+    const attendance = await withDbRetry(() => prisma.attendance.findMany({
       where: {
         batchId,
         date: {
@@ -47,7 +50,7 @@ export async function GET(req: Request) {
           lt: new Date(date.getTime() + 24 * 60 * 60 * 1000)
         }
       }
-    });
+    }));
 
     return NextResponse.json({ attendance });
   } catch (error) {
@@ -72,9 +75,9 @@ export async function POST(req: Request) {
 
     // RBAC: Ensure teacher is assigned to this batch
     if (session.user.role === 'TEACHER') {
-      const batch = await prisma.batch.findFirst({
+      const batch = await withDbRetry(() => prisma.batch.findFirst({
         where: { id: batchId, teachers: { some: { id: session.user.id } } }
-      });
+      }));
       if (!batch) {
         return NextResponse.json({ error: 'Access Denied: You are not assigned to this batch' }, { status: 403 });
       }
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
       })
     );
 
-    await prisma.$transaction(operations);
+    await withDbRetry(() => prisma.$transaction(operations));
 
     return NextResponse.json({ success: true });
   } catch (error) {

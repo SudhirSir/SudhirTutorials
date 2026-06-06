@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 
@@ -14,7 +17,7 @@ export async function GET() {
 
     const studentId = (session.user as any).id;
 
-    const rawFees = await prisma.payment.findMany({
+    const rawFees = await withDbRetry(() => prisma.payment.findMany({
       where: { studentId },
       include: {
         student: {
@@ -38,7 +41,7 @@ export async function GET() {
         }
       },
       orderBy: { dueDate: 'desc' }
-    });
+    }));
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -16,9 +16,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     // 2. Find target user
-    const targetUser = await prisma.user.findUnique({
+    const targetUser = await withDbRetry(() => prisma.user.findUnique({
       where: { id: userId }
-    });
+    }));
 
     if (!targetUser) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -44,13 +44,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(tempPassword, salt);
 
-    await prisma.user.update({
+    await withDbRetry(() => prisma.user.update({
       where: { id: userId },
       data: {
         passwordHash,
         mustChangePassword: true, // Force reset on their next login!
       }
-    });
+    }));
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
 const testSchema = z.object({
@@ -24,29 +27,29 @@ export async function GET(req: Request) {
 
     let tests;
     if (isAdmin) {
-      tests = await prisma.test.findMany({
+      tests = await withDbRetry(() => prisma.test.findMany({
         include: {
           course: { select: { name: true } },
           results: true
         },
         orderBy: { date: 'desc' }
-      });
+      }));
     } else {
       const teacherId = session.user.id;
-      const teacher = await prisma.user.findUnique({
+      const teacher = await withDbRetry(() => prisma.user.findUnique({
         where: { id: teacherId },
         include: {
           teacherBatches: {
             select: { courseId: true }
           }
         }
-      });
+      }));
 
       if (!teacher) return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
 
       const courseIds = teacher.teacherBatches.map((b: any) => b.courseId);
 
-      tests = await prisma.test.findMany({
+      tests = await withDbRetry(() => prisma.test.findMany({
         where: {
           courseId: { in: courseIds }
         },
@@ -55,7 +58,7 @@ export async function GET(req: Request) {
           results: true
         },
         orderBy: { date: 'desc' }
-      });
+      }));
     }
 
     return NextResponse.json({ tests });
@@ -80,7 +83,7 @@ export async function POST(req: Request) {
 
     const { title, subject, courseId, date, time, syllabus } = validation.data;
 
-    const test = await prisma.test.create({
+    const test = await withDbRetry(() => prisma.test.create({
       data: {
         title,
         subject,
@@ -89,7 +92,7 @@ export async function POST(req: Request) {
         time,
         syllabus
       }
-    });
+    }));
 
     return NextResponse.json({ test, success: true });
   } catch (error) {
@@ -112,13 +115,13 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: 'Test ID is required' }, { status: 400 });
 
     // First delete associated test results
-    await prisma.testResult.deleteMany({
+    await withDbRetry(() => prisma.testResult.deleteMany({
       where: { testId: id }
-    });
+    }));
 
-    await prisma.test.delete({
+    await withDbRetry(() => prisma.test.delete({
       where: { id }
-    });
+    }));
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -10,10 +10,10 @@ export async function POST(request: Request) {
     const { title, message, reportedUserId, isBugReport } = body;
 
     // Find all admins
-    const admins = await prisma.user.findMany({
+    const admins = await withDbRetry(() => prisma.user.findMany({
       where: { role: 'ADMIN' },
       select: { id: true }
-    });
+    }));
 
     if (admins.length === 0) {
       return NextResponse.json({ error: 'No admins found to receive report' }, { status: 404 });
@@ -29,9 +29,9 @@ export async function POST(request: Request) {
     }));
 
     // Insert all notifications in a transaction
-    await prisma.notification.createMany({
+    await withDbRetry(() => prisma.notification.createMany({
       data: notifications,
-    });
+    }));
 
     return NextResponse.json({ success: true });
   } catch (error) {

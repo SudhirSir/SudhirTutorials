@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function PATCH(req: Request) {
   try {
@@ -10,14 +10,14 @@ export async function PATCH(req: Request) {
 
     const { senderId } = await req.json();
 
-    await prisma.message.updateMany({
+    await withDbRetry(() => prisma.message.updateMany({
       where: {
         senderId,
         receiverId: session.user.id,
         isRead: false
       },
       data: { isRead: true }
-    });
+    }));
 
     return NextResponse.json({ success: true });
   } catch (error) {

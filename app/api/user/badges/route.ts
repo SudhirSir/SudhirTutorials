@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
@@ -9,12 +12,12 @@ export async function GET() {
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const [unreadMessages, unreadNotifications] = await withDbRetry(() => Promise.all([
-      prisma.message.count({
+      withDbRetry(() => prisma.message.count({
         where: { receiverId: session.user.id, isRead: false }
-      }),
-      prisma.notification.count({
+      })),
+      withDbRetry(() => prisma.notification.count({
         where: { userId: session.user.id, isRead: false }
-      })
+      }))
     ]));
 
     return NextResponse.json({ unreadMessages, unreadNotifications });

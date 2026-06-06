@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -26,32 +26,32 @@ export async function GET() {
       pendingDues,
       activityLogs
     ] = await Promise.all([
-      prisma.user.count({ where: { role: 'STUDENT' } }),
-      prisma.user.count({ where: { role: 'TEACHER' } }),
-      prisma.batch.count(),
-      prisma.course.count(),
-      prisma.studentProfile.groupBy({
+      withDbRetry(() => prisma.user.count({ where: { role: 'STUDENT' } })),
+      withDbRetry(() => prisma.user.count({ where: { role: 'TEACHER' } })),
+      withDbRetry(() => prisma.batch.count()),
+      withDbRetry(() => prisma.course.count()),
+      withDbRetry(() => prisma.studentProfile.groupBy({
         by: ['className'],
         _count: { userId: true },
         where: { className: { not: null } },
-      }),
+      })),
       // Use paidAt so newly verified payments appear immediately
-      prisma.payment.aggregate({
+      withDbRetry(() => prisma.payment.aggregate({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
           paidAt: { gte: startOfMonth },
         },
         _sum: { paidAmount: true },
-      }),
-      prisma.payment.aggregate({
+      })),
+      withDbRetry(() => prisma.payment.aggregate({
         where: { status: 'PENDING' },
         _sum: { amount: true },
-      }),
-      prisma.activityLog.findMany({
+      })),
+      withDbRetry(() => prisma.activityLog.findMany({
         take: 50,
         orderBy: { createdAt: 'desc' },
         include: { user: { select: { name: true } } }
-      })
+      }))
     ]);
 
     const classStats = classStatsGroup.map(g => ({

@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
 const messageSchema = z.object({
@@ -14,7 +17,7 @@ export async function GET() {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const messages = await prisma.message.findMany({
+    const messages = await withDbRetry(() => prisma.message.findMany({
       where: {
         OR: [
           { senderId: session.user.id },
@@ -46,7 +49,7 @@ export async function GET() {
         }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    }));
 
     const mappedMessages = messages.map((m: any) => {
       const senderPhoto = m.sender.photoUrl || (m.sender.role === 'STUDENT' ? m.sender.studentProfile?.photoUrl : m.sender.teacherProfile?.photoUrl);
@@ -89,13 +92,13 @@ export async function POST(req: Request) {
 
     const { receiverId, content } = validation.data;
 
-    const message = await prisma.message.create({
+    const message = await withDbRetry(() => prisma.message.create({
       data: {
         senderId: session.user.id,
         receiverId,
         content
       }
-    });
+    }));
 
     return NextResponse.json({ success: true, message });
   } catch (error) {
@@ -114,9 +117,9 @@ export async function DELETE(req: Request) {
 
     if (messageId) {
       // Find the message to verify ownership
-      const msg = await prisma.message.findUnique({
+      const msg = await withDbRetry(() => prisma.message.findUnique({
         where: { id: messageId }
-      });
+      }));
       if (!msg) return NextResponse.json({ error: 'Message not found' }, { status: 404 });
 
       // Verify that current user is either the sender or the receiver
@@ -124,23 +127,23 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      await prisma.message.delete({
+      await withDbRetry(() => prisma.message.delete({
         where: { id: messageId }
-      });
+      }));
 
       return NextResponse.json({ success: true, deletedMessageId: messageId });
     }
 
     if (chatUserId) {
       // Delete all messages in the conversation between current user and chatUserId
-      const deleted = await prisma.message.deleteMany({
+      const deleted = await withDbRetry(() => prisma.message.deleteMany({
         where: {
           OR: [
             { senderId: session.user.id, receiverId: chatUserId },
             { senderId: chatUserId, receiverId: session.user.id }
           ]
         }
-      });
+      }));
 
       return NextResponse.json({ success: true, deletedCount: deleted.count });
     }

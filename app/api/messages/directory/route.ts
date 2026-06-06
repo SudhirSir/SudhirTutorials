@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 // A lightweight user directory accessible by ANY authenticated role for messaging
 export async function GET(req: Request) {
@@ -12,7 +15,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
 
-    const users = await prisma.user.findMany({
+    const users = await withDbRetry(() => prisma.user.findMany({
       where: {
         id: { not: session.user.id }, // exclude self
         role: { in: ['STUDENT', 'TEACHER', 'ADMIN'] },
@@ -36,7 +39,7 @@ export async function GET(req: Request) {
       },
       orderBy: { name: 'asc' },
       take: 30,
-    });
+    }));
 
     const mappedUsers = users.map((u: any) => {
       const photo = u.photoUrl || (u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl);

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
@@ -14,7 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const pendingUsers = await prisma.user.findMany({
+    const pendingUsers = await withDbRetry(() => prisma.user.findMany({
       where: {
         onboardingCompleted: true,
         isProfileVerified: false
@@ -29,7 +29,7 @@ export async function GET() {
         teacherProfile: true
       },
       orderBy: { createdAt: 'desc' }
-    });
+    }));
 
     return NextResponse.json({ users: pendingUsers });
   } catch (error) {
@@ -47,11 +47,11 @@ export async function PATCH(req: Request) {
     const { userId } = await req.json();
     if (!userId) return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await withDbRetry(() => prisma.user.update({
       where: { id: userId },
       data: { isProfileVerified: true },
       select: { name: true, role: true }
-    });
+    }));
 
     await logActivity(
       session.user.id,

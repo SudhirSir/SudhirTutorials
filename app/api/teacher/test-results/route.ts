@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
 const resultsSchema = z.object({
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       })
     );
 
-    await prisma.$transaction(operations);
+    await withDbRetry(() => prisma.$transaction(operations));
 
     return NextResponse.json({ success: true });
   } catch (error) {

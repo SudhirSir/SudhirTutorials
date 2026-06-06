@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -13,14 +16,14 @@ export async function GET() {
     const studentId = (session.user as any).id;
 
     // Get courses the student is enrolled in through batches
-    const studentWithBatches = await prisma.user.findUnique({
+    const studentWithBatches = await withDbRetry(() => prisma.user.findUnique({
       where: { id: studentId },
       include: {
         studentBatches: {
           select: { courseId: true }
         }
       }
-    });
+    }));
 
     if (!studentWithBatches) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
@@ -29,7 +32,7 @@ export async function GET() {
     const courseIds = studentWithBatches.studentBatches.map((b: any) => b.courseId);
 
     // Fetch materials for those courses
-    const materials = await prisma.material.findMany({
+    const materials = await withDbRetry(() => prisma.material.findMany({
       where: {
         courseId: { in: courseIds }
       },
@@ -38,7 +41,7 @@ export async function GET() {
         teacher: { select: { name: true } }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    }));
 
     return NextResponse.json({ materials });
   } catch (error) {

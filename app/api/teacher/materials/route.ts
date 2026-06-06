@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -11,14 +14,14 @@ export async function GET() {
     }
 
     const isTeacher = session.user.role === 'TEACHER';
-    const materials = await prisma.material.findMany({
+    const materials = await withDbRetry(() => prisma.material.findMany({
       where: isTeacher ? { teacherId: session.user.id } : {},
       include: {
         course: { select: { name: true } },
         teacher: { select: { name: true } }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    }));
 
     return NextResponse.json({ materials });
   } catch (error) {
@@ -56,16 +59,16 @@ export async function POST(req: Request) {
 
     // RBAC: Verify teacher teaches at least one batch in this course (skip for Admin)
     if (session.user.role === 'TEACHER') {
-      const teacherAssignment = await prisma.batch.findFirst({
+      const teacherAssignment = await withDbRetry(() => prisma.batch.findFirst({
         where: { courseId, teachers: { some: { id: session.user.id } } }
-      });
+      }));
 
       if (!teacherAssignment) {
         return NextResponse.json({ error: 'Access Denied: You do not teach this course' }, { status: 403 });
       }
     }
 
-    const material = await prisma.material.create({
+    const material = await withDbRetry(() => prisma.material.create({
       data: {
         title,
         type,
@@ -76,11 +79,11 @@ export async function POST(req: Request) {
       include: {
         course: { select: { name: true } }
       }
-    });
+    }));
 
     // Notify all students enrolled in batches of this course
     try {
-      const enrolledStudents = await prisma.user.findMany({
+      const enrolledStudents = await withDbRetry(() => prisma.user.findMany({
         where: {
           role: 'STUDENT',
           studentBatches: {
@@ -90,10 +93,10 @@ export async function POST(req: Request) {
           }
         },
         select: { id: true }
-      });
+      }));
 
       if (enrolledStudents.length > 0) {
-        await prisma.notification.createMany({
+        await withDbRetry(() => prisma.notification.createMany({
           data: enrolledStudents.map(student => ({
             userId: student.id,
             title: '📚 New Material Uploaded',
@@ -101,7 +104,7 @@ export async function POST(req: Request) {
             type: 'SYSTEM',
             isRead: false
           }))
-        });
+        }));
       }
     } catch (err) {
       console.error("Failed to notify students of uploaded material:", err);
@@ -127,9 +130,9 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ error: 'Material ID is required' }, { status: 400 });
 
-    const material = await prisma.material.findUnique({
+    const material = await withDbRetry(() => prisma.material.findUnique({
       where: { id }
-    });
+    }));
 
     if (!material) {
       return NextResponse.json({ error: 'Material not found' }, { status: 404 });
@@ -140,9 +143,9 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await prisma.material.delete({
+    await withDbRetry(() => prisma.material.delete({
       where: { id }
-    });
+    }));
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 
 // GET: list all salary records
@@ -12,7 +15,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const salaries = await prisma.salaryRecord.findMany({
+    const salaries = await withDbRetry(() => prisma.salaryRecord.findMany({
       include: {
         teacher: {
           select: {
@@ -30,7 +33,7 @@ export async function GET() {
         }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    }));
 
     return NextResponse.json({ salaries });
   } catch (error) {
@@ -54,19 +57,19 @@ export async function POST(req: Request) {
     }
 
     // Verify teacher exists
-    const teacher = await prisma.user.findUnique({
+    const teacher = await withDbRetry(() => prisma.user.findUnique({
       where: { id: teacherId },
       include: { teacherProfile: true }
-    });
+    }));
 
     if (!teacher || teacher.role !== 'TEACHER') {
       return NextResponse.json({ error: 'Selected user is not a teacher or does not exist' }, { status: 400 });
     }
 
     // Prevent duplicate for same month
-    const existing = await prisma.salaryRecord.findFirst({
+    const existing = await withDbRetry(() => prisma.salaryRecord.findFirst({
       where: { teacherId, month }
-    });
+    }));
 
     if (existing) {
       return NextResponse.json({ error: 'Salary record already generated for this teacher and month' }, { status: 400 });
@@ -77,7 +80,7 @@ export async function POST(req: Request) {
     const finalDeductions = parseFloat(deductions || 0);
     const netPaid = Math.max(0, finalBaseSalary + finalBonus - finalDeductions);
 
-    const salaryRecord = await prisma.salaryRecord.create({
+    const salaryRecord = await withDbRetry(() => prisma.salaryRecord.create({
       data: {
         teacherId,
         month,
@@ -88,11 +91,11 @@ export async function POST(req: Request) {
         status: 'PENDING',
         remarks
       }
-    });
+    }));
 
     // Notify teacher
     try {
-      await prisma.notification.create({
+      await withDbRetry(() => prisma.notification.create({
         data: {
           userId: teacherId,
           title: '💵 Salary Slip Generated',
@@ -100,7 +103,7 @@ export async function POST(req: Request) {
           type: 'SALARY',
           isRead: false
         }
-      });
+      }));
     } catch (nErr) {
       console.error('Failed to notify teacher of salary slip assignment:', nErr);
     }
@@ -133,10 +136,10 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Missing salary record ID' }, { status: 400 });
     }
 
-    const record = await prisma.salaryRecord.findUnique({
+    const record = await withDbRetry(() => prisma.salaryRecord.findUnique({
       where: { id },
       include: { teacher: true }
-    });
+    }));
 
     if (!record) {
       return NextResponse.json({ error: 'Salary record not found' }, { status: 404 });
@@ -146,7 +149,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Salary record is already marked as PAID' }, { status: 400 });
     }
 
-    const updatedRecord = await prisma.salaryRecord.update({
+    const updatedRecord = await withDbRetry(() => prisma.salaryRecord.update({
       where: { id },
       data: {
         status: 'PAID',
@@ -154,10 +157,10 @@ export async function PATCH(req: Request) {
         transactionId: transactionId || `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         remarks: remarks || record.remarks
       }
-    });
+    }));
 
     // Create synchronized Bookkeeping Expense entry
-    const expense = await prisma.expense.create({
+    const expense = await withDbRetry(() => prisma.expense.create({
       data: {
         title: `Salary Payout – ${record.teacher.name} (${record.month})`,
         category: 'SALARY',
@@ -165,11 +168,11 @@ export async function PATCH(req: Request) {
         date: new Date(),
         remarks: `Disbursed via Admin. Txn ID: ${updatedRecord.transactionId}. Remarks: ${remarks || 'None'}`
       }
-    });
+    }));
 
     // Notify teacher
     try {
-      await prisma.notification.create({
+      await withDbRetry(() => prisma.notification.create({
         data: {
           userId: record.teacherId,
           title: '✅ Salary Payout Completed',
@@ -177,7 +180,7 @@ export async function PATCH(req: Request) {
           type: 'SALARY',
           isRead: false
         }
-      });
+      }));
     } catch (nErr) {
       console.error('Failed to notify teacher of salary payout completion:', nErr);
     }

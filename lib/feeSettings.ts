@@ -1,12 +1,12 @@
-import { prisma } from './prisma';
+import { prisma, withDbRetry } from './prisma';
 
 export async function getLateFineSettings() {
   try {
-    const settings = await prisma.systemSetting.findMany({
+    const settings = await withDbRetry(() => prisma.systemSetting.findMany({
       where: {
         key: { in: ['perDayFine', 'flatFineAfter10Days'] }
       }
-    });
+    }));
     
     let perDayFine = 10;
     let flatFineAfter10Days = 100;

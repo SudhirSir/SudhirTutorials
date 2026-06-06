@@ -1,18 +1,21 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 
 async function ensureSystemSettingTable() {
   try {
-    await prisma.$executeRawUnsafe(`
+    await withDbRetry(() => prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "SystemSetting" (
         "id" TEXT PRIMARY KEY,
         "key" TEXT UNIQUE NOT NULL,
         "value" TEXT NOT NULL
       );
-    `);
+    `));
   } catch (err) {
     console.error('Failed to auto-create SystemSetting table:', err);
   }
@@ -27,7 +30,7 @@ export async function GET() {
 
     await ensureSystemSettingTable();
 
-    const settings = await prisma.systemSetting.findMany();
+    const settings = await withDbRetry(() => prisma.systemSetting.findMany());
     const settingsMap = settings.reduce((acc: any, s) => {
       acc[s.key] = s.value;
       return acc;
@@ -68,43 +71,43 @@ export async function POST(req: Request) {
     await ensureSystemSettingTable();
 
     if (perDayFine !== undefined) {
-      await prisma.systemSetting.upsert({
+      await withDbRetry(() => prisma.systemSetting.upsert({
         where: { key: 'perDayFine' },
         update: { value: String(perDayFine) },
         create: { key: 'perDayFine', value: String(perDayFine) }
-      });
+      }));
     }
 
     if (flatFineAfter10Days !== undefined) {
-      await prisma.systemSetting.upsert({
+      await withDbRetry(() => prisma.systemSetting.upsert({
         where: { key: 'flatFineAfter10Days' },
         update: { value: String(flatFineAfter10Days) },
         create: { key: 'flatFineAfter10Days', value: String(flatFineAfter10Days) }
-      });
+      }));
     }
 
     if (classFees !== undefined) {
       // Find all existing keys starting with classFee_
-      const existingSettings = await prisma.systemSetting.findMany({
+      const existingSettings = await withDbRetry(() => prisma.systemSetting.findMany({
         where: { key: { startsWith: 'classFee_' } }
-      });
+      }));
       
       const newKeys = Object.keys(classFees).map(c => `classFee_${c}`);
       
       // Delete any setting that is no longer in newKeys
       for (const s of existingSettings) {
         if (!newKeys.includes(s.key)) {
-          await prisma.systemSetting.delete({ where: { id: s.id } });
+          await withDbRetry(() => prisma.systemSetting.delete({ where: { id: s.id } }));
         }
       }
 
       // Upsert new ones
       for (const [className, fee] of Object.entries(classFees)) {
-        await prisma.systemSetting.upsert({
+        await withDbRetry(() => prisma.systemSetting.upsert({
           where: { key: `classFee_${className}` },
           update: { value: String(fee) },
           create: { key: `classFee_${className}`, value: String(fee) }
-        });
+        }));
       }
     }
 

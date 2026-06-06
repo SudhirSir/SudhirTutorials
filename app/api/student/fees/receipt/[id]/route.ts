@@ -4,7 +4,7 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { calculateLateFine, generateReceiptNo } from '@/lib/feeUtils';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const { id } = await params;
-    const fee = await prisma.payment.findUnique({
+    const fee = await withDbRetry(() => prisma.payment.findUnique({
       where: { id: id },
       include: { 
         student: { 
@@ -32,18 +32,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           } 
         } 
       }
-    });
+    }));
 
     if (!fee) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
 
     // Count all payments created before or on this payment
-    const count = await prisma.payment.count({
+    const count = await withDbRetry(() => prisma.payment.count({
       where: {
         createdAt: {
           lte: fee.createdAt
         }
       }
-    });
+    }));
 
     const serial = 1000 + count;
     const receiptNo = generateReceiptNo(fee, serial);

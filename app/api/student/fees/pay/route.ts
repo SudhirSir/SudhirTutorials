@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { calculateLateFine } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 
@@ -30,11 +30,11 @@ export async function POST(req: Request) {
 
     if (feeId === 'OUTSTANDING') {
       // FIFO Outstanding payment across all pending bills
-      const allPayments = await prisma.payment.findMany({
+      const allPayments = await withDbRetry(() => prisma.payment.findMany({
         where: { studentId: session.user.id },
         orderBy: { dueDate: 'asc' },
         include: { student: true }
-      });
+      }));
 
       const studentUser = allPayments[0]?.student;
       if (!studentUser) {
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         totalApplied += paymentToApply;
         const updatedPaidAmount = (fee.paidAmount || 0) + paymentToApply;
 
-        const updated = await prisma.payment.update({
+        const updated = await withDbRetry(() => prisma.payment.update({
           where: { id: fee.id },
           data: {
             status: 'PAID_ONLINE',
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
               ? `${fee.remarks} (Paid ₹${paymentToApply.toFixed(2)})` 
               : `Paid ₹${paymentToApply.toFixed(2)} online`
           }
-        });
+        }));
 
         updatedFees.push(updated);
         appliedDetails.push(`${fee.billingMonth}: ₹${paymentToApply.toFixed(0)}`);
@@ -108,10 +108,10 @@ export async function POST(req: Request) {
 
     } else {
       // Month-wise specific fee payment
-      const fee = await prisma.payment.findUnique({
+      const fee = await withDbRetry(() => prisma.payment.findUnique({
         where: { id: feeId },
         include: { student: true }
-      });
+      }));
 
       if (!fee || fee.studentId !== session.user.id) {
         return NextResponse.json({ error: 'Fee record not found' }, { status: 404 });
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
       totalApplied = parsedCustom;
       const updatedPaidAmount = (fee.paidAmount || 0) + parsedCustom;
 
-      const updated = await prisma.payment.update({
+      const updated = await withDbRetry(() => prisma.payment.update({
         where: { id: feeId },
         data: {
           status: 'PAID_ONLINE',
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
             ? `${fee.remarks} (Paid ₹${parsedCustom.toFixed(2)})` 
             : `Paid ₹${parsedCustom.toFixed(2)} online`
         }
-      });
+      }));
 
       updatedFees.push(updated);
 
@@ -161,9 +161,9 @@ export async function POST(req: Request) {
 
     // Send notifications
     try {
-      const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+      const admins = await withDbRetry(() => prisma.user.findMany({ where: { role: 'ADMIN' } }));
       for (const admin of admins) {
-        await prisma.notification.create({
+        await withDbRetry(() => prisma.notification.create({
           data: {
             userId: admin.id,
             title: feeId === 'OUTSTANDING' ? '💳 Outstanding Fees Paid (FIFO)' : '💳 Fee Payment Received (Online)',
@@ -171,14 +171,14 @@ export async function POST(req: Request) {
             type: 'FEE',
             isRead: false
           }
-        });
+        }));
       }
     } catch (err) {
       console.error('Failed to notify admins of fee payment:', err);
     }
 
     try {
-      await prisma.notification.create({
+      await withDbRetry(() => prisma.notification.create({
         data: {
           userId: session.user.id,
           title: feeId === 'OUTSTANDING' ? '💳 Outstanding Fee Payment Submitted' : '💳 Fee Payment Submitted',
@@ -186,7 +186,7 @@ export async function POST(req: Request) {
           type: 'FEE',
           isRead: false
         }
-      });
+      }));
     } catch (err) {
       console.error('Failed to notify student of online payment:', err);
     }
