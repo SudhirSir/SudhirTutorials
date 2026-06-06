@@ -2,11 +2,11 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.sudhirtutorials.app',
-  appName: 'Sudhir Tutorials',
+  appName: 'SUDHIR TUTORIALS',
   webDir: 'out',
   server: {
-    // Allows physical phone on the same Wi-Fi to connect to the host's Next.js dev server
-    url: 'http://10.69.234.49:3000',
+    // Points to the live production server hosted on Vercel
+    url: 'https://sudhirtutorials.vercel.app/',
     cleartext: true
   }
 };
