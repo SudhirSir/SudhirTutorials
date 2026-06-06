@@ -848,6 +848,11 @@ function AdminDashboardContent() {
         setIsCreating(false);
         return;
       }
+      if (newStudentPhone && !/^\d{10}$/.test(newStudentPhone.trim())) {
+        setErrorMsg("Phone number must be exactly 10 digits.");
+        setIsCreating(false);
+        return;
+      }
     }
 
     try {
@@ -1624,6 +1629,14 @@ function AdminDashboardContent() {
         alert("Father's name must contain only alphabets and spaces, and be at most 25 characters.");
         return;
       }
+    }
+    if (editingProfile.phone && !/^\d{10}$/.test(editingProfile.phone.trim())) {
+      alert("Phone number must be exactly 10 digits.");
+      return;
+    }
+    if (editingProfile.role === 'STUDENT' && editingProfile.parentContact && !/^\d{10}$/.test(editingProfile.parentContact.trim())) {
+      alert("Parent contact must be exactly 10 digits.");
+      return;
     }
     if (editingProfile.address) {
       if (editingProfile.address.length > 60) {
@@ -2466,7 +2479,7 @@ function AdminDashboardContent() {
                     </div>
                     <div className="input-group">
                       <label>Contact Phone</label>
-                      <input type="text" placeholder="e.g. 9876543210" value={newStudentPhone} onChange={e => setNewStudentPhone(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                      <input type="text" placeholder="e.g. 9876543210" maxLength={10} value={newStudentPhone} onChange={e => setNewStudentPhone(e.target.value.replace(/\D/g, ''))} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                     </div>
                     <div className="input-group">
                       <label>Email Address</label>
@@ -5194,9 +5207,9 @@ function AdminDashboardContent() {
                </div>
 
                <div className="input-group">
-                 <label>Phone Number</label>
-                 <input type="text" value={editingProfile.phone || ''} onChange={e => setEditingProfile({...editingProfile, phone: e.target.value})} placeholder="+91 ..." />
-               </div>
+                  <label>Phone Number</label>
+                  <input type="text" value={editingProfile.phone || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, phone: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
+                </div>
 
                <div className="input-group">
                  <label>Email Address</label>
@@ -5232,7 +5245,7 @@ function AdminDashboardContent() {
                    </div>
                    <div className="input-group">
                      <label>Parent Contact</label>
-                     <input type="text" value={editingProfile.parentContact || ''} onChange={e => setEditingProfile({...editingProfile, parentContact: e.target.value})} placeholder="+91 ..." />
+                     <input type="text" value={editingProfile.parentContact || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, parentContact: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
                    </div>
                    <div className="input-group">
                      <label>Student ID / Roll No</label>

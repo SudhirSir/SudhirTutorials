@@ -32,6 +32,14 @@ export async function POST(req: Request) {
       }
     }
 
+    if (phone && !/^\d{10}$/.test(phone)) {
+      return NextResponse.json({ error: 'Phone number must be exactly 10 digits.' }, { status: 400 });
+    }
+
+    if (user.role === 'STUDENT' && parentContact && !/^\d{10}$/.test(parentContact)) {
+      return NextResponse.json({ error: 'Parent/Guardian contact number must be exactly 10 digits.' }, { status: 400 });
+    }
+
     if (user.role === 'STUDENT' && parentName) {
       if (parentName.length > 25 || !/^[a-zA-Z\s]+$/.test(parentName)) {
         return NextResponse.json({ error: 'Parent/Guardian name must contain only alphabets and spaces, and be at most 25 characters long.' }, { status: 400 });

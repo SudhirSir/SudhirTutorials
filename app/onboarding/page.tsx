@@ -56,6 +56,12 @@ export default function OnboardingPage() {
       if (!/^[a-zA-Z\s]+$/.test(parentName)) {
         return setError("Parent/Guardian name must contain only alphabets and spaces.");
       }
+      if (parentContact && !/^\d{10}$/.test(parentContact.trim())) {
+        return setError("Parent/Guardian contact number must be exactly 10 digits.");
+      }
+    }
+    if (phone && !/^\d{10}$/.test(phone.trim())) {
+      return setError("Phone number must be exactly 10 digits.");
     }
     if (!recoveryPin || recoveryPin.length !== 6 || isNaN(Number(recoveryPin))) {
       return setError("Recovery PIN must be exactly 6 digits");
@@ -130,7 +136,7 @@ export default function OnboardingPage() {
                 </div>
                 <div className="input-group" style={{ flex: 1 }}>
                   <label>Phone Number</label>
-                  <input type="text" required value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%' }} />
+                  <input type="text" required value={phone} maxLength={10} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} style={{ width: '100%' }} />
                 </div>
               </div>
               
@@ -147,7 +153,7 @@ export default function OnboardingPage() {
                   </div>
                   <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                     <label>Parent/Guardian Contact</label>
-                    <input type="text" required value={parentContact} onChange={e => setParentContact(e.target.value)} style={{ width: '100%' }} />
+                    <input type="text" required value={parentContact} maxLength={10} onChange={e => setParentContact(e.target.value.replace(/\D/g, ''))} style={{ width: '100%' }} />
                   </div>
                 </div>
               )}

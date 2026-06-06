@@ -98,6 +98,16 @@ export async function PUT(req: Request) {
         return NextResponse.json({ error: 'Address must be at most 60 characters long.' }, { status: 400 });
       }
     }
+    if (phone !== undefined && phone !== null && phone !== '') {
+      if (!/^\d{10}$/.test(phone)) {
+        return NextResponse.json({ error: 'Phone number must be exactly 10 digits.' }, { status: 400 });
+      }
+    }
+    if (parentContact !== undefined && parentContact !== null && parentContact !== '') {
+      if (!/^\d{10}$/.test(parentContact)) {
+        return NextResponse.json({ error: 'Parent contact must be exactly 10 digits.' }, { status: 400 });
+      }
+    }
 
     // Backend size check for base64 photo upload (max 3 MB)
     if (photoUrl && photoUrl.startsWith('data:')) {

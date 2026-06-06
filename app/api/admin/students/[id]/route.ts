@@ -103,6 +103,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json({ error: 'Address must be at most 60 characters long.' }, { status: 400 });
       }
     }
+    if (phone !== undefined && phone !== null && phone !== '') {
+      if (!/^\d{10}$/.test(phone)) {
+        return NextResponse.json({ error: 'Phone number must be exactly 10 digits.' }, { status: 400 });
+      }
+    }
+    if (parentContact !== undefined && parentContact !== null && parentContact !== '') {
+      if (!/^\d{10}$/.test(parentContact)) {
+        return NextResponse.json({ error: 'Parent contact must be exactly 10 digits.' }, { status: 400 });
+      }
+    }
  
     // Find the user first
     const user = await withDbRetry(() => prisma.user.findFirst({

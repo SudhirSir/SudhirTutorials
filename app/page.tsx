@@ -205,8 +205,8 @@ export default function Home() {
       setAdmissionsLoading(false);
       return;
     }
-    if (admPhone.trim().length < 10) {
-      setAdmissionsError("Phone number must be at least 10 digits.");
+    if (!/^\d{10}$/.test(admPhone.trim())) {
+      setAdmissionsError("Phone number must be exactly 10 digits.");
       setAdmissionsLoading(false);
       return;
     }
@@ -943,7 +943,11 @@ export default function Home() {
                         required 
                         placeholder="e.g. 9876543210" 
                         value={admPhone} 
-                        onChange={e => setAdmPhone(e.target.value)} 
+                        maxLength={10}
+                        onChange={e => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          setAdmPhone(val);
+                        }} 
                         style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
                       />
                     </div>

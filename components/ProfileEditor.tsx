@@ -89,6 +89,31 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
     setSaving(true);
     setMsg(null);
     try {
+      if (form.name && (form.name.length > 25 || !/^[a-zA-Z\s]+$/.test(form.name))) {
+        setMsg({ type: 'error', text: 'Name must contain only alphabets and spaces, and be at most 25 characters.' });
+        setSaving(false);
+        return;
+      }
+      if (form.fatherName && (form.fatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(form.fatherName))) {
+        setMsg({ type: 'error', text: "Father's name must contain only alphabets and spaces, and be at most 25 characters." });
+        setSaving(false);
+        return;
+      }
+      if (form.address && form.address.length > 60) {
+        setMsg({ type: 'error', text: 'Address must be at most 60 characters.' });
+        setSaving(false);
+        return;
+      }
+      if (form.phone && form.phone.length !== 10) {
+        setMsg({ type: 'error', text: 'Phone number must be exactly 10 digits.' });
+        setSaving(false);
+        return;
+      }
+      if (form.parentContact && form.parentContact.length !== 10) {
+        setMsg({ type: 'error', text: 'Parent contact must be exactly 10 digits.' });
+        setSaving(false);
+        return;
+      }
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -371,7 +396,10 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           </div>
           <div>
             <label style={labelStyle}>Phone Number</label>
-            <input style={inputStyle} value={form.phone} onChange={e => setForm((f: any) => ({ ...f, phone: e.target.value }))} />
+            <input style={inputStyle} value={form.phone} maxLength={10} onChange={e => {
+              const val = e.target.value.replace(/\D/g, '');
+              setForm((f: any) => ({ ...f, phone: val }));
+            }} />
           </div>
           <div className="grid-span-2">
             <label style={labelStyle}>Residential Address</label>
@@ -392,7 +420,10 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
               </div>
               <div>
                 <label style={labelStyle}>Parent Contact</label>
-                <input style={inputStyle} value={form.parentContact} onChange={e => setForm((f: any) => ({ ...f, parentContact: e.target.value }))} />
+                <input style={inputStyle} value={form.parentContact} maxLength={10} onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  setForm((f: any) => ({ ...f, parentContact: val }));
+                }} />
               </div>
               <div>
                 <label style={labelStyle}>School / Institution</label>
