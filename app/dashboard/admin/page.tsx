@@ -4714,7 +4714,7 @@ function AdminDashboardContent() {
                 testStudents.map(s => {
                   const data = testMarks[s.id] || { marks: '', totalMarks: '100', remarks: '' };
                   return (
-                    <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <div key={s.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                       <div>
                         <div 
                           onClick={() => setActiveProfileUserId(s.id)} 

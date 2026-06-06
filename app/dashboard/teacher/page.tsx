@@ -642,7 +642,7 @@ Depending on your specific focus, this represents the vital equation model for t
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       <div className="bg-glow accent" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
-      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
             जय सियाराम 🙏 <span style={{ color: '#10b981' }}>{session?.user?.name || 'Teacher'}</span>
@@ -694,7 +694,7 @@ Depending on your specific focus, this represents the vital equation model for t
 
       {activeTab === 'classes' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '3rem' }}>
+          <div className="resp-grid-2col" style={{ marginBottom: '3rem' }}>
             <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Quick Actions</h3>
               <button onClick={() => handleTabChange('attendance')} style={{ width: '100%', padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', color: '#34d399', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'}>
@@ -790,7 +790,7 @@ Depending on your specific focus, this represents the vital equation model for t
       )}
 
       {activeTab === 'materials' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
           {/* Uploaded Materials List */}
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Uploaded Materials</h2>
@@ -799,7 +799,7 @@ Depending on your specific focus, this represents the vital equation model for t
                 <p style={{ color: 'var(--text-muted)' }}>You haven't uploaded any materials yet.</p>
               ) : (
                 materials.map(mat => (
-                  <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
+                  <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <div>
                       <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ 
@@ -1069,7 +1069,7 @@ Depending on your specific focus, this represents the vital equation model for t
       )}
 
       {activeTab === 'attendance' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '2rem' }}>
+        <div className="resp-grid-2col" style={{}}>
            <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
               <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Attendance Control</h3>
               
@@ -1163,7 +1163,7 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
       {activeTab === 'tests' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+        <div className="resp-grid-2col" style={{}}>
           {/* Tests List */}
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Test Schedule & Results</h2>
@@ -1238,8 +1238,8 @@ Depending on your specific focus, this represents the vital equation model for t
 
       {/* Marks Entry Modal */}
       {selectedTest && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '700px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, padding: '1rem', overflowY: 'auto' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '700px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Enter Marks: {selectedTest.title}</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Course: {selectedTest.course?.name}</p>
 
@@ -1247,7 +1247,7 @@ Depending on your specific focus, this represents the vital equation model for t
               {students.map(s => {
                 const data = testMarks[s.id] || { marks: '', totalMarks: '100', remarks: '' };
                 return (
-                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                     <div>
                       <div style={{ fontWeight: 600 }}>
                         <span 

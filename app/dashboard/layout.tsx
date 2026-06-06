@@ -620,17 +620,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
 
           .dashboard-main {
-            padding: 1.75rem 1.25rem;
+            padding: 1.5rem 1rem;
             min-height: calc(100vh - 60px);
             height: auto !important;
             overflow-y: visible !important;
             overflow-x: hidden !important;
-          }
-
-          @media (max-width: 768px) {
-            :global(.dashboard-header) {
-              display: none !important;
-            }
           }
         }
       `}</style>
