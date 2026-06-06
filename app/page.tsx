@@ -404,10 +404,10 @@ export default function Home() {
           perspective: '1000px'
         }}>
           {[
-            { value: '98.4%', label: 'JEE/NEET Selection Rate', icon: '🏆', border: 'var(--primary)' },
-            { value: '12 : 1', label: 'Student-Teacher Ratio', icon: '👨‍🏫', border: 'var(--secondary)' },
-            { value: '24/7', label: 'AI + Offline Doubt Desk', icon: '⚡', border: '#f59e0b' },
-            { value: '10K+', label: 'Successful Alumni', icon: '🎓', border: '#10b981' }
+            { value: '98.4%', label: 'JEE/NEET Selection Rate', icon: '🏆', border: 'var(--primary)', shadow: 'rgba(239, 68, 68, 0.2)' },
+            { value: '12 : 1', label: 'Student-Teacher Ratio', icon: '👨‍🏫', border: 'var(--secondary)', shadow: 'rgba(37, 99, 235, 0.2)' },
+            { value: '24/7', label: 'AI + Offline Doubt Desk', icon: '⚡', border: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.2)' },
+            { value: '10K+', label: 'Successful Alumni', icon: '🎓', border: '#10b981', shadow: 'rgba(16, 185, 129, 0.2)' }
           ].map((stat, idx) => (
             <div 
               key={idx}
@@ -421,7 +421,9 @@ export default function Home() {
                 transformStyle: 'preserve-3d',
                 transform: 'translateZ(0)',
                 transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                ['--card-accent' as any]: stat.border,
+                ['--card-shadow-color' as any]: stat.shadow
               }}
             >
               <div style={{
@@ -1796,30 +1798,16 @@ export default function Home() {
         }
 
         /* 3D Animations & Tilts classes */
+        /* 3D Animations & Tilts classes */
         .stat-3d-card:hover {
           transform: translateY(-8px) rotateX(8deg) rotateY(-8deg) translateZ(10px) !important;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(239, 68, 68, 0.1) !important;
-          border-color: var(--primary) !important;
-        }
-        
-        .predictor-card-tilt:hover {
-          transform: perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-5px);
-          box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15) !important;
-          border-color: var(--secondary) !important;
-        }
-
-        .founder-img-tilt:hover {
-          transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) translateY(-5px);
-          box-shadow: 0 20px 45px rgba(239, 68, 68, 0.25) !important;
-        }
-        .founder-img-tilt:hover img {
-          transform: translateZ(30px) !important;
-          border-color: var(--primary) !important;
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 0 20px var(--card-shadow-color) !important;
+          border-color: var(--card-accent) !important;
         }
 
         .features-img-tilt:hover {
           transform: perspective(1000px) rotateX(-5deg) rotateY(5deg) translateY(-5px);
-          box-shadow: 0 20px 45px rgba(37, 99, 235, 0.2) !important;
+          box-shadow: 0 15px 35px rgba(37, 99, 235, 0.15) !important;
         }
 
         .feature-card-tilt:hover {
