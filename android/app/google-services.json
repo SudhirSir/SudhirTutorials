@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "570580915309",
+    "project_id": "sudhir-tutorials",
+    "storage_bucket": "sudhir-tutorials.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:570580915309:android:a23044995ce34990bfdb64",
+        "android_client_info": {
+          "package_name": "com.sudhirtutorials.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgCvLseFcc7xXPeTRuE6swITgpSofjRH8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
