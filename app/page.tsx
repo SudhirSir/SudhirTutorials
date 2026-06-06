@@ -613,11 +613,12 @@ export default function Home() {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <div className="features-layout" style={{ gridTemplateColumns: '0.85fr 1.15fr', position: 'relative', zIndex: 1, alignItems: 'center' }}>
+        <div className="features-layout" style={{ gridTemplateColumns: '1fr 1fr', position: 'relative', zIndex: 1, alignItems: 'center' }}>
           {/* Founder Image on Left */}
           <div className="features-right" style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{
-              maxWidth: '380px',
+              maxWidth: '450px',
+              width: '100%',
               padding: '1rem',
               background: 'var(--surface)',
               border: '1px solid var(--border)',
@@ -628,8 +629,8 @@ export default function Home() {
               <Image 
                 src="/founder.jpg" 
                 alt="Founder Sudhir Sir" 
-                width={380}
-                height={380}
+                width={450}
+                height={450}
                 style={{
                   borderRadius: '16px',
                   display: 'block',
