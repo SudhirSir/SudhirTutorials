@@ -742,7 +742,10 @@ function AdminDashboardContent() {
     }
   }, [fees]);
   const [finSummary, setFinSummary] = useState<{ totalRevenue: number, totalExpenses: number, totalPending: number, netProfit: number, monthlyData: any[] } | null>(null);
+  const [isLoadingFinSummary, setIsLoadingFinSummary] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [isLoadingFees, setIsLoadingFees] = useState(false);
+  const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [newExpense, setNewExpense] = useState({ title: '', category: 'OTHER', amount: '', remarks: '' });
@@ -931,8 +934,12 @@ function AdminDashboardContent() {
   }, [searchQuery, activeTab]);
 
   const fetchFinances = async () => {
+    setIsLoadingFees(true);
     try {
-      const res = await fetch(`/api/admin/finances?t=${Date.now()}`);
+      const res = await fetch(`/api/admin/finances?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       const data = await res.json();
       if (res.ok) {
         setFees(data.fees || []);
@@ -940,6 +947,8 @@ function AdminDashboardContent() {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoadingFees(false);
     }
   };
 
@@ -1023,20 +1032,30 @@ function AdminDashboardContent() {
   };
 
   const fetchFinSummary = async () => {
+    setIsLoadingFinSummary(true);
     try {
-      const res = await fetch('/api/admin/finances/summary');
+      const res = await fetch(`/api/admin/finances/summary?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       if (res.ok) setFinSummary(await res.json());
     } catch (err) { console.error(err); }
+    finally { setIsLoadingFinSummary(false); }
   };
 
   const fetchExpenses = async () => {
+    setIsLoadingExpenses(true);
     try {
-      const res = await fetch('/api/admin/finances/expenses');
+      const res = await fetch(`/api/admin/finances/expenses?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       if (res.ok) {
         const data = await res.json();
         setExpenses(data.expenses || []);
       }
     } catch (err) { console.error(err); }
+    finally { setIsLoadingExpenses(false); }
   };
 
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -2599,9 +2618,16 @@ function AdminDashboardContent() {
                    { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outstanding invoices' }
                  ].map((s, i) => (
                    <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
+                      <div style={{ width: '100%' }}>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)' }}>{s.value}</div>
+                        {isLoadingFinSummary && finSummary === null ? (
+                          <div style={{ height: '1.75rem', width: '70%', borderRadius: '8px', marginTop: '0.5rem', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                        ) : (
+                          <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {s.value}
+                            {isLoadingFinSummary && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: s.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
+                          </div>
+                        )}
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{s.desc}</div>
                       </div>
                    </div>
@@ -2648,11 +2674,19 @@ function AdminDashboardContent() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div style={{ padding: '0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.2)' }}>
                       <div style={{ fontSize: '0.7rem', color: 'var(--secondary)', fontWeight: 600 }}>Collected</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
+                      {isLoadingFinSummary && finSummary === null ? (
+                        <div style={{ height: '1.15rem', width: '80px', borderRadius: '6px', marginTop: '4px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                      ) : (
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
+                      )}
                     </div>
                     <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.05)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
                       <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Uncollected Dues</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
+                      {isLoadingFinSummary && finSummary === null ? (
+                        <div style={{ height: '1.15rem', width: '80px', borderRadius: '6px', marginTop: '4px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                      ) : (
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2979,7 +3013,15 @@ function AdminDashboardContent() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(() => {
+                          {isLoadingFees ? (
+                            Array.from({ length: 5 }).map((_, idx) => (
+                              <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td colSpan={6} style={{ padding: '1rem' }}>
+                                  <div style={{ height: '14px', width: '100%', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                                </td>
+                              </tr>
+                            ))
+                          ) : (() => {
                             const filteredFees = fees.filter(f => {
                               const matchesSearch = f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
                                                     f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
@@ -3422,7 +3464,17 @@ function AdminDashboardContent() {
                       </tr>
                     </thead>
                     <tbody>
-                      {expenses.map(exp => (
+                       {isLoadingExpenses && expenses.length === 0 ? (
+                         Array.from({ length: 4 }).map((_, idx) => (
+                           <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                             {[120, 80, 180, 80, 80, 60].map((w, ci) => (
+                               <td key={ci} style={{ padding: '1rem 0' }}>
+                                 <div style={{ height: '14px', width: `${w}px`, maxWidth: '100%', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                               </td>
+                             ))}
+                           </tr>
+                         ))
+                       ) : expenses.map(exp => (
                         <tr key={exp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                           <td style={{ padding: '1rem 0', fontWeight: 700 }}>
                             EXP-{exp.id.slice(-6).toUpperCase()}
