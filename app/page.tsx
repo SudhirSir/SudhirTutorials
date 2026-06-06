@@ -881,59 +881,11 @@ export default function Home() {
                   <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
                     ⚠️ {admissionsError}
                   </div>
+                )}
                 <form onSubmit={handleAdmissionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   {/* Grid for two columns */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
-                    <style jsx>{`
-        /* ── Report Bug Floating Button & Modal ── */
-        .report-fab {
-          position: fixed;
-          bottom: 2rem;
-          right: 2rem;
-          width: 56px;
-          height: 56px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, var(--primary), #b91c1c);
-          color: white;
-          font-size: 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
-          z-index: 1000;
-          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
-          border: 2px solid var(--glass-border);
-        }
-        .report-fab:hover {
-          transform: scale(1.1) translateY(-5px);
-          box-shadow: 0 15px 35px rgba(239, 68, 68, 0.6);
-        }
-
-        .report-modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.85);
-          backdrop-filter: blur(12px);
-          z-index: 10000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-        }
-        .report-modal {
-          width: 100%;
-          max-width: 450px;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 2.5rem;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-          position: relative;
-          color: var(--text);
-        }
-
-        /* ── Advanced 3D Hover & Dark Mode Aesthetics ── */
+                    <style>{`
                       @media (max-width: 600px) {
                         .form-grid-2col {
                           grid-template-columns: 1fr !important;
@@ -1938,6 +1890,54 @@ export default function Home() {
             gap: 2.5rem;
           }
         }
+
+        /* ── Report Bug Floating Button & Modal ── */
+        .report-fab {
+          position: fixed;
+          bottom: 2rem;
+          right: 2rem;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--primary), #b91c1c);
+          color: white;
+          font-size: 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+          z-index: 1000;
+          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+          border: 2px solid var(--glass-border);
+        }
+        .report-fab:hover {
+          transform: scale(1.1) translateY(-5px);
+          box-shadow: 0 15px 35px rgba(239, 68, 68, 0.6);
+        }
+
+        .report-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.85);
+          backdrop-filter: blur(12px);
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1rem;
+        }
+        .report-modal {
+          width: 100%;
+          max-width: 450px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 2.5rem;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+          position: relative;
+          color: var(--text);
+        }
       `}</style>
       {/* Report Bug Floating Action Button */}
       <button 
@@ -2000,6 +2000,6 @@ export default function Home() {
         </div>
       )}
 
-    </div>
+    </main>
   );
 }
