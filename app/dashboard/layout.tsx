@@ -585,6 +585,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         @media (max-width: 1024px) {
           .dashboard-container {
             flex-direction: column;
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: visible !important;
           }
 
           .desktop-theme-toggle {
@@ -619,6 +622,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .dashboard-main {
             padding: 1.75rem 1.25rem;
             min-height: calc(100vh - 60px);
+            height: auto !important;
+            overflow-y: visible !important;
+            overflow-x: hidden !important;
           }
 
           @media (max-width: 768px) {

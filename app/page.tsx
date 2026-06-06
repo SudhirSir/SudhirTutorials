@@ -478,7 +478,7 @@ export default function Home() {
           <p className="section-subtitle">A decade of uncompromised excellence, shaping the minds of tomorrow's leaders, doctors, and engineers.</p>
         </div>
 
-        <div className="arena-grid" style={{ gridTemplateColumns: '1.2fr 0.8fr' }}>
+        <div className="arena-grid">
           {/* Item 1: Legacy Stats */}
           <div className="glass-card arena-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', justifyContent: 'center' }}>
             <h3 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--text-heading)' }}>
@@ -1400,7 +1400,7 @@ export default function Home() {
 
         .arena-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1.2fr 0.8fr;
           gap: 2.5rem;
         }
         .arena-card {
