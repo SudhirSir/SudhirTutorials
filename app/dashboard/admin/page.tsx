@@ -613,10 +613,18 @@ function AdminDashboardContent() {
   const [directoryUsers, setDirectoryUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'>('ALL');
+  const [showPendingVerificationsList, setShowPendingVerificationsList] = useState(false);
+  const [showAdmissionsInquiriesList, setShowAdmissionsInquiriesList] = useState(false);
 
   const filteredDirectoryUsers = useMemo(() => {
-    return directoryUsers.filter(u => directoryFilter === 'ALL' || u.role === directoryFilter);
-  }, [directoryUsers, directoryFilter]);  // Finance State
+    return directoryUsers.filter(u => {
+      const matchesFilter = directoryFilter === 'ALL' || u.role === directoryFilter;
+      const matchesSearch = !searchQuery.trim() || 
+        (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
+        (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesFilter && matchesSearch;
+    });
+  }, [directoryUsers, directoryFilter, searchQuery]);  // Finance State
   const [financeStudentSearchQuery, setFinanceStudentSearchQuery] = useState('');
   const [showFinanceSuggestions, setShowFinanceSuggestions] = useState(false);
   const [fees, setFees] = useState<any[]>([]);
@@ -854,6 +862,16 @@ function AdminDashboardContent() {
       setIsSearching(false);
     }
   };
+
+  // Debounce directory search while typing (auto-refresh list from DB after 300ms of inactivity)
+  useEffect(() => {
+    if (activeTab !== 'users') return;
+    const delayDebounceFn = setTimeout(() => {
+      handleSearchDirectory();
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, activeTab]);
 
   const fetchFinances = async () => {
     try {
@@ -2027,44 +2045,101 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'verifications' && (
-        <div className="glass-card" style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Pending Profile & Fee Verifications</h2>
-          {pendingVerifications.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No profiles are currently awaiting verification.</p>
-          ) : (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {pendingVerifications.map(u => (
-                <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                      <span 
-                        onClick={() => setActiveProfileUserId(u.id)}
-                        style={{ fontWeight: 700, fontSize: '1.1rem', cursor: 'pointer' }}
-                        className="clickable-name"
-                      >
-                        {u.name || 'Anonymous'}
-                      </span>
-                      <span className="role-badge" style={{ fontSize: '0.65rem' }}>{u.role}</span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      Username: <strong>{u.username}</strong> • Joined {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
-                    </div>
-                    {u.studentProfile && (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                        📞 {u.studentProfile.phone} • ✉️ {u.studentProfile.email}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Collapsible Section Toggles */}
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }} className="no-print">
+            <button 
+              onClick={() => setShowPendingVerificationsList(!showPendingVerificationsList)}
+              style={{
+                padding: '0.75rem 1.25rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: showPendingVerificationsList ? 'var(--primary)' : 'var(--card-bg-alt)',
+                color: showPendingVerificationsList ? '#fff' : 'var(--text)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+                fontSize: '0.9rem'
+              }}
+            >
+              👥 Pending Profile & Fee Verifications {pendingVerifications.length > 0 && (
+                <span style={{ 
+                  background: showPendingVerificationsList ? '#fff' : '#ef4444', 
+                  color: showPendingVerificationsList ? '#ef4444' : '#fff', 
+                  fontSize: '0.75rem', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: 800
+                }}>
+                  {pendingVerifications.length}
+                </span>
+              )}
+            </button>
+            <button 
+              onClick={() => setShowAdmissionsInquiriesList(!showAdmissionsInquiriesList)}
+              style={{
+                padding: '0.75rem 1.25rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: showAdmissionsInquiriesList ? 'var(--primary)' : 'var(--card-bg-alt)',
+                color: showAdmissionsInquiriesList ? '#fff' : 'var(--text)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+                fontSize: '0.9rem'
+              }}
+            >
+              🏫 Student Admission Inquiries
+            </button>
+          </div>
+
+          {showPendingVerificationsList && (
+            <div className="glass-card" style={{ padding: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Pending Profile & Fee Verifications</h2>
+              {pendingVerifications.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>No profiles are currently awaiting verification.</p>
+              ) : (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {pendingVerifications.map(u => (
+                    <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                          <span 
+                            onClick={() => setActiveProfileUserId(u.id)}
+                            style={{ fontWeight: 700, fontSize: '1.1rem', cursor: 'pointer' }}
+                            className="clickable-name"
+                          >
+                            {u.name || 'Anonymous'}
+                          </span>
+                          <span className="role-badge" style={{ fontSize: '0.65rem' }}>{u.role}</span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          Username: <strong>{u.username}</strong> • Joined {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
+                        </div>
+                        {u.studentProfile && (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                            📞 {u.studentProfile.phone} • ✉️ {u.studentProfile.email}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <button 
-                    className="btn-primary" 
-                    disabled={isVerifying === u.id}
-                    onClick={() => handleVerifyUser(u.id)}
-                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', background: '#10b981' }}
-                  >
-                    {isVerifying === u.id ? 'Verifying...' : 'Approve & Verify'}
-                  </button>
+                      <button 
+                        className="btn-primary" 
+                        disabled={isVerifying === u.id}
+                        onClick={() => handleVerifyUser(u.id)}
+                        style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', background: '#10b981' }}
+                      >
+                        {isVerifying === u.id ? 'Verifying...' : 'Approve & Verify'}
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
@@ -2132,8 +2207,17 @@ function AdminDashboardContent() {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
+                  list="user-directory-search-suggestions"
                   style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
+                <datalist id="user-directory-search-suggestions">
+                  {directoryUsers.flatMap(u => [
+                    { val: u.name, desc: u.username },
+                    { val: u.username, desc: u.name }
+                  ]).filter(item => item.val).map((item, idx) => (
+                    <option key={idx} value={item.val} label={item.desc} />
+                  ))}
+                </datalist>
                 <button onClick={handleSearchDirectory} className="btn-primary" disabled={isSearching} style={{ padding: '0 2rem' }}>
                   {isSearching ? "Searching..." : "Search"}
                 </button>
@@ -4891,7 +4975,7 @@ function AdminDashboardContent() {
         <LecturesSection />
       )}
 
-      {(activeTab === 'admissions' || activeTab === 'verifications' || (activeTab === 'academics' && academicSubTab === 'admissions')) && (
+      {(activeTab === 'admissions' || (activeTab === 'verifications' && showAdmissionsInquiriesList) || (activeTab === 'academics' && academicSubTab === 'admissions')) && (
         <div style={{ marginTop: activeTab === 'verifications' ? '2rem' : '0' }}>
           <AdmissionsSection
             setActiveTab={setActiveTab}

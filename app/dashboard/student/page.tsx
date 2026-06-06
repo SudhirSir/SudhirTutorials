@@ -754,7 +754,7 @@ function StudentDashboardContent() {
           <div className="glass-card receipt-print-area" style={{ 
             width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: 'auto'
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: '2rem auto'
           }}>
             {/* PAID Stamp Overlay */}
             {(receiptData.status === 'PAID' || receiptData.status === 'VERIFIED' || receiptData.status === 'PAID_ONLINE') && (
