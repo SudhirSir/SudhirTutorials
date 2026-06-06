@@ -184,7 +184,7 @@ export async function POST(req: Request) {
             data: {
               userId: s.id,
               title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
-              message: `A new fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${finalDueDate.toLocaleDateString()} to avoid late fines.`,
+              message: `A new fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
               type: 'FEE',
               isRead: false
             }
@@ -238,7 +238,7 @@ export async function POST(req: Request) {
           data: {
             userId: student.id,
             title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
-            message: `A new individual fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${finalDueDate.toLocaleDateString()} to avoid late fines.`,
+            message: `A new individual fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
             type: 'FEE',
             isRead: false
           }

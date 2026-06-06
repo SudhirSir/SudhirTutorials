@@ -82,6 +82,23 @@ export async function PUT(req: Request) {
     const { name, email, phone, address, dob, photoUrl, subject, qualification, experience,
             fatherName, parentContact, school, className } = body;
 
+    // Validate inputs
+    if (name !== undefined) {
+      if (name.length > 25 || !/^[a-zA-Z\s]+$/.test(name)) {
+        return NextResponse.json({ error: 'Name must contain only alphabets and spaces, and be at most 25 characters long.' }, { status: 400 });
+      }
+    }
+    if (fatherName !== undefined) {
+      if (fatherName && (fatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(fatherName))) {
+        return NextResponse.json({ error: "Father's name must contain only alphabets and spaces, and be at most 25 characters long." }, { status: 400 });
+      }
+    }
+    if (address !== undefined) {
+      if (address && address.length > 60) {
+        return NextResponse.json({ error: 'Address must be at most 60 characters long.' }, { status: 400 });
+      }
+    }
+
     // Backend size check for base64 photo upload (max 3 MB)
     if (photoUrl && photoUrl.startsWith('data:')) {
       try {

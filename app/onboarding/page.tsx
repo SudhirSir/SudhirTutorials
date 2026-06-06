@@ -23,11 +23,39 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password && password !== confirmPassword) {
-      return setError("Passwords do not match");
+    if (password) {
+      if (password !== confirmPassword) {
+        return setError("Passwords do not match");
+      }
+      if (password.length < 8) {
+        return setError("Password must be at least 8 characters long.");
+      }
+      if (!/[a-z]/.test(password)) {
+        return setError("Password must contain at least one lowercase letter.");
+      }
+      if (!/[A-Z]/.test(password)) {
+        return setError("Password must contain at least one uppercase letter.");
+      }
+      if (!/[0-9]/.test(password)) {
+        return setError("Password must contain at least one numeric digit.");
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) {
+        return setError("Password must contain at least one special symbol (e.g. @, #, $, etc.).");
+      }
     }
     if ((session?.user as any)?.mustChangePassword && !password) {
       return setError("Please set a new password");
+    }
+    if (role === 'STUDENT') {
+      if (!parentName.trim()) {
+        return setError("Parent/Guardian name is required.");
+      }
+      if (parentName.length > 25) {
+        return setError("Parent/Guardian name must be at most 25 characters.");
+      }
+      if (!/^[a-zA-Z\s]+$/.test(parentName)) {
+        return setError("Parent/Guardian name must contain only alphabets and spaces.");
+      }
     }
     if (!recoveryPin || recoveryPin.length !== 6 || isNaN(Number(recoveryPin))) {
       return setError("Recovery PIN must be exactly 6 digits");
@@ -110,7 +138,12 @@ export default function OnboardingPage() {
                 <div className="onboarding-form-row" style={{ marginTop: '1.25rem' }}>
                   <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                     <label>Parent/Guardian Name</label>
-                    <input type="text" required value={parentName} onChange={e => setParentName(e.target.value)} style={{ width: '100%' }} />
+                    <input type="text" required value={parentName} maxLength={25} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                        setParentName(val);
+                      }
+                    }} style={{ width: '100%' }} />
                   </div>
                   <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                     <label>Parent/Guardian Contact</label>

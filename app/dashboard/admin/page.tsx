@@ -14,6 +14,40 @@ import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { AdmissionsSection } from '@/components/AdmissionsSection';
 
+function formatDobDisplay(dobStr: string | null | undefined): string {
+  if (!dobStr) return 'N/A';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dobStr)) return dobStr;
+  const parts = dobStr.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  try {
+    const d = new Date(dobStr);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (e) {}
+  return dobStr;
+}
+
+function formatDateDisplay(dateInput: any): string {
+  if (!dateInput) return 'N/A';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return String(dateInput);
+  }
+}
+
 function AdminDashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -798,6 +832,23 @@ function AdminDashboardContent() {
       setIsCreating(false);
       return;
     }
+    if (newUserName.length > 25 || !/^[a-zA-Z\s]+$/.test(newUserName)) {
+      setErrorMsg("Name must contain only alphabets and spaces, and be at most 25 characters.");
+      setIsCreating(false);
+      return;
+    }
+    if (newUserRole === 'STUDENT') {
+      if (newStudentFatherName && (newStudentFatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(newStudentFatherName))) {
+        setErrorMsg("Father's name must contain only alphabets and spaces, and be at most 25 characters.");
+        setIsCreating(false);
+        return;
+      }
+      if (newStudentAddress && newStudentAddress.length > 60) {
+        setErrorMsg("Address must be at most 60 characters.");
+        setIsCreating(false);
+        return;
+      }
+    }
 
     try {
       const finalClassName = newUserRole === 'STUDENT'
@@ -1562,6 +1613,24 @@ function AdminDashboardContent() {
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingProfile.name) {
+      if (editingProfile.name.length > 25 || !/^[a-zA-Z\s]+$/.test(editingProfile.name)) {
+        alert("Name must contain only alphabets and spaces, and be at most 25 characters.");
+        return;
+      }
+    }
+    if (editingProfile.role === 'STUDENT' && editingProfile.fatherName) {
+      if (editingProfile.fatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(editingProfile.fatherName)) {
+        alert("Father's name must contain only alphabets and spaces, and be at most 25 characters.");
+        return;
+      }
+    }
+    if (editingProfile.address) {
+      if (editingProfile.address.length > 60) {
+        alert("Address must be at most 60 characters.");
+        return;
+      }
+    }
     setIsSavingProfile(true);
     try {
       const endpoint = editingProfile.role === 'STUDENT' 
@@ -2312,7 +2381,12 @@ function AdminDashboardContent() {
                 
                 <div className="input-group">
                   <label>Full Name</label>
-                  <input type="text" placeholder="e.g. Rahul Kumar" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
+                  <input type="text" placeholder="e.g. Rahul Kumar" value={newUserName} maxLength={25} onChange={e => {
+                    const val = e.target.value;
+                    if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                      setNewUserName(val);
+                    }
+                  }} />
                 </div>
 
                 {newUserRole === 'STUDENT' && (
@@ -2383,7 +2457,12 @@ function AdminDashboardContent() {
                     </div>
                     <div className="input-group">
                       <label>Father's Name</label>
-                      <input type="text" placeholder="e.g. Ramesh Kumar" value={newStudentFatherName} onChange={e => setNewStudentFatherName(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                      <input type="text" placeholder="e.g. Ramesh Kumar" value={newStudentFatherName} maxLength={25} onChange={e => {
+                        const val = e.target.value;
+                        if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                          setNewStudentFatherName(val);
+                        }
+                      }} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                     </div>
                     <div className="input-group">
                       <label>Contact Phone</label>
@@ -2395,7 +2474,7 @@ function AdminDashboardContent() {
                     </div>
                     <div className="input-group">
                       <label>Residential Address</label>
-                      <input type="text" placeholder="e.g. 123 Street, City" value={newStudentAddress} onChange={e => setNewStudentAddress(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                      <input type="text" placeholder="e.g. 123 Street, City" value={newStudentAddress} maxLength={60} onChange={e => setNewStudentAddress(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                     </div>
                     <div className="input-group">
                       <label>Date of Birth</label>
@@ -2965,7 +3044,7 @@ function AdminDashboardContent() {
 
                             return paidFees.map(fee => {
                               const dateObj = new Date(fee.updatedAt || fee.createdAt);
-                              const formattedDate = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                              const formattedDate = formatDateDisplay(dateObj) + ', ' + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
                               return (
                                 <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                   <td style={{ padding: '0.6rem 0' }}>
@@ -3587,7 +3666,7 @@ function AdminDashboardContent() {
                               </div>
                               <div style="text-align: right">
                                 <div style="font-weight: bold">${statementMonth.toUpperCase()} ${statementYear}</div>
-                                <div class="meta">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
+                                <div class="meta">Generated: ${((() => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })())}</div>
                               </div>
                             </div>
 
@@ -3649,7 +3728,7 @@ function AdminDashboardContent() {
                                   }))
                                 ].sort((a,b) => a.date.getTime() - b.date.getTime()).map(t => `
                                   <tr>
-                                    <td>${formatD(t.date)}</td>
+                                    <td>${((d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)(t.date)}</td>
                                     <td style="font-family: monospace">${t.ref}</td>
                                     <td>${t.desc}</td>
                                     <td>${t.type}</td>
@@ -3715,7 +3794,7 @@ function AdminDashboardContent() {
                     outflow: e.amount
                   })),
                   ...outSalaries.map(s => ({
-                    date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
+                    date: s.paidAt ? new Date(s.paidAt) : s.createdAt ? new Date(s.createdAt) : new Date(),
                     ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
                     desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
                     type: 'SALARY_OUTFLOW',
@@ -3763,7 +3842,7 @@ function AdminDashboardContent() {
                           <tbody>
                             {ledgerData.map((t, idx) => (
                               <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.88rem' }}>
-                                <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{t.date.toLocaleDateString('en-GB')}</td>
+                                <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{((d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)(t.date)}</td>
                                 <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{t.ref}</td>
                                 <td style={{ color: 'var(--text)', fontWeight: 600 }}>{t.desc}</td>
                                 <td>
@@ -4452,7 +4531,7 @@ function AdminDashboardContent() {
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
+                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {formatDateDisplay(test.date)}
                       </div>
                       {(test.time || test.syllabus) && (
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -5101,12 +5180,17 @@ function AdminDashboardContent() {
 
                <div className="input-group">
                  <label>Full Name</label>
-                 <input type="text" value={editingProfile.name || ''} onChange={e => setEditingProfile({...editingProfile, name: e.target.value})} placeholder="Full Name" required />
+                 <input type="text" value={editingProfile.name || ''} maxLength={25} onChange={e => {
+                    const val = e.target.value;
+                    if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                      setEditingProfile({...editingProfile, name: val});
+                    }
+                  }} placeholder="Full Name" required />
                </div>
 
                <div className="input-group">
                  <label>Date of Birth</label>
-                 <input type="date" value={editingProfile.dob || ''} onChange={e => setEditingProfile({...editingProfile, dob: e.target.value})} />
+                 <input type="date" value={editingProfile.dob ? new Date(editingProfile.dob).toISOString().split('T')[0] : ''} onChange={e => setEditingProfile({...editingProfile, dob: e.target.value})} />
                </div>
 
                <div className="input-group">
@@ -5139,7 +5223,12 @@ function AdminDashboardContent() {
                    </div>
                    <div className="input-group">
                      <label>Father's Name</label>
-                     <input type="text" value={editingProfile.fatherName || ''} onChange={e => setEditingProfile({...editingProfile, fatherName: e.target.value})} placeholder="Full Name" />
+                     <input type="text" value={editingProfile.fatherName || ''} maxLength={25} onChange={e => {
+                        const val = e.target.value;
+                        if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                          setEditingProfile({...editingProfile, fatherName: val});
+                        }
+                      }} placeholder="Full Name" />
                    </div>
                    <div className="input-group">
                      <label>Parent Contact</label>
@@ -5295,7 +5384,7 @@ function AdminDashboardContent() {
                <div className="input-group" style={{ gridColumn: 'span 2' }}>
                  <label>Residential Address</label>
                  <textarea 
-                   value={editingProfile.address || ''} 
+                   maxLength={60} value={editingProfile.address || ''} 
                    onChange={e => setEditingProfile({...editingProfile, address: e.target.value})} 
                    placeholder="Street, City, Pin"
                 style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', minHeight: '80px' }}
@@ -5783,8 +5872,8 @@ function AdminDashboardContent() {
                   <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</div>
                   <div style={{ color: '#6b7280' }}>
                     {activeReceipt.paidAt 
-                      ? `${((() => { const d = new Date(activeReceipt.paidAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
-                      : ((() => { const d = new Date(); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
+                      ? `${formatDateDisplay(activeReceipt.paidAt)}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                      : formatDateDisplay(new Date())}
                   </div>
                 </div>
               </div>
@@ -6675,7 +6764,7 @@ function AdminDashboardContent() {
                               </button>
                             ) : (
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {s.paidAt ? new Date(s.paidAt).toLocaleDateString('en-IN') : 'Completed'}
+                                {s.paidAt ? formatDateDisplay(s.paidAt) : 'Completed'}
                               </div>
                             )}
                           </td>
@@ -6855,7 +6944,7 @@ function AdminDashboardContent() {
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.dob || 'N/A'}</div>
+                      <div style={{ fontWeight: 600 }}>{formatDobDisplay(selectedUserDetail.studentProfile.dob)}</div>
                     </div>
                   </div>
 
@@ -6939,7 +7028,7 @@ function AdminDashboardContent() {
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.dob || 'N/A'}</div>
+                      <div style={{ fontWeight: 600 }}>{formatDobDisplay(selectedUserDetail.teacherProfile.dob)}</div>
                     </div>
                   </div>
 

@@ -208,7 +208,7 @@ export async function POST(req: Request) {
           data: {
             userId: student.id,
             title: `💳 Monthly Fee Generated: ${billingMonth}`,
-            message: `Your monthly tuition fee invoice of ₹${finalAmount.toFixed(0)} has been automatically generated for ${billingMonth}. Please pay online before ${dueDate.toLocaleDateString()} to avoid late fines.`,
+            message: `Your monthly tuition fee invoice of ₹${finalAmount.toFixed(0)} has been automatically generated for ${billingMonth}. Please pay online before ${String(dueDate.getDate()).padStart(2, '0')}/${String(dueDate.getMonth() + 1).padStart(2, '0')}/${dueDate.getFullYear()} to avoid late fines.`,
             type: 'FEE',
             isRead: false
           }

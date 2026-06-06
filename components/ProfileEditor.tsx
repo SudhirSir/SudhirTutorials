@@ -109,6 +109,25 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
     e.preventDefault();
     if (pwForm.newPassword !== pwForm.confirmPassword)
       return setPwMsg({ type: 'error', text: 'New passwords do not match.' });
+
+    // Password complexity check
+    const newPw = pwForm.newPassword;
+    if (newPw.length < 8) {
+      return setPwMsg({ type: 'error', text: 'Password must be at least 8 characters long.' });
+    }
+    if (!/[a-z]/.test(newPw)) {
+      return setPwMsg({ type: 'error', text: 'Password must contain at least one lowercase letter.' });
+    }
+    if (!/[A-Z]/.test(newPw)) {
+      return setPwMsg({ type: 'error', text: 'Password must contain at least one uppercase letter.' });
+    }
+    if (!/[0-9]/.test(newPw)) {
+      return setPwMsg({ type: 'error', text: 'Password must contain at least one numeric digit.' });
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPw)) {
+      return setPwMsg({ type: 'error', text: 'Password must contain at least one special symbol (e.g. @, #, $, etc.).' });
+    }
+
     setPwSaving(true); setPwMsg(null);
     try {
       const res = await fetch('/api/user/settings', {
@@ -335,7 +354,12 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           {/* Common Fields */}
           <div>
             <label style={labelStyle}>Full Name</label>
-            <input style={inputStyle} value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} required disabled={role !== 'ADMIN'} title={role !== 'ADMIN' ? "Only Admin can edit Full Name" : ""} />
+            <input style={inputStyle} value={form.name} maxLength={25} onChange={e => {
+              const val = e.target.value;
+              if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                setForm((f: any) => ({ ...f, name: val }));
+              }
+            }} required disabled={role !== 'ADMIN'} title={role !== 'ADMIN' ? "Only Admin can edit Full Name" : ""} />
           </div>
           <div>
             <label style={labelStyle}>Date of Birth</label>
@@ -351,7 +375,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           </div>
           <div className="grid-span-2">
             <label style={labelStyle}>Residential Address</label>
-            <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} value={form.address} onChange={e => setForm((f: any) => ({ ...f, address: e.target.value }))} />
+            <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} value={form.address} maxLength={60} onChange={e => setForm((f: any) => ({ ...f, address: e.target.value }))} />
           </div>
 
           {/* Student-specific */}
@@ -359,7 +383,12 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
             <>
               <div>
                 <label style={labelStyle}>Father's Name</label>
-                <input style={inputStyle} value={form.fatherName} onChange={e => setForm((f: any) => ({ ...f, fatherName: e.target.value }))} />
+                <input style={inputStyle} value={form.fatherName} maxLength={25} onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                    setForm((f: any) => ({ ...f, fatherName: val }));
+                  }
+                }} />
               </div>
               <div>
                 <label style={labelStyle}>Parent Contact</label>

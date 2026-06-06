@@ -7,11 +7,16 @@ import { z } from 'zod';
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+  newPassword: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one numeric digit")
+    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/, "Password must contain at least one special symbol"),
 });
 
 const profileSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().min(2, "Name must be at least 2 characters").max(25, "Name must be at most 25 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
 });

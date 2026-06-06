@@ -31,6 +31,40 @@ interface AdmissionsSectionProps {
   setNewStudentDob: (dob: string) => void;
 }
 
+function formatDobDisplay(dobStr: string | null | undefined): string {
+  if (!dobStr) return 'N/A';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dobStr)) return dobStr;
+  const parts = dobStr.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  try {
+    const d = new Date(dobStr);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (e) {}
+  return dobStr;
+}
+
+function formatDateDisplay(dateInput: any): string {
+  if (!dateInput) return 'N/A';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return String(dateInput);
+  }
+}
+
 export function AdmissionsSection({
   setActiveTab,
   setUserSubTab,
@@ -346,7 +380,7 @@ export function AdmissionsSection({
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Date of Birth</span>
-                <strong>{selectedApp.dob}</strong>
+                <strong>{formatDobDisplay(selectedApp.dob)}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Contact Phone</span>
@@ -374,7 +408,7 @@ export function AdmissionsSection({
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Applied On</span>
-                <strong>{new Date(selectedApp.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}</strong>
+                <strong>{formatDateDisplay(selectedApp.createdAt)}</strong>
               </div>
             </div>
 

@@ -22,6 +22,22 @@ export async function POST(req: Request) {
 
     const { password, email, phone, parentName, parentContact, recoveryPin } = await req.json();
 
+    if (password && user.mustChangePassword) {
+      if (password.length < 8 ||
+          !/[a-z]/.test(password) ||
+          !/[A-Z]/.test(password) ||
+          !/[0-9]/.test(password) ||
+          !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) {
+        return NextResponse.json({ error: 'Password does not meet complexity requirements' }, { status: 400 });
+      }
+    }
+
+    if (user.role === 'STUDENT' && parentName) {
+      if (parentName.length > 25 || !/^[a-zA-Z\s]+$/.test(parentName)) {
+        return NextResponse.json({ error: 'Parent/Guardian name must contain only alphabets and spaces, and be at most 25 characters long.' }, { status: 400 });
+      }
+    }
+
     const updateData: any = {
       onboardingCompleted: true,
       isProfileVerified: false

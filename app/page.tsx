@@ -210,6 +210,21 @@ export default function Home() {
       setAdmissionsLoading(false);
       return;
     }
+    if (admName.length > 25 || !/^[a-zA-Z\s]+$/.test(admName)) {
+      setAdmissionsError("Student name must contain only alphabets and spaces, and be at most 25 characters.");
+      setAdmissionsLoading(false);
+      return;
+    }
+    if (admFatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(admFatherName)) {
+      setAdmissionsError("Father's name must contain only alphabets and spaces, and be at most 25 characters.");
+      setAdmissionsLoading(false);
+      return;
+    }
+    if (admAddress.length > 60) {
+      setAdmissionsError("Address must be at most 60 characters.");
+      setAdmissionsLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch('/api/admissions/apply', {
@@ -889,9 +904,15 @@ export default function Home() {
                       <input 
                         type="text" 
                         required 
+                        maxLength={25}
                         placeholder="e.g. Rahul Kumar" 
                         value={admName} 
-                        onChange={e => setAdmName(e.target.value)} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                            setAdmName(val);
+                          }
+                        }} 
                         style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
                       />
                     </div>
@@ -900,9 +921,15 @@ export default function Home() {
                       <input 
                         type="text" 
                         required 
+                        maxLength={25}
                         placeholder="e.g. Rajesh Kumar" 
                         value={admFatherName} 
-                        onChange={e => setAdmFatherName(e.target.value)} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                            setAdmFatherName(val);
+                          }
+                        }} 
                         style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
                       />
                     </div>
@@ -1000,10 +1027,11 @@ export default function Home() {
                     <textarea 
                       required 
                       rows={2} 
+                      maxLength={60}
                       value={admAddress} 
                       onChange={e => setAdmAddress(e.target.value)} 
                       style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', resize: 'vertical' }}
-                      placeholder="Full residential address"
+                      placeholder="Full residential address (max 60 characters)"
                     ></textarea>
                   </div>
 

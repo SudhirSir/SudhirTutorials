@@ -11,6 +11,20 @@ import { Sidebar } from '@/components/Sidebar';
 import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
 
+function formatDateDisplay(dateInput: any): string {
+  if (!dateInput) return 'N/A';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return String(dateInput);
+  }
+}
+
 function TeacherDashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -1162,7 +1176,7 @@ Depending on your specific focus, this represents the vital equation model for t
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {((() => { const d = new Date(test.date); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
+                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {formatDateDisplay(test.date)}
                       </div>
                       {(test.time || test.syllabus) && (
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -1757,7 +1771,7 @@ Depending on your specific focus, this represents the vital equation model for t
                       {s.status === 'PAID' ? (
                         <div>
                           <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.transactionId}</div>
-                          {s.paidAt && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Paid {new Date(s.paidAt).toLocaleDateString('en-GB')}</div>}
+                          {s.paidAt && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Paid {formatDateDisplay(s.paidAt)}</div>}
                         </div>
                       ) : (
                         <span style={{ fontStyle: 'italic', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Processing payout...</span>

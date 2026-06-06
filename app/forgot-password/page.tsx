@@ -20,6 +20,21 @@ export default function ForgotPassword() {
     if (newPassword !== confirmPassword) {
       return setError("Passwords do not match");
     }
+    if (newPassword.length < 8) {
+      return setError("Password must be at least 8 characters long.");
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      return setError("Password must contain at least one lowercase letter.");
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      return setError("Password must contain at least one uppercase letter.");
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      return setError("Password must contain at least one numeric digit.");
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword)) {
+      return setError("Password must contain at least one special symbol (e.g. @, #, $, etc.).");
+    }
     if (recoveryPin.length !== 6) {
       return setError("Recovery PIN must be 6 digits");
     }

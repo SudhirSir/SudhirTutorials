@@ -8,7 +8,7 @@ import crypto from 'crypto';
 
 const userSchema = z.object({
   role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
-  name: z.string().min(2, "Name must be at least 2 characters").max(50),
+  name: z.string().min(2, "Name must be at least 2 characters").max(25, "Name must be at most 25 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
   className: z.string().optional(),
   board: z.string().optional(),
   subject: z.string().optional(),
@@ -17,10 +17,10 @@ const userSchema = z.object({
     const num = typeof val === 'string' ? parseFloat(val) : val;
     return isNaN(num) ? undefined : num;
   }),
-  fatherName: z.string().optional(),
+  fatherName: z.string().optional().refine(val => !val || (val.length <= 25 && /^[a-zA-Z\s]+$/.test(val)), "Father's name must contain only alphabets and spaces, and be at most 25 characters long"),
   phone: z.string().optional(),
   email: z.string().optional(),
-  address: z.string().optional(),
+  address: z.string().optional().refine(val => !val || val.length <= 60, "Address must be at most 60 characters long"),
   dob: z.string().optional(),
 });
 
@@ -42,8 +42,21 @@ export async function POST(req: Request) {
 
     const { role, name, className, board, scholarship, subject, fatherName, phone, email, address, dob } = validation.data;
 
-    // Generate cryptographically secure 8-character password
-    const password = crypto.randomBytes(4).toString('hex').toUpperCase();
+    // Generate temporary password matching policy (at least 8 chars, 1 lower, 1 upper, 1 digit, 1 special)
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const digits = "0123456789";
+    const symbols = "!@#$%^&*";
+    const p1 = lowercase[crypto.randomInt(lowercase.length)];
+    const p2 = uppercase[crypto.randomInt(uppercase.length)];
+    const p3 = digits[crypto.randomInt(digits.length)];
+    const p4 = symbols[crypto.randomInt(symbols.length)];
+    let rest = "";
+    const allChars = lowercase + uppercase + digits + symbols;
+    for (let i = 0; i < 6; i++) {
+      rest += allChars[crypto.randomInt(allChars.length)];
+    }
+    const password = (p1 + p2 + p3 + p4 + rest).split('').sort(() => crypto.randomInt(100) - 50).join('');
 
     // Generate specific ID sequentially
     let username = '';
