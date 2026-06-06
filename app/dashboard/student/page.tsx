@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
@@ -95,7 +96,10 @@ function StudentDashboardContent() {
   const [razorpayTxId, setRazorpayTxId] = useState('');
 
   useEffect(() => {
-    if (isReceiptOpen || activeProfileUserId) {
+    // Only lock body scroll for the profile overlay (not the receipt portal,
+    // because the receipt modal is rendered via createPortal at document.body
+    // and body overflow:hidden would prevent it from scrolling).
+    if (activeProfileUserId) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -103,7 +107,7 @@ function StudentDashboardContent() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isReceiptOpen, activeProfileUserId]);
+  }, [activeProfileUserId]);
 
   // Digital Guru Ji AI states
   const [guruQuestion, setGuruQuestion] = useState('');
@@ -763,10 +767,10 @@ function StudentDashboardContent() {
 
 
 
-      {isReceiptOpen && receiptData && (
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 5000, overflowY: 'auto', padding: '2rem 1rem' }}>
+      {isReceiptOpen && receiptData && typeof window !== 'undefined' && createPortal(
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 5000, overflowY: 'auto', overflowX: 'hidden', padding: '2rem 1rem 4rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
-            width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', 
+            width: '100%', maxWidth: '500px', padding: 0, overflow: 'visible', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: '2rem auto'
           }}>
@@ -782,7 +786,7 @@ function StudentDashboardContent() {
               </div>
             )}
 
-            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2rem' }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.75rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
@@ -891,7 +895,8 @@ function StudentDashboardContent() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 💳 SIMULATED RAZORPAY GATEWAY OVERLAY */}
