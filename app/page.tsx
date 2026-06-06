@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import ScholarshipPredictor3D from '@/components/ScholarshipPredictor3D';
+// Removed ScholarshipPredictor3D import
 
 // Math/science formulas for the floating background animation
 const floatingFormulas = [
@@ -37,26 +37,6 @@ export default function Home() {
   const [reportMessage, setReportMessage] = useState<string>("");
   const [reportLoading, setReportLoading] = useState<boolean>(false);
   const [reportSuccess, setReportSuccess] = useState<boolean>(false);
-
-  // Dynamic 3D Tilt Handlers
-  const handle3DTilt = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -8;
-    const rotateY = ((x - centerX) / centerX) * 8;
-    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
-    card.style.transition = 'transform 0.1s ease-out';
-  };
-
-  const handle3DLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
-    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
-    card.style.transition = 'transform 0.5s ease-out';
-  };
 
   // Admission form state
   const [admName, setAdmName] = useState("");
@@ -474,16 +454,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Interactive Matcher & Maths Challenge Grid */}
-      <section id="calculator" className="interactive-arena-section">
+      {/* Legacy & Achievements Grid */}
+      <section id="legacy" className="interactive-arena-section">
         <div className="section-header">
-          <h2 className="section-title">Interactive Learning Arena</h2>
-          <p className="section-subtitle">Map your academic dedication to target college ranks, or test your intelligence with our rotating daily mathematics challenges.</p>
+          <h2 className="section-title">Our Legacy & Achievements</h2>
+          <p className="section-subtitle">A decade of uncompromised excellence, shaping the minds of tomorrow's leaders, doctors, and engineers.</p>
         </div>
 
-        <div className="arena-grid">
-          {/* Item 1: Scholarship Predictor 3D */}
-          <ScholarshipPredictor3D />
+        <div className="arena-grid" style={{ gridTemplateColumns: '1.2fr 0.8fr' }}>
+          {/* Item 1: Legacy Stats */}
+          <div className="glass-card arena-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', justifyContent: 'center' }}>
+            <h3 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--text-heading)' }}>
+              Numbers That Speak
+            </h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1.05rem', margin: 0 }}>
+              At Sudhir Tutorials, our legacy isn't just measured by the years we've taught, but by the sheer volume of dreams we've realized. We consistently yield top-tier ranks in the nation's most competitive exams.
+            </p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+              <div style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--primary)' }}>10+</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Years of Excellence</div>
+              </div>
+              <div style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--secondary)' }}>1K+</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>IIT / Medical Selections</div>
+              </div>
+              <div style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', gridColumn: 'span 2' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#10b981' }}>10,000+</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Students Mentored</div>
+              </div>
+            </div>
+          </div>
 
           {/* Item 2: Daily Math Challenge */}
           <div className="glass-card arena-card">
@@ -500,7 +502,7 @@ export default function Home() {
                   
                   <div className="quiz-options-list">
                     {quizQuestion.options.map(opt => {
-                      let btnBg = 'var(--card-bg-alt)';
+                      let btnBg = 'var(--surface)';
                       let btnBorder = 'var(--border)';
                       if (quizSubmitted) {
                         if (opt.correct) {
@@ -533,7 +535,7 @@ export default function Home() {
                     <button 
                       onClick={() => quizAnswer && setQuizSubmitted(true)}
                       className="btn-primary"
-                      style={{ width: '100%', marginTop: '1rem', border: 'none', background: 'var(--primary)' }}
+                      style={{ width: '100%', marginTop: '1rem', border: 'none' }}
                       disabled={!quizAnswer}
                     >
                       Submit Answer
@@ -587,44 +589,32 @@ export default function Home() {
 
       {/* Founder's Message Section */}
       <section className="features-section" style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,1) 0%, rgba(30,41,59,1) 100%)',
-        borderTop: '1px solid var(--glass-border)',
+        background: 'var(--surface-light)',
+        borderTop: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
         zIndex: 2,
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Dark overlay for contrast */}
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', zIndex: -1 }}></div>
-        <div className="features-layout" style={{ gridTemplateColumns: '0.85fr 1.15fr', position: 'relative', zIndex: 1 }}>
+        <div className="features-layout" style={{ gridTemplateColumns: '0.85fr 1.15fr', position: 'relative', zIndex: 1, alignItems: 'center' }}>
           {/* Founder Image on Left */}
           <div className="features-right" style={{ display: 'flex', justifyContent: 'center' }}>
-            <div 
-              className="image-card founder-img-tilt" 
-              onMouseMove={handle3DTilt}
-              onMouseLeave={handle3DLeave}
-              style={{
-              transformStyle: 'preserve-3d',
-              perspective: '1000px',
-              transition: 'transform 0.3s ease',
+            <div style={{
               maxWidth: '380px',
-              padding: '1.25rem',
+              padding: '1rem',
               background: 'var(--surface)',
-              border: '1px solid var(--glass-border)',
+              border: '1px solid var(--border)',
               borderRadius: '24px',
-              cursor: 'pointer',
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+              boxShadow: 'var(--shadow)',
+              position: 'relative'
             }}>
               <Image 
                 src="/founder.jpg" 
                 alt="Founder Sudhir Sir" 
                 width={380}
                 height={380}
-                className="features-img"
                 style={{
                   borderRadius: '16px',
-                  boxShadow: '0 10px 20px rgba(0, 0, 0, 0.05)',
-                  transform: 'translateZ(20px)',
-                  transition: 'all 0.3s',
                   display: 'block',
                   width: '100%',
                   height: 'auto'
@@ -635,13 +625,13 @@ export default function Home() {
 
           {/* Founder Text on Right */}
           <div className="features-left" style={{ gap: '1.5rem' }}>
-            <div className="admission-pill" style={{ margin: 0 }}>
+            <div className="admission-pill" style={{ margin: 0, alignSelf: 'flex-start' }}>
               🎯 Leadership Message
             </div>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0, color: 'var(--text-heading)' }}>
               A Message from Our Founder
             </h2>
-            <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, fontStyle: 'italic' }}>
+            <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, fontStyle: 'italic', borderLeft: '4px solid var(--primary)', paddingLeft: '1rem' }}>
               "At <span style={{ fontWeight: 800, color: 'var(--primary)' }}>SUDHIR</span> <span style={{ fontWeight: 800, color: 'var(--secondary)' }}>TUTORIALS</span>, we believe that education is not merely the transmission of textbook knowledge, but the ignition of a lifelong passion for critical thinking."
             </p>
             <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
@@ -774,7 +764,7 @@ export default function Home() {
             <ul>
               <li>📍 <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" className="footer-link">Haibowal, Ludhiana, Punjab</a></li>
               <li>📞 <a href="tel:9914287998" className="footer-link">99142-87998</a></li>
-              <li>✉️ <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" className="footer-link">sudhir.tutorials.ludhiana@gmail.com</a></li>
+              <li>✉️ <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" className="footer-link" style={{ wordBreak: 'break-all' }}>sudhir.tutorials.ludhiana@gmail.com</a></li>
             </ul>
           </div>
         </div>

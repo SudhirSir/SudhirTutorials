@@ -17,6 +17,7 @@ const typeColors: Record<string, { bg: string; color: string; icon: string }> = 
   FEE:     { bg: 'rgba(239,68,68,0.12)',  color: '#f87171', icon: '💰' },
   ALERT:   { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', icon: '⚠️' },
   MESSAGE: { bg: 'rgba(16,185,129,0.12)', color: '#34d399', icon: '💬' },
+  REPORT:  { bg: 'rgba(239,68,68,0.15)',  color: '#ef4444', icon: '🐛' },
 };
 
 function timeAgo(date: string) {
