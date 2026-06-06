@@ -2272,7 +2272,7 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start', maxWidth: '100%', overflowX: 'auto' }} className="no-scrollbar">
             <button 
               onClick={() => setUserSubTab('DIRECTORY')}
               style={{
@@ -2286,7 +2286,8 @@ function AdminDashboardContent() {
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                whiteSpace: 'nowrap'
               }}
             >
               👥 Members Directory
@@ -2304,7 +2305,8 @@ function AdminDashboardContent() {
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                whiteSpace: 'nowrap'
               }}
             >
               ➕ Add new Student/Teacher/Admin
@@ -2315,15 +2317,15 @@ function AdminDashboardContent() {
             <div className="glass-card" style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h2 style={{ fontSize: '1.5rem', margin: 0 }}>User Directory</h2>
-                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
-                  <button onClick={() => setDirectoryFilter('ALL')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>All</button>
-                  <button onClick={() => setDirectoryFilter('STUDENT')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'STUDENT' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Students</button>
-                  <button onClick={() => setDirectoryFilter('TEACHER')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Teachers</button>
-                  <button onClick={() => setDirectoryFilter('ADMIN')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ADMIN' ? '#f59e0b' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Admins</button>
+                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px', maxWidth: '100%', overflowX: 'auto', flexWrap: 'wrap' }}>
+                  <button onClick={() => setDirectoryFilter('ALL')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>All</button>
+                  <button onClick={() => setDirectoryFilter('STUDENT')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'STUDENT' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Students</button>
+                  <button onClick={() => setDirectoryFilter('TEACHER')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Teachers</button>
+                  <button onClick={() => setDirectoryFilter('ADMIN')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ADMIN' ? '#f59e0b' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Admins</button>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
                 <input 
                   type="text" 
                   placeholder="Search by Name or ID (e.g. STU12345)" 
@@ -2331,7 +2333,7 @@ function AdminDashboardContent() {
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
                   list="user-directory-search-suggestions"
-                  style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  style={{ flex: 1, minWidth: '250px', padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
                 <datalist id="user-directory-search-suggestions">
                   {directoryUsers.flatMap(u => [
@@ -2341,7 +2343,7 @@ function AdminDashboardContent() {
                     <option key={idx} value={item.val} label={item.desc} />
                   ))}
                 </datalist>
-                <button onClick={handleSearchDirectory} className="btn-primary" disabled={isSearching} style={{ padding: '0 2rem' }}>
+                <button onClick={handleSearchDirectory} className="btn-primary" disabled={isSearching} style={{ padding: '0.75rem 2rem' }}>
                   {isSearching ? "Searching..." : "Search"}
                 </button>
               </div>
@@ -5191,8 +5193,8 @@ function AdminDashboardContent() {
         </div>
       )}
       {showProfileModal && editingProfile && typeof window !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '2rem' }}>
-          <div className="glass-card" style={{ width: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', border: '1px solid var(--primary)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem', overflowY: 'auto' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', border: '1px solid var(--primary)', margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                <div>
                  <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : editingProfile.role === 'TEACHER' ? 'Teacher' : 'Admin'} Profile Editor</h2>

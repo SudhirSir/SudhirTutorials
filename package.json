@@ -7,9 +7,13 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "mobile:sync": "npm run build && npx cap sync",
+    "mobile:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/push-notifications": "^8.1.1",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
     "next": "^15.5.18",
@@ -23,6 +27,9 @@
     "postcss": "8.5.14"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.19.41",
     "@types/react": "^19.2.14",
@@ -32,4 +39,3 @@
     "typescript": "^5.9.3"
   }
 }
-

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sudhir Tutorials</string>
+    <string name="title_activity_main">Sudhir Tutorials</string>
+    <string name="package_name">com.sudhirtutorials.app</string>
+    <string name="custom_url_scheme">com.sudhirtutorials.app</string>
+</resources>

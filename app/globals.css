@@ -413,14 +413,24 @@ textarea:focus {
   .dashboard-main div[style*="display: grid"],
   .dashboard-main div[style*="display:grid"],
   .dashboard-main div[style*="grid-template-columns"],
-  .dashboard-main div[style*="gridTemplateColumns"] {
+  .dashboard-main div[style*="gridTemplateColumns"],
+  .glass-card div[style*="display: grid"],
+  .glass-card div[style*="display:grid"],
+  .glass-card div[style*="grid-template-columns"],
+  .glass-card div[style*="gridTemplateColumns"],
+  .glass-card form[style*="display: grid"],
+  .glass-card form[style*="display:grid"],
+  .glass-card form[style*="grid-template-columns"],
+  .glass-card form[style*="gridTemplateColumns"] {
     grid-template-columns: 1fr !important;
     gap: 1.25rem !important;
   }
 
   /* Allow flex rows to wrap on smaller screens */
   .dashboard-main div[style*="display: flex"][style*="flex-direction: row"],
-  .dashboard-main div[style*="display: flex"][style*="flexDirection: 'row'"] {
+  .dashboard-main div[style*="display: flex"][style*="flexDirection: 'row'"],
+  .glass-card div[style*="display: flex"][style*="flex-direction: row"],
+  .glass-card div[style*="display: flex"][style*="flexDirection: 'row'"] {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 1rem !important;
@@ -453,7 +463,9 @@ textarea:focus {
   }
 
   /* Ensure all tables are horizontally scrollable instead of clipping/stretching */
-  .dashboard-main table {
+  .dashboard-main table,
+  .glass-card table,
+  table {
     display: block !important;
     width: 100% !important;
     overflow-x: auto !important;
