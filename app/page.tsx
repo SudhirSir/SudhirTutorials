@@ -641,7 +641,7 @@ export default function Home() {
               position: 'relative'
             }}>
               <Image 
-                src="/sudhirsir.jfif" 
+                src="/sudhirsir.jpg" 
                 alt="Founder Sudhir Sir" 
                 width={450}
                 height={450}
