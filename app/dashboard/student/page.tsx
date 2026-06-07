@@ -45,7 +45,7 @@ function StudentDashboardContent() {
     setActiveTab(newTab);
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', newTab);
-    router.replace(pathname + '?' + params.toString(), { scroll: false });
+    router.push(pathname + '?' + params.toString(), { scroll: false });
   };
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -127,6 +127,29 @@ function StudentDashboardContent() {
       document.body.style.overflow = '';
     };
   }, [activeProfileUserId]);
+
+  useEffect(() => {
+    const handleBackButton = (e: Event) => {
+      if (isReceiptOpen) {
+        e.preventDefault();
+        setIsReceiptOpen(false);
+      } else if (isRazorpayOpen) {
+        e.preventDefault();
+        setIsRazorpayOpen(false);
+      } else if (activeProfileUserId) {
+        e.preventDefault();
+        setActiveProfileUserId(null);
+      } else if (chatSelectedUserId) {
+        e.preventDefault();
+        setChatSelectedUserId(null);
+      }
+    };
+
+    window.addEventListener('backbuttonpress', handleBackButton);
+    return () => {
+      window.removeEventListener('backbuttonpress', handleBackButton);
+    };
+  }, [isReceiptOpen, isRazorpayOpen, activeProfileUserId, chatSelectedUserId]);
 
   // Digital Guru Ji AI states
   const [guruQuestion, setGuruQuestion] = useState('');
@@ -409,7 +432,7 @@ function StudentDashboardContent() {
         await Share.share({
           title: 'Payment Receipt',
           text: `Payment Receipt for ${receiptData?.title}`,
-          url: writeResult.uri,
+          files: [writeResult.uri],
           dialogTitle: 'Save/Print Receipt'
         });
       } else {

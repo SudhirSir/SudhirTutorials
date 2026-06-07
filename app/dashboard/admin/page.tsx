@@ -845,6 +845,33 @@ function AdminDashboardContent() {
     };
   }, [selectedUserDetail, activeProfileUserId, showProfileModal, activeReceipt]);
 
+  useEffect(() => {
+    const handleBackButton = (e: Event) => {
+      if (activeReceipt) {
+        e.preventDefault();
+        setActiveReceipt(null);
+      } else if (activeProfileUserId) {
+        e.preventDefault();
+        setActiveProfileUserId(null);
+      } else if (selectedUserDetail) {
+        e.preventDefault();
+        setSelectedUserDetail(null);
+      } else if (showProfileModal) {
+        e.preventDefault();
+        setShowProfileModal(false);
+      } else if (editingFeeRecord) {
+        e.preventDefault();
+        setEditingFeeRecord(null);
+        setShowEditFeeModal(false);
+      }
+    };
+
+    window.addEventListener('backbuttonpress', handleBackButton);
+    return () => {
+      window.removeEventListener('backbuttonpress', handleBackButton);
+    };
+  }, [activeReceipt, activeProfileUserId, selectedUserDetail, showProfileModal, editingFeeRecord]);
+
   // --- Handlers ---
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1157,7 +1184,31 @@ function AdminDashboardContent() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      await (window as any).html2pdf().from(original).set(opt).save();
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const pdfDataUri = await (window as any).html2pdf().from(original).set(opt).output('datauristring');
+        const base64Data = pdfDataUri.split(',')[1];
+        
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+
+        const filename = `Receipt_${activeReceipt?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`;
+        
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: Directory.Cache
+        });
+
+        await Share.share({
+          title: 'Payment Receipt',
+          text: `Payment Receipt for ${activeReceipt?.title}`,
+          files: [writeResult.uri],
+          dialogTitle: 'Save/Print Receipt'
+        });
+      } else {
+        await (window as any).html2pdf().from(original).set(opt).save();
+      }
       
       // Restore the buttons
       if (buttons) buttons.style.display = 'flex';

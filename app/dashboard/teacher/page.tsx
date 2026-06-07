@@ -171,6 +171,26 @@ function TeacherDashboardContent() {
   // Profile State
   const [profile, setProfile] = useState<any>(null);
 
+  useEffect(() => {
+    const handleBackButton = (e: Event) => {
+      if (activeProfileUserId) {
+        e.preventDefault();
+        setActiveProfileUserId(null);
+      } else if (selectedTest) {
+        e.preventDefault();
+        setSelectedTest(null);
+      } else if (chatSelectedUserId) {
+        e.preventDefault();
+        setChatSelectedUserId(null);
+      }
+    };
+
+    window.addEventListener('backbuttonpress', handleBackButton);
+    return () => {
+      window.removeEventListener('backbuttonpress', handleBackButton);
+    };
+  }, [activeProfileUserId, selectedTest, chatSelectedUserId]);
+
   // ─── AI GURU WORKSPACE FOR TEACHERS ───────────────────
   const [aiMode, setAiMode] = useState<'GURU' | 'PREPARE'>('GURU');
   const [teacherGuruQuestion, setTeacherGuruQuestion] = useState('');

@@ -86,6 +86,26 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     }
   }, []);
 
+  useEffect(() => {
+    const handleBackButton = (e: Event) => {
+      if (showProfileModal) {
+        e.preventDefault();
+        setShowProfileModal(false);
+      } else if (showUserSearch) {
+        e.preventDefault();
+        setShowUserSearch(false);
+      } else if (selectedUser) {
+        e.preventDefault();
+        setSelectedUser(null);
+      }
+    };
+
+    window.addEventListener('backbuttonpress', handleBackButton);
+    return () => {
+      window.removeEventListener('backbuttonpress', handleBackButton);
+    };
+  }, [showProfileModal, showUserSearch, selectedUser]);
+
   // Automatically mark incoming messages as read when they arrive and the chat is open
   useEffect(() => {
     if (!selectedUser) return;

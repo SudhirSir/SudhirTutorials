@@ -30,7 +30,8 @@ export async function sendPushNotification(userId: string, title: string, body: 
         notification: {
           title: title,
           body: body,
-          sound: 'default'
+          sound: 'default',
+          android_channel_id: 'default'
         }
       })
     });
@@ -72,7 +73,8 @@ export async function sendPushNotificationToMultiple(userIds: string[], title: s
             notification: {
               title: title,
               body: body,
-              sound: 'default'
+              sound: 'default',
+              android_channel_id: 'default'
             }
           })
         });
