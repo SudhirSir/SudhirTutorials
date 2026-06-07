@@ -10,6 +10,7 @@ import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
 import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
+import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 
 function formatDateDisplay(dateInput: any): string {
   if (!dateInput) return 'N/A';
@@ -696,6 +697,7 @@ Depending on your specific focus, this represents the vital equation model for t
 
       {activeTab === 'classes' && (
         <>
+          <QuickServicesWidget role="TEACHER" setActiveTab={handleTabChange} />
           <div className="resp-grid-2col" style={{ marginBottom: '3rem' }}>
             <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Quick Actions</h3>

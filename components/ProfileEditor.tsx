@@ -312,13 +312,15 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
               <ThemeToggle />
             </div>
             
-            <button
-              type="button"
-              onClick={() => setShowBugReportModal(true)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(239,68,68,0.04)', border: '1px dashed var(--primary)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-              🐞 Report a Bug / Suggestion
-            </button>
+            {role !== 'ADMIN' && (
+              <button
+                type="button"
+                onClick={() => setShowBugReportModal(true)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(239,68,68,0.04)', border: '1px dashed var(--primary)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                🐞 Report a Bug / Suggestion
+              </button>
+            )}
           </div>
         </div>
 

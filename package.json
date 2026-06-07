@@ -12,6 +12,7 @@
     "mobile:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/push-notifications": "^8.1.1",
     "@prisma/client": "^5.22.0",

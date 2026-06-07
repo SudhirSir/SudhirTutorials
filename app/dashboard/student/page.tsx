@@ -13,6 +13,7 @@ import { StudentLedger } from '@/components/StudentLedger';
 import { LecturesSection } from '@/components/LecturesSection';
 import { useTheme } from '@/components/ThemeProvider';
 import { UserProfileModal } from '@/components/UserProfileModal';
+import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 
 function formatDateDisplay(dateInput: any): string {
   if (!dateInput) return 'N/A';
@@ -441,6 +442,7 @@ function StudentDashboardContent() {
 
       {activeTab === 'dashboard' && (
         <>
+          <QuickServicesWidget role="STUDENT" setActiveTab={handleTabChange} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '2rem', marginBottom: '2rem' }}>
             <div className="glass-card" style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

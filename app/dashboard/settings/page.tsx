@@ -134,30 +134,32 @@ export default function SettingsPage() {
               <ThemeToggle />
             </div>
             
-            <button
-              type="button"
-              onClick={() => setShowBugReportModal(true)}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                borderRadius: '12px',
-                background: 'rgba(239,68,68,0.04)',
-                border: '1px dashed var(--primary)',
-                color: 'var(--primary)',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.04)'}
-            >
-              🐞 Report a Bug / Suggestion
-            </button>
+            {user?.role !== 'ADMIN' && (
+              <button
+                type="button"
+                onClick={() => setShowBugReportModal(true)}
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  background: 'rgba(239,68,68,0.04)',
+                  border: '1px dashed var(--primary)',
+                  color: 'var(--primary)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.04)'}
+              >
+                🐞 Report a Bug / Suggestion
+              </button>
+            )}
           </div>
         </div>
 

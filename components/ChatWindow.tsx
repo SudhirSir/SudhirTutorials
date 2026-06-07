@@ -876,7 +876,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             </div>
 
             {/* Input form with Upload, Text & Send buttons */}
-            <form onSubmit={(e) => handleSendMessage(e)} style={{ padding: '0.75rem 1.25rem', display: 'flex', gap: '0.75rem', background: 'var(--surface)', borderTop: '1px solid var(--border)', alignItems: 'center', position: 'relative' }}>
+            <form onSubmit={(e) => handleSendMessage(e)} style={{ padding: '0.75rem 1.25rem', display: 'flex', flexWrap: 'nowrap', gap: '0.75rem', background: 'var(--surface)', borderTop: '1px solid var(--border)', alignItems: 'center', position: 'relative' }}>
                {/* Hidden File Input */}
                <input 
                  type="file" 

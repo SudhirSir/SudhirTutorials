@@ -10,21 +10,21 @@
   --secondary-hover:hsl(217, 80%, 35%);
   --accent:         hsl(217, 70%, 55%);
   --background:     hsl(210, 20%, 97%);
-  --surface:        hsl(0,   0%,  100%);
+  --surface:        hsl(210, 20%, 96%);
   --surface-light:  hsl(210, 18%, 94%);
   --text:           hsl(220, 25%, 10%);
   --text-muted:     hsl(220, 12%, 38%);
   --text-heading:   hsl(220, 25%, 8%);
   --border:         hsl(220, 14%, 82%);
-  --glass-bg:       rgba(255, 255, 255, 0.96);
-  --glass-border:   rgba(15, 23, 42, 0.10);
+  --glass-bg:       rgba(240, 244, 248, 0.95);
+  --glass-border:   rgba(15, 23, 42, 0.08);
   --shadow:         0 8px 30px -10px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.04);
   --shadow-lg:      0 20px 50px -15px rgba(15,23,42,0.12);
   --logo-gradient:  linear-gradient(90deg, hsl(0,78%,50%), hsl(217,80%,45%));
-  --card-bg-alt:    hsl(210, 18%, 94%);
-  --card-bg:        hsl(0, 0%, 100%);
-  --input-bg:       hsl(0, 0%, 100%);
-  --input-focus-bg: hsl(0, 0%, 100%);
+  --card-bg-alt:    hsl(210, 18%, 93%);
+  --card-bg:        hsl(210, 20%, 96.5%);
+  --input-bg:       hsl(210, 20%, 96%);
+  --input-focus-bg: hsl(210, 20%, 95%);
   --login-overlay:  linear-gradient(135deg, rgba(240,244,248,0.95) 0%, rgba(240,244,248,0.70) 100%);
   --radius:         16px;
 }
@@ -38,23 +38,23 @@
     --secondary-hover:hsl(217, 91%, 50%);   
     --accent:         hsl(217, 80%, 70%);   
     --accent-hover:   hsl(217, 80%, 55%);
-    --background:     hsl(240, 10%, 4%);    
-    --surface:        hsl(240, 8%,  9%);    
-    --surface-light:  hsl(240, 7%, 14%);    
+    --background:     hsl(222, 47%, 11%);    
+    --surface:        hsl(222, 40%, 15%);    
+    --surface-light:  hsl(222, 35%, 20%);    
     --text:           hsl(0, 0%, 97%);
-    --text-muted:     hsl(240, 5%, 65%);
+    --text-muted:     hsl(222, 10%, 70%);
     --text-heading:   hsl(0, 0%, 100%);
-    --border:         hsl(240, 5%, 26%);
-    --glass-bg:       rgba(15, 15, 22, 0.65);
+    --border:         hsl(222, 20%, 24%);
+    --glass-bg:       rgba(15, 23, 42, 0.75);
     --glass-border:   rgba(255, 255, 255, 0.07);
     --shadow:         0 10px 40px -10px rgba(0, 0, 0, 0.55);
     --shadow-lg:      0 20px 60px -15px rgba(0, 0, 0, 0.65);
     --logo-gradient:  linear-gradient(90deg, hsl(0,85%,60%), hsl(217,91%,60%));
     --card-bg-alt:    rgba(255, 255, 255, 0.025);
-    --card-bg:        hsl(240, 8%, 9%);
-    --input-bg:       rgba(5, 5, 12, 0.55);
-    --input-focus-bg: rgba(5, 5, 12, 0.85);
-    --login-overlay:  linear-gradient(135deg, rgba(5,5,12,0.82) 0%, rgba(5,5,12,0.32) 100%);
+    --card-bg:        hsl(222, 40%, 16%);
+    --input-bg:       rgba(30, 41, 59, 0.6);
+    --input-focus-bg: rgba(30, 41, 59, 0.85);
+    --login-overlay:  linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 100%);
   }
 }
 
@@ -66,23 +66,23 @@
   --secondary-hover:hsl(217, 91%, 50%);   
   --accent:         hsl(217, 80%, 70%);   
   --accent-hover:   hsl(217, 80%, 55%);
-  --background:     hsl(240, 10%, 4%);    
-  --surface:        hsl(240, 8%,  9%);    
-  --surface-light:  hsl(240, 7%, 14%);    
+  --background:     hsl(222, 47%, 11%);    
+  --surface:        hsl(222, 40%, 15%);    
+  --surface-light:  hsl(222, 35%, 20%);    
   --text:           hsl(0, 0%, 97%);
-  --text-muted:     hsl(240, 5%, 65%);
+  --text-muted:     hsl(222, 10%, 70%);
   --text-heading:   hsl(0, 0%, 100%);
-  --border:         hsl(240, 5%, 26%);
-  --glass-bg:       rgba(15, 15, 22, 0.65);
+  --border:         hsl(222, 20%, 24%);
+  --glass-bg:       rgba(15, 23, 42, 0.75);
   --glass-border:   rgba(255, 255, 255, 0.07);
   --shadow:         0 10px 40px -10px rgba(0, 0, 0, 0.55);
   --shadow-lg:      0 20px 60px -15px rgba(0, 0, 0, 0.65);
   --logo-gradient:  linear-gradient(90deg, hsl(0,85%,60%), hsl(217,91%,60%));
   --card-bg-alt:    rgba(255, 255, 255, 0.025);
-  --card-bg:        hsl(240, 8%, 9%);
-  --input-bg:       rgba(5, 5, 12, 0.55);
-  --input-focus-bg: rgba(5, 5, 12, 0.85);
-  --login-overlay:  linear-gradient(135deg, rgba(5,5,12,0.82) 0%, rgba(5,5,12,0.32) 100%);
+  --card-bg:        hsl(222, 40%, 16%);
+  --input-bg:       rgba(30, 41, 59, 0.6);
+  --input-focus-bg: rgba(30, 41, 59, 0.85);
+  --login-overlay:  linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 100%);
 }
 
 /* Explicit Light Theme Selector */
@@ -93,21 +93,21 @@
   --secondary-hover:hsl(217, 80%, 35%);
   --accent:         hsl(217, 70%, 55%);
   --background:     hsl(210, 20%, 97%);
-  --surface:        hsl(0,   0%,  100%);
+  --surface:        hsl(210, 20%, 96%);
   --surface-light:  hsl(210, 18%, 94%);
   --text:           hsl(220, 25%, 10%);
   --text-muted:     hsl(220, 12%, 38%);
   --text-heading:   hsl(220, 25%, 8%);
   --border:         hsl(220, 14%, 82%);
-  --glass-bg:       rgba(255, 255, 255, 0.96);
-  --glass-border:   rgba(15, 23, 42, 0.10);
+  --glass-bg:       rgba(240, 244, 248, 0.95);
+  --glass-border:   rgba(15, 23, 42, 0.08);
   --shadow:         0 8px 30px -10px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.04);
   --shadow-lg:      0 20px 50px -15px rgba(15,23,42,0.12);
   --logo-gradient:  linear-gradient(90deg, hsl(0,78%,50%), hsl(217,80%,45%));
   --card-bg-alt:    hsl(210, 18%, 94%);
-  --card-bg:        hsl(0, 0%, 100%);
-  --input-bg:       hsl(0, 0%, 100%);
-  --input-focus-bg: hsl(0, 0%, 100%);
+  --card-bg:        hsl(210, 20%, 96.5%);
+  --input-bg:       hsl(210, 20%, 96%);
+  --input-focus-bg: hsl(210, 20%, 95%);
   --login-overlay:  linear-gradient(135deg, rgba(240,244,248,0.95) 0%, rgba(240,244,248,0.70) 100%);
 }
 
@@ -455,19 +455,13 @@ textarea:focus {
     gap: 1.25rem !important;
   }
 
-  /* Nested grids inside glass-card also collapse */
-  .glass-card div[style*="grid-template-columns"],
-  .glass-card div[style*="gridTemplateColumns"],
+  /* Nested grids inside glass-card also collapse, EXCEPT auto-fit/auto-fill */
+  .glass-card div[style*="grid-template-columns"]:not([style*="repeat(auto-fit"]):not([style*="repeat(auto-fill"]),
+  .glass-card div[style*="gridTemplateColumns"]:not([style*="repeat(auto-fit"]):not([style*="repeat(auto-fill"]),
   .glass-card form[style*="grid-template-columns"],
   .glass-card form[style*="gridTemplateColumns"] {
     grid-template-columns: 1fr !important;
     gap: 1.25rem !important;
-  }
-
-  /* EXCEPTION: allow auto-fit/auto-fill grids to remain (they self-adapt) */
-  .glass-card div[style*="repeat(auto-fit"],
-  .glass-card div[style*="repeat(auto-fill"] {
-    grid-template-columns: unset !important;
   }
 
   /* Marks entry modal grid (4 columns → 2 columns → stacked on mobile) */
@@ -498,10 +492,11 @@ textarea:focus {
     border-radius: 16px !important;
   }
 
-  /* Allow ALL flex containers with rows to wrap */
+  /* Allow ALL flex containers with rows to wrap - disabled to prevent chat send button layout issues
   .dashboard-main [style*="display: flex"]:not([style*="display: inline-flex"]) {
     flex-wrap: wrap !important;
   }
+  */
 
   /* Dashboard header responsive */
   .dashboard-header {

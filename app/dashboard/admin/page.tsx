@@ -13,6 +13,7 @@ import { StudentLedger } from '@/components/StudentLedger';
 import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { AdmissionsSection } from '@/components/AdmissionsSection';
+import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 
 function formatDobDisplay(dobStr: string | null | undefined): string {
   if (!dobStr) return 'N/A';
@@ -650,6 +651,9 @@ function AdminDashboardContent() {
   const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'>('ALL');
   const [showPendingVerificationsList, setShowPendingVerificationsList] = useState(false);
   const [showAdmissionsInquiriesList, setShowAdmissionsInquiriesList] = useState(false);
+  const [bugReports, setBugReports] = useState<any[]>([]);
+  const [isLoadingBugReports, setIsLoadingBugReports] = useState(false);
+  const [showBugReportsList, setShowBugReportsList] = useState(false);
 
   const filteredDirectoryUsers = useMemo(() => {
     return directoryUsers.filter(u => {
@@ -1446,6 +1450,37 @@ function AdminDashboardContent() {
     } catch (err) { console.error(err); } finally { setIsVerifying(null); }
   };
 
+  const fetchBugReports = async () => {
+    setIsLoadingBugReports(true);
+    try {
+      const res = await fetch('/api/reports');
+      if (res.ok) {
+        const data = await res.json();
+        setBugReports(data.reports || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingBugReports(false);
+    }
+  };
+
+  const handleDeleteBugReport = async (reportId: string) => {
+    if (!confirm("Are you sure you want to dismiss/delete this report?")) return;
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: reportId })
+      });
+      if (res.ok) {
+        fetchBugReports();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
@@ -1468,7 +1503,10 @@ function AdminDashboardContent() {
       setAutoBillingMonth(currentMonth);
       fetchAutoBillingPreview(currentMonth);
     }
-    if (activeTab === 'verifications') fetchPendingVerifications();
+    if (activeTab === 'verifications') {
+      fetchPendingVerifications();
+      fetchBugReports();
+    }
     if (activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) {
       Promise.all([
         fetchCourses(),
@@ -2030,6 +2068,7 @@ function AdminDashboardContent() {
 
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <QuickServicesWidget role="ADMIN" setActiveTab={setActiveTab} />
           {/* Key Metrics Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
             {[
@@ -2240,6 +2279,39 @@ function AdminDashboardContent() {
             >
               🏫 Student Admission Inquiries
             </button>
+            <button 
+              onClick={() => {
+                setShowBugReportsList(!showBugReportsList);
+                if (!showBugReportsList) fetchBugReports();
+              }}
+              style={{
+                padding: '0.75rem 1.25rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: showBugReportsList ? 'var(--primary)' : 'var(--card-bg-alt)',
+                color: showBugReportsList ? '#fff' : 'var(--text)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+                fontSize: '0.9rem'
+              }}
+            >
+              🐛 Bug & User Reports {bugReports.length > 0 && (
+                <span style={{ 
+                  background: showBugReportsList ? '#fff' : '#ef4444', 
+                  color: showBugReportsList ? '#ef4444' : '#fff', 
+                  fontSize: '0.75rem', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: 800
+                }}>
+                  {bugReports.length}
+                </span>
+              )}
+            </button>
           </div>
 
           {showPendingVerificationsList && (
@@ -2279,6 +2351,78 @@ function AdminDashboardContent() {
                       >
                         {isVerifying === u.id ? 'Verifying...' : 'Approve & Verify'}
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showBugReportsList && (
+            <div className="glass-card animate-scale-up" style={{ padding: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🐛 Bug & User Reports
+              </h2>
+              {isLoadingBugReports ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '24px', height: '24px', border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  Loading reports...
+                </div>
+              ) : bugReports.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>No bug or user reports registered in the database.</p>
+              ) : (
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                  {bugReports.map(report => (
+                    <div key={report.id} style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div>
+                          <span style={{ 
+                            padding: '3px 8px', 
+                            borderRadius: '6px', 
+                            fontSize: '0.7rem', 
+                            fontWeight: 800, 
+                            background: report.title.includes('Bug') ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)', 
+                            color: report.title.includes('Bug') ? '#ef4444' : '#f59e0b',
+                            border: `1px solid ${report.title.includes('Bug') ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                            marginRight: '0.5rem'
+                          }}>
+                            {report.title.includes('Bug') ? 'BUG REPORT' : 'USER REPORT'}
+                          </span>
+                          <h4 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text)' }}>
+                            {report.title}
+                          </h4>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Logged: {new Date(report.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteBugReport(report.id)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: 'none',
+                            color: '#ef4444',
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Dismiss / Delete
+                        </button>
+                      </div>
+                      <div style={{ 
+                        background: 'rgba(0,0,0,0.15)', 
+                        padding: '1rem', 
+                        borderRadius: '10px', 
+                        border: '1px solid var(--border)',
+                        whiteSpace: 'pre-wrap', 
+                        fontSize: '0.88rem', 
+                        color: 'var(--text)',
+                        fontFamily: 'monospace'
+                      }}>
+                        {report.message}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -3020,7 +3164,7 @@ function AdminDashboardContent() {
                     </button>
                   </div>
                 ) : (
-                  <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem' }}>
+                  <div style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem', width: '100%' }}>
                     {/* View Mode 1: ALL RECORDS */}
                     {ledgerViewMode === 'ALL' && (
                       <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
