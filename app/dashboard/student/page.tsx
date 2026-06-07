@@ -399,7 +399,7 @@ function StudentDashboardContent() {
 
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
+      <div className="dashboard-tab-bar no-scrollbar no-print">
         {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}

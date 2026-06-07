@@ -1902,7 +1902,7 @@ function AdminDashboardContent() {
 
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }} className="no-print">
+      <div className="dashboard-tab-bar no-scrollbar no-print">
         {['overview', 'users', 'verifications', 'finances', 'salary', 'academics', 'guru-ai', 'messages', 'notifications', 'profile', 'settings'].map(tab => (
           <button 
             key={tab}
@@ -2290,7 +2290,7 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start', maxWidth: '100%', overflowX: 'auto' }} className="no-scrollbar">
+          <div className="subtab-nav no-scrollbar">
             <button 
               onClick={() => setUserSubTab('DIRECTORY')}
               style={{
@@ -2585,7 +2585,7 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+          <div className="subtab-nav no-scrollbar">
             {[
               { id: 'OVERVIEW', label: 'Finance Hub', desc: 'Overview & Stats' },
               { id: 'LEDGER', label: 'Fee Ledger', desc: 'Transactions & Dues' },
@@ -3981,7 +3981,7 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.15)', padding: '0.5rem', borderRadius: '16px', border: '1px solid var(--border)', alignSelf: 'flex-start' }}>
+          <div className="subtab-nav no-scrollbar">
             <button 
               onClick={() => setCourseSubTab('COURSES')}
               style={{
@@ -5221,9 +5221,9 @@ function AdminDashboardContent() {
                <button onClick={() => { setShowProfileModal(false); setOtpValue(""); }} style={{ background: 'none', border: 'none', color: 'var(--text)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
 
-            <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.5rem' }}>
 
-               <div className="input-group" style={{ gridColumn: 'span 2' }}>
+               <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                  <label>Profile Picture</label>
                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                    {editingProfile.photoUrl ? (
@@ -5317,7 +5317,7 @@ function AdminDashboardContent() {
 
                {editingProfile.role === 'STUDENT' ? (
                  <>
-                   <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: '1 / -1' }}>
+                   <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', gridColumn: '1 / -1' }}>
                      <label style={{ margin: 0 }}>Student Account Status:</label>
                      <select 
                        value={editingProfile.isActive === false ? 'false' : 'true'}
@@ -5395,12 +5395,12 @@ function AdminDashboardContent() {
                        ))}
                      </select>
                    </div>
-                   <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                   <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                      <label>School Name</label>
                      <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
                    </div>
 
-                   <div className="input-group" style={{ gridColumn: 'span 2', marginTop: '0.75rem', background: 'rgba(245,158,11,0.05)', padding: '1.25rem', borderRadius: '12px', border: '1px dashed rgba(245,158,11,0.3)' }}>
+                   <div className="input-group" style={{ gridColumn: '1 / -1', marginTop: '0.75rem', background: 'rgba(245,158,11,0.05)', padding: '1.25rem', borderRadius: '12px', border: '1px dashed rgba(245,158,11,0.3)' }}>
                      <label style={{ color: '#f59e0b', fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                        🔑 Security: One-Time Temporary Password
                      </label>
@@ -5481,14 +5481,14 @@ function AdminDashboardContent() {
                      <label>Qualification</label>
                      <input type="text" value={editingProfile.qualification || ''} onChange={e => setEditingProfile({...editingProfile, qualification: e.target.value})} placeholder="e.g. M.Sc. B.Ed." />
                    </div>
-                   <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                   <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                      <label>Experience</label>
                      <input type="text" value={editingProfile.experience || ''} onChange={e => setEditingProfile({...editingProfile, experience: e.target.value})} placeholder="e.g. 5 Years" />
                    </div>
                  </>
                ) : null}
 
-               <div className="input-group" style={{ gridColumn: 'span 2' }}>
+               <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                  <label>Residential Address</label>
                  <textarea 
                    maxLength={60} value={editingProfile.address || ''} 
@@ -5500,7 +5500,7 @@ function AdminDashboardContent() {
                
 
 
-               <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+               <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
                  <button type="button" onClick={handleDeleteUser} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}>Delete Account</button>
                  <button type="button" onClick={() => { setShowProfileModal(false); setOtpValue(""); }} style={{ flex: 1, padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer' }}>Cancel</button>
                  <button type="submit" className="btn-primary" disabled={isSavingProfile} style={{ flex: 2, padding: '1rem' }}>
@@ -5523,7 +5523,7 @@ function AdminDashboardContent() {
             </div>
 
             {/* Sub-Tabs inside Modal */}
-            <div style={{ display: 'flex', gap: '0.75rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px', marginBottom: '2rem', width: 'fit-content' }}>
+            <div className="subtab-nav no-scrollbar" style={{ marginBottom: '2rem', background: 'rgba(0,0,0,0.2)' }}>
               <button 
                 onClick={() => setBatchModalTab('CONFIG')}
                 style={{
@@ -5675,7 +5675,7 @@ function AdminDashboardContent() {
                           {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, i) => <option key={i} value={i+1}>{d}</option>)}
                         </select>
                         <input type="text" placeholder="Room (e.g. Hall A)" value={newSchedule.room} onChange={e => setNewSchedule({...newSchedule, room: e.target.value})} style={{ width: '100%' }} />
-                        <input type="text" placeholder="Subject (e.g. Physics)" value={newSchedule.subject || ''} onChange={e => setNewSchedule({...newSchedule, subject: e.target.value})} style={{ gridColumn: 'span 2', width: '100%' }} />
+                        <input type="text" placeholder="Subject (e.g. Physics)" value={newSchedule.subject || ''} onChange={e => setNewSchedule({...newSchedule, subject: e.target.value})} style={{ gridColumn: '1 / -1', width: '100%' }} />
                         <input type="time" value={newSchedule.startTime} onChange={e => setNewSchedule({...newSchedule, startTime: e.target.value})} style={{ width: '100%' }} />
                         <input type="time" value={newSchedule.endTime} onChange={e => setNewSchedule({...newSchedule, endTime: e.target.value})} style={{ width: '100%' }} />
                       </div>

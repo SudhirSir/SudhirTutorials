@@ -653,7 +653,7 @@ Depending on your specific focus, this represents the vital equation model for t
       </header>
 
 
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
+      <div className="dashboard-tab-bar no-scrollbar no-print">
         {['classes', 'materials', 'students', 'attendance', 'tests', 'salary', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
