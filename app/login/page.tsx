@@ -118,7 +118,7 @@ export default function LoginPage() {
   };
 
   const tabs = [
-    { id: "student", label: "Student", icon: "🎓", color: "var(--primary)" },
+    { id: "student", label: "Student", icon: "🎓", color: "#2563eb" },
     { id: "teacher", label: "Teacher", icon: "👨‍🏫", color: "#10b981" },
     { id: "admin", label: "Admin", icon: "🎛️", color: "#ef4444" },
   ];

@@ -194,7 +194,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
         <Link href="/" className="logo-small-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', whiteSpace: 'nowrap' }} onClick={handleNavLinkClick}>
           <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
-          <span style={{ whiteSpace: 'nowrap' }}>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></span>
+          <span style={{ whiteSpace: 'nowrap' }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
         </Link>
       </header>
 
@@ -209,7 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <Link href="/" className="logo-small" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }} onClick={handleNavLinkClick}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
-                <span>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></span>
+                <span>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -368,26 +368,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           --primary: hsl(217, 80%, 45%) !important;
           --primary-hover: hsl(217, 80%, 35%) !important;
           --accent: hsl(217, 70%, 55%) !important;
-          --logo-gradient: linear-gradient(90deg, hsl(217, 80%, 45%), hsl(200, 80%, 45%)) !important;
         }
         [data-theme="dark"] .student-portal {
           --primary: hsl(217, 91%, 60%) !important;
           --primary-hover: hsl(217, 91%, 50%) !important;
           --accent: hsl(217, 80%, 70%) !important;
-          --logo-gradient: linear-gradient(90deg, hsl(217, 91%, 60%), hsl(200, 91%, 60%)) !important;
         }
 
         .teacher-portal {
           --primary: hsl(142, 71%, 45%) !important;
           --primary-hover: hsl(142, 71%, 35%) !important;
           --accent: hsl(142, 60%, 55%) !important;
-          --logo-gradient: linear-gradient(90deg, hsl(142, 71%, 45%), hsl(160, 71%, 45%)) !important;
         }
         [data-theme="dark"] .teacher-portal {
           --primary: hsl(142, 71%, 45%) !important;
           --primary-hover: hsl(142, 71%, 35%) !important;
           --accent: hsl(142, 60%, 55%) !important;
-          --logo-gradient: linear-gradient(90deg, hsl(142, 71%, 45%), hsl(160, 71%, 45%)) !important;
         }
 
         .dashboard-container {

@@ -43,6 +43,31 @@ prisma.$use(async (params, next) => {
         });
       }
     }
+  } else if (params.model === 'Message' && params.action === 'create') {
+    const data = params.args?.data;
+    if (data && data.senderId && data.receiverId && data.content) {
+      // Fetch sender name to display on the push notification banner
+      prisma.user.findUnique({
+        where: { id: data.senderId },
+        select: { name: true }
+      }).then(sender => {
+        const senderName = sender?.name || 'User';
+        let displayBody = data.content;
+        if (data.content.startsWith('data:')) {
+          displayBody = '📎 Media attachment';
+        } else if (data.content.length > 80) {
+          displayBody = data.content.substring(0, 80) + '...';
+        }
+        
+        import('./push').then(({ sendPushNotification }) => {
+          sendPushNotification(data.receiverId, `💬 New message from ${senderName}`, displayBody).catch(err => {
+            console.error("Failed to send message push notification:", err);
+          });
+        });
+      }).catch(err => {
+        console.error("Failed to fetch sender for push notification:", err);
+      });
+    }
   }
 
   return result;

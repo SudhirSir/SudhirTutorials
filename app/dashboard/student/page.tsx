@@ -416,13 +416,11 @@ function StudentDashboardContent() {
           --primary: hsl(217, 80%, 45%) !important;
           --primary-hover: hsl(217, 80%, 35%) !important;
           --accent: hsl(217, 70%, 55%) !important;
-          --logo-gradient: linear-gradient(90deg, hsl(217, 80%, 45%), hsl(200, 80%, 45%)) !important;
         }
         [data-theme="dark"] .student-dashboard-root {
           --primary: hsl(217, 91%, 60%) !important;
           --primary-hover: hsl(217, 91%, 50%) !important;
           --accent: hsl(217, 80%, 70%) !important;
-          --logo-gradient: linear-gradient(90deg, hsl(217, 91%, 60%), hsl(200, 91%, 60%)) !important;
         }
         /* Custom scrollbar override for student portal */
         .student-dashboard-root ::-webkit-scrollbar-thumb:hover {
@@ -1069,7 +1067,7 @@ function StudentDashboardContent() {
                   <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.65rem', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Coaching Institute</div>
                   <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
                     <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain', borderRadius: '4px' }} />
-                    <span style={{ color: 'var(--primary)', fontWeight: 800 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>TUTORIALS</span>
+                    <span style={{ color: '#ef4444', fontWeight: 800 }}>SUDHIR</span> <span style={{ color: '#2563eb', fontWeight: 800 }}>TUTORIALS</span>
                   </h3>
 
                   {/* Premium Payment Mode Selector */}

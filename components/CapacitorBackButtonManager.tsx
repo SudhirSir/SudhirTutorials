@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function CapacitorBackButtonManager() {
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -33,13 +34,30 @@ export function CapacitorBackButtonManager() {
           const tab = searchParams.get('tab');
 
           const isLandingPage = pathname === '/' || pathname === '/login' || pathname === '/register';
-          const isDashboardLanding =
-            (pathname === '/dashboard/admin' && (!tab || tab === 'overview')) ||
-            (pathname === '/dashboard/teacher' && (!tab || tab === 'classes')) ||
-            (pathname === '/dashboard/student' && (!tab || tab === 'dashboard'));
-
-          if (isLandingPage || isDashboardLanding) {
+          
+          if (isLandingPage) {
             App.exitApp();
+            return;
+          }
+
+          if (pathname.startsWith('/dashboard/admin')) {
+            if (!tab || tab === 'overview') {
+              App.exitApp();
+            } else {
+              router.push('/dashboard/admin?tab=overview');
+            }
+          } else if (pathname.startsWith('/dashboard/teacher')) {
+            if (!tab || tab === 'classes') {
+              App.exitApp();
+            } else {
+              router.push('/dashboard/teacher?tab=classes');
+            }
+          } else if (pathname.startsWith('/dashboard/student')) {
+            if (!tab || tab === 'dashboard') {
+              App.exitApp();
+            } else {
+              router.push('/dashboard/student?tab=dashboard');
+            }
           } else {
             window.history.back();
           }
@@ -57,7 +75,7 @@ export function CapacitorBackButtonManager() {
         backListener.remove();
       }
     };
-  }, [pathname]);
+  }, [pathname, router]);
 
   return null;
 }
