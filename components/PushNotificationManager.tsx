@@ -28,6 +28,19 @@ export function PushNotificationManager() {
           return;
         }
 
+        // Create default channel for Android 8.0+ background notifications
+        if (Capacitor.getPlatform() === 'android') {
+          await PushNotifications.createChannel({
+            id: 'default',
+            name: 'Default Channel',
+            description: 'Default notification channel',
+            importance: 3,
+            visibility: 1,
+            sound: 'default',
+            vibration: true
+          });
+        }
+
         // Register with Apple / Google to receive push token
         await PushNotifications.register();
 

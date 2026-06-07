@@ -4189,7 +4189,7 @@ function AdminDashboardContent() {
               <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Course Directory</h2>
               <form onSubmit={handleCreateCourse} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                 <input type="text" required placeholder="Course Name" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', flex: 1 }} />
-                <button type="submit" className="btn-primary" disabled={isAddingCourse}>{isAddingCourse ? '...' : 'Add Course'}</button>
+                <button type="submit" className="btn-primary" disabled={isAddingCourse} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', fontSize: '0.9rem', width: 'auto', whiteSpace: 'nowrap' }}>{isAddingCourse ? '...' : 'Add Course'}</button>
               </form>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {courses.map(course => (

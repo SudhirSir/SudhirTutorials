@@ -29,7 +29,7 @@ export function CapacitorBackButtonManager() {
           await backListener.remove();
         }
 
-        backListener = await App.addListener('backButton', () => {
+        backListener = await App.addListener('backButton', ({ canGoBack }) => {
           if (!isListenerActive) return;
 
           // Debounce: ignore presses within 350ms of the last one
@@ -37,44 +37,29 @@ export function CapacitorBackButtonManager() {
           if (now - lastBackPress.current < 350) return;
           lastBackPress.current = now;
 
+          // Dispatch a custom event to allow open modals to intercept back press
+          const event = new CustomEvent('backbuttonpress', { cancelable: true });
+          window.dispatchEvent(event);
+          if (event.defaultPrevented) {
+            return;
+          }
+
           const searchParams = new URLSearchParams(window.location.search);
           const tab = searchParams.get('tab');
 
-          // Only exit the app on the true entry-points where there is nowhere to go back to
+          // Check if we are at the dashboard entry-point homes or root landing/login pages
+          const isAdminHome = pathname === '/dashboard/admin' && (!tab || tab === 'overview');
+          const isTeacherHome = pathname === '/dashboard/teacher' && (!tab || tab === 'classes');
+          const isStudentHome = pathname === '/dashboard/student' && (!tab || tab === 'dashboard');
           const isExitPage = pathname === '/login' || pathname === '/';
 
-          if (isExitPage) {
+          if (isExitPage || isAdminHome || isTeacherHome || isStudentHome || !canGoBack) {
             App.exitApp();
             return;
           }
 
-          // For dashboard pages: pressing back when on the "home" tab navigates
-          // to the home tab; on non-home tabs it switches back to the home tab.
-          // This keeps the user inside the app instead of exiting.
-          if (pathname.startsWith('/dashboard/admin')) {
-            if (!tab || tab === 'overview') {
-              // Already on home tab — do nothing (user must use OS task switcher to exit)
-              // Alternatively, you could show an "Exit?" confirm dialog here
-              return;
-            } else {
-              router.push('/dashboard/admin?tab=overview');
-            }
-          } else if (pathname.startsWith('/dashboard/teacher')) {
-            if (!tab || tab === 'classes') {
-              return;
-            } else {
-              router.push('/dashboard/teacher?tab=classes');
-            }
-          } else if (pathname.startsWith('/dashboard/student')) {
-            if (!tab || tab === 'dashboard') {
-              return;
-            } else {
-              router.push('/dashboard/student?tab=dashboard');
-            }
-          } else {
-            // For any other page (forgot-password, settings, etc.) go back in history
-            router.back();
-          }
+          // Otherwise, navigate back in the WebView history
+          window.history.back();
         });
       } catch (err) {
         console.warn('Capacitor App plugin not available:', err);
