@@ -1049,13 +1049,19 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
               </button>
               <button 
                 onClick={async () => {
+                  const reason = window.prompt(`Please specify the reason/problem for reporting ${selectedUser.name || 'this user'}:`);
+                  if (reason === null) return; // User cancelled
+                  if (!reason.trim()) {
+                    alert('Report reason cannot be empty.');
+                    return;
+                  }
                   try {
                     await fetch('/api/reports', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        title: 'Suspicious Behavior / Harassment',
-                        message: 'A user has been reported from the Chat Interface for violating platform guidelines.',
+                        title: 'User Report (Chat)',
+                        message: reason.trim(),
                         reportedUserId: selectedUser.id,
                         isBugReport: false
                       })

@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as any;
     const body = await request.json();
     const { title, message, reportedUserId, isBugReport, email, screenshot } = body;
 
@@ -19,11 +19,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No admins found to receive report' }, { status: 404 });
     }
 
+    let formattedMessage = message;
+
+    if (!isBugReport) {
+      let reportedUserInfo = "";
+      if (reportedUserId) {
+        const reportedUser = await withDbRetry(() => prisma.user.findUnique({
+          where: { id: reportedUserId },
+          select: { id: true, name: true, username: true, role: true }
+        }));
+        if (reportedUser) {
+          reportedUserInfo = `\nReported Person: ${reportedUser.name || 'Unknown'} (${reportedUser.username || 'Unknown'})\nReported Person ID: ${reportedUser.id}\nReported Person Role: ${reportedUser.role}`;
+        } else {
+          reportedUserInfo = `\nReported Person ID: ${reportedUserId}`;
+        }
+      }
+      const reporterInfo = `Reporter: ${session?.user?.name || 'Unknown'} (${session?.user?.username || 'Unknown'})\nReporter ID: ${session?.user?.id || 'Unknown'}`;
+      
+      formattedMessage = `Reason/Problem:\n"${message}"\n\n---\n\n${reporterInfo}${reportedUserInfo}`;
+    } else {
+      formattedMessage = `${message}\n\nSubmitted by: ${session?.user?.email || session?.user?.name || 'Anonymous'}${email ? `\n[Email: ${email}]` : ''}${screenshot ? `\n\n[Screenshot: ${screenshot}]` : ''}`;
+    }
+
     // Prepare notifications for all admins
     const notifications = admins.map(admin => ({
       userId: admin.id,
       title: isBugReport ? `🐛 Bug Report / Suggestion: ${title}` : `⚠️ User Report: ${title}`,
-      message: `${message}\n\nSubmitted by: ${session?.user?.email || 'Anonymous'}${email ? `\n[Email: ${email}]` : ''}${reportedUserId ? `\nTarget User ID: ${reportedUserId}` : ''}${screenshot ? `\n\n[Screenshot: ${screenshot}]` : ''}`,
+      message: formattedMessage,
       type: 'REPORT',
       isRead: false,
     }));

@@ -1895,7 +1895,7 @@ function AdminDashboardContent() {
             <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
               जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{session?.user?.name || 'Admin'}</span>
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Welcome back, Admin. Manage your institute's members here.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Manage your Institute here.</p>
           </div>
           <LiveClock />
         </header>
