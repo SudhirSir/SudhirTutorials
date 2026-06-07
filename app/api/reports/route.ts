@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     const body = await request.json();
-    const { title, message, reportedUserId, isBugReport } = body;
+    const { title, message, reportedUserId, isBugReport, email, screenshot } = body;
 
     // Find all admins
     const admins = await withDbRetry(() => prisma.user.findMany({
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const notifications = admins.map(admin => ({
       userId: admin.id,
       title: isBugReport ? `🐛 Bug Report / Suggestion: ${title}` : `⚠️ User Report: ${title}`,
-      message: `${message}\n\nSubmitted by: ${session?.user?.email || 'Anonymous'}${reportedUserId ? `\nTarget User ID: ${reportedUserId}` : ''}`,
+      message: `${message}\n\nSubmitted by: ${session?.user?.email || 'Anonymous'}${email ? `\n[Email: ${email}]` : ''}${reportedUserId ? `\nTarget User ID: ${reportedUserId}` : ''}${screenshot ? `\n\n[Screenshot: ${screenshot}]` : ''}`,
       type: 'REPORT',
       isRead: false,
     }));

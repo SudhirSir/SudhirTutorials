@@ -190,10 +190,12 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
                 name.charAt(0)
               )}
             </div>
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text)' }}>
-                {name}
-                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.8rem' }}>(Verified)</span>}
+            <div style={{ overflow: 'hidden', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100%' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', flex: 1 }} title={name}>
+                  {name}
+                </span>
+                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>}
               </div>
               <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
                 {isVerified ? 'Verified Account' : 'Online'}

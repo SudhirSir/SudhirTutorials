@@ -12,8 +12,8 @@ export function ThemeToggle() {
         background: "var(--card-bg-alt)",
         border: "1px solid var(--border)",
         borderRadius: "99px",
-        width: "36px",
-        height: "36px",
+        width: "30px",
+        height: "30px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -41,7 +41,7 @@ export function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.8}
           stroke="currentColor"
-          style={{ width: "16px", height: "16px", color: "#f59e0b" }}
+          style={{ width: "14px", height: "14px", color: "#f59e0b" }}
         >
           <path
             strokeLinecap="round"
@@ -57,7 +57,7 @@ export function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.8}
           stroke="currentColor"
-          style={{ width: "16px", height: "16px", color: "#6366f1" }}
+          style={{ width: "14px", height: "14px", color: "#6366f1" }}
         >
           <path
             strokeLinecap="round"

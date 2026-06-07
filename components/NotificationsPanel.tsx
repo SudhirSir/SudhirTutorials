@@ -34,6 +34,28 @@ function timeAgo(date: string) {
   })();
 }
 
+function parseNotificationMessage(msg: string) {
+  let cleanMessage = msg || "";
+  let screenshot: string | null = null;
+  let email: string | null = null;
+
+  // Extract screenshot: support standard base64 URL format
+  const ssMatch = cleanMessage.match(/\[Screenshot:\s*(data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+)\]/i);
+  if (ssMatch) {
+    screenshot = ssMatch[1];
+    cleanMessage = cleanMessage.replace(ssMatch[0], '').trim();
+  }
+
+  // Extract email metadata
+  const emailMatch = cleanMessage.match(/\[Email:\s*([^\]]+)\]/i);
+  if (emailMatch) {
+    email = emailMatch[1];
+    cleanMessage = cleanMessage.replace(emailMatch[0], '').trim();
+  }
+
+  return { cleanMessage, screenshot, email };
+}
+
 export function NotificationsPanel({
   onUnreadChange,
 }: {
@@ -43,6 +65,7 @@ export function NotificationsPanel({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   // Admin-only broadcast form state
   const [showCompose, setShowCompose] = useState(false);
@@ -191,6 +214,7 @@ export function NotificationsPanel({
           <>
             {notifications.slice(0, visibleCount).map((n, i) => {
               const style = typeColors[n.type] || typeColors.SYSTEM;
+              const { cleanMessage, screenshot, email } = parseNotificationMessage(n.message);
             return (
               <div
                 key={n.id}
@@ -227,9 +251,30 @@ export function NotificationsPanel({
                       )}
                     </div>
                   </div>
-                  <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    {n.message}
+                  <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                    {cleanMessage}
                   </p>
+                  
+                  {email && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      ✉️ Contact Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
+                    </div>
+                  )}
+
+                  {screenshot && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>📸 Bug Screenshot (Click to enlarge):</span>
+                      <img 
+                        src={screenshot} 
+                        alt="Bug Screenshot" 
+                        onClick={(e) => { e.stopPropagation(); setLightboxImg(screenshot); }} 
+                        style={{ width: '120px', height: 'auto', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'zoom-in', transition: 'transform 0.2s' }}
+                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                      />
+                    </div>
+                  )}
+
                   <span style={{
                     display: 'inline-block', marginTop: '0.5rem', fontSize: '0.65rem',
                     padding: '2px 8px', borderRadius: '6px',
@@ -254,6 +299,22 @@ export function NotificationsPanel({
           </>
         )}
       </div>
+
+      {/* Lightbox Modal for full-screen screenshot viewing */}
+      {lightboxImg && (
+        <div 
+          onClick={() => setLightboxImg(null)} 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', cursor: 'zoom-out' }}
+        >
+          <img src={lightboxImg} alt="Enlarged Bug Screenshot" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }} />
+          <button 
+            onClick={() => setLightboxImg(null)} 
+            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,10 +20,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      if (typeof window !== "undefined" && !sessionStorage.getItem('tabSessionActive')) {
-        signOut({ redirect: false });
-        return;
-      }
       const role = (session.user as any).role || "STUDENT";
       router.push(`/dashboard/${role.toLowerCase()}`);
     }

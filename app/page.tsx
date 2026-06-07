@@ -37,6 +37,8 @@ export default function Home() {
   const [reportMessage, setReportMessage] = useState<string>("");
   const [reportLoading, setReportLoading] = useState<boolean>(false);
   const [reportSuccess, setReportSuccess] = useState<boolean>(false);
+  const [reportEmail, setReportEmail] = useState<string>("");
+  const [reportScreenshot, setReportScreenshot] = useState<string | null>(null);
 
   // Admission form state
   const [admName, setAdmName] = useState("");
@@ -1905,26 +1907,26 @@ export default function Home() {
         /* ── Report Bug Floating Button & Modal ── */
         .report-fab {
           position: fixed;
-          bottom: 2rem;
-          right: 2rem;
-          width: 56px;
-          height: 56px;
+          bottom: 0.75rem;
+          right: 0.75rem;
+          width: 42px;
+          height: 42px;
           border-radius: 50%;
           background: linear-gradient(135deg, var(--primary), #b91c1c);
           color: white;
-          font-size: 1.5rem;
+          font-size: 1.15rem;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
           z-index: 1000;
           transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
           border: 2px solid var(--glass-border);
         }
         .report-fab:hover {
-          transform: scale(1.1) translateY(-5px);
-          box-shadow: 0 15px 35px rgba(239, 68, 68, 0.6);
+          transform: scale(1.1) translateY(-3px);
+          box-shadow: 0 12px 28px rgba(239, 68, 68, 0.5);
         }
 
         .report-modal-overlay {
@@ -1972,7 +1974,7 @@ export default function Home() {
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
                 <h3 style={{ margin: 0, fontWeight: 700 }}>Thank you!</h3>
                 <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Your report has been sent directly to the administrative team.</p>
-                <button onClick={() => { setShowReportBugModal(false); setReportSuccess(false); setReportTitle(''); setReportMessage(''); }} className="btn-primary" style={{ marginTop: '1.5rem', width: '100%', background: '#10b981' }}>Close</button>
+                <button onClick={() => { setShowReportBugModal(false); setReportSuccess(false); setReportTitle(''); setReportMessage(''); setReportEmail(''); setReportScreenshot(null); }} className="btn-primary" style={{ marginTop: '1.5rem', width: '100%', background: '#10b981' }}>Close</button>
               </div>
             ) : (
               <form onSubmit={async (e) => {
@@ -1985,6 +1987,8 @@ export default function Home() {
                     body: JSON.stringify({
                       title: reportTitle,
                       message: reportMessage,
+                      email: reportEmail,
+                      screenshot: reportScreenshot,
                       isBugReport: true
                     })
                   });
@@ -1993,16 +1997,68 @@ export default function Home() {
                   alert("Failed to submit report. Try again later.");
                 }
                 setReportLoading(false);
-              }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 <div>
-                  <label className="input-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Subject / Title</label>
+                  <label className="input-label" style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem' }}>Subject / Title</label>
                   <input type="text" required value={reportTitle} onChange={e => setReportTitle(e.target.value)} className="modal-input" placeholder="e.g. Broken link on homepage" style={{ width: '100%' }} />
                 </div>
                 <div>
-                  <label className="input-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Description</label>
-                  <textarea required value={reportMessage} onChange={e => setReportMessage(e.target.value)} className="modal-input" placeholder="Describe the bug or feature suggestion in detail..." rows={5} style={{ width: '100%', resize: 'none' }}></textarea>
+                  <label className="input-label" style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem' }}>Your Email (Optional)</label>
+                  <input type="email" value={reportEmail} onChange={e => setReportEmail(e.target.value)} className="modal-input" placeholder="e.g. yourname@gmail.com" style={{ width: '100%' }} />
                 </div>
-                <button type="submit" disabled={reportLoading} className="btn-primary" style={{ marginTop: '1rem', padding: '1rem' }}>
+                <div>
+                  <label className="input-label" style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem' }}>Attach Screenshot (Optional)</label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 2 * 1024 * 1024) {
+                          alert("⚠️ Image size exceeds 2 MB.");
+                          e.target.value = '';
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const img = new window.Image();
+                          img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            if (!ctx) return;
+                            const MAX_WIDTH = 800;
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > MAX_WIDTH) {
+                              height *= MAX_WIDTH / width;
+                              width = MAX_WIDTH;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65);
+                            setReportScreenshot(compressedDataUrl);
+                          };
+                          img.src = event.target?.result as string;
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }} 
+                    style={{ width: '100%', fontSize: '0.8rem', color: 'var(--text-muted)' }} 
+                  />
+                  {reportScreenshot && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <img src={reportScreenshot} alt="Preview" style={{ width: '50px', height: 'auto', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>✓ Attached</span>
+                      <button type="button" onClick={() => setReportScreenshot(null)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}>Remove</button>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="input-label" style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem' }}>Description</label>
+                  <textarea required value={reportMessage} onChange={e => setReportMessage(e.target.value)} className="modal-input" placeholder="Describe the bug in detail..." rows={4} style={{ width: '100%', resize: 'none' }}></textarea>
+                </div>
+                <button type="submit" disabled={reportLoading} className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.85rem' }}>
                   {reportLoading ? 'Sending...' : 'Submit Report 🚀'}
                 </button>
               </form>

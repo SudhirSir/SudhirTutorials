@@ -227,7 +227,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side - Desktop Only) */}
-      <div style={{ position: 'fixed', top: '1.5rem', right: '2.5rem', zIndex: 1000 }} className="desktop-theme-toggle">
+      <div style={{ position: 'fixed', top: '0.75rem', right: '0.75rem', zIndex: 1000 }} className="desktop-theme-toggle">
         <ThemeToggle />
       </div>
 
