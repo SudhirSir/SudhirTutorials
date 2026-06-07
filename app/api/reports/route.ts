@@ -6,6 +6,10 @@ import { authOptions } from '@/lib/auth';
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { title, message, reportedUserId, isBugReport, email, screenshot } = body;
 
@@ -22,6 +26,15 @@ export async function POST(request: Request) {
     let formattedMessage = message;
 
     if (!isBugReport) {
+      // Fetch reporter info from DB
+      const reporterUser = await withDbRetry(() => prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, name: true, username: true, role: true }
+      }));
+      const reporterName = reporterUser?.name || 'Unknown';
+      const reporterUsername = reporterUser?.username || 'Unknown';
+      const reporterInfo = `Reporter: ${reporterName} (${reporterUsername})\nReporter ID/Username: ${reporterUsername}\nReporter Role: ${reporterUser?.role || 'Unknown'}`;
+
       let reportedUserInfo = "";
       if (reportedUserId) {
         const reportedUser = await withDbRetry(() => prisma.user.findUnique({
@@ -29,12 +42,11 @@ export async function POST(request: Request) {
           select: { id: true, name: true, username: true, role: true }
         }));
         if (reportedUser) {
-          reportedUserInfo = `\nReported Person: ${reportedUser.name || 'Unknown'} (${reportedUser.username || 'Unknown'})\nReported Person ID: ${reportedUser.id}\nReported Person Role: ${reportedUser.role}`;
+          reportedUserInfo = `\nReported Person: ${reportedUser.name || 'Unknown'} (${reportedUser.username || 'Unknown'})\nReported Person ID/Username: ${reportedUser.username || reportedUser.id}\nReported Person Role: ${reportedUser.role}`;
         } else {
           reportedUserInfo = `\nReported Person ID: ${reportedUserId}`;
         }
       }
-      const reporterInfo = `Reporter: ${session?.user?.name || 'Unknown'} (${session?.user?.username || 'Unknown'})\nReporter ID: ${session?.user?.id || 'Unknown'}`;
       
       formattedMessage = `Reason/Problem:\n"${message}"\n\n---\n\n${reporterInfo}${reportedUserInfo}`;
     } else {

@@ -15,6 +15,39 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
   },
 });
 
+// Add middleware for automatic push notifications
+prisma.$use(async (params, next) => {
+  const result = await next(params);
+  
+  if (params.model === 'Notification') {
+    if (params.action === 'create') {
+      const data = params.args?.data;
+      if (data && data.userId && data.title && data.message) {
+        import('./push').then(({ sendPushNotification }) => {
+          sendPushNotification(data.userId, data.title, data.message).catch(err => {
+            console.error("Failed to send push notification via middleware:", err);
+          });
+        });
+      }
+    } else if (params.action === 'createMany') {
+      const dataArray = params.args?.data;
+      if (Array.isArray(dataArray)) {
+        import('./push').then(({ sendPushNotification }) => {
+          dataArray.forEach(d => {
+            if (d && d.userId && d.title && d.message) {
+              sendPushNotification(d.userId, d.title, d.message).catch(err => {
+                console.error("Failed to send push notification via middleware:", err);
+              });
+            }
+          });
+        });
+      }
+    }
+  }
+
+  return result;
+});
+
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 /**
@@ -48,5 +81,3 @@ export async function withDbRetry<T>(
     }
   }
 }
-
-

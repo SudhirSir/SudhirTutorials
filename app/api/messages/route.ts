@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { sendPushNotification } from '@/lib/push';
 import { z } from 'zod';
 
 const messageSchema = z.object({
@@ -99,6 +100,15 @@ export async function POST(req: Request) {
         content
       }
     }));
+
+    // Dispatch native push notification
+    let displayBody = content;
+    if (content.startsWith('data:')) {
+      displayBody = '📎 Media attachment';
+    } else if (content.length > 80) {
+      displayBody = content.substring(0, 80) + '...';
+    }
+    await sendPushNotification(receiverId, `💬 New message from ${session.user.name || 'User'}`, displayBody);
 
     return NextResponse.json({ success: true, message });
   } catch (error) {

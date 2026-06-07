@@ -176,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="dashboard-container">
+    <div className={`dashboard-container ${role.toLowerCase()}-portal`}>
       {/* Mobile Top Header */}
       <header className="mobile-header">
         <button className="mobile-menu-btn" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open Menu">
@@ -358,6 +358,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
 
       <style jsx>{`
+        .student-portal {
+          --primary: hsl(217, 80%, 45%) !important;
+          --primary-hover: hsl(217, 80%, 35%) !important;
+          --accent: hsl(217, 70%, 55%) !important;
+          --logo-gradient: linear-gradient(90deg, hsl(217, 80%, 45%), hsl(200, 80%, 45%)) !important;
+        }
+        [data-theme="dark"] .student-portal {
+          --primary: hsl(217, 91%, 60%) !important;
+          --primary-hover: hsl(217, 91%, 50%) !important;
+          --accent: hsl(217, 80%, 70%) !important;
+          --logo-gradient: linear-gradient(90deg, hsl(217, 91%, 60%), hsl(200, 91%, 60%)) !important;
+        }
+
+        .teacher-portal {
+          --primary: hsl(142, 71%, 45%) !important;
+          --primary-hover: hsl(142, 71%, 35%) !important;
+          --accent: hsl(142, 60%, 55%) !important;
+          --logo-gradient: linear-gradient(90deg, hsl(142, 71%, 45%), hsl(160, 71%, 45%)) !important;
+        }
+        [data-theme="dark"] .teacher-portal {
+          --primary: hsl(142, 71%, 45%) !important;
+          --primary-hover: hsl(142, 71%, 35%) !important;
+          --accent: hsl(142, 60%, 55%) !important;
+          --logo-gradient: linear-gradient(90deg, hsl(142, 71%, 45%), hsl(160, 71%, 45%)) !important;
+        }
+
         .dashboard-container {
           display: flex;
           min-height: 100vh;

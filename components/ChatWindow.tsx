@@ -304,34 +304,32 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     }
 
     setIsUploading(true);
-    setUploadProgress(`Uploading ${file.name.slice(0, 15)}...`);
+    setUploadProgress(`Processing ${file.name.slice(0, 15)}...`);
+
+    const readAsDataURL = (f: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(f);
+      });
+    };
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const isImg = file.type.startsWith('image/');
+      const mediaUrl = isImg ? await compressImage(file) : await readAsDataURL(file);
 
-      const res = await fetch('/api/messages/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const mediaEnvelope = {
-          type: 'media',
-          mediaUrl: data.url,
-          fileName: data.name,
-          fileType: data.type || file.type,
-          fileSize: data.size || file.size
-        };
-        await handleSendMessage(undefined, JSON.stringify(mediaEnvelope));
-      } else {
-        const d = await res.json();
-        alert(`⚠️ Upload failed: ${d.error || 'Server error'}`);
-      }
+      const mediaEnvelope = {
+        type: 'media',
+        mediaUrl: mediaUrl,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size
+      };
+      await handleSendMessage(undefined, JSON.stringify(mediaEnvelope));
     } catch (err) {
       console.error(err);
-      alert('⚠️ Attachment failed due to network error.');
+      alert('⚠️ Attachment failed to process.');
     } finally {
       setIsUploading(false);
       setUploadProgress('');

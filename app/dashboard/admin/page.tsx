@@ -2011,7 +2011,7 @@ function AdminDashboardContent() {
             ⬅ Back to Academic Services Menu
           </button>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
-            Academic Service / {academicSubTab === 'courses' ? 'Courses & Batches' : academicSubTab === 'attendance' ? 'Attendance Logs' : academicSubTab === 'materials' ? 'Study Materials' : academicSubTab === 'tests' ? 'Tests & Exams' : academicSubTab === 'analytics' ? 'Performance Analytics' : academicSubTab === 'lectures' ? 'Live Classes' : academicSubTab === 'admissions' ? 'Admissions Inquiries' : academicSubTab}
+            Academic Service / {academicSubTab === 'courses' ? 'Courses & Batches' : academicSubTab === 'attendance' ? 'Attendance Logs' : academicSubTab === 'materials' ? 'Study Materials' : academicSubTab === 'tests' ? 'Tests & Exams' : academicSubTab === 'analytics' ? 'Performance Analytics' : academicSubTab === 'lectures' ? 'Lectures/Classes' : academicSubTab === 'admissions' ? 'Admissions Inquiries' : academicSubTab}
           </span>
         </div>
       )}
@@ -2029,7 +2029,7 @@ function AdminDashboardContent() {
               { id: 'materials', title: '📚 Study Materials & Content', desc: 'Upload and organize syllabus books, worksheets, PDFs, notes, and lectures.', color: 'rgba(59, 130, 246, 0.05)', border: '#3b82f6', textColor: '#3b82f6' },
               { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
               { id: 'analytics', title: '📈 Performance Analytics', desc: 'Get graphical insights on class progress, marks distribution, and attendance trends.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
-              { id: 'lectures', title: '📺 Live Online Lectures', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
+              { id: 'lectures', title: '📺 Lectures/Classes', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
               { id: 'admissions', title: '🏫 Admissions Inquiries', desc: 'Review, approve, or reject student enrollment inquiries, and register them as students.', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
             ].map(svc => (
               <div 
@@ -4924,382 +4924,138 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'guru-ai' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', minHeight: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem' }}>
+        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
           {/* Academic Assistant Header */}
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(239, 68, 68, 0.4)', animation: 'pulse 2s infinite' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-                <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5z" fill="#fff" />
-                <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z" fill="#fff" />
-              </svg>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '1rem 1.5rem', background: 'var(--surface-light)' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 10px rgba(239, 68, 68, 0.4)', animation: 'pulse 2s infinite' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                </svg>
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ef4444', margin: 0 }}>Academic Assistant</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
+              </div>
             </div>
-            <div>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444', margin: 0 }}>✨ Academic Assistant Workspace</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '4px 0 0 0' }}>Supercharge lessons & curricula. Seek immediate academic insights or generate high-fidelity presentations dynamically.</p>
-            </div>
+            <button 
+              onClick={() => setAdminGuruHistory([{ role: 'guru', content: `Hello, Admin! 👋 I am Academic Assistant. How can I assist you in verifying details or planning today?` }])}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              🧹 Clear Chat
+            </button>
           </div>
 
-          {/* Sleek, Premium Compact Mode Selector */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-            <div style={{ 
-              display: 'flex', 
-              background: 'var(--card-bg-alt)', 
-              padding: '3px', 
-              borderRadius: '30px', 
-              border: '1px solid var(--border)',
-              gap: '2px',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
-            }}>
-              <button
-                onClick={() => setAiMode('GURU')}
-                style={{
-                  padding: '0.4rem 1.1rem',
-                  borderRadius: '25px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: aiMode === 'GURU' ? '#ef4444' : 'transparent',
-                  color: aiMode === 'GURU' ? 'white' : 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  transition: 'all 0.2s ease',
-                  boxShadow: aiMode === 'GURU' ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
-                }}
-              >
-                <span style={{ fontSize: '0.95rem' }}>🤖</span> Academic Assistant Tutor
-              </button>
-              <button
-                onClick={() => setAiMode('PREPARE')}
-                style={{
-                  padding: '0.4rem 1.1rem',
-                  borderRadius: '25px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: aiMode === 'PREPARE' ? '#ef4444' : 'transparent',
-                  color: aiMode === 'PREPARE' ? 'white' : 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  transition: 'all 0.2s ease',
-                  boxShadow: aiMode === 'PREPARE' ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
-                }}
-              >
-                <span style={{ fontSize: '0.95rem' }}>📝</span> Slide Generator & Planner
-              </button>
-            </div>
-          </div>
+          <style>{`
+            @keyframes pulse {
+              0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+              70% { transform: scale(1.05); box-shadow: 0 0 10px 5px rgba(239, 68, 68, 0); }
+              100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            }
+            .chat-bubble {
+              border-radius: 16px;
+              padding: 1rem 1.25rem;
+              max-width: 80%;
+              line-height: 1.6;
+              font-size: 0.95rem;
+            }
+            .chat-bubble pre {
+              background: var(--surface-light);
+              padding: 1rem;
+              border-radius: 8px;
+              overflow-x: auto;
+              margin: 1rem 0;
+              border: 1px solid var(--border);
+            }
+            .chat-bubble code {
+              font-family: monospace;
+              background: var(--surface-light);
+              padding: 2px 6px;
+              border-radius: 4px;
+              color: var(--primary);
+              font-weight: 600;
+            }
+          `}</style>
 
-          {/* ──────────────── MODE A: DIGITAL GURU ──────────────── */}
-          {aiMode === 'GURU' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '2rem', flex: 1 }} className="guru-grid">
-              <style>{`
-                .guru-grid { display: grid; }
-                @media (max-width: 900px) { .guru-grid { grid-template-columns: 1fr !important; } }
-                .chat-bubble { border-radius: 16px; padding: 1.25rem; max-width: 85%; line-height: 1.6; font-size: 0.95rem; }
-                .chat-bubble pre { background: var(--surface-light); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); }
-                .chat-bubble code { font-family: monospace; background: var(--surface-light); padding: 2px 6px; border-radius: 4px; color: var(--primary); font-weight: 600; }
-              `}</style>
-
-              {/* Left Form */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div className="input-group">
-                  <label style={{ color: '#ef4444', fontWeight: 700 }}>Academic Subject</label>
-                  <select
-                    value={adminGuruSubject}
-                    onChange={(e) => setAdminGuruSubject(e.target.value)}
-                    style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }}
-                  >
-                    {['Mathematics', 'Physics', 'Chemistry', 'Biology', 'General Academics'].map(subj => (
-                      <option key={subj} value={subj} style={{ background: 'var(--surface)', color: 'var(--text)' }}>{subj}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="input-group">
-                  <label style={{ color: '#ef4444', fontWeight: 700 }}>Explanatory Mode</label>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
-                    {(['ENGLISH', 'HINDI', 'HINGLISH'] as const).map(lang => (
-                      <button
-                        key={lang}
-                        onClick={() => setAdminGuruLanguage(lang)}
-                        style={{
-                          flex: 1,
-                          padding: '0.8rem 0.5rem',
-                          borderRadius: '10px',
-                          border: '1px solid',
-                          borderColor: adminGuruLanguage === lang ? '#ef4444' : 'var(--border)',
-                          background: adminGuruLanguage === lang ? 'rgba(239, 68, 68, 0.15)' : 'var(--input-bg)',
-                          color: adminGuruLanguage === lang ? '#ef4444' : 'var(--text)',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          fontSize: '0.8rem',
-                          transition: 'all 0.2s',
-                          textAlign: 'center'
-                        }}
-                      >
-                        {lang === 'HINGLISH' ? '💬 Hinglish' : lang === 'HINDI' ? '🇮🇳 Hindi' : '🇬🇧 English'}
-                      </button>
-                    ))}
+          {/* Message Feed */}
+          <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
+            {adminGuruHistory.map((msg, i) => (
+              <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
+                {msg.role !== 'user' && (
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.8rem' }}>🤖</span>
                   </div>
-                </div>
-
-                <div className="input-group" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <label style={{ color: '#ef4444', fontWeight: 700 }}>Enter doubt, question, or lesson query</label>
-                  <textarea
-                    placeholder="Verify standard definitions, solve analytical equations or plan outlines..."
-                    value={adminGuruQuestion}
-                    onChange={(e) => setAdminGuruQuestion(e.target.value)}
-                    style={{ width: '100%', flex: 1, minHeight: '120px', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem', resize: 'none', lineHeight: 1.5 }}
-                  />
-                </div>
-
-                <button
-                  onClick={askAdminGuru}
-                  disabled={adminGuruLoading || !adminGuruQuestion.trim()}
-                  style={{
-                    width: '100%', padding: '1rem', borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', border: 'none',
-                    fontWeight: 800, cursor: adminGuruLoading || !adminGuruQuestion.trim() ? 'not-allowed' : 'pointer', fontSize: '1rem',
-                    boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                )}
+                <div 
+                  className="chat-bubble"
+                  style={{ 
+                    background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
+                    border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+                    color: msg.role === 'user' ? '#fff' : 'var(--text)',
+                    borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
+                    borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
+                    boxShadow: 'var(--shadow-sm)'
                   }}
                 >
-                  {adminGuruLoading ? 'Processing...' : '✨ Ask Academic Assistant'}
-                </button>
-              </div>
-
-              {/* Right Message Desk */}
-              <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden', height: '550px' }}>
-                <div style={{ background: 'var(--surface-light)', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 700, color: '#ef4444', fontSize: '0.9rem' }}>📖 ACADEMIC ASSISTANT WORKSPACE</span>
-                  <button
-                    onClick={() => setAdminGuruHistory([{ role: 'guru', content: `Hello, Admin! 👋 I am Academic Assistant. How can I assist you in verifying details or planning today?` }])}
-                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    🧹 Clear Feed
-                  </button>
+                  <div>
+                    <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                  </div>
                 </div>
-
-                <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {adminGuruHistory.map((msg, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                      <div
-                        className="chat-bubble"
-                        style={{
-                          background: msg.role === 'user' ? 'rgba(239, 68, 68, 0.15)' : 'var(--surface)',
-                          border: msg.role === 'user' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border)',
-                          color: 'var(--text)',
-                          alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start'
-                        }}
-                      >
-                        {msg.subject && (
-                          <span style={{ display: 'inline-block', fontSize: '0.65rem', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontWeight: 800, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                            {msg.subject}
-                          </span>
-                        )}
-                        <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {adminGuruLoading && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                      <div className="chat-bubble" style={{ background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div className="spinner" style={{ width: '15px', height: '15px', border: '2px solid #f3f3f3', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Academic Assistant is preparing key solutions...</span>
-                      </div>
-                    </div>
-                  )}
+                {msg.role === 'user' && (
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                    A
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {adminGuruLoading && (
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                </div>
+                <div className="chat-bubble" style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="spinner" style={{ width: '12px', height: '12px', border: '2px solid #f3f3f3', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thinking...</span>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Bottom Chat Input Bar */}
+          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 1.2rem' }}>
+              <input 
+                type="text"
+                placeholder="Ask Academic Assistant a question or planning query..." 
+                value={adminGuruQuestion}
+                onChange={(e) => setAdminGuruQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !adminGuruLoading && adminGuruQuestion.trim()) {
+                    askAdminGuru();
+                  }
+                }}
+                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0' }}
+              />
+              <button 
+                onClick={askAdminGuru}
+                disabled={adminGuruLoading || !adminGuruQuestion.trim()}
+                style={{ 
+                  width: '36px', height: '36px', borderRadius: '50%', 
+                  background: adminGuruQuestion.trim() ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--border)', 
+                  border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  cursor: adminGuruLoading || !adminGuruQuestion.trim() ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: adminGuruQuestion.trim() ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
             </div>
-          )}
-
-          {/* ──────────────── MODE B: PREPARE LESSON PPT ──────────────── */}
-          {aiMode === 'PREPARE' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '1.5rem', color: '#ef4444' }}>⚡ AI Premium Lesson slide Deck Generator</h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                  <div className="input-group">
-                    <label style={{ fontWeight: 700 }}>Topic / Theme Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Laws of Thermodynamics, Chemical Bonding..."
-                      value={pptTopic}
-                      onChange={(e) => setPptTopic(e.target.value)}
-                      style={{ padding: '0.85rem', borderRadius: '12px' }}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label style={{ fontWeight: 700 }}>Target Grade / Class</label>
-                    <select
-                      value={pptGrade}
-                      onChange={(e) => setPptGrade(e.target.value)}
-                      style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)' }}
-                    >
-                      {['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'IIT-JEE / NEET Spec'].map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="input-group">
-                    <label style={{ fontWeight: 700 }}>Difficulty Level</label>
-                    <select
-                      value={pptDifficulty}
-                      onChange={(e) => setPptDifficulty(e.target.value)}
-                      style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)' }}
-                    >
-                      <option value="Basic (Concepts & Foundations)">Basic (Foundational Concepts)</option>
-                      <option value="Intermediate (Board Syllabus Spec)">Intermediate (Syllabus standard)</option>
-                      <option value="Advanced (JEE / NEET / Olympiad)">Advanced (JEE / NEET / Olympiad)</option>
-                    </select>
-                  </div>
-
-                  <div className="input-group">
-                    <label style={{ fontWeight: 700 }}>Lecture Duration</label>
-                    <select
-                      value={pptDuration}
-                      onChange={(e) => setPptDuration(e.target.value)}
-                      style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)' }}
-                    >
-                      <option value="30">30 Minutes (Revision session)</option>
-                      <option value="45">45 Minutes (Standard Lecture)</option>
-                      <option value="60">60 Minutes (Comprehensive lecture)</option>
-                      <option value="90">90 Minutes (Comprehensive Masterclass)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  onClick={generateLessonPPT}
-                  disabled={pptGenerating || !pptTopic.trim()}
-                  className="btn-primary"
-                  style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  {pptGenerating ? '⚡ Generating Premium Slides...' : '⚡ Generate Premium Lesson Slides & Study Notes'}
-                </button>
-              </div>
-
-              {/* RENDER DYNAMIC SLIDE PRESENTATION CAROUSEL */}
-              {generatedPpt && (
-                <div className="glass-card animate-scale-up" style={{ padding: '2.5rem', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg-alt)' }}>
-                  {/* Slider Control Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>📂 Generated Lecture Deck: {generatedPpt.topic}</h4>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Target: {generatedPpt.grade} | Design Version 1.0 (Dynamic AI Model)</p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={printAdminPpt}
-                        className="btn-secondary"
-                        style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 700, borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        🖨️ Export PDF / Print
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Dynamic Slide Viewer */}
-                  <div style={{
-                    border: '2px solid var(--border)',
-                    borderRadius: '16px',
-                    padding: '2.5rem',
-                    background: 'var(--surface-light)',
-                    minHeight: '380px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                    transition: 'all 0.3s'
-                  }}>
-                    {/* Header bar on slide */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                      <div>
-                        <h4 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>{generatedPpt.slides[activeSlideIndex].title}</h4>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{generatedPpt.slides[activeSlideIndex].subtitle}</span>
-                      </div>
-                      <span style={{ background: 'var(--primary)', color: 'white', padding: '4px 12px', borderRadius: '100px', fontSize: '0.7rem', fontWeight: 800 }}>
-                        {generatedPpt.slides[activeSlideIndex].badge}
-                      </span>
-                    </div>
-
-                    {/* Metadata bar */}
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                      📍 {generatedPpt.slides[activeSlideIndex].meta}
-                    </div>
-
-                    {/* Content text block */}
-                    <div style={{ fontSize: '1.05rem', lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-line', flex: 1, marginBottom: '2rem' }}>
-                      {generatedPpt.slides[activeSlideIndex].content}
-                    </div>
-
-                    {/* Footing with logo */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border)', paddingTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      <span style={{ fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <img src="/logo.png" alt="Logo" style={{ width: '18px', height: '18px', objectFit: 'contain', borderRadius: '4px' }} />
-                        <span style={{ color: 'var(--primary)', fontWeight: 900 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 900 }}>TUTORIALS</span>
-                      </span>
-                      <span style={{ fontWeight: 700 }}>Slide {activeSlideIndex + 1} of {generatedPpt.slides.length}</span>
-                    </div>
-                  </div>
-
-                  {/* Carousel navigation buttons */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
-                    <button
-                      disabled={activeSlideIndex === 0}
-                      onClick={() => setActiveSlideIndex(prev => prev - 1)}
-                      style={{
-                        padding: '0.55rem 1rem', borderRadius: '12px', border: '1px solid var(--border)',
-                        background: activeSlideIndex === 0 ? 'rgba(0,0,0,0.1)' : 'var(--input-bg)',
-                        color: activeSlideIndex === 0 ? 'var(--text-muted)' : 'var(--text)',
-                        cursor: activeSlideIndex === 0 ? 'not-allowed' : 'pointer', fontWeight: 700, transition: 'all 0.2s'
-                      }}
-                    >
-                      ← Previous Slide
-                    </button>
-
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      {generatedPpt.slides.map((_: any, idx: number) => (
-                        <button
-                          key={idx}
-                          onClick={() => setActiveSlideIndex(idx)}
-                          style={{
-                            width: '10px', height: '10px', borderRadius: '50%', border: 'none',
-                            background: activeSlideIndex === idx ? 'var(--primary)' : 'var(--border)',
-                            cursor: 'pointer'
-                          }}
-                        />
-                      ))}
-                    </div>
-
-                    <button
-                      disabled={activeSlideIndex === generatedPpt.slides.length - 1}
-                      onClick={() => setActiveSlideIndex(prev => prev + 1)}
-                      style={{
-                        padding: '0.55rem 1rem', borderRadius: '12px', border: '1px solid var(--border)',
-                        background: activeSlideIndex === generatedPpt.slides.length - 1 ? 'rgba(0,0,0,0.1)' : 'var(--input-bg)',
-                        color: activeSlideIndex === generatedPpt.slides.length - 1 ? 'var(--text-muted)' : 'var(--text)',
-                        cursor: activeSlideIndex === generatedPpt.slides.length - 1 ? 'not-allowed' : 'pointer', fontWeight: 700, transition: 'all 0.2s'
-                      }}
-                    >
-                      Next Slide →
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
       )}
 
