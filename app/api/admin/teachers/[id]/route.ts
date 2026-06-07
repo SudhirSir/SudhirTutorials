@@ -71,8 +71,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Validate inputs
     if (name !== undefined) {
-      if (name.length > 25 || !/^[a-zA-Z\s]+$/.test(name)) {
-        return NextResponse.json({ error: 'Name must contain only alphabets and spaces, and be at most 25 characters long.' }, { status: 400 });
+      if (name.length > 100 || !/^[a-zA-Z\s.\-'()&]+$/.test(name.trim())) {
+        return NextResponse.json({ error: 'Name must contain only alphabets, spaces, dots, hyphens, or apostrophes, and be at most 100 characters long.' }, { status: 400 });
       }
     }
     if (address !== undefined) {

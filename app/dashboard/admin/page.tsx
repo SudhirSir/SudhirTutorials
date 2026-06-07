@@ -840,14 +840,14 @@ function AdminDashboardContent() {
       setIsCreating(false);
       return;
     }
-    if (newUserName.length > 150 || !/^[a-zA-Z\s]+$/.test(newUserName)) {
-      setErrorMsg("Name must contain only alphabets and spaces, and be at most 150 characters.");
+    if (newUserName.length > 100 || !/^[a-zA-Z\s.\-'()&]+$/.test(newUserName.trim())) {
+      setErrorMsg("Name must contain only alphabets, spaces, dots, hyphens, or apostrophes, and be at most 100 characters.");
       setIsCreating(false);
       return;
     }
     if (newUserRole === 'STUDENT') {
-      if (newStudentFatherName && (newStudentFatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(newStudentFatherName))) {
-        setErrorMsg("Father's name must contain only alphabets and spaces, and be at most 150 characters.");
+      if (newStudentFatherName && (newStudentFatherName.length > 100 || !/^[a-zA-Z\s.\-'()&]+$/.test(newStudentFatherName.trim()))) {
+        setErrorMsg("Father's name must contain only alphabets, spaces, dots, hyphens, or apostrophes, and be at most 100 characters.");
         setIsCreating(false);
         return;
       }
@@ -1683,14 +1683,14 @@ function AdminDashboardContent() {
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingProfile.name) {
-      if (editingProfile.name.length > 150 || !/^[a-zA-Z\s]+$/.test(editingProfile.name)) {
-        alert("Name must contain only alphabets and spaces, and be at most 150 characters.");
+      if (editingProfile.name.length > 100 || !/^[a-zA-Z\s.\-'()&]+$/.test(editingProfile.name.trim())) {
+        alert("Name must contain only alphabets, spaces, dots, hyphens, or apostrophes, and be at most 100 characters.");
         return;
       }
     }
     if (editingProfile.role === 'STUDENT' && editingProfile.fatherName) {
-      if (editingProfile.fatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(editingProfile.fatherName)) {
-        alert("Father's name must contain only alphabets and spaces, and be at most 150 characters.");
+      if (editingProfile.fatherName.length > 100 || !/^[a-zA-Z\s.\-'()&]+$/.test(editingProfile.fatherName.trim())) {
+        alert("Father's name must contain only alphabets, spaces, dots, hyphens, or apostrophes, and be at most 100 characters.");
         return;
       }
     }
