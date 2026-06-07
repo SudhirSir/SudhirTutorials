@@ -38,3 +38,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Clear user record push token
+    await withDbRetry(() => prisma.user.update({
+      where: { id: session.user.id },
+      data: { pushToken: null }
+    }));
+
+    return NextResponse.json({ success: true, message: 'Push token cleared successfully' });
+  } catch (error) {
+    console.error("Error clearing push token:", error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

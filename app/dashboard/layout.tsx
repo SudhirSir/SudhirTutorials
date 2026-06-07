@@ -85,6 +85,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = async () => {
     if (typeof window !== "undefined") {
+      try {
+        await fetch('/api/user/push-token', { method: 'DELETE' });
+      } catch (e) {
+        console.warn("Soft warning: failed to clear push token on logout", e);
+      }
+      
       (window as any).isLoggingOut = true;
       sessionStorage.setItem('isLoggingOut', 'true');
       
