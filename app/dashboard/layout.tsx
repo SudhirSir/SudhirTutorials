@@ -119,32 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       };
       fetchBadges();
-      const interval = setInterval(fetchBadges, 30000);
-
-      // Check session validity to prevent concurrent logins
-      const checkSessionValidity = async () => {
-        if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
-        if (sessionStorage.getItem('isLoggingOut') === 'true') return;
-
-        try {
-          const res = await fetch('/api/auth/check-session');
-          if (res.ok) {
-            const data = await res.json();
-            if (data.valid === false) {
-              if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
-              if (sessionStorage.getItem('isLoggingOut') === 'true') return;
-              console.log("Session invalidated:", data.error);
-              signOut({ callbackUrl: `/login?error=${data.error === "Logged in elsewhere" ? "concurrent_login" : "session_expired"}` });
-            }
-          }
-        } catch (error) {
-          if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
-          if (sessionStorage.getItem('isLoggingOut') === 'true') return;
-          console.error("Error during session validation check:", error);
-        }
-      };
-      checkSessionValidity();
-      const sessionCheckInterval = setInterval(checkSessionValidity, 15000); // Check every 15s
+      const interval = setInterval(fetchBadges, 40000);
 
       // Fetch profile photo for sidebar
       const fetchPhoto = async () => {
@@ -161,7 +136,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       return () => {
         clearInterval(interval);
-        clearInterval(sessionCheckInterval);
       };
     }
   }, [session]);

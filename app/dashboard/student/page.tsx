@@ -65,7 +65,7 @@ function StudentDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
-    const interval = setInterval(fetchUnreadCounts, 30000);
+    const interval = setInterval(fetchUnreadCounts, 40000);
     return () => clearInterval(interval);
   }, [session]);
   

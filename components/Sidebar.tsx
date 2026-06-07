@@ -48,7 +48,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
 
   useEffect(() => {
     fetchBadgeCounts();
-    const interval = setInterval(fetchBadgeCounts, 5000);
+    const interval = setInterval(fetchBadgeCounts, 35000);
     return () => clearInterval(interval);
   }, []);
 

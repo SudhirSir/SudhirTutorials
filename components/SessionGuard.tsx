@@ -29,7 +29,8 @@ export function SessionGuard() {
           if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
           if (sessionStorage.getItem('isLoggingOut') === 'true') return;
           console.warn("Session invalidated (logged in elsewhere or no session). Terminating session...");
-          signOut({ callbackUrl: "/login" });
+          const errorType = data.error === "Logged in elsewhere" ? "concurrent_login" : "session_expired";
+          signOut({ callbackUrl: `/login?error=${errorType}` });
         }
       } catch (err) {
         if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
@@ -41,8 +42,8 @@ export function SessionGuard() {
     // Check immediately on page load / path change
     checkSession();
 
-    // Poll every 5 seconds to catch concurrent login in real-time
-    const interval = setInterval(checkSession, 5000);
+    // Poll every 30 seconds to catch concurrent login in real-time
+    const interval = setInterval(checkSession, 30000);
 
     return () => {
       isMounted = false;

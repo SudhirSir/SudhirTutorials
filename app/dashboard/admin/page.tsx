@@ -105,7 +105,7 @@ function AdminDashboardContent() {
     if (!session?.user) return;
     fetchUnreadCounts();
     fetchSettings();
-    const interval = setInterval(fetchUnreadCounts, 6000);
+    const interval = setInterval(fetchUnreadCounts, 40000);
     return () => clearInterval(interval);
   }, [session]);
 
@@ -1451,8 +1451,8 @@ function AdminDashboardContent() {
     fetchUnreadCounts();
     if (activeTab === 'overview') {
       fetchOverviewStats();
-      // Auto-refresh revenue every 30 s while on overview tab
-      const overviewInterval = setInterval(fetchOverviewStats, 30000);
+      // Auto-refresh revenue every 60 s while on overview tab
+      const overviewInterval = setInterval(fetchOverviewStats, 60000);
       return () => clearInterval(overviewInterval);
     }
     if (activeTab === 'users') handleSearchDirectory(); // always load all users on tab switch

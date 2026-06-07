@@ -140,7 +140,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 8000);
     return () => clearInterval(interval);
   }, []);
 
