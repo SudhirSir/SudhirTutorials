@@ -14,9 +14,9 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
-    const file = formData.get('file') as File;
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    const file = formData.get('file') as any;
+    if (!file || typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
+      return NextResponse.json({ error: 'No file uploaded or invalid file format' }, { status: 400 });
     }
 
     if (file.size > 3 * 1024 * 1024) {
@@ -26,8 +26,9 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const ext = safeName.split('.').pop() || 'dat';
+    const rawName = file.name || 'uploaded_file';
+    const safeName = rawName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const ext = safeName.includes('.') ? safeName.split('.').pop() || 'dat' : 'dat';
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
     const filename = `${uniqueId}.${ext}`;
 
@@ -42,8 +43,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       url: fileUrl,
-      name: file.name,
-      type: file.type,
+      name: rawName,
+      type: file.type || 'application/octet-stream',
       size: file.size
     });
   } catch (error) {

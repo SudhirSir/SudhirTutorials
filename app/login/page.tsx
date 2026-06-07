@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Capacitor } from "@capacitor/core";
+
 
 type Role = "student" | "teacher" | "admin";
 
@@ -85,7 +86,8 @@ export default function LoginPage() {
         redirect: false,
         username,
         password,
-        role: activeTab
+        role: activeTab,
+        isApp: Capacitor.isNativePlatform().toString()
       });
 
       if (res?.error) {
@@ -125,11 +127,6 @@ export default function LoginPage() {
 
   return (
     <div className="login-container-parent" style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
-      {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side) */}
-      <div style={{ position: 'fixed', top: '2rem', right: '2rem', zIndex: 1000 }}>
-        <ThemeToggle />
-      </div>
-
       {/* Left Form Section */}
       <div className="login-form-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3rem', position: 'relative' }}>
 

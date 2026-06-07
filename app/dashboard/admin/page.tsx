@@ -1889,15 +1889,17 @@ function AdminDashboardContent() {
         }
       `}</style>
       <div className="bg-glow" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
-      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
-            जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{session?.user?.name || 'Admin'}</span>
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Welcome back, Admin. Manage your institute's members here.</p>
-        </div>
-        <LiveClock />
-      </header>
+      {activeTab === 'overview' && (
+        <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+              जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{session?.user?.name || 'Admin'}</span>
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Welcome back, Admin. Manage your institute's members here.</p>
+          </div>
+          <LiveClock />
+        </header>
+      )}
 
 
 
@@ -1938,7 +1940,7 @@ function AdminDashboardContent() {
              tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
              tab === 'guru-ai' ? 'Academic Assistant' :
-             tab === 'messages' ? 'Messages' :
+             tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
              tab === 'settings' ? 'System Settings' :
@@ -3021,7 +3023,7 @@ function AdminDashboardContent() {
                   <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem' }}>
                     {/* View Mode 1: ALL RECORDS */}
                     {ledgerViewMode === 'ALL' && (
-                      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                      <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                             <th style={{ padding: '0.5rem 0' }}>Student / ID</th>
@@ -3119,7 +3121,7 @@ function AdminDashboardContent() {
 
                     {/* View Mode 2: FIRST 10 TRANSACTIONS */}
                     {ledgerViewMode === 'FIRST_10' && (
-                      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                      <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                             <th style={{ padding: '0.75rem 0' }}>Transaction Ref / Date</th>
@@ -3175,7 +3177,7 @@ function AdminDashboardContent() {
 
                     {/* View Mode 3: ASSIGNED FEES */}
                     {ledgerViewMode === 'ASSIGNED_FEES' && (
-                      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                      <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                             <th style={{ padding: '0.75rem 0' }}>Student Details</th>
@@ -3472,7 +3474,7 @@ function AdminDashboardContent() {
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <table style={{ width: '100%', minWidth: '700px', textAlign: 'left', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                         <th style={{ padding: '0.75rem 0' }}>Expense Reference</th>
@@ -3638,7 +3640,7 @@ function AdminDashboardContent() {
 
                     {/* Preview Table */}
                     <div style={{ maxHeight: '350px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                      <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                         <thead style={{ background: 'var(--card-bg-alt)', position: 'sticky', top: 0, zIndex: 10 }}>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
                             <th style={{ padding: '0.75rem 1rem' }}>Student Name</th>
@@ -5211,8 +5213,8 @@ function AdminDashboardContent() {
         </div>
       )}
       {showProfileModal && editingProfile && typeof window !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem', overflowY: 'auto' }}>
-          <div className="glass-card" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', border: '1px solid var(--primary)', margin: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem', overflow: 'auto' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflow: 'auto', padding: '2rem 1.5rem', border: '1px solid var(--primary)', margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                <div>
                  <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : editingProfile.role === 'TEACHER' ? 'Teacher' : 'Admin'} Profile Editor</h2>
@@ -6810,7 +6812,7 @@ function AdminDashboardContent() {
                 </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', color: 'var(--text)' }}>
+                  <table style={{ width: '100%', minWidth: '750px', borderCollapse: 'collapse', fontSize: '0.9rem', color: 'var(--text)' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', color: 'var(--text-muted)', fontWeight: 700, textAlign: 'left' }}>
                         <th style={{ padding: '1rem 0.5rem' }}>Faculty</th>

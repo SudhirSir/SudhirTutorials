@@ -26,7 +26,23 @@ export async function GET() {
       return NextResponse.json({ valid: false, error: "User not found" });
     }
 
-    if (user.activeToken !== sessionToken) {
+    let isValid = false;
+    if (user.activeToken === sessionToken) {
+      isValid = true;
+    } else if (user.activeToken && user.activeToken.includes('|')) {
+      const parts = user.activeToken.split('|');
+      let webToken = "";
+      let appToken = "";
+      parts.forEach(part => {
+        if (part.startsWith('web:')) webToken = part.slice(4);
+        else if (part.startsWith('app:')) appToken = part.slice(4);
+      });
+      if (sessionToken === webToken || sessionToken === appToken) {
+        isValid = true;
+      }
+    }
+
+    if (!isValid) {
       return NextResponse.json({ valid: false, error: "Logged in elsewhere" });
     }
 

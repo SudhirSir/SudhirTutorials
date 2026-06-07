@@ -387,15 +387,17 @@ function StudentDashboardContent() {
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       <div className="bg-glow" style={{ top: '20%', left: '-10%', opacity: 0.5 }}></div>
-      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
-            जय सियाराम 🙏 <span style={{ color: 'var(--primary)' }}>{dashboard?.name || 'Student'}</span>
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Here is a summary of your academic progress and dues.</p>
-        </div>
-        <LiveClock />
-      </header>
+      {activeTab === 'dashboard' && (
+        <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+              जय सियाराम 🙏 <span style={{ color: 'var(--primary)' }}>{dashboard?.name || 'Student'}</span>
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Here is a summary of your academic progress and dues.</p>
+          </div>
+          <LiveClock />
+        </header>
+      )}
 
 
       {/* Tabs */}
@@ -429,7 +431,7 @@ function StudentDashboardContent() {
              tab === 'fees' ? 'Pay/View fees' :
              tab === 'lectures' ? 'Live Classes' :
              tab === 'guru-ji' ? 'Digital Guru Ji' :
-             tab === 'messages' ? 'Messages' :
+             tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
              tab}
@@ -456,20 +458,87 @@ function StudentDashboardContent() {
                       });
                     });
 
+                    // Sort chronologically by start time
+                    daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+                    const isToday = idx === new Date().getDay();
+
                     return (
-                      <div key={day} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '1rem 0.5rem', minHeight: '120px', border: '1px solid var(--border)' }}>
-                        <div style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{day}</div>
-                        {daySchedules.length > 0 ? (
-                          daySchedules.map(ds => (
-                            <div key={ds.id} style={{ background: 'var(--primary)', color: 'white', fontSize: '0.65rem', padding: '6px', borderRadius: '6px', marginBottom: '6px', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)' }}>
-                              <div style={{ fontWeight: 800 }}>{ds.startTime}</div>
-                              {ds.subject && <div style={{ fontWeight: 700, fontSize: '0.6rem', background: 'rgba(255,255,255,0.15)', padding: '2px 4px', borderRadius: '4px', margin: '2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ds.subject}</div>}
-                              <div style={{ opacity: 0.9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ds.batchName}</div>
-                            </div>
-                          ))
-                        ) : (
-                          <div style={{ height: '20px' }}></div>
-                        )}
+                      <div 
+                        key={day} 
+                        style={{ 
+                          background: isToday ? 'rgba(99, 102, 241, 0.06)' : 'rgba(255,255,255,0.02)', 
+                          borderRadius: '16px', 
+                          padding: '1.25rem 0.75rem', 
+                          minHeight: '160px', 
+                          border: isToday ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          boxShadow: isToday ? '0 8px 20px rgba(99, 102, 241, 0.15)' : 'none',
+                          transition: 'all 0.3s ease',
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? 'var(--primary)' : 'var(--text-muted)' }}>{day}</span>
+                          {isToday && (
+                            <span style={{ 
+                              fontSize: '0.55rem', 
+                              background: 'var(--primary)', 
+                              color: 'white', 
+                              padding: '2px 6px', 
+                              borderRadius: '20px', 
+                              fontWeight: 900, 
+                              textTransform: 'uppercase', 
+                              letterSpacing: '0.5px',
+                              marginTop: '4px',
+                              boxShadow: '0 2px 5px rgba(99, 102, 241, 0.4)'
+                            }}>
+                              Today
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {daySchedules.length > 0 ? (
+                            daySchedules.map(ds => (
+                              <div 
+                                key={ds.id} 
+                                style={{ 
+                                  background: 'var(--card-bg-alt)', 
+                                  border: '1px solid var(--border)', 
+                                  color: 'var(--text)', 
+                                  fontSize: '0.7rem', 
+                                  padding: '8px', 
+                                  borderRadius: '10px',
+                                  boxShadow: 'var(--shadow-sm)',
+                                  transition: 'transform 0.2s',
+                                }}
+                              >
+                                <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.75rem', marginBottom: '2px' }}>{ds.startTime}</div>
+                                {ds.subject && (
+                                  <div style={{ 
+                                    fontWeight: 700, 
+                                    fontSize: '0.6rem', 
+                                    background: 'rgba(99, 102, 241, 0.1)', 
+                                    color: 'var(--primary)', 
+                                    padding: '2px 4px', 
+                                    borderRadius: '4px', 
+                                    display: 'inline-block', 
+                                    margin: '2px 0', 
+                                    textTransform: 'uppercase', 
+                                    letterSpacing: '0.5px' 
+                                  }}>
+                                    {ds.subject}
+                                  </div>
+                                )}
+                                <div style={{ opacity: 0.85, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }} title={ds.batchName}>
+                                  {ds.batchName}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.65rem', fontStyle: 'italic', padding: '1rem 0' }}>No classes</div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

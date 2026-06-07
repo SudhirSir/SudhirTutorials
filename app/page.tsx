@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 // Removed ScholarshipPredictor3D import
 
 // Math/science formulas for the floating background animation
@@ -14,6 +16,16 @@ const floatingFormulas = [
 ];
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const role = (session.user as any).role || 'STUDENT';
+      router.push(`/dashboard/${role.toLowerCase()}`);
+    }
+  }, [status, session, router]);
+
   // Target Exam state for College Matcher
   const [targetExam, setTargetExam] = useState<'JEE' | 'NEET'>('JEE');
   const [studyHours, setStudyHours] = useState<number>(6);

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { ThemeToggle } from "@/components/ThemeToggle";
+
 
 const icons = {
   home: (
@@ -216,20 +216,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
           <span>SUDHIR <span style={{ color: 'var(--primary)' }}>TUTORIALS</span></span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <ThemeToggle />
-        </div>
       </header>
 
       {/* Mobile Sidebar Backdrop Overlay */}
       {isMobileSidebarOpen && (
         <div className="mobile-sidebar-overlay" onClick={() => setIsMobileSidebarOpen(false)} />
       )}
-
-      {/* Fixed Top-Right Viewport Theme Toggle (Most Right Side - Desktop Only) */}
-      <div style={{ position: 'fixed', top: '0.75rem', right: '0.75rem', zIndex: 1000 }} className="desktop-theme-toggle">
-        <ThemeToggle />
-      </div>
 
       <aside className={`sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-inner">

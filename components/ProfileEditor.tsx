@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { ThemeToggle } from './ThemeToggle';
+import { BugReportModal } from './BugReportModal';
+
 
 interface ProfileEditorProps {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
@@ -47,6 +50,9 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
   const [pinSaving, setPinSaving] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  // Bug Report State
+  const [showBugReportModal, setShowBugReportModal] = useState(false);
 
   useEffect(() => { fetchProfile(); }, []);
 
@@ -298,6 +304,22 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           >
             🛡️ Reset Secret PIN
           </button>
+
+          {/* Display Theme & Support */}
+          <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '0.6rem 0.85rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>🌓 App Display Theme</span>
+              <ThemeToggle />
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => setShowBugReportModal(true)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(239,68,68,0.04)', border: '1px dashed var(--primary)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              🐞 Report a Bug / Suggestion
+            </button>
+          </div>
         </div>
 
         {/* Password Change Panel */}
@@ -581,6 +603,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           }
         }
       `}</style>
+      <BugReportModal isOpen={showBugReportModal} onClose={() => setShowBugReportModal(false)} />
     </div>
   );
 }

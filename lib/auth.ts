@@ -11,7 +11,8 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
-        role: { label: "Role", type: "text" }
+        role: { label: "Role", type: "text" },
+        isApp: { label: "IsApp", type: "text" }
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
@@ -74,13 +75,44 @@ export const authOptions: NextAuthOptions = {
             }
           }
 
-          const activeToken = crypto.randomBytes(16).toString('hex');
-          
+          // Get existing user db token to preserve the other token type
+          const existingUser = await withDbRetry(
+            () => prisma.user.findUnique({
+              where: { id: user.id },
+              select: { activeToken: true }
+            }),
+            6,
+            500
+          );
+
+          let webToken = "";
+          let appToken = "";
+          const currentDbToken = existingUser?.activeToken || "";
+          if (currentDbToken.includes('|')) {
+            const parts = currentDbToken.split('|');
+            parts.forEach(part => {
+              if (part.startsWith('web:')) webToken = part.slice(4);
+              else if (part.startsWith('app:')) appToken = part.slice(4);
+            });
+          } else {
+            webToken = currentDbToken;
+          }
+
+          const isApp = credentials?.isApp === "true";
+          const newSessionToken = crypto.randomBytes(16).toString('hex');
+          if (isApp) {
+            appToken = newSessionToken;
+          } else {
+            webToken = newSessionToken;
+          }
+
+          const dbTokenString = `web:${webToken}|app:${appToken}`;
+
           // Update user activeToken with robust database retries
           await withDbRetry(
             () => prisma.user.update({
               where: { id: user.id },
-              data: { activeToken }
+              data: { activeToken: dbTokenString }
             }),
             6,
             500
@@ -94,7 +126,7 @@ export const authOptions: NextAuthOptions = {
             mustChangePassword: user.mustChangePassword,
             onboardingCompleted: user.onboardingCompleted,
             isProfileVerified: user.isProfileVerified,
-            activeToken
+            activeToken: newSessionToken
           };
         } catch (error: any) {
           if (["USER_NOT_FOUND", "INVALID_PASSWORD", "ROLE_MISMATCH", "ADMIN_NOT_TEACHER", "MISSING_CREDENTIALS"].includes(error.message)) {
@@ -142,14 +174,46 @@ export const authOptions: NextAuthOptions = {
     async signOut({ token }) {
       if (token?.id) {
         try {
-          await withDbRetry(
-            () => prisma.user.update({
+          const user = await withDbRetry(
+            () => prisma.user.findUnique({
               where: { id: token.id as string },
-              data: { activeToken: null }
+              select: { activeToken: true }
             }),
             3,
             200
           );
+
+          if (user && user.activeToken) {
+            let webToken = "";
+            let appToken = "";
+            const currentDbToken = user.activeToken || "";
+            if (currentDbToken.includes('|')) {
+              const parts = currentDbToken.split('|');
+              parts.forEach(part => {
+                if (part.startsWith('web:')) webToken = part.slice(4);
+                else if (part.startsWith('app:')) appToken = part.slice(4);
+              });
+            } else {
+              webToken = currentDbToken;
+            }
+
+            const sessionToken = (token as any).activeToken;
+            if (sessionToken === webToken) {
+              webToken = "";
+            } else if (sessionToken === appToken) {
+              appToken = "";
+            }
+
+            const newDbToken = `web:${webToken}|app:${appToken}`;
+            await withDbRetry(
+              () => prisma.user.update({
+                where: { id: token.id as string },
+                data: { activeToken: newDbToken }
+              }),
+              3,
+              200
+            );
+          }
         } catch (error) {
           console.error("Error clearing activeToken on signOut:", error);
         }

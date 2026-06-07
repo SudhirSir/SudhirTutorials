@@ -642,15 +642,17 @@ Depending on your specific focus, this represents the vital equation model for t
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       <div className="bg-glow accent" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
-      <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
-            जय सियाराम 🙏 <span style={{ color: '#10b981' }}>{session?.user?.name || 'Teacher'}</span>
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Manage your classes, students, and materials.</p>
-        </div>
-        <LiveClock />
-      </header>
+      {activeTab === 'classes' && (
+        <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+              जय सियाराम 🙏 <span style={{ color: '#10b981' }}>{session?.user?.name || 'Teacher'}</span>
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Manage your classes, students, and materials.</p>
+          </div>
+          <LiveClock />
+        </header>
+      )}
 
 
       <div className="dashboard-tab-bar no-scrollbar no-print">
@@ -684,7 +686,7 @@ Depending on your specific focus, this represents the vital equation model for t
              tab === 'salary' ? 'Salary Records' :
              tab === 'lectures' ? 'Live Classes' :
              tab === 'guru-ai' ? 'Guru AI Workspace' :
-             tab === 'messages' ? 'Messages' :
+             tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
              tab}
@@ -744,6 +746,111 @@ Depending on your specific focus, this represents the vital equation model for t
             </div>
           </div>
 
+          {/* Weekly Timetable Grid */}
+          <div className="glass-card" style={{ padding: '2rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Weekly Timetable</h2>
+              <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Teaching Schedule</span>
+            </div>
+            
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', paddingBottom: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.75rem', minWidth: '800px' }}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => {
+                  const daySchedules: any[] = [];
+                  classes.forEach(b => {
+                    b.schedules?.forEach((s: any) => {
+                      if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
+                    });
+                  });
+
+                  // Sort chronologically by start time
+                  daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+                  const isToday = idx === new Date().getDay();
+
+                  return (
+                    <div 
+                      key={day} 
+                      style={{ 
+                        background: isToday ? 'rgba(16, 185, 129, 0.06)' : 'rgba(255,255,255,0.02)', 
+                        borderRadius: '16px', 
+                        padding: '1.25rem 0.75rem', 
+                        minHeight: '160px', 
+                        border: isToday ? '2px solid #10b981' : '1px solid var(--border)',
+                        boxShadow: isToday ? '0 8px 20px rgba(16, 185, 129, 0.15)' : 'none',
+                        transition: 'all 0.3s ease',
+                        position: 'relative'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text-muted)' }}>{day}</span>
+                        {isToday && (
+                          <span style={{ 
+                            fontSize: '0.55rem', 
+                            background: '#10b981', 
+                            color: 'white', 
+                            padding: '2px 6px', 
+                            borderRadius: '20px', 
+                            fontWeight: 900, 
+                            textTransform: 'uppercase', 
+                            letterSpacing: '0.5px',
+                            marginTop: '4px',
+                            boxShadow: '0 2px 5px rgba(16, 185, 129, 0.4)'
+                          }}>
+                            Today
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {daySchedules.length > 0 ? (
+                          daySchedules.map(ds => (
+                            <div 
+                              key={ds.id} 
+                              style={{ 
+                                background: 'var(--card-bg-alt)', 
+                                border: '1px solid var(--border)', 
+                                color: 'var(--text)', 
+                                fontSize: '0.7rem', 
+                                padding: '8px', 
+                                borderRadius: '10px',
+                                boxShadow: 'var(--shadow-sm)',
+                                transition: 'transform 0.2s',
+                              }}
+                            >
+                              <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.75rem', marginBottom: '2px' }}>{ds.startTime}</div>
+                              {ds.subject && (
+                                <div style={{ 
+                                  fontWeight: 700, 
+                                  fontSize: '0.6rem', 
+                                  background: 'rgba(16, 185, 129, 0.1)', 
+                                  color: '#10b981', 
+                                  padding: '2px 4px', 
+                                  borderRadius: '4px', 
+                                  display: 'inline-block', 
+                                  margin: '2px 0', 
+                                  textTransform: 'uppercase', 
+                                  letterSpacing: '0.5px' 
+                                }}>
+                                  {ds.subject}
+                                </div>
+                              )}
+                              <div style={{ opacity: 0.85, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }} title={`${ds.batchName} (${ds.courseName || ''})`}>
+                                {ds.batchName}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.65rem', fontStyle: 'italic', padding: '1rem 0' }}>No classes</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>All Assigned Batches</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -765,7 +872,10 @@ Depending on your specific focus, this represents the vital equation model for t
                         <div style={{ marginBottom: '1.5rem' }}>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem', fontWeight: 800 }}>Weekly Schedule</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            {batch.schedules.map((s: any) => (
+                            {[...batch.schedules].sort((a, b) => {
+                              if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+                              return a.startTime.localeCompare(b.startTime);
+                            }).map((s: any) => (
                               <div key={s.id} style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <span style={{ fontWeight: 800 }}>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]}</span> • {s.startTime} {s.subject && `(${s.subject})`}
                               </div>

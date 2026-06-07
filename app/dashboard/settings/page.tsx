@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { BugReportModal } from '@/components/BugReportModal';
 
 export default function SettingsPage() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showBugReportModal, setShowBugReportModal] = useState(false);
   
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -122,9 +125,45 @@ export default function SettingsPage() {
           </form>
         </div>
 
-
+        {/* Preferences & Support Card */}
+        <div className="glass-card" style={{ padding: '2rem' }}>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Preferences & Support</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>🌓 App Display Theme</span>
+              <ThemeToggle />
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => setShowBugReportModal(true)}
+              style={{
+                width: '100%',
+                padding: '1rem',
+                borderRadius: '12px',
+                background: 'rgba(239,68,68,0.04)',
+                border: '1px dashed var(--primary)',
+                color: 'var(--primary)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.04)'}
+            >
+              🐞 Report a Bug / Suggestion
+            </button>
+          </div>
+        </div>
 
       </div>
+
+      <BugReportModal isOpen={showBugReportModal} onClose={() => setShowBugReportModal(false)} />
 
       <style jsx>{`
         .loading-container {

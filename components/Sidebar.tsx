@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import { ThemeToggle } from './ThemeToggle';
+
 
 interface SidebarProps {
   activeTab: string;
@@ -58,7 +58,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
     { id: 'finances', label: 'Revenue' },
     { id: 'directory', label: 'Directory' },
     { id: 'salary', label: 'Staff Salary Management' },
-    { id: 'messages', label: 'Messages' },
+    { id: 'messages', label: 'My Chats' },
     { id: 'notifications', label: 'Notifications' },
     { id: 'settings', label: 'System Settings' },
   ];
@@ -69,7 +69,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
     { id: 'students', label: 'Student Roster' },
     { id: 'attendance', label: 'Attendance' },
     { id: 'salary', label: 'Salary Records' },
-    { id: 'messages', label: 'Messages' },
+    { id: 'messages', label: 'My Chats' },
     { id: 'notifications', label: 'Notifications' },
   ];
 
@@ -78,7 +78,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
     { id: 'materials', label: 'Study Material' },
     { id: 'tests', label: 'My Tests' },
     { id: 'fees', label: 'Pay/View fees' },
-    { id: 'messages', label: 'Messages' },
+    { id: 'messages', label: 'My Chats' },
     { id: 'notifications', label: 'Notifications' },
   ];
 
@@ -167,42 +167,39 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
 
       {/* User & Logout */}
       <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflow: 'hidden' }}>
-            <div style={{ 
-              width: '40px', 
-              height: '40px', 
-              borderRadius: '50%', 
-              background: 'var(--card-bg-alt)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              fontSize: '1rem',
-              fontWeight: 800,
-              border: '2px solid var(--primary)',
-              color: 'var(--text)',
-              overflow: 'hidden',
-              flexShrink: 0
-            }}>
-              {photoUrl ? (
-                <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                name.charAt(0)
-              )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflow: 'hidden', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            borderRadius: '50%', 
+            background: 'var(--card-bg-alt)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: '1rem',
+            fontWeight: 800,
+            border: '2px solid var(--primary)',
+            color: 'var(--text)',
+            overflow: 'hidden',
+            flexShrink: 0
+          }}>
+            {photoUrl ? (
+              <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              name.charAt(0)
+            )}
+          </div>
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100%' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', flex: 1 }} title={name}>
+                {name}
+              </span>
+              {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>}
             </div>
-            <div style={{ overflow: 'hidden', flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100%' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', flex: 1 }} title={name}>
-                  {name}
-                </span>
-                {isVerified && <span title="Verified Profile" style={{ color: '#3b82f6', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
-                {isVerified ? 'Verified Account' : 'Online'}
-              </div>
+            <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
+              {isVerified ? 'Verified Account' : 'Online'}
             </div>
           </div>
-          <ThemeToggle />
         </div>
         
         <button 
