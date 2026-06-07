@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { sendPushNotification } from '@/lib/push';
+import { messageEmitter } from '@/lib/events';
 import { z } from 'zod';
 
 const messageSchema = z.object({
@@ -98,8 +99,60 @@ export async function POST(req: Request) {
         senderId: session.user.id,
         receiverId,
         content
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            role: true,
+            photoUrl: true,
+            studentProfile: { select: { photoUrl: true } },
+            teacherProfile: { select: { photoUrl: true } }
+          }
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            role: true,
+            photoUrl: true,
+            studentProfile: { select: { photoUrl: true } },
+            teacherProfile: { select: { photoUrl: true } }
+          }
+        }
       }
     }));
+
+    const senderPhoto = message.sender.photoUrl || (message.sender.role === 'STUDENT' ? message.sender.studentProfile?.photoUrl : message.sender.teacherProfile?.photoUrl);
+    const receiverPhoto = message.receiver.photoUrl || (message.receiver.role === 'STUDENT' ? message.receiver.studentProfile?.photoUrl : message.receiver.teacherProfile?.photoUrl);
+
+    const formattedMessage = {
+      ...message,
+      sender: {
+        id: message.sender.id,
+        name: message.sender.name,
+        username: message.sender.username,
+        role: message.sender.role,
+        photoUrl: senderPhoto || null
+      },
+      receiver: {
+        id: message.receiver.id,
+        name: message.receiver.name,
+        username: message.receiver.username,
+        role: message.receiver.role,
+        photoUrl: receiverPhoto || null
+      }
+    };
+
+    messageEmitter.emit('message', {
+      type: 'create',
+      message: formattedMessage,
+      senderId: message.senderId,
+      receiverId: message.receiverId
+    });
 
     // Dispatch native push notification
     let displayBody = content;
@@ -141,6 +194,13 @@ export async function DELETE(req: Request) {
         where: { id: messageId }
       }));
 
+      messageEmitter.emit('message', {
+        type: 'delete',
+        messageId,
+        senderId: msg.senderId,
+        receiverId: msg.receiverId
+      });
+
       return NextResponse.json({ success: true, deletedMessageId: messageId });
     }
 
@@ -154,6 +214,13 @@ export async function DELETE(req: Request) {
           ]
         }
       }));
+
+      messageEmitter.emit('message', {
+        type: 'delete',
+        chatUserId,
+        senderId: session.user.id,
+        receiverId: chatUserId
+      });
 
       return NextResponse.json({ success: true, deletedCount: deleted.count });
     }

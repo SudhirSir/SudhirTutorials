@@ -58,6 +58,9 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
+  @@index([senderId, createdAt])
+  @@index([receiverId, createdAt])
+  @@index([receiverId, isRead])
 }
 
 model StudentProfile {
@@ -202,6 +205,7 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+  @@index([userId, isRead])
 }
 
 model Test {

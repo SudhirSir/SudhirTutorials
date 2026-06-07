@@ -63,8 +63,25 @@ function TeacherDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
-    const interval = setInterval(fetchUnreadCounts, 40000);
-    return () => clearInterval(interval);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCounts();
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCounts();
+      }
+    }, 40000);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [session]);
   
   useEffect(() => {

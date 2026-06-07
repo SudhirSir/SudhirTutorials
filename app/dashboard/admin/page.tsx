@@ -106,8 +106,25 @@ function AdminDashboardContent() {
     if (!session?.user) return;
     fetchUnreadCounts();
     fetchSettings();
-    const interval = setInterval(fetchUnreadCounts, 40000);
-    return () => clearInterval(interval);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCounts();
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCounts();
+      }
+    }, 40000);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [session]);
 
   useEffect(() => {
@@ -1486,9 +1503,26 @@ function AdminDashboardContent() {
     fetchUnreadCounts();
     if (activeTab === 'overview') {
       fetchOverviewStats();
+      
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible' && activeTab === 'overview') {
+          fetchOverviewStats();
+        }
+      };
+
       // Auto-refresh revenue every 60 s while on overview tab
-      const overviewInterval = setInterval(fetchOverviewStats, 60000);
-      return () => clearInterval(overviewInterval);
+      const overviewInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          fetchOverviewStats();
+        }
+      }, 60000);
+
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      return () => {
+        clearInterval(overviewInterval);
+        document.removeEventListener('visibilitychange', handleVisibility);
+      };
     }
     if (activeTab === 'users') handleSearchDirectory(); // always load all users on tab switch
     if (activeTab === 'finances') {

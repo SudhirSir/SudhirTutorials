@@ -138,11 +138,159 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     }
   };
 
+  // Re-fetch messages when the window/app gains focus or becomes visible
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 8000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchMessages();
+      }
+    };
+
+    const handleFocus = () => {
+      fetchMessages();
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
+
+  // Establish SSE EventSource connection to receive message updates in real-time
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: any = null;
+    let fallbackInterval: any = null;
+
+    function connectSSE() {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      eventSource = new EventSource('/api/messages/subscribe');
+
+      eventSource.onopen = () => {
+        console.log('[SSE] Connection established successfully');
+        // Fetch messages immediately to reconcile any missed updates
+        fetchMessages();
+        // Clear fallback interval if SSE successfully connects
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval);
+          fallbackInterval = null;
+        }
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'connected' || data.type === 'ping') return;
+
+          if (data.type === 'create') {
+            const newMsg = data.message;
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              
+              // Remove temporary message if exists and append new message
+              const filtered = prev.filter(m => m.id !== `temp-${newMsg.createdAt}` && m.id !== newMsg.id);
+              return [newMsg, ...filtered];
+            });
+
+            // Update contacts list if other user is not in contacts
+            const otherUser = newMsg.senderId === currentUserId ? newMsg.receiver : newMsg.sender;
+            if (otherUser && otherUser.id) {
+              setContacts(prev => {
+                if (prev.some(c => c.id === otherUser.id)) return prev;
+                return [otherUser, ...prev];
+              });
+            }
+          } 
+          else if (data.type === 'read') {
+            // Mark messages between currentUserId and senderId as read
+            setMessages(prev => prev.map(m => {
+              if (m.senderId === data.senderId && m.receiverId === data.receiverId) {
+                return { ...m, isRead: true };
+              }
+              return m;
+            }));
+            if (onMessagesRead) onMessagesRead();
+          } 
+          else if (data.type === 'delete') {
+            if (data.messageId) {
+              setMessages(prev => prev.filter(m => m.id !== data.messageId));
+            } else if (data.chatUserId) {
+              const chatUserId = data.chatUserId;
+              setMessages(prev => prev.filter(m => m.senderId !== chatUserId && m.receiverId !== chatUserId));
+              setContacts(prev => prev.filter(c => c.id !== chatUserId));
+              if (selectedUser?.id === chatUserId) {
+                setSelectedUser(null);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[SSE] Message parsing error:', e);
+        }
+      };
+
+      eventSource.onerror = () => {
+        console.error('[SSE] Connection error. Closing stream...');
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        
+        // Reconnect after 5 seconds
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(connectSSE, 5000);
+
+        // Start fallback polling (once every 15s) while SSE is down
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+              fetchMessages();
+            }
+          }, 15000);
+        }
+      };
+    }
+
+    // Connect initially if visible
+    if (document.visibilityState === 'visible') {
+      connectSSE();
+    } else {
+      // If initially loaded in background, fetch once
+      fetchMessages();
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        connectSSE();
+      } else {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval);
+          fallbackInterval = null;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      clearTimeout(reconnectTimeout);
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+      }
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [currentUserId, selectedUser?.id]);
 
   useEffect(() => {
     if (scrollRef.current) {

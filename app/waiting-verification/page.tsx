@@ -27,8 +27,7 @@ export default function WaitingVerificationPage() {
   };
 
   useEffect(() => {
-    // Poll for verification status every 5 seconds
-    const interval = setInterval(async () => {
+    const checkStatus = async () => {
        if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
        if (sessionStorage.getItem('isLoggingOut') === 'true') return;
        try {
@@ -45,9 +44,27 @@ export default function WaitingVerificationPage() {
          if (sessionStorage.getItem('isLoggingOut') === 'true') return;
          console.error('Failed to poll status', err);
        }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkStatus();
+      }
+    };
+
+    // Poll for verification status every 5 seconds
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        checkStatus();
+      }
     }, 5000);
+
+    document.addEventListener('visibilitychange', handleVisibility);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [update]);
 
   useEffect(() => {

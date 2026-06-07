@@ -48,8 +48,25 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
 
   useEffect(() => {
     fetchBadgeCounts();
-    const interval = setInterval(fetchBadgeCounts, 35000);
-    return () => clearInterval(interval);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchBadgeCounts();
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchBadgeCounts();
+      }
+    }, 35000);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const adminLinks = [

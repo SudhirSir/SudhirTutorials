@@ -1,7 +1,11 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { messageEmitter } from '@/lib/events';
 
 export async function PATCH(req: Request) {
   try {
@@ -18,6 +22,13 @@ export async function PATCH(req: Request) {
       },
       data: { isRead: true }
     }));
+
+    // Emit read event to notify the sender
+    messageEmitter.emit('message', {
+      type: 'read',
+      senderId,
+      receiverId: session.user.id
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

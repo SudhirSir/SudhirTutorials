@@ -42,12 +42,25 @@ export function SessionGuard() {
     // Check immediately on page load / path change
     checkSession();
 
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkSession();
+      }
+    };
+
     // Poll every 30 seconds to catch concurrent login in real-time
-    const interval = setInterval(checkSession, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        checkSession();
+      }
+    }, 30000);
+
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [status, pathname]);
 

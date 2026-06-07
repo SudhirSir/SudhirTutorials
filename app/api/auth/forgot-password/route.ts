@@ -1,5 +1,9 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
