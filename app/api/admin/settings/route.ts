@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
+import { clearLateFineSettingsCache } from '@/lib/feeSettings';
 
 async function ensureSystemSettingTable() {
   try {
@@ -117,10 +118,12 @@ export async function POST(req: Request) {
       `Updated late fines: per day = ₹${perDayFine}, flat after 10 days = ₹${flatFineAfter10Days}, and updated class default fees.`
     );
 
+    // Invalidate the late fine settings cache
+    clearLateFineSettingsCache();
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating settings:', error);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 }
-

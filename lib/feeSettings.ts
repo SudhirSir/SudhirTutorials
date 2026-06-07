@@ -1,6 +1,20 @@
 import { prisma, withDbRetry } from './prisma';
 
+let cachedLateFineSettings: { perDayFine: number; flatFineAfter10Days: number } | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+export function clearLateFineSettingsCache() {
+  cachedLateFineSettings = null;
+  cacheTimestamp = 0;
+}
+
 export async function getLateFineSettings() {
+  const now = Date.now();
+  if (cachedLateFineSettings && (now - cacheTimestamp < CACHE_TTL_MS)) {
+    return cachedLateFineSettings;
+  }
+
   try {
     const settings = await withDbRetry(() => prisma.systemSetting.findMany({
       where: {
@@ -22,7 +36,9 @@ export async function getLateFineSettings() {
       }
     }
     
-    return { perDayFine, flatFineAfter10Days };
+    cachedLateFineSettings = { perDayFine, flatFineAfter10Days };
+    cacheTimestamp = now;
+    return cachedLateFineSettings;
   } catch (err) {
     console.warn("Failed to fetch late fine settings from DB, using default values:", err);
     return { perDayFine: 10, flatFineAfter10Days: 100 };
