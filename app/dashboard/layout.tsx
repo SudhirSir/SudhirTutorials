@@ -218,7 +218,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   )}
                 </div>
                 <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', wordBreak: 'break-word', lineHeight: '1.2' }}>
                     {session?.user?.name || 'User'}
                     {isVerified && <span title="Verified" style={{ color: '#3b82f6', fontSize: '0.75rem' }}>🔵</span>}
                   </div>
@@ -411,7 +411,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         .role-badge-modern.admin { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
         .role-badge-modern.teacher { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
-        .role-badge-modern.student { background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.2); }
+        .role-badge-modern.student { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
 
         .sidebar-nav {
           flex: 1;

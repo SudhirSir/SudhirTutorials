@@ -3,11 +3,11 @@ import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
 const applySchema = z.object({
-  name: z.string().min(2, "Name is too short").max(25, "Name must be at most 25 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
-  fatherName: z.string().min(2, "Father's name is too short").max(25, "Father's name must be at most 25 characters").regex(/^[a-zA-Z\s]+$/, "Father's name must contain only alphabets and spaces"),
+  name: z.string().min(2, "Name is too short").max(150, "Name must be at most 150 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
+  fatherName: z.string().min(2, "Father's name is too short").max(150, "Father's name must be at most 150 characters").regex(/^[a-zA-Z\s]+$/, "Father's name must contain only alphabets and spaces"),
   phone: z.string().regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
   email: z.string().email("Invalid email").optional().or(z.literal('')),
-  address: z.string().min(5, "Address is too short").max(60, "Address must be at most 60 characters"),
+  address: z.string().min(5, "Address is too short").max(150, "Address must be at most 150 characters"),
   className: z.string().min(1, "Class is required"),
   board: z.string().min(1, "Board is required"),
   program: z.string().min(1, "Program is required"),

@@ -41,8 +41,8 @@ export async function POST(req: Request) {
     }
 
     if (user.role === 'STUDENT' && parentName) {
-      if (parentName.length > 25 || !/^[a-zA-Z\s]+$/.test(parentName)) {
-        return NextResponse.json({ error: 'Parent/Guardian name must contain only alphabets and spaces, and be at most 25 characters long.' }, { status: 400 });
+      if (parentName.length > 150 || !/^[a-zA-Z\s]+$/.test(parentName)) {
+        return NextResponse.json({ error: 'Parent/Guardian name must contain only alphabets and spaces, and be at most 150 characters long.' }, { status: 400 });
       }
     }
 

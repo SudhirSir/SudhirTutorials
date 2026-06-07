@@ -836,19 +836,19 @@ function AdminDashboardContent() {
       setIsCreating(false);
       return;
     }
-    if (newUserName.length > 25 || !/^[a-zA-Z\s]+$/.test(newUserName)) {
-      setErrorMsg("Name must contain only alphabets and spaces, and be at most 25 characters.");
+    if (newUserName.length > 150 || !/^[a-zA-Z\s]+$/.test(newUserName)) {
+      setErrorMsg("Name must contain only alphabets and spaces, and be at most 150 characters.");
       setIsCreating(false);
       return;
     }
     if (newUserRole === 'STUDENT') {
-      if (newStudentFatherName && (newStudentFatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(newStudentFatherName))) {
-        setErrorMsg("Father's name must contain only alphabets and spaces, and be at most 25 characters.");
+      if (newStudentFatherName && (newStudentFatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(newStudentFatherName))) {
+        setErrorMsg("Father's name must contain only alphabets and spaces, and be at most 150 characters.");
         setIsCreating(false);
         return;
       }
-      if (newStudentAddress && newStudentAddress.length > 60) {
-        setErrorMsg("Address must be at most 60 characters.");
+      if (newStudentAddress && newStudentAddress.length > 150) {
+        setErrorMsg("Address must be at most 150 characters.");
         setIsCreating(false);
         return;
       }
@@ -1645,14 +1645,14 @@ function AdminDashboardContent() {
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingProfile.name) {
-      if (editingProfile.name.length > 25 || !/^[a-zA-Z\s]+$/.test(editingProfile.name)) {
-        alert("Name must contain only alphabets and spaces, and be at most 25 characters.");
+      if (editingProfile.name.length > 150 || !/^[a-zA-Z\s]+$/.test(editingProfile.name)) {
+        alert("Name must contain only alphabets and spaces, and be at most 150 characters.");
         return;
       }
     }
     if (editingProfile.role === 'STUDENT' && editingProfile.fatherName) {
-      if (editingProfile.fatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(editingProfile.fatherName)) {
-        alert("Father's name must contain only alphabets and spaces, and be at most 25 characters.");
+      if (editingProfile.fatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(editingProfile.fatherName)) {
+        alert("Father's name must contain only alphabets and spaces, and be at most 150 characters.");
         return;
       }
     }
@@ -1665,8 +1665,8 @@ function AdminDashboardContent() {
       return;
     }
     if (editingProfile.address) {
-      if (editingProfile.address.length > 60) {
-        alert("Address must be at most 60 characters.");
+      if (editingProfile.address.length > 150) {
+        alert("Address must be at most 150 characters.");
         return;
       }
     }
@@ -2391,7 +2391,7 @@ function AdminDashboardContent() {
                             >
                               {u.name || 'Unnamed'}
                             </span>
-                            <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '20px', background: u.role === 'TEACHER' ? 'rgba(16,185,129,0.2)' : 'rgba(99,102,241,0.2)', color: u.role === 'TEACHER' ? '#34d399' : '#818cf8', flexShrink: 0 }}>
+                            <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '20px', background: u.role === 'ADMIN' ? 'rgba(239,68,68,0.2)' : u.role === 'TEACHER' ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)', color: u.role === 'ADMIN' ? '#f87171' : u.role === 'TEACHER' ? '#34d399' : '#60a5fa', flexShrink: 0 }}>
                               {u.role}
                             </span>
                           </div>
@@ -2457,7 +2457,7 @@ function AdminDashboardContent() {
                 
                 <div className="input-group">
                   <label>Full Name</label>
-                  <input type="text" placeholder="e.g. Rahul Kumar" value={newUserName} maxLength={25} onChange={e => {
+                  <input type="text" placeholder="e.g. Rahul Kumar" value={newUserName} maxLength={150} onChange={e => {
                     const val = e.target.value;
                     if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
                       setNewUserName(val);
@@ -2533,7 +2533,7 @@ function AdminDashboardContent() {
                     </div>
                     <div className="input-group">
                       <label>Father's Name</label>
-                      <input type="text" placeholder="e.g. Ramesh Kumar" value={newStudentFatherName} maxLength={25} onChange={e => {
+                      <input type="text" placeholder="e.g. Ramesh Kumar" value={newStudentFatherName} maxLength={150} onChange={e => {
                         const val = e.target.value;
                         if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
                           setNewStudentFatherName(val);
@@ -2550,7 +2550,7 @@ function AdminDashboardContent() {
                     </div>
                     <div className="input-group">
                       <label>Residential Address</label>
-                      <input type="text" placeholder="e.g. 123 Street, City" value={newStudentAddress} maxLength={60} onChange={e => setNewStudentAddress(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                      <input type="text" placeholder="e.g. 123 Street, City" value={newStudentAddress} maxLength={150} onChange={e => setNewStudentAddress(e.target.value)} style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                     </div>
                     <div className="input-group">
                       <label>Date of Birth</label>
@@ -3473,7 +3473,7 @@ function AdminDashboardContent() {
                    </button>
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px' }}>
                   <table style={{ width: '100%', minWidth: '700px', textAlign: 'left', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -3936,7 +3936,7 @@ function AdminDashboardContent() {
                     {/* Chronological ledger table */}
                     <div className="glass-card" style={{ padding: '2rem' }}>
                       <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)' }}>Chronological Transaction Postings</h4>
-                      <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '14px', background: 'rgba(0,0,0,0.1)' }}>
+                      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', border: '1px solid var(--border)', borderRadius: '14px', background: 'rgba(0,0,0,0.1)' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
@@ -5289,7 +5289,7 @@ function AdminDashboardContent() {
 
                <div className="input-group">
                  <label>Full Name</label>
-                 <input type="text" value={editingProfile.name || ''} maxLength={25} onChange={e => {
+                 <input type="text" value={editingProfile.name || ''} maxLength={150} onChange={e => {
                     const val = e.target.value;
                     if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
                       setEditingProfile({...editingProfile, name: val});
@@ -5332,7 +5332,7 @@ function AdminDashboardContent() {
                    </div>
                    <div className="input-group">
                      <label>Father's Name</label>
-                     <input type="text" value={editingProfile.fatherName || ''} maxLength={25} onChange={e => {
+                     <input type="text" value={editingProfile.fatherName || ''} maxLength={150} onChange={e => {
                         const val = e.target.value;
                         if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
                           setEditingProfile({...editingProfile, fatherName: val});
@@ -5493,7 +5493,7 @@ function AdminDashboardContent() {
                <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                  <label>Residential Address</label>
                  <textarea 
-                   maxLength={60} value={editingProfile.address || ''} 
+                   maxLength={150} value={editingProfile.address || ''} 
                    onChange={e => setEditingProfile({...editingProfile, address: e.target.value})} 
                    placeholder="Street, City, Pin"
                 style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', minHeight: '80px' }}
@@ -6811,7 +6811,7 @@ function AdminDashboardContent() {
                   <div style={{ width: '35px', height: '35px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px' }}>
                   <table style={{ width: '100%', minWidth: '750px', borderCollapse: 'collapse', fontSize: '0.9rem', color: 'var(--text)' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', color: 'var(--text-muted)', fontWeight: 700, textAlign: 'left' }}>
@@ -7004,7 +7004,7 @@ function AdminDashboardContent() {
               <h2 style={{ fontSize: '1.8rem', margin: 0, fontWeight: 800, color: 'var(--text)' }}>{selectedUserDetail.name || 'Unnamed User'}</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedUserDetail.username}</span>
-                <span style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: '100px', fontWeight: 800, background: selectedUserDetail.role === 'ADMIN' ? 'rgba(239,68,68,0.15)' : selectedUserDetail.role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)', color: selectedUserDetail.role === 'ADMIN' ? '#f87171' : selectedUserDetail.role === 'TEACHER' ? '#34d399' : '#818cf8' }}>
+                <span style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: '100px', fontWeight: 800, background: selectedUserDetail.role === 'ADMIN' ? 'rgba(239,68,68,0.15)' : selectedUserDetail.role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(59,130,246,0.15)', color: selectedUserDetail.role === 'ADMIN' ? '#f87171' : selectedUserDetail.role === 'TEACHER' ? '#34d399' : '#60a5fa' }}>
                   {selectedUserDetail.role}
                 </span>
                 {selectedUserDetail.role === 'STUDENT' && (

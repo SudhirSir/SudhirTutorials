@@ -19,7 +19,7 @@ const passwordSchema = z.object({
 });
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(25, "Name must be at most 25 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
+  name: z.string().min(2, "Name must be at least 2 characters").max(150, "Name must be at most 150 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
 });

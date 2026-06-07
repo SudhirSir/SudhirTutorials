@@ -98,8 +98,8 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
               fontWeight: 800, 
               padding: '4px 12px', 
               borderRadius: '20px', 
-              background: role === 'ADMIN' ? 'rgba(239,68,68,0.15)' : role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)',
-              color: role === 'ADMIN' ? '#f87171' : role === 'TEACHER' ? '#34d399' : '#818cf8',
+              background: role === 'ADMIN' ? 'rgba(239,68,68,0.15)' : role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(59,130,246,0.15)',
+              color: role === 'ADMIN' ? '#f87171' : role === 'TEACHER' ? '#34d399' : '#60a5fa',
               textTransform: 'uppercase',
               letterSpacing: '1px'
             }}>

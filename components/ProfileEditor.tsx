@@ -95,18 +95,18 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
     setSaving(true);
     setMsg(null);
     try {
-      if (form.name && (form.name.length > 25 || !/^[a-zA-Z\s]+$/.test(form.name))) {
-        setMsg({ type: 'error', text: 'Name must contain only alphabets and spaces, and be at most 25 characters.' });
+      if (form.name && (form.name.length > 150 || !/^[a-zA-Z\s]+$/.test(form.name))) {
+        setMsg({ type: 'error', text: 'Name must contain only alphabets and spaces, and be at most 150 characters.' });
         setSaving(false);
         return;
       }
-      if (form.fatherName && (form.fatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(form.fatherName))) {
-        setMsg({ type: 'error', text: "Father's name must contain only alphabets and spaces, and be at most 25 characters." });
+      if (form.fatherName && (form.fatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(form.fatherName))) {
+        setMsg({ type: 'error', text: "Father's name must contain only alphabets and spaces, and be at most 150 characters." });
         setSaving(false);
         return;
       }
-      if (form.address && form.address.length > 60) {
-        setMsg({ type: 'error', text: 'Address must be at most 60 characters.' });
+      if (form.address && form.address.length > 150) {
+        setMsg({ type: 'error', text: 'Address must be at most 150 characters.' });
         setSaving(false);
         return;
       }
@@ -401,7 +401,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           {/* Common Fields */}
           <div>
             <label style={labelStyle}>Full Name</label>
-            <input style={inputStyle} value={form.name} maxLength={25} onChange={e => {
+            <input style={inputStyle} value={form.name} maxLength={150} onChange={e => {
               const val = e.target.value;
               if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
                 setForm((f: any) => ({ ...f, name: val }));
@@ -425,7 +425,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           </div>
           <div className="grid-span-2">
             <label style={labelStyle}>Residential Address</label>
-            <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} value={form.address} maxLength={60} onChange={e => setForm((f: any) => ({ ...f, address: e.target.value }))} />
+            <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} value={form.address} maxLength={150} onChange={e => setForm((f: any) => ({ ...f, address: e.target.value }))} />
           </div>
 
           {/* Student-specific */}
@@ -433,7 +433,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
             <>
               <div>
                 <label style={labelStyle}>Father's Name</label>
-                <input style={inputStyle} value={form.fatherName} maxLength={25} onChange={e => {
+                <input style={inputStyle} value={form.fatherName} maxLength={150} onChange={e => {
                   const val = e.target.value;
                   if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
                     setForm((f: any) => ({ ...f, fatherName: val }));

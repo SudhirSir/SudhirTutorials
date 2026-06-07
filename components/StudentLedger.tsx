@@ -80,7 +80,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
       postings.push({
         date: new Date(fee.dueDate || fee.createdAt),
         description: `Tuition Fee – ${fee.billingMonth} (${fee.title})`,
-        reference: fee.receiptNo || `BILL-${fee.id.slice(-6).toUpperCase()}`,
+        reference: fee.receiptNo || `BILL-${(fee.id || '').slice(-6).toUpperCase()}`,
         type: 'DEBIT',
         debit: fee.amount,
         credit: 0,
@@ -91,7 +91,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         postings.push({
           date: new Date(fee.dueDate || fee.createdAt),
           description: `Fee Discount / Concession – ${fee.billingMonth}`,
-          reference: `DISC-${fee.id.slice(-6).toUpperCase()}`,
+          reference: `DISC-${(fee.id || '').slice(-6).toUpperCase()}`,
           type: 'CREDIT',
           debit: 0,
           credit: fee.discount,
@@ -104,7 +104,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         postings.push({
           date: new Date(fee.dueDate || fee.createdAt),
           description: `Late Payment Fine – ${fee.billingMonth}`,
-          reference: `FINE-${fee.receiptNo ? fee.receiptNo.split('/').pop() : fee.id.slice(-4).toUpperCase()}`,
+          reference: `FINE-${fee.receiptNo ? fee.receiptNo.split('/').pop() : (fee.id || '').slice(-4).toUpperCase()}`,
           type: 'FINE',
           debit: fineVal,
           credit: 0,
@@ -119,7 +119,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         postings.push({
           date: new Date(fee.paidAt || fee.createdAt),
           description: `Payment Received – ${fee.paymentMethod || 'Online'}`,
-          reference: fee.transactionId ? `TXN-${fee.transactionId.slice(-8).toUpperCase()}` : `RCPT-${fee.receiptNo}`,
+          reference: fee.transactionId ? `TXN-${(fee.transactionId || '').slice(-8).toUpperCase()}` : `RCPT-${fee.receiptNo}`,
           type: 'CREDIT',
           debit: 0,
           credit: creditAmt,
@@ -607,7 +607,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
               </button>
             </div>
 
-            <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--surface-light)' }}>
+            <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--surface-light)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
@@ -649,7 +649,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           .sort((a, b) => new Date(b.paidAt || b.createdAt).getTime() - new Date(a.paidAt || a.createdAt).getTime())
           .slice(0, 10);
         return (
-          <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--surface-light)' }}>
+          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--surface-light)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '680px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
@@ -710,6 +710,9 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         .ledger-month-card:hover {
           transform: translateY(-3px);
           box-shadow: 0 8px 24px rgba(239,68,68,0.08);
+        }
+        th {
+          color: var(--text-muted) !important;
         }
       `}</style>
     </div>

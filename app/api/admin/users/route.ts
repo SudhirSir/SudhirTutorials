@@ -8,7 +8,7 @@ import crypto from 'crypto';
 
 const userSchema = z.object({
   role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
-  name: z.string().min(2, "Name must be at least 2 characters").max(25, "Name must be at most 25 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
+  name: z.string().min(2, "Name must be at least 2 characters").max(150, "Name must be at most 150 characters").regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabets and spaces"),
   className: z.string().optional(),
   board: z.string().optional(),
   subject: z.string().optional(),
@@ -17,10 +17,10 @@ const userSchema = z.object({
     const num = typeof val === 'string' ? parseFloat(val) : val;
     return isNaN(num) ? undefined : num;
   }),
-  fatherName: z.string().optional().refine(val => !val || (val.length <= 25 && /^[a-zA-Z\s]+$/.test(val)), "Father's name must contain only alphabets and spaces, and be at most 25 characters long"),
+  fatherName: z.string().optional().refine(val => !val || (val.length <= 150 && /^[a-zA-Z\s]+$/.test(val)), "Father's name must contain only alphabets and spaces, and be at most 150 characters long"),
   phone: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), "Phone number must be exactly 10 digits"),
   email: z.string().optional(),
-  address: z.string().optional().refine(val => !val || val.length <= 60, "Address must be at most 60 characters long"),
+  address: z.string().optional().refine(val => !val || val.length <= 150, "Address must be at most 150 characters long"),
   dob: z.string().optional(),
 });
 
