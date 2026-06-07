@@ -81,8 +81,8 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
  */
 export async function withDbRetry<T>(
   fn: () => Promise<T>,
-  retries: number = 5,
-  delayMs: number = 500,
+  retries: number = 4,
+  delayMs: number = 400,
   exponential: boolean = true
 ): Promise<T> {
   let attempt = 0;
@@ -101,7 +101,7 @@ export async function withDbRetry<T>(
       );
       await new Promise((resolve) => setTimeout(resolve, currentDelay));
       if (exponential) {
-        currentDelay = Math.min(currentDelay * 2, 8000); // Cap backoff at 8 seconds
+        currentDelay = Math.min(currentDelay * 2, 4000); // Cap backoff at 4 seconds
       }
     }
   }

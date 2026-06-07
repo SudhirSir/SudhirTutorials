@@ -80,35 +80,60 @@ export default function LoginPage() {
       return;
     }
 
-    try {
+    const attemptSignIn = async () => {
       sessionStorage.setItem('tabSessionActive', 'true');
-      const res = await signIn("credentials", {
+      return signIn("credentials", {
         redirect: false,
         username,
         password,
         role: activeTab,
         isApp: Capacitor.isNativePlatform().toString()
       });
+    };
+
+    const applyError = (res: any) => {
+      sessionStorage.removeItem('tabSessionActive');
+      if (res.error === "USER_NOT_FOUND") {
+        setError("This ID / Username is not registered.");
+      } else if (res.error === "INVALID_PASSWORD") {
+        setError("Invalid password. Please try again.");
+      } else if (res.error === "ROLE_MISMATCH") {
+        setError(`Role mismatch: This account is not registered as a ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}.`);
+      } else if (res.error === "ADMIN_NOT_TEACHER") {
+        setError("This Admin account has not been assigned to any batch as a Teacher.");
+      } else if (res.error === "DB_ERROR") {
+        setError("Database connection problem. Please click Sign In again.");
+      } else {
+        setError("Invalid ID or Password.");
+      }
+      setLoading(false);
+    };
+
+    try {
+      const res = await attemptSignIn();
 
       if (res?.error) {
-        sessionStorage.removeItem('tabSessionActive');
-        if (res.error === "USER_NOT_FOUND") {
-          setError("This ID / Username is not registered.");
-        } else if (res.error === "INVALID_PASSWORD") {
-          setError("Invalid password. Please try again.");
-        } else if (res.error === "ROLE_MISMATCH") {
-          setError(`Role mismatch: This account is not registered as a ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}.`);
-        } else if (res.error === "ADMIN_NOT_TEACHER") {
-          setError("This Admin account has not been assigned to any batch as a Teacher.");
-        } else if (res.error === "DB_ERROR") {
-          setError("Database connection problem. Please click Sign In again.");
-        } else {
-          setError("Invalid ID or Password.");
+        // On a transient DB_ERROR, silently retry once after a short pause
+        if (res.error === "DB_ERROR") {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          try {
+            const retry = await attemptSignIn();
+            if (retry?.error) {
+              applyError(retry);
+              return;
+            }
+            // Retry succeeded — navigate
+            router.push(`/dashboard/${activeTab}`);
+            return;
+          } catch {
+            applyError(res);
+            return;
+          }
         }
-        setLoading(false);
+        applyError(res);
       } else {
+        // Navigate directly — no router.refresh() which caused a blank flash
         router.push(`/dashboard/${activeTab}`);
-        router.refresh();
       }
     } catch (err) {
       sessionStorage.removeItem('tabSessionActive');

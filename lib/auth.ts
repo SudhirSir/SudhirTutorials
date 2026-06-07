@@ -21,9 +21,22 @@ export const authOptions: NextAuthOptions = {
         try {
           // Fetch the user with robust database retries (handles cold starts and network drops)
           const user = await withDbRetry(
-            () => prisma.user.findUnique({ where: { username: credentials.username } }),
-            6, // Retry up to 6 times
-            500 // Starting at 500ms delay with exponential backoff
+            () => prisma.user.findUnique({
+              where: { username: credentials.username },
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                passwordHash: true,
+                role: true,
+                mustChangePassword: true,
+                onboardingCompleted: true,
+                isProfileVerified: true,
+                activeToken: true,
+              }
+            }),
+            4,
+            400
           );
 
           if (!user) {
@@ -58,10 +71,11 @@ export const authOptions: NextAuthOptions = {
                       teachers: {
                         some: { id: user.id }
                       }
-                    }
+                    },
+                    select: { id: true }
                   }),
-                  6,
-                  500
+                  4,
+                  400
                 );
                 if (!adminIsTeacher) {
                   throw new Error("ADMIN_NOT_TEACHER");
@@ -81,8 +95,8 @@ export const authOptions: NextAuthOptions = {
               where: { id: user.id },
               select: { activeToken: true }
             }),
-            6,
-            500
+            4,
+            400
           );
 
           let webToken = "";
@@ -114,8 +128,8 @@ export const authOptions: NextAuthOptions = {
               where: { id: user.id },
               data: { activeToken: dbTokenString }
             }),
-            6,
-            500
+            4,
+            400
           );
 
           return { 
