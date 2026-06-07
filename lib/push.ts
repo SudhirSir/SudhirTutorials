@@ -26,13 +26,11 @@ export async function sendPushNotification(userId: string, title: string, body: 
       },
       body: JSON.stringify({
         to: user.pushToken,
+        priority: 'high',
         notification: {
           title: title,
           body: body,
           sound: 'default'
-        },
-        data: {
-          click_action: 'FLUTTER_NOTIFICATION_CLICK'
         }
       })
     });
@@ -70,6 +68,7 @@ export async function sendPushNotificationToMultiple(userIds: string[], title: s
           },
           body: JSON.stringify({
             to: token,
+            priority: 'high',
             notification: {
               title: title,
               body: body,
