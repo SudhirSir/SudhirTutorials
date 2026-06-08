@@ -33,55 +33,77 @@ export function CapacitorBackButtonManager() {
         }
 
         backListener = await App.addListener('backButton', ({ canGoBack }) => {
-          // Debounce: ignore presses within 350ms of the last one
-          const now = Date.now();
-          if (now - lastBackPress.current < 350) return;
-          lastBackPress.current = now;
+          try {
+            // Debounce: ignore presses within 350ms of the last one
+            const now = Date.now();
+            if (now - lastBackPress.current < 350) return;
+            lastBackPress.current = now;
 
-          // Dispatch a custom event to allow open modals to intercept back press
-          const event = new CustomEvent('backbuttonpress', { cancelable: true });
-          window.dispatchEvent(event);
-          if (event.defaultPrevented) {
-            return;
+            // Dispatch a custom event to allow open modals to intercept back press
+            const event = new CustomEvent('backbuttonpress', { cancelable: true });
+            window.dispatchEvent(event);
+            if (event.defaultPrevented) {
+              return;
+            }
+
+            // Read pathname and tab parameters LIVE from the window at press-time
+            const pathname = window.location.pathname;
+            const cleanPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+            const searchParams = new URLSearchParams(window.location.search);
+            const tab = searchParams.get('tab');
+
+            console.log('[CapacitorBackButton] Press intercepted. Path:', cleanPathname, 'Tab:', tab, 'canGoBack:', canGoBack);
+
+            // Check if we are on dashboard sub-tabs and redirect to home tab instead of exiting
+            if (cleanPathname.startsWith('/dashboard/admin') && tab && tab !== 'overview') {
+              if (routerRef.current) {
+                routerRef.current.push('/dashboard/admin?tab=overview');
+              } else {
+                window.location.href = '/dashboard/admin?tab=overview';
+              }
+              return;
+            }
+            if (cleanPathname.startsWith('/dashboard/teacher') && tab && tab !== 'classes') {
+              if (routerRef.current) {
+                routerRef.current.push('/dashboard/teacher?tab=classes');
+              } else {
+                window.location.href = '/dashboard/teacher?tab=classes';
+              }
+              return;
+            }
+            if (cleanPathname.startsWith('/dashboard/student') && tab && tab !== 'dashboard') {
+              if (routerRef.current) {
+                routerRef.current.push('/dashboard/student?tab=dashboard');
+              } else {
+                window.location.href = '/dashboard/student?tab=dashboard';
+              }
+              return;
+            }
+
+            // Check if we are at the dashboard entry-point homes or root landing/login pages
+            const isAdminHome = cleanPathname.startsWith('/dashboard/admin') && (!tab || tab === 'overview');
+            const isTeacherHome = cleanPathname.startsWith('/dashboard/teacher') && (!tab || tab === 'classes');
+            const isStudentHome = cleanPathname.startsWith('/dashboard/student') && (!tab || tab === 'dashboard');
+            const isExitPage = cleanPathname === '/login' || cleanPathname === '/' || cleanPathname === '';
+
+            if (isExitPage || isAdminHome || isTeacherHome || isStudentHome || !canGoBack) {
+              console.log('[CapacitorBackButton] Exiting app');
+              App.exitApp();
+              return;
+            }
+
+            // Otherwise, navigate back in the WebView history
+            console.log('[CapacitorBackButton] Navigating back in WebView history');
+            window.history.back();
+          } catch (error) {
+            console.error('[CapacitorBackButton] Error handling back button:', error);
+            // Fallback: if everything else fails, let history.back() handle it or exit if no history
+            if (canGoBack) {
+              window.history.back();
+            } else {
+              App.exitApp();
+            }
           }
-
-          // Read pathname and tab parameters LIVE from the window at press-time
-          const pathname = window.location.pathname;
-          const cleanPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-          const searchParams = new URLSearchParams(window.location.search);
-          const tab = searchParams.get('tab');
-
-          console.log('[CapacitorBackButton] Press intercepted. Path:', cleanPathname, 'Tab:', tab, 'canGoBack:', canGoBack);
-
-          // Check if we are on dashboard sub-tabs and redirect to home tab instead of exiting
-          if (cleanPathname === '/dashboard/admin' && tab && tab !== 'overview') {
-            routerRef.current.push('/dashboard/admin?tab=overview');
-            return;
-          }
-          if (cleanPathname === '/dashboard/teacher' && tab && tab !== 'classes') {
-            routerRef.current.push('/dashboard/teacher?tab=classes');
-            return;
-          }
-          if (cleanPathname === '/dashboard/student' && tab && tab !== 'dashboard') {
-            routerRef.current.push('/dashboard/student?tab=dashboard');
-            return;
-          }
-
-          // Check if we are at the dashboard entry-point homes or root landing/login pages
-          const isAdminHome = cleanPathname === '/dashboard/admin' && (!tab || tab === 'overview');
-          const isTeacherHome = cleanPathname === '/dashboard/teacher' && (!tab || tab === 'classes');
-          const isStudentHome = cleanPathname === '/dashboard/student' && (!tab || tab === 'dashboard');
-          const isExitPage = cleanPathname === '/login' || cleanPathname === '/';
-
-          if (isExitPage || isAdminHome || isTeacherHome || isStudentHome || !canGoBack) {
-            console.log('[CapacitorBackButton] Exiting app');
-            App.exitApp();
-            return;
-          }
-
-          // Otherwise, navigate back in the WebView history
-          console.log('[CapacitorBackButton] Navigating back in WebView history');
-          window.history.back();
         });
       } catch (err) {
         console.warn('Capacitor App plugin not available:', err);
