@@ -182,7 +182,6 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let reconnectTimeout: any = null;
-    let fallbackInterval: any = null;
 
     function connectSSE() {
       if (eventSource) {
@@ -193,13 +192,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
       eventSource.onopen = () => {
         console.log('[SSE] Connection established successfully');
-        // Fetch messages immediately to reconcile any missed updates
         fetchMessages();
-        // Clear fallback interval if SSE successfully connects
-        if (fallbackInterval) {
-          clearInterval(fallbackInterval);
-          fallbackInterval = null;
-        }
       };
 
       eventSource.onmessage = (event) => {
@@ -263,15 +256,6 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         // Reconnect after 30 seconds
         clearTimeout(reconnectTimeout);
         reconnectTimeout = setTimeout(connectSSE, 30000);
-
-        // Start fallback polling (once every 15s) while SSE is down
-        if (!fallbackInterval) {
-          fallbackInterval = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-              fetchMessages();
-            }
-          }, 15000);
-        }
       };
     }
 
@@ -291,10 +275,6 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           eventSource.close();
           eventSource = null;
         }
-        if (fallbackInterval) {
-          clearInterval(fallbackInterval);
-          fallbackInterval = null;
-        }
       }
     };
 
@@ -305,12 +285,23 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         eventSource.close();
       }
       clearTimeout(reconnectTimeout);
-      if (fallbackInterval) {
-        clearInterval(fallbackInterval);
-      }
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [currentUserId, selectedUser?.id]);
+
+  // Dedicated polling mechanism for robust real-time chat updates on serverless/mobile (polls every 3 seconds for active chats, 12 seconds for contacts panel)
+  useEffect(() => {
+    fetchMessages();
+
+    const intervalTime = selectedUser ? 3000 : 12000;
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchMessages();
+      }
+    }, intervalTime);
+
+    return () => clearInterval(intervalId);
+  }, [selectedUser?.id]);
 
   useEffect(() => {
     if (scrollRef.current) {

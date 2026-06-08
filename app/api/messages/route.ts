@@ -154,14 +154,15 @@ export async function POST(req: Request) {
       receiverId: message.receiverId
     });
 
-    // Dispatch native push notification
+    // Dispatch native push notification (non-blocking for fast response times)
     let displayBody = content;
     if (content.startsWith('data:')) {
       displayBody = '📎 Media attachment';
     } else if (content.length > 80) {
       displayBody = content.substring(0, 80) + '...';
     }
-    await sendPushNotification(receiverId, `💬 New message from ${session.user.name || 'User'}`, displayBody);
+    sendPushNotification(receiverId, `💬 New message from ${session.user.name || 'User'}`, displayBody)
+      .catch(err => console.error('Failed to send push notification:', err));
 
     return NextResponse.json({ success: true, message });
   } catch (error) {
