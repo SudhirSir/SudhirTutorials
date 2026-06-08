@@ -28,6 +28,15 @@ prisma.$use(async (params, next) => {
             console.error("Failed to send push notification via middleware:", err);
           });
         });
+        // Emit real-time notification event via EventEmitter
+        import('./events').then(({ messageEmitter }) => {
+          messageEmitter.emit('notification', {
+            userId: data.userId,
+            notification: result
+          });
+        }).catch(err => {
+          console.error("Failed to emit notification event:", err);
+        });
       }
     } else if (params.action === 'createMany') {
       const dataArray = params.args?.data;
@@ -40,6 +49,19 @@ prisma.$use(async (params, next) => {
               });
             }
           });
+        });
+        // Emit real-time notification events for each user in bulk insert
+        import('./events').then(({ messageEmitter }) => {
+          dataArray.forEach(d => {
+            if (d && d.userId) {
+              messageEmitter.emit('notification', {
+                userId: d.userId,
+                refresh: true
+              });
+            }
+          });
+        }).catch(err => {
+          console.error("Failed to emit bulk notification events:", err);
         });
       }
     }

@@ -107,9 +107,46 @@ export function NotificationsPanel({
 
     document.addEventListener('visibilitychange', handleVisibility);
 
+    let eventSource: EventSource | null = null;
+
+    const connectSSE = () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      eventSource = new EventSource('/api/notifications/subscribe');
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          // Ignore control messages
+          if (data.type === 'connected' || data.type === 'ping') {
+            return;
+          }
+          // Real-time update signal received
+          fetchNotifications();
+        } catch (e) {
+          console.error('Failed to parse SSE notification:', e);
+        }
+      };
+
+      eventSource.onerror = () => {
+        if (eventSource) {
+          eventSource.close();
+        }
+        // Attempt reconnection after 5 seconds
+        setTimeout(connectSSE, 5000);
+      };
+    };
+
+    connectSSE();
+
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, []);
 

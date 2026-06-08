@@ -21,7 +21,7 @@ export async function GET() {
     sixMonthsAgo.setDate(1);
 
     // Parallelize all financial queries to drastically minimize database round-trip times
-    const [payments, expenses, pendingPayments] = await Promise.all([
+    const [payments, expenses, pendingAggregate] = await Promise.all([
       withDbRetry(() => prisma.payment.findMany({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
@@ -30,17 +30,18 @@ export async function GET() {
         select: { paidAmount: true, paidAt: true, amount: true, lateFine: true, discount: true }
       })),
       withDbRetry(() => prisma.expense.findMany({
-        where: { date: { gte: sixMonthsAgo } }
+        where: { date: { gte: sixMonthsAgo } },
+        select: { amount: true, date: true } // Avoid retrieving unnecessary large columns like remarks
       })),
-      withDbRetry(() => prisma.payment.findMany({
+      withDbRetry(() => prisma.payment.aggregate({
         where: { status: 'PENDING' },
-        select: { amount: true }
+        _sum: { amount: true } // Execute aggregate sum at the DB layer
       }))
     ]);
 
     const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
     const totalExpenses = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
-    const totalPending = pendingPayments.reduce((acc: number, p: any) => acc + p.amount, 0);
+    const totalPending = pendingAggregate._sum.amount || 0;
 
     // Monthly breakdown (last 6 months)
     const monthlyData = [];

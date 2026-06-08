@@ -43,6 +43,9 @@ model User {
   notifications      Notification[]
   activityLogs       ActivityLog[]
   salaryRecords      SalaryRecord[]
+
+  @@index([role])
+  @@index([isActive])
 }
 
 model Message {
@@ -87,6 +90,8 @@ model StudentProfile {
   marksObtained     Float?
   marksTotal        Float?
   aadhaarNumber     String?
+
+  @@index([className])
 }
 
 model TeacherProfile {
@@ -126,6 +131,8 @@ model Payment {
   @@index([studentId])
   @@index([status])
   @@index([billingMonth])
+  @@index([createdAt])
+  @@index([paidAt])
 }
 
 model Expense {
@@ -162,6 +169,8 @@ model Batch {
   schedules Schedule[]
   attendance Attendance[]
   lectures  Lecture[]
+
+  @@index([courseId])
 }
 
 model Schedule {
@@ -206,6 +215,7 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
   @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
 
 model Test {
@@ -218,6 +228,8 @@ model Test {
   time      String?
   syllabus  String?
   results   TestResult[]
+
+  @@index([courseId])
 }
 
 model TestResult {
@@ -245,7 +257,7 @@ model Attendance {
   status    String   // PRESENT, ABSENT, LATE
   
   @@unique([batchId, studentId, date])
-  @@index([studentId])
+  @@index([studentId, date])
 }
 
 model Lecture {

@@ -47,6 +47,20 @@ export function CapacitorBackButtonManager() {
           const searchParams = new URLSearchParams(window.location.search);
           const tab = searchParams.get('tab');
 
+          // Check if we are on dashboard sub-tabs and redirect to home tab instead of exiting
+          if (pathname === '/dashboard/admin' && tab && tab !== 'overview') {
+            router.push('/dashboard/admin?tab=overview');
+            return;
+          }
+          if (pathname === '/dashboard/teacher' && tab && tab !== 'classes') {
+            router.push('/dashboard/teacher?tab=classes');
+            return;
+          }
+          if (pathname === '/dashboard/student' && tab && tab !== 'dashboard') {
+            router.push('/dashboard/student?tab=dashboard');
+            return;
+          }
+
           // Check if we are at the dashboard entry-point homes or root landing/login pages
           const isAdminHome = pathname === '/dashboard/admin' && (!tab || tab === 'overview');
           const isTeacherHome = pathname === '/dashboard/teacher' && (!tab || tab === 'classes');
