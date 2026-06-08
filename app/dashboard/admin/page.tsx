@@ -2025,12 +2025,12 @@ function AdminDashboardContent() {
       `}</style>
       <div className="bg-glow" style={{ top: '-10%', right: '-10%', opacity: 0.5 }}></div>
       {activeTab === 'overview' && (
-        <header className="dashboard-header" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+        <header className="dashboard-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', fontWeight: 800 }}>
               जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{session?.user?.name || 'Admin'}</span>
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Manage your Institute here.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Manage your Institute here.</p>
           </div>
           <LiveClock />
         </header>
@@ -2065,7 +2065,7 @@ function AdminDashboardContent() {
              tab === 'finances' ? 'Finances & Fees' :
              tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
-             tab === 'guru-ai' ? 'Academic Assistant' :
+             tab === 'guru-ai' ? 'Guru AI' :
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
@@ -4273,11 +4273,11 @@ function AdminDashboardContent() {
           </div>
 
           {courseSubTab === 'COURSES' && (
-            <div className="glass-card" style={{ padding: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Course Directory</h2>
-              <form onSubmit={handleCreateCourse} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                <input type="text" required placeholder="Course Name" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', flex: 1 }} />
-                <button type="submit" className="btn-primary" disabled={isAddingCourse} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', fontSize: '0.9rem', width: 'auto', whiteSpace: 'nowrap' }}>{isAddingCourse ? '...' : 'Add Course'}</button>
+            <div className="glass-card" style={{ padding: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 800 }}>Course Directory</h2>
+              <form onSubmit={handleCreateCourse} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                <input type="text" required placeholder="Course Name" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', flex: '1 1 200px', minWidth: 0 }} />
+                <button type="submit" className="btn-primary" disabled={isAddingCourse} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', fontSize: '0.9rem', flex: '1 1 auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isAddingCourse ? '...' : 'Add Course'}</button>
               </form>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {courses.map(course => (
@@ -5014,16 +5014,16 @@ function AdminDashboardContent() {
       {activeTab === 'guru-ai' && (
         <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
           {/* Academic Assistant Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '1rem 1.5rem', background: 'var(--surface-light)' }}>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 10px rgba(239, 68, 68, 0.4)', animation: 'pulse 2s infinite' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)', animation: 'pulse 2s infinite' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg>
               </div>
               <div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ef4444', margin: 0 }}>Academic Assistant</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
+                <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ef4444', margin: 0 }}>Academic Assistant</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
               </div>
             </div>
             <button 

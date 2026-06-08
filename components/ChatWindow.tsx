@@ -849,8 +849,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         ) : (
           <>
             {/* Optimized and Compact Chat Header */}
-            <div style={{ padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', zIndex: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ padding: '0.4rem 0.75rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', zIndex: 10, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
                 <button 
                   onClick={() => setSelectedUser(null)} 
                   className="chat-back-btn"
@@ -859,10 +859,11 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                     border: 'none',
                     color: 'var(--text)',
                     cursor: 'pointer',
-                    padding: '6px 8px 6px 0',
+                    padding: '4px 6px 4px 0',
                     alignItems: 'center',
                     fontWeight: 'bold',
-                    fontSize: '1rem',
+                    fontSize: '0.85rem',
+                    flexShrink: 0
                   }}
                 >
                   ← Back
@@ -870,23 +871,23 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                 <div 
                   onClick={() => setShowProfileModal(true)}
                   title="View Profile Details & Options"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '10px', transition: 'background 0.2s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', padding: '2px 4px', borderRadius: '8px', transition: 'background 0.2s', minWidth: 0, flex: 1 }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'var(--card-bg-alt)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '1.5px solid var(--primary)', flexShrink: 0 }}>
+                  <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '1px solid var(--primary)', flexShrink: 0 }}>
                     {selectedUser.photoUrl ? (
                       <img src={selectedUser.photoUrl} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       selectedUser.name ? selectedUser.name[0] : '?'
                     )}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {selectedUser.name} 
-                      <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>ℹ️</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px', display: 'inline-block' }}>{selectedUser.name}</span>
+                      <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>ℹ️</span>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>● {selectedUser.role}</div>
+                    <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 600, lineHeight: 1 }}>● {selectedUser.role}</div>
                   </div>
                 </div>
               </div>
@@ -899,16 +900,18 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.4rem 0.6rem',
-                  borderRadius: '10px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
+                  justifyContent: 'center',
+                  padding: '4px',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
                   transition: 'all 0.2s',
-                  border: '1px solid rgba(239, 68, 68, 0.2)'
+                  border: '1px solid rgba(239, 68, 68, 0.15)',
+                  width: '30px',
+                  height: '30px',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
                   e.currentTarget.style.color = '#ef4444';
                 }}
                 onMouseLeave={(e) => {
@@ -916,7 +919,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                   e.currentTarget.style.color = '#f87171';
                 }}
               >
-                🗑️ Delete Chat
+                🗑️
               </button>
             </div>
 

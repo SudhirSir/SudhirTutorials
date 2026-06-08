@@ -534,8 +534,10 @@ textarea:focus {
 
   /* Dashboard header responsive */
   .dashboard-header {
-    flex-direction: column !important;
-    gap: 0.75rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
   }
 
   /* Razorpay payment modal panel */
