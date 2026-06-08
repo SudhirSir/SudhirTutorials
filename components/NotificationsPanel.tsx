@@ -40,7 +40,7 @@ function parseNotificationMessage(msg: string) {
   let email: string | null = null;
 
   // Extract screenshot: support standard base64 URL format
-  const ssMatch = cleanMessage.match(/\[Screenshot:\s*(data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+)\]/i);
+  const ssMatch = cleanMessage.match(/\[Screenshot:\s*(data:image\/[^\]]+)\]/i);
   if (ssMatch) {
     screenshot = ssMatch[1];
     cleanMessage = cleanMessage.replace(ssMatch[0], '').trim();

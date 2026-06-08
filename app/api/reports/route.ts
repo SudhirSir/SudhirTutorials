@@ -8,13 +8,13 @@ import { authOptions } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions) as any;
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { title, message, reportedUserId, isBugReport, email, screenshot } = body;
+
+    const session = await getServerSession(authOptions) as any;
+    if (!isBugReport && (!session || !session.user)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Find all admins
     const admins = await withDbRetry(() => prisma.user.findMany({

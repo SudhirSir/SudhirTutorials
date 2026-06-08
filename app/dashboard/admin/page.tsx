@@ -686,6 +686,11 @@ function AdminDashboardContent() {
   const [showFinanceSuggestions, setShowFinanceSuggestions] = useState(false);
   const [fees, setFees] = useState<any[]>([]);
   const [feeSearchQuery, setFeeSearchQuery] = useState('');
+  const [showLedgerSuggestions, setShowLedgerSuggestions] = useState(false);
+  const [showAssignSalaryForm, setShowAssignSalaryForm] = useState(false);
+  const [showCreateBatchForm, setShowCreateBatchForm] = useState(false);
+  const [showUploadedMaterials, setShowUploadedMaterials] = useState(false);
+  const [showPublishMaterialForm, setShowPublishMaterialForm] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState<any>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [addFeeMode, setAddFeeMode] = useState<'INDIVIDUAL' | 'BATCH'>('INDIVIDUAL');
@@ -1536,7 +1541,7 @@ function AdminDashboardContent() {
     let email: string | null = null;
 
     // Extract screenshot: support standard base64 URL format
-    const ssMatch = cleanMessage.match(/\[Screenshot:\s*(data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+)\]/i);
+    const ssMatch = cleanMessage.match(/\[Screenshot:\s*(data:image\/[^\]]+)\]/i);
     if (ssMatch) {
       screenshot = ssMatch[1];
       cleanMessage = cleanMessage.replace(ssMatch[0], '').trim();
@@ -2180,22 +2185,22 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <QuickServicesWidget role="ADMIN" setActiveTab={setActiveTab} />
           {/* Key Metrics Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {[
               {label: 'Total Students', value: overviewStats?.totalStudents ?? 0, icon: '👥', color: '#ef4444' },
               { label: 'Active Teachers', value: overviewStats?.totalTeachers ?? 0, icon: '👨‍🏫', color: '#10b981' },
               { label: 'Revenue This Month', value: `₹${(overviewStats?.revenueThisMonth ?? 0).toLocaleString()}`, icon: '💰', color: '#3b82f6' },
               { label: 'Pending Dues', value: `₹${(overviewStats?.pendingDues ?? 0).toLocaleString()}`, icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
-              <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.75rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '2rem', opacity: 0.12 }}>{stat.icon}</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem', fontWeight: 700 }}>{stat.label}</div>
+              <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '0.85rem', right: '0.85rem', fontSize: '1.6rem', opacity: 0.12 }}>{stat.icon}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.35rem', fontWeight: 700 }}>{stat.label}</div>
                 {isLoadingOverview && overviewStats === null ? (
-                  <div style={{ height: '2.2rem', width: '60%', borderRadius: '8px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                  <div style={{ height: '1.8rem', width: '60%', borderRadius: '8px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
                 ) : (
-                  <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {stat.value}
-                    {isLoadingOverview && <span style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
+                    {isLoadingOverview && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
                   </div>
                 )}
               </div>
@@ -2205,7 +2210,7 @@ function AdminDashboardContent() {
           {/* Premium Widgets Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
             {/* Class & Batch Analytics */}
-            <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px', width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   📊 Class & Batch Analytics
@@ -2269,68 +2274,6 @@ function AdminDashboardContent() {
                   )}
                 </div>
               </div>
-            </div>
-
-            {/* Live Operations Activity Logger */}
-            <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#ef4444', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                📋 Recent Operations Log
-              </h3>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
-                {(showAllActivities ? activityLogs : activityLogs.slice(0, 5)).length > 0 ? (showAllActivities ? activityLogs : activityLogs.slice(0, 5)).map((log, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.02)' }}>
-                    <div style={{ width: '4px', background: '#3b82f6', borderRadius: '4px', flexShrink: 0 }}></div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.action}</span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                          {new Date(log.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {log.details || 'No details'} (by <span 
-                          onClick={() => { if (log.userId) setActiveProfileUserId(log.userId); }}
-                          style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: 600 }}
-                          className="clickable-name"
-                        >
-                          {log.user?.name || 'System'}
-                        </span>)
-                      </div>
-                    </div>
-                  </div>
-                )) : (
-                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    No recent operations found.
-                  </div>
-                )}
-              </div>
-              {activityLogs.length > 5 && (
-                <button
-                  onClick={() => setShowAllActivities(!showAllActivities)}
-                  style={{
-                    marginTop: '1.25rem',
-                    padding: '0.75rem 1.25rem',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text)',
-                    borderRadius: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    width: '100%',
-                    fontSize: '0.85rem'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
-                >
-                  {showAllActivities ? '📂 Collapse Operations Log' : `📂 View More Operations (${activityLogs.length - 5} more)`}
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -2550,7 +2493,9 @@ function AdminDashboardContent() {
                           whiteSpace: 'pre-wrap', 
                           fontSize: '0.88rem', 
                           color: 'var(--text)',
-                          fontFamily: 'monospace'
+                          fontFamily: 'monospace',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word'
                         }}>
                           {cleanMessage}
                         </div>
@@ -3208,22 +3153,80 @@ function AdminDashboardContent() {
 
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     {ledgerViewMode === 'ALL' && (
-                      <div style={{ display: 'flex', gap: '1rem' }}>
+                      <div style={{ position: 'relative', display: 'flex', gap: '1rem' }}>
                         <input 
                           type="text" 
                           placeholder="Search Name or ID..." 
                           value={feeSearchQuery}
-                          onChange={e => setFeeSearchQuery(e.target.value)}
-                          list="ledger-student-search-list"
+                          onChange={e => {
+                            setFeeSearchQuery(e.target.value);
+                            setShowLedgerSuggestions(true);
+                          }}
+                          onFocus={() => setShowLedgerSuggestions(true)}
                           style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
                         />
-                        <datalist id="ledger-student-search-list">
-                          {directoryUsers
-                            .filter(u => u.role === 'STUDENT')
-                            .map(s => (
-                              <option key={s.id} value={s.name} label={s.username} />
-                            ))}
-                        </datalist>
+                        {showLedgerSuggestions && feeSearchQuery.trim().length > 0 && (
+                          <>
+                            <div 
+                              onClick={() => setShowLedgerSuggestions(false)} 
+                              style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
+                            />
+                            <div style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              background: 'var(--surface)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '12px',
+                              marginTop: '0.5rem',
+                              width: '280px',
+                              maxHeight: '250px',
+                              overflowY: 'auto',
+                              zIndex: 9999,
+                              boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                              padding: '0.5rem'
+                            }}>
+                              {(() => {
+                                const matches = directoryUsers
+                                  .filter(u => u.role === 'STUDENT' && (
+                                    u.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) ||
+                                    u.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
+                                  ));
+                                if (matches.length === 0) {
+                                  return (
+                                    <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
+                                      No students found
+                                    </div>
+                                  );
+                                }
+                                return matches.map(s => (
+                                  <div 
+                                    key={s.id}
+                                    onClick={() => {
+                                      setFeeSearchQuery(s.name || '');
+                                      setShowLedgerSuggestions(false);
+                                    }}
+                                    style={{
+                                      padding: '0.5rem 0.75rem',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.85rem',
+                                      color: 'var(--text)',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      borderBottom: '1px solid rgba(255,255,255,0.01)'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <span style={{ fontWeight: 600 }}>{s.name}</span>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</span>
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
 
@@ -3325,6 +3328,16 @@ function AdminDashboardContent() {
                               </tr>
                             ))
                           ) : (() => {
+                            if (!feeSearchQuery.trim()) {
+                              return (
+                                <tr>
+                                  <td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                    🔍 Type a student's name or ID above to view their fee ledger.
+                                  </td>
+                                </tr>
+                              );
+                            }
+
                             const filteredFees = fees.filter(f => {
                               const matchesSearch = f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
                                                     f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
@@ -4139,6 +4152,77 @@ function AdminDashboardContent() {
                   >
                     🖨️ Print Statement
                   </button>
+
+                  <button 
+                    onClick={() => {
+                      const inflow = fees.filter(f => {
+                        if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
+                        const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
+                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                      });
+                      
+                      const outExpenses = expenses.filter(e => {
+                        const date = new Date(e.date || e.createdAt);
+                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                      });
+                      
+                      const outSalaries = adminSalaries.filter(s => {
+                        if (s.status !== 'PAID') return false;
+                        const date = s.paidAt ? new Date(s.paidAt) : s.createdAt ? new Date(s.createdAt) : new Date();
+                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                      });
+
+                      const ledgerData = [
+                        ...inflow.map(f => ({
+                          date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
+                          ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
+                          desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
+                          type: 'FEE_INFLOW',
+                          inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
+                          outflow: 0
+                        })),
+                        ...outExpenses.map(e => ({
+                          date: new Date(e.date || e.createdAt),
+                          ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
+                          desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
+                          type: 'EXPENSE_OUTFLOW',
+                          inflow: 0,
+                          outflow: e.amount
+                        })),
+                        ...outSalaries.map(s => ({
+                          date: s.paidAt ? new Date(s.paidAt) : s.createdAt ? new Date(s.createdAt) : new Date(),
+                          ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
+                          desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
+                          type: 'SALARY_OUTFLOW',
+                          inflow: 0,
+                          outflow: s.netPaid
+                        }))
+                      ].sort((a,b) => a.date.getTime() - b.date.getTime());
+
+                      const headers = ['Date', 'Reference No.', 'Description', 'Type', 'Credit (Cr)', 'Debit (Dr)'];
+                      const rows = ledgerData.map(t => [
+                        ((d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)(t.date),
+                        t.ref,
+                        `"${t.desc.replace(/"/g, '""')}"`,
+                        t.type,
+                        t.inflow > 0 ? t.inflow : 0,
+                        t.outflow > 0 ? t.outflow : 0
+                      ]);
+                      const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', `Sudhir_Tutorials_Statement_${statementMonth}_${statementYear}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="btn-primary" 
+                    style={{ padding: '0.55rem 1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
+                  >
+                    📥 Download CSV
+                  </button>
                 </div>
               </div>
 
@@ -4222,28 +4306,28 @@ function AdminDashboardContent() {
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
                               <th style={{ padding: '1.1rem 1.5rem' }}>Date</th>
-                              <th>Ref No.</th>
-                              <th>Transaction Description</th>
-                              <th>Type</th>
-                              <th style={{ textAlign: 'right' }}>Credit (Cr)</th>
-                              <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Debit (Dr)</th>
+                              <th style={{ padding: '1.1rem 1rem' }}>Ref No.</th>
+                              <th style={{ padding: '1.1rem 1rem' }}>Transaction Description</th>
+                              <th style={{ padding: '1.1rem 1rem' }}>Type</th>
+                              <th style={{ padding: '1.1rem 1rem', textAlign: 'right' }}>Credit (Cr)</th>
+                              <th style={{ padding: '1.1rem 1.5rem', textAlign: 'right' }}>Debit (Dr)</th>
                             </tr>
                           </thead>
                           <tbody>
                             {ledgerData.map((t, idx) => (
                               <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.88rem' }}>
                                 <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{((d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)(t.date)}</td>
-                                <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{t.ref}</td>
-                                <td style={{ color: 'var(--text)', fontWeight: 600 }}>{t.desc}</td>
-                                <td>
+                                <td style={{ padding: '1.1rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{t.ref}</td>
+                                <td style={{ padding: '1.1rem 1rem', color: 'var(--text)', fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'normal', minWidth: '250px' }}>{t.desc}</td>
+                                <td style={{ padding: '1.1rem 1rem' }}>
                                   <span style={{ 
                                     padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, 
                                     background: t.type === 'FEE_INFLOW' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)', 
                                     color: t.type === 'FEE_INFLOW' ? 'var(--secondary)' : 'var(--primary)' 
                                   }}>{t.type}</span>
                                 </td>
-                                <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{t.inflow > 0 ? `₹${t.inflow.toLocaleString()}` : '–'}</td>
-                                <td style={{ textAlign: 'right', paddingRight: '1.5rem', color: 'var(--primary)', fontWeight: 700 }}>{t.outflow > 0 ? `₹${t.outflow.toLocaleString()}` : '–'}</td>
+                                <td style={{ padding: '1.1rem 1rem', textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{t.inflow > 0 ? `₹${t.inflow.toLocaleString()}` : '–'}</td>
+                                <td style={{ padding: '1.1rem 1.5rem', textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{t.outflow > 0 ? `₹${t.outflow.toLocaleString()}` : '–'}</td>
                               </tr>
                             ))}
                             {ledgerData.length === 0 && (
@@ -4392,115 +4476,139 @@ function AdminDashboardContent() {
               </div>
             </div>
           )}
-
           {courseSubTab === 'BATCHES' && (
-            <div className="courses-layout-grid" style={{ gap: '2rem' }}>
-              <div className="glass-card" style={{ padding: '2rem' }}>
-                <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Create New Batch</h2>
-                <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    <div className="input-group">
-                      <label>Batch Name</label>
-                      <input type="text" required placeholder="e.g. Morning 2026" value={newBatchName} onChange={e => setNewBatchName(e.target.value)} />
-                    </div>
-                    <div className="input-group">
-                      <label>Course / Program</label>
-                      <select required value={newBatchCourseId} onChange={e => setNewBatchCourseId(e.target.value)}>
-                        <option value="">Select Course...</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                    <div className="input-group">
-                      <label>Class / Grade</label>
-                      <select value={newBatchClassName} onChange={e => setNewBatchClassName(e.target.value)}>
-                        <option value="">Select Class...</option>
-                        {["6th", "7th", "8th", "9th", "10th", "11th Sci", "11th Com", "12th Sci", "12th Com"].map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                  </div>
+            <>
+              {/* Batches Header with Toggle Button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>Active Course Batches</h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>Configure batch structures, assign faculty, and verify class schedules</p>
+                </div>
+                <button 
+                  onClick={() => setShowCreateBatchForm(!showCreateBatchForm)}
+                  className="btn-primary"
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: showCreateBatchForm ? 'var(--primary)' : 'var(--secondary)'
+                  }}
+                >
+                  {showCreateBatchForm ? '✕ Close Form' : '➕ Create New Batch'}
+                </button>
+              </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
-                    <div className="input-group">
-                      <label>Subjects (Select all that apply)</label>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                        {["Physics", "Chemistry", "Mathematics", "Biology", "English", "Hindi", "Social Studies", "Accountancy", "Business Studies", "Economics"].map(s => (
-                          <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '6px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={newBatchSubjects.split(',').includes(s)}
-                              onChange={e => {
-                                const arr = newBatchSubjects ? newBatchSubjects.split(',').filter(Boolean) : [];
-                                if (e.target.checked) setNewBatchSubjects([...arr, s].join(','));
-                                else setNewBatchSubjects(arr.filter(x => x !== s).join(','));
-                              }}
-                            />
-                            {s}
-                          </label>
-                        ))}
-                        <input 
-                          type="text" 
-                          placeholder="+ Other" 
-                          style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', background: 'transparent', border: '1px dashed var(--border)' }}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const val = (e.target as any).value.trim();
-                              if (val) {
-                                setNewBatchSubjects(prev => prev ? `${prev},${val}` : val);
-                                (e.target as any).value = '';
-                              }
-                            }
-                          }}
-                        />
+              {showCreateBatchForm && (
+                <div className="glass-card animate-scale-up" style={{ padding: '2rem' }}>
+                  <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Create New Batch</h2>
+                  <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      <div className="input-group">
+                        <label>Batch Name</label>
+                        <input type="text" required placeholder="e.g. Morning 2026" value={newBatchName} onChange={e => setNewBatchName(e.target.value)} />
+                      </div>
+                      <div className="input-group">
+                        <label>Course / Program</label>
+                        <select required value={newBatchCourseId} onChange={e => setNewBatchCourseId(e.target.value)}>
+                          <option value="">Select Course...</option>
+                          {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="input-group">
+                        <label>Class / Grade</label>
+                        <select value={newBatchClassName} onChange={e => setNewBatchClassName(e.target.value)}>
+                          <option value="">Select Class...</option>
+                          {["6th", "7th", "8th", "9th", "10th", "11th Sci", "11th Com", "12th Sci", "12th Com"].map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                       </div>
                     </div>
-                    <div className="input-group">
-                      <label>Monthly Fee (₹)</label>
-                      <input type="number" placeholder="e.g. 1500" value={newBatchDefaultFee} onChange={e => setNewBatchDefaultFee(e.target.value)} />
-                    </div>
-                  </div>
-                  
-                  <div className="input-group">
-                    <label>Assign Teachers (Search & Select)</label>
-                    <input 
-                      type="text" 
-                      placeholder="🔍 Search teacher name..." 
-                      style={{ marginBottom: '0.5rem', padding: '0.6rem', fontSize: '0.85rem' }} 
-                      onChange={e => {
-                        const q = e.target.value.toLowerCase();
-                        const els = document.querySelectorAll('.teacher-item');
-                        els.forEach((el: any) => {
-                          el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
-                        });
-                      }}
-                    />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid var(--border)', maxHeight: '150px', overflowY: 'auto' }}>
-                      {allTeachers.map(t => (
-                        <label key={t.id} className="teacher-item" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '6px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer' }}>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                      <div className="input-group">
+                        <label>Subjects (Select all that apply)</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                          {["Physics", "Chemistry", "Mathematics", "Biology", "English", "Hindi", "Social Studies", "Accountancy", "Business Studies", "Economics"].map(s => (
+                            <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '6px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={newBatchSubjects.split(',').includes(s)}
+                                onChange={e => {
+                                  const arr = newBatchSubjects ? newBatchSubjects.split(',').filter(Boolean) : [];
+                                  if (e.target.checked) setNewBatchSubjects([...arr, s].join(','));
+                                  else setNewBatchSubjects(arr.filter(x => x !== s).join(','));
+                                }}
+                              />
+                              {s}
+                            </label>
+                          ))}
                           <input 
-                            type="checkbox" 
-                            value={t.username} 
-                            checked={newBatchTeacherUsername.includes(t.username)}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setNewBatchTeacherUsername(prev => {
-                                const arr = prev ? prev.split(',') : [];
-                                if (arr.includes(val)) return arr.filter(x => x !== val).join(',');
-                                return [...arr, val].join(',');
-                              });
+                            type="text" 
+                            placeholder="+ Other" 
+                            style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', background: 'transparent', border: '1px dashed var(--border)' }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const val = (e.target as any).value.trim();
+                                if (val) {
+                                  setNewBatchSubjects(prev => prev ? `${prev},${val}` : val);
+                                  (e.target as any).value = '';
+                                }
+                              }
                             }}
                           />
-                          {t.name}
-                        </label>
-                      ))}
+                        </div>
+                      </div>
+                      <div className="input-group">
+                        <label>Monthly Fee (₹)</label>
+                        <input type="number" placeholder="e.g. 1500" value={newBatchDefaultFee} onChange={e => setNewBatchDefaultFee(e.target.value)} />
+                      </div>
                     </div>
-                  </div>
+                    
+                    <div className="input-group">
+                      <label>Assign Teachers (Search & Select)</label>
+                      <input 
+                        type="text" 
+                        placeholder="🔍 Search teacher name..." 
+                        style={{ marginBottom: '0.5rem', padding: '0.6rem', fontSize: '0.85rem' }} 
+                        onChange={e => {
+                          const q = e.target.value.toLowerCase();
+                          const els = document.querySelectorAll('.teacher-item');
+                          els.forEach((el: any) => {
+                            el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+                          });
+                        }}
+                      />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid var(--border)', maxHeight: '150px', overflowY: 'auto' }}>
+                        {allTeachers.map(t => (
+                          <label key={t.id} className="teacher-item" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '6px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              value={t.username} 
+                              checked={newBatchTeacherUsername.includes(t.username)}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setNewBatchTeacherUsername(prev => {
+                                  const arr = prev ? prev.split(',') : [];
+                                  if (arr.includes(val)) return arr.filter(x => x !== val).join(',');
+                                  return [...arr, val].join(',');
+                                });
+                              }}
+                            />
+                            {t.name}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
 
-                  <button type="submit" className="btn-primary" disabled={isAddingBatch}>
-                    {isAddingBatch ? 'Creating...' : 'Create Batch & Finalize'}
-                  </button>
-                </form>
-              </div>
+                    <button type="submit" className="btn-primary" disabled={isAddingBatch}>
+                      {isAddingBatch ? 'Creating...' : 'Create Batch & Finalize'}
+                    </button>
+                  </form>
+                </div>
+              )}
 
               <div className="glass-card" style={{ padding: '2rem' }}>
                 <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Active Batches</h2>
@@ -4538,7 +4646,7 @@ function AdminDashboardContent() {
                   ))}
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           {courseSubTab === 'TIMETABLE' && (
@@ -4739,164 +4847,207 @@ function AdminDashboardContent() {
       )}
 
       {(activeTab === 'materials' || (activeTab === 'academics' && academicSubTab === 'materials')) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }} className="animate-scale-up materials-grid">
-          <style>{`
-            @media (max-width: 900px) {
-              .materials-grid {
-                grid-template-columns: 1fr !important;
-              }
-            }
-          `}</style>
-          {/* Uploaded Materials List */}
-          <div className="glass-card" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 700 }}>📚 Uploaded Materials</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {materials.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)' }}>No study materials published yet.</p>
-              ) : (
-                materials.map(mat => (
-                  <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ 
-                          fontSize: '0.65rem', 
-                          padding: '2px 6px', 
-                          borderRadius: '4px', 
-                          fontWeight: 800, 
-                          color: '#fff',
-                          background: mat.type === 'PDF' ? '#ef4444' : 
-                                      mat.type === 'VIDEO' ? '#8b5cf6' : 
-                                      mat.type === 'WORD' ? '#3b82f6' : 
-                                      mat.type === 'IMAGE' ? '#10b981' : '#3b82f6'
-                        }}>
-                          {mat.type === 'PDF' ? '📄 PDF' : 
-                           mat.type === 'VIDEO' ? '🎥 VIDEO' : 
-                           mat.type === 'WORD' ? '📝 WORD' : 
-                           mat.type === 'IMAGE' ? '🖼️ IMAGE' : '🔗 LINK'}
-                        </span>
-                        {mat.title}
+        <div className="animate-scale-up" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Study Materials Control Header */}
+          <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <button 
+              onClick={() => { setShowUploadedMaterials(!showUploadedMaterials); setShowPublishMaterialForm(false); }}
+              className="btn-primary"
+              style={{
+                padding: '0.85rem 1.5rem',
+                borderRadius: '12px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: showUploadedMaterials ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                border: showUploadedMaterials ? 'none' : '1px solid var(--border)',
+                color: showUploadedMaterials ? 'white' : 'var(--text)'
+              }}
+            >
+              📚 View Uploaded Materials
+            </button>
+            <button 
+              onClick={() => { setShowPublishMaterialForm(!showPublishMaterialForm); setShowUploadedMaterials(false); }}
+              className="btn-primary"
+              style={{
+                padding: '0.85rem 1.5rem',
+                borderRadius: '12px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: showPublishMaterialForm ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                border: showPublishMaterialForm ? 'none' : '1px solid var(--border)',
+                color: showPublishMaterialForm ? 'white' : 'var(--text)'
+              }}
+            >
+              ➕ Publish Study Material
+            </button>
+          </div>
+
+          {showUploadedMaterials && (
+            <div className="glass-card animate-scale-up" style={{ padding: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 700 }}>📚 Uploaded Materials</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {materials.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)' }}>No study materials published yet.</p>
+                ) : (
+                  materials.map(mat => (
+                    <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ 
+                            fontSize: '0.65rem', 
+                            padding: '2px 6px', 
+                            borderRadius: '4px', 
+                            fontWeight: 800, 
+                            color: '#fff',
+                            background: mat.type === 'PDF' ? '#ef4444' : 
+                                        mat.type === 'VIDEO' ? '#8b5cf6' : 
+                                        mat.type === 'WORD' ? '#3b82f6' : 
+                                        mat.type === 'IMAGE' ? '#10b981' : '#3b82f6'
+                          }}>
+                            {mat.type === 'PDF' ? '📄 PDF' : 
+                             mat.type === 'VIDEO' ? '🎥 VIDEO' : 
+                             mat.type === 'WORD' ? '📝 WORD' : 
+                             mat.type === 'IMAGE' ? '🖼️ IMAGE' : '🔗 LINK'}
+                          </span>
+                          {mat.title}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Course: {mat.course?.name} • Published by: {mat.teacher?.name || 'Admin'}</div>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Course: {mat.course?.name} • Published by: {mat.teacher?.name || 'Admin'}</div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <a href={mat.url} target="_blank" rel="noreferrer" style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Open File</a>
+                        <button onClick={() => handleDeleteMaterial(mat.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <a href={mat.url} target="_blank" rel="noreferrer" style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Open File</a>
-                      <button onClick={() => handleDeleteMaterial(mat.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* New Material Form */}
-          <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>Publish Study Material</h3>
-            <form onSubmit={handleUploadMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Title / Description</label>
-                <input type="text" required placeholder="e.g. Physics Chapter 1 Notes" value={matTitle} onChange={e => setMatTitle(e.target.value)} />
-              </div>
-
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Material Type</label>
-                <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                  <option value="PDF">📄 PDF Document</option>
-                  <option value="VIDEO">🎥 Video File / Clip</option>
-                  <option value="WORD">📝 Word Document (DOCX)</option>
-                  <option value="IMAGE">🖼️ Reference Image / Diagram</option>
-                  <option value="LINK">🔗 External Web Link</option>
-                </select>
-              </div>
-
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Course Category</label>
-                <select required value={matCourseId} onChange={e => setMatCourseId(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                  <option value="">Select a Course...</option>
-                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setUploadMode('FILE')}
-                  style={{
-                    flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
-                    background: uploadMode === 'FILE' ? '#ef4444' : 'transparent',
-                    color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
-                  }}
-                >
-                  📂 Local File
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUploadMode('URL')}
-                  style={{
-                    flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
-                    background: uploadMode === 'URL' ? '#ef4444' : 'transparent',
-                    color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
-                  }}
-                >
-                  🔗 Paste URL
-                </button>
-              </div>
-
-              {uploadMode === 'FILE' ? (
-                <div style={{
-                  border: '2px dashed var(--border)',
-                  borderRadius: '16px',
-                  padding: '1.5rem',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  background: 'rgba(255,255,255,0.01)',
-                  transition: '0.2s',
-                }}>
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.webm,.mov,.avi"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      opacity: 0,
-                      cursor: 'pointer'
-                    }}
-                  />
-                  <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>📤</div>
-                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)' }}>
-                    {selectedFileName ? 'Change Selected File' : 'Drag & Drop or Click to Select'}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    PDF, DOC, DOCX, PNG, JPG, MP4, etc.
-                  </div>
-                  {selectedFileName && (
-                    <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {selectedFileName}
-                      </span>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                        Size: {selectedFileSize}
-                      </span>
-                      {filePreview && (
-                        <img src={filePreview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', margin: '4px auto 0', border: '1px solid var(--border)' }} />
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
+          {showPublishMaterialForm && (
+            <div className="glass-card animate-scale-up" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>Publish Study Material</h3>
+              <form onSubmit={handleUploadMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                
                 <div className="input-group">
-                  <label style={{ fontWeight: 600 }}>File URL / External Link</label>
-                  <input type="text" required placeholder="https://..." value={matUrl} onChange={e => setMatUrl(e.target.value)} />
+                  <label style={{ fontWeight: 600 }}>Title / Description</label>
+                  <input type="text" required placeholder="e.g. Physics Chapter 1 Notes" value={matTitle} onChange={e => setMatTitle(e.target.value)} />
                 </div>
-              )}
 
-              <button type="submit" className="btn-primary" disabled={isUploading} style={{ background: '#10b981', border: 'none', marginTop: '0.5rem' }}>
-                {isUploading ? 'Publishing...' : '🚀 Publish Material'}
-              </button>
-            </form>
-          </div>
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Material Type</label>
+                  <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                    <option value="PDF">📄 PDF Document</option>
+                    <option value="VIDEO">🎥 Video File / Clip</option>
+                    <option value="WORD">📝 Word Document (DOCX)</option>
+                    <option value="IMAGE">🖼️ Reference Image / Diagram</option>
+                    <option value="LINK">🔗 External Web Link</option>
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Course Category</label>
+                  <select required value={matCourseId} onChange={e => setMatCourseId(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                    <option value="">Select a Course...</option>
+                    {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('FILE')}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+                      background: uploadMode === 'FILE' ? '#ef4444' : 'transparent',
+                      color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
+                    }}
+                  >
+                    📂 Local File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('URL')}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+                      background: uploadMode === 'URL' ? '#ef4444' : 'transparent',
+                      color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
+                    }}
+                  >
+                    🔗 Paste URL
+                  </button>
+                </div>
+
+                {uploadMode === 'FILE' ? (
+                  <div style={{
+                    border: '2px dashed var(--border)',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    background: 'rgba(255,255,255,0.01)',
+                    transition: '0.2s',
+                  }}>
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.webm,.mov,.avi"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        opacity: 0,
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>📤</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)' }}>
+                      {selectedFileName ? 'Change Selected File' : 'Drag & Drop or Click to Select'}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      PDF, DOC, DOCX, PNG, JPG, MP4, etc.
+                    </div>
+                    {selectedFileName && (
+                      <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {selectedFileName}
+                        </span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                          Size: {selectedFileSize}
+                        </span>
+                        {filePreview && (
+                          <img src={filePreview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', margin: '4px auto 0', border: '1px solid var(--border)' }} />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="input-group">
+                    <label style={{ fontWeight: 600 }}>File URL / External Link</label>
+                    <input type="text" required placeholder="https://..." value={matUrl} onChange={e => setMatUrl(e.target.value)} />
+                  </div>
+                )}
+
+                <button type="submit" className="btn-primary" disabled={isUploading} style={{ background: '#10b981', border: 'none', marginTop: '0.5rem' }}>
+                  {isUploading ? 'Publishing...' : '🚀 Publish Material'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {!showUploadedMaterials && !showPublishMaterialForm && (
+            <div className="glass-card animate-fade-in" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1.25rem' }}>📚</div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: 'var(--text)' }}>Study Materials Manager</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem', maxWidth: '500px', margin: '0.5rem auto 0', lineHeight: 1.5 }}>
+                Select an option above to browse the active syllabus library, view uploaded documents, or publish new learning sheets for courses.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -5811,7 +5962,7 @@ function AdminDashboardContent() {
 
                         }}
                         className="btn-primary" 
-                        style={{ width: '100%', background: 'var(--secondary)', border: 'none' }}
+                        style={{ width: '100%', background: 'var(--secondary)', border: 'none', padding: '0.75rem 1.25rem', fontSize: '0.9rem', borderRadius: '12px' }}
                       >
                         🚀 Assign Monthly Fee to All
                       </button>
@@ -5923,7 +6074,7 @@ function AdminDashboardContent() {
               </div>
             )}
 
-            <div style={{ marginTop: '4rem', display: 'flex', gap: '1.5rem' }}>
+            <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
               <button 
                 onClick={async () => {
                   setIsUpdatingBatch(true);
@@ -5950,7 +6101,7 @@ function AdminDashboardContent() {
                 }}
                 className="btn-primary"
                 disabled={isUpdatingBatch}
-                style={{ flex: 1, padding: '1.25rem', fontSize: '1.1rem' }}
+                style={{ flex: 1, padding: '0.75rem 1.25rem', fontSize: '0.95rem', borderRadius: '12px' }}
               >
                 {isUpdatingBatch ? 'Updating Batch Center...' : 'Save All Configurations'}
               </button>
@@ -5970,7 +6121,7 @@ function AdminDashboardContent() {
                   );
                 }}
                 className="btn-secondary"
-                style={{ padding: '0 2rem', color: '#ef4444', border: '1px solid #ef4444' }}
+                style={{ padding: '0.75rem 1.5rem', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '12px', fontSize: '0.95rem' }}
               >
                 Delete Batch
               </button>
@@ -6391,15 +6542,6 @@ function AdminDashboardContent() {
 
       {activeTab === 'settings' && (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-          {/* Welcome/Overview Header Banner */}
-          <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)', borderRadius: '16px' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              ⚙️ System Settings & Control Panel
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.35rem', maxWidth: '700px', lineHeight: '1.5' }}>
-              Fine-tune automated operations, penalty matrices, and payment deadlines. These adjustments take effect immediately across all student fee accounts.
-            </p>
-          </div>
 
           {/* Collapsible Accordion 1: Late Fee Penalty Policy */}
           <div className="glass-card" style={{ padding: '0', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
@@ -6708,132 +6850,148 @@ function AdminDashboardContent() {
       {activeTab === 'salary' && (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          {/* Welcome Banner */}
-          <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#10b981' }}>💵 Staff Salary & Payroll Management</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.5rem', maxWidth: '750px' }}>
-              Assign monthly salary packets, track outstanding payroll obligations, and disburse teacher payments with automated expense ledger updates.
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>💵 Staff Salary Ledger & Payroll</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>Manage monthly payouts, contract values, and teacher expense logging</p>
+            </div>
+            <button 
+              onClick={() => setShowAssignSalaryForm(!showAssignSalaryForm)}
+              className="btn-primary"
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: showAssignSalaryForm ? 'var(--primary)' : 'var(--secondary)'
+              }}
+            >
+              {showAssignSalaryForm ? '✕ Close Form' : '➕ Assign New Salary'}
+            </button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
             
             {/* Generate Salary Form Card */}
-            <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
-                📝 Assign New Salary Slip
-              </h3>
-              
-              <form onSubmit={handleGenerateSalary} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', alignItems: 'end' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Select Teacher *</label>
-                  <select
-                    required
-                    value={salaryTeacherId}
-                    onChange={e => handleTeacherChange(e.target.value)}
-                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}
-                  >
-                    <option value="" style={{ background: 'var(--card-bg)' }}>Choose Faculty member</option>
-                    {allTeachers.filter(t => t.role === 'TEACHER').map(t => (
-                      <option key={t.id} value={t.id} style={{ background: 'var(--card-bg)' }}>
-                        {t.name} ({t.username})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {showAssignSalaryForm && (
+              <div className="glass-card animate-scale-up" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
+                  📝 Assign New Salary Slip
+                </h3>
+                
+                <form onSubmit={handleGenerateSalary} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', alignItems: 'end' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Select Teacher *</label>
+                    <select
+                      required
+                      value={salaryTeacherId}
+                      onChange={e => handleTeacherChange(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}
+                    >
+                      <option value="" style={{ background: 'var(--card-bg)' }}>Choose Faculty member</option>
+                      {allTeachers.filter(t => t.role === 'TEACHER').map(t => (
+                        <option key={t.id} value={t.id} style={{ background: 'var(--card-bg)' }}>
+                          {t.name} ({t.username})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Salary Month *</label>
-                  <select
-                    required
-                    value={salaryMonth}
-                    onChange={e => setSalaryMonth(e.target.value)}
-                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}
-                  >
-                    {(() => {
-                      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                      const now = new Date();
-                      const result = [];
-                      for (let i = -6; i <= 6; i++) {
-                        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                        result.push(`${months[d.getMonth()]} ${d.getFullYear()}`);
-                      }
-                      return result.map(m => (
-                        <option key={m} value={m} style={{ background: 'var(--card-bg)' }}>{m}</option>
-                      ));
-                    })()}
-                  </select>
-                </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Salary Month *</label>
+                    <select
+                      required
+                      value={salaryMonth}
+                      onChange={e => setSalaryMonth(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}
+                    >
+                      {(() => {
+                        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                        const now = new Date();
+                        const result = [];
+                        for (let i = -6; i <= 6; i++) {
+                          const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                          result.push(`${months[d.getMonth()]} ${d.getFullYear()}`);
+                        }
+                        return result.map(m => (
+                          <option key={m} value={m} style={{ background: 'var(--card-bg)' }}>{m}</option>
+                        ));
+                      })()}
+                    </select>
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Base Salary *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    placeholder="Enter base salary"
-                    value={salaryBaseSalary}
-                    onChange={e => setSalaryBaseSalary(e.target.value)}
-                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
-                  />
-                </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Base Salary *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      placeholder="Enter base salary"
+                      value={salaryBaseSalary}
+                      onChange={e => setSalaryBaseSalary(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                    />
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Bonus (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Bonus amount"
-                    value={salaryBonus}
-                    onChange={e => setSalaryBonus(e.target.value)}
-                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
-                  />
-                </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Bonus (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Bonus amount"
+                      value={salaryBonus}
+                      onChange={e => setSalaryBonus(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                    />
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Deductions (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Deductions"
-                    value={salaryDeductions}
-                    onChange={e => setSalaryDeductions(e.target.value)}
-                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
-                  />
-                </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Deductions (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Deductions"
+                      value={salaryDeductions}
+                      onChange={e => setSalaryDeductions(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                    />
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Remarks</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Festival advance, performance award"
-                    value={salaryRemarks}
-                    onChange={e => setSalaryRemarks(e.target.value)}
-                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
-                  />
-                </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Remarks</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Festival advance, performance award"
+                      value={salaryRemarks}
+                      onChange={e => setSalaryRemarks(e.target.value)}
+                      style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                    />
+                  </div>
 
-                <div style={{ gridColumn: 'span 1', display: 'flex' }}>
-                  <button
-                    type="submit"
-                    disabled={isGeneratingSalary}
-                    style={{
-                      width: '100%',
-                      padding: '0.85rem',
-                      background: 'var(--secondary)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {isGeneratingSalary ? 'Assigning...' : '✨ Assign Salary Slip'}
-                  </button>
-                </div>
-              </form>
-            </div>
+                  <div style={{ gridColumn: 'span 1', display: 'flex' }}>
+                    <button
+                      type="submit"
+                      disabled={isGeneratingSalary}
+                      style={{
+                        width: '100%',
+                        padding: '0.85rem',
+                        background: 'var(--secondary)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {isGeneratingSalary ? 'Assigning...' : '✨ Assign Salary Slip'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             {/* Salary Ledger Card */}
             <div className="glass-card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
