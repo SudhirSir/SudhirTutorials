@@ -66,6 +66,7 @@ export function NotificationsPanel({
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(10);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [panelTab, setPanelTab] = useState<'received' | 'sent'>('received');
 
   // Admin-only broadcast form state
   const [showCompose, setShowCompose] = useState(false);
@@ -79,12 +80,15 @@ export function NotificationsPanel({
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('/api/notifications');
+      const url = panelTab === 'sent' ? '/api/notifications?sent=true' : '/api/notifications';
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
-        const unread = (data.notifications || []).filter((n: Notification) => !n.isRead).length;
-        onUnreadChange?.(unread);
+        if (panelTab === 'received') {
+          const unread = (data.notifications || []).filter((n: Notification) => !n.isRead).length;
+          onUnreadChange?.(unread);
+        }
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -96,6 +100,8 @@ export function NotificationsPanel({
     let fallbackInterval: any = null;
 
     const connectSSE = () => {
+      if (panelTab !== 'received') return;
+
       if (eventSource) {
         eventSource.close();
       }
@@ -181,7 +187,7 @@ export function NotificationsPanel({
         clearInterval(fallbackInterval);
       }
     };
-  }, []);
+  }, [panelTab]);
 
   const markAllRead = async () => {
     await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [] }) });
@@ -287,6 +293,26 @@ export function NotificationsPanel({
         </div>
       )}
 
+      {/* Sent / Received Tabs (Admin/Teacher only) */}
+      {(role === 'ADMIN' || role === 'TEACHER') && (
+        <div className="dashboard-tab-bar" style={{ alignSelf: 'flex-start', maxWidth: '280px', marginBottom: '1.5rem' }}>
+          <button 
+            onClick={() => { setLoading(true); setPanelTab('received'); }}
+            className={`dashboard-tab-button ${panelTab === 'received' ? 'active' : ''}`}
+            style={{ flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.8rem' }}
+          >
+            📥 Inbox
+          </button>
+          <button 
+            onClick={() => { setLoading(true); setPanelTab('sent'); }}
+            className={`dashboard-tab-button ${panelTab === 'sent' ? 'active' : ''}`}
+            style={{ flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.8rem' }}
+          >
+            📤 Sent Notices
+          </button>
+        </div>
+      )}
+
       {/* Notifications List */}
       <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
@@ -294,8 +320,8 @@ export function NotificationsPanel({
         ) : notifications.length === 0 ? (
           <div style={{ padding: '4rem', textAlign: 'center' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.4 }}>🔔</div>
-            <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>No notifications yet</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>You'll see messages from admin and teachers here.</div>
+            <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>{panelTab === 'sent' ? 'No sent broadcasts' : 'No notifications yet'}</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{panelTab === 'sent' ? 'Broadcast notices to see them listed here.' : "You'll see messages from admin and teachers here."}</div>
           </div>
         ) : (
           <>
@@ -305,14 +331,14 @@ export function NotificationsPanel({
             return (
               <div
                 key={n.id}
-                onClick={() => !n.isRead && markOneRead(n.id)}
+                onClick={() => panelTab === 'received' && !n.isRead && markOneRead(n.id)}
                 style={{
                   display: 'flex',
                   gap: '1rem',
                   padding: '1.25rem 1.5rem',
                   borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
-                  background: n.isRead ? 'transparent' : 'rgba(99,102,241,0.04)',
-                  cursor: n.isRead ? 'default' : 'pointer',
+                  background: (panelTab === 'received' && !n.isRead) ? 'rgba(99,102,241,0.04)' : 'transparent',
+                  cursor: (panelTab === 'received' && !n.isRead) ? 'pointer' : 'default',
                   transition: 'background 0.2s',
                 }}
               >

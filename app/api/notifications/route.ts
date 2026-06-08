@@ -7,11 +7,29 @@ import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
-// GET: Fetch current user's notifications
-export async function GET() {
+// GET: Fetch current user's notifications or sent notifications
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const fetchSent = searchParams.get('sent') === 'true';
+
+    if (fetchSent) {
+      if (!['ADMIN', 'TEACHER'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      const notifications = await withDbRetry(() => prisma.notification.findMany({
+        where: { senderId: session.user.id },
+        distinct: ['title', 'message', 'createdAt'],
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      }));
+
+      return NextResponse.json({ notifications });
+    }
 
     const notifications = await withDbRetry(() => prisma.notification.findMany({
       where: { userId: session.user.id },
@@ -77,7 +95,7 @@ export async function POST(req: Request) {
     }
 
     await withDbRetry(() => prisma.notification.createMany({
-      data: targetIds.map(userId => ({ userId, title, message, type })),
+      data: targetIds.map(userId => ({ userId, senderId: session.user.id, title, message, type })),
     }));
 
     return NextResponse.json({ success: true, sent: targetIds.length });

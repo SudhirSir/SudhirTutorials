@@ -205,6 +205,7 @@ model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderId  String?
   title     String
   message   String
   type      String   // SYSTEM, FEE, ALERT
@@ -216,6 +217,7 @@ model Notification {
   @@index([createdAt])
   @@index([userId, isRead])
   @@index([userId, createdAt])
+  @@index([senderId])
 }
 
 model Test {

@@ -371,7 +371,7 @@ function StudentDashboardContent() {
     }
   };
 
-  const downloadReceiptPDF = async (receiptId: string) => {
+  const downloadReceiptPDF = async (receiptId: string, isPrint = false) => {
     setDownloadingPDF(true);
     try {
       const loadHtml2Pdf = () => {
@@ -401,7 +401,7 @@ function StudentDashboardContent() {
       if (buttons) buttons.style.display = 'none';
 
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [5, 5, 5, 5],
         filename: `Receipt_${receiptData?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
@@ -424,20 +424,30 @@ function StudentDashboardContent() {
         
         const filename = `Receipt_${receiptData?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`;
         
-        const writeResult = await Filesystem.writeFile({
-          path: filename,
-          data: base64Data,
-          directory: 'CACHE'
-        });
-
-        await Share.share({
-          title: 'Payment Receipt',
-          text: `Payment Receipt for ${receiptData?.title}`,
-          files: [writeResult.uri],
-          dialogTitle: 'Save/Print Receipt'
-        });
+        if (isPrint) {
+          const writeResult = await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'CACHE'
+          });
+          await Share.share({
+            title: 'Print Receipt',
+            text: `Receipt for ${receiptData?.title}`,
+            files: [writeResult.uri],
+            dialogTitle: 'Print Receipt'
+          });
+          alert('Receipt shared successfully for printing!');
+        } else {
+          await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'DOCUMENTS'
+          });
+          alert(`Success! Receipt downloaded to your Documents folder as:\n${filename}`);
+        }
       } else {
         await (window as any).html2pdf().from(original).set(opt).save();
+        alert('Receipt downloaded successfully!');
       }
       
       // Restore the buttons
@@ -496,17 +506,8 @@ function StudentDashboardContent() {
           <button 
             key={tab}
             onClick={() => handleTabChange(tab)}
-            style={{ 
-              padding: '0.75rem 1rem', 
-              background: 'transparent', 
-              border: 'none', 
-              color: activeTab === tab ? 'var(--primary)' : 'var(--text-muted)', 
-              borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent', 
-              fontWeight: 600, 
-              whiteSpace: 'nowrap',
-              textTransform: 'capitalize',
-              cursor: 'pointer' 
-            }}
+            className={`dashboard-tab-button ${activeTab === tab ? 'active' : ''}`}
+            style={{ textTransform: 'capitalize' }}
           >
             {tab === 'messages' && unreadMessages > 0 && (
               <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>
@@ -957,23 +958,23 @@ function StudentDashboardContent() {
               </div>
             )}
 
-            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2rem' }}>
-              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.75rem', display: 'block' }} />
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.5rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
-                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0' }}>Professional Coaching for Academic Excellence</p>
-                <div style={{ height: '1px', background: '#e5e7eb', width: '60px', margin: '1rem auto' }}></div>
-                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: '#374151' }}>Payment Receipt</h2>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.5rem', display: 'block' }} />
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.3rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
+                <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
+                <div style={{ height: '1px', background: '#e5e7eb', width: '40px', margin: '0.75rem auto' }}></div>
+                <h2 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151' }}>Payment Receipt</h2>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', fontSize: '0.85rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
                 <div>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Student Name</div>
+                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', fontWeight: 800 }}>Student Name</div>
                   <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{receiptData.student?.name}</div>
                   <div style={{ color: '#6b7280' }}>ID: {receiptData.student?.username}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 800 }}>Receipt #</div>
+                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', fontWeight: 800 }}>Receipt #</div>
                   <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</div>
                   <div style={{ color: '#6b7280' }}>
                     {receiptData.paidAt 
@@ -983,46 +984,46 @@ function StudentDashboardContent() {
                 </div>
               </div>
 
-              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '1.5rem 0', marginBottom: '2rem', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#374151' }}>
+              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '0.85rem 0', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#374151' }}>
                   <span>{receiptData.title} ({receiptData.billingMonth})</span>
                   <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{receiptData.amount.toFixed(2)}</span>
                 </div>
                 {receiptData.lateFine > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#ef4444' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
                     <span>Late Fine</span>
                     <span style={{ fontWeight: 700 }}>+₹{receiptData.lateFine.toFixed(2)}</span>
                   </div>
                 )}
                 {receiptData.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: '#10b981' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#10b981' }}>
                     <span>Discount Applied</span>
                     <span style={{ fontWeight: 700 }}>-₹{receiptData.discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '2rem' }}>
-                <div style={{ marginBottom: '0.25rem' }}><strong>Method:</strong> {receiptData.paymentMethod || 'ONLINE'}</div>
-                {receiptData.transactionId && <div style={{ marginBottom: '0.25rem' }}><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+                <div style={{ marginBottom: '0.2rem' }}><strong>Method:</strong> {receiptData.paymentMethod || 'ONLINE'}</div>
+                {receiptData.transactionId && <div style={{ marginBottom: '0.2rem' }}><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
                 {receiptData.collectedBy && <div><strong>Collected/Verified By:</strong> {receiptData.collectedBy}</div>}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
-                <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem' }}>
+                <div style={{ fontSize: '0.65rem', color: '#9ca3af', fontStyle: 'italic' }}>
                   * This is a computer-generated receipt. No signature is required.
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></div>
-                  <div style={{ fontSize: '0.55rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '2px' }}>Online Fee Desk</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></div>
+                  <div style={{ fontSize: '0.5rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '2px' }}>Online Fee Desk</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '2.5rem', flexWrap: 'wrap' }} className="no-print">
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }} className="no-print">
                 <button 
                   onClick={() => setIsReceiptOpen(false)}
                   style={{ 
@@ -1036,7 +1037,7 @@ function StudentDashboardContent() {
                   ❌ Close
                 </button>
                 <button 
-                  onClick={() => Capacitor.isNativePlatform() ? downloadReceiptPDF(receiptData.id) : window.print()}
+                  onClick={() => Capacitor.isNativePlatform() ? downloadReceiptPDF(receiptData.id, true) : window.print()}
                   style={{ 
                     flex: 1.5, minWidth: '120px', padding: '0.8rem 1rem', borderRadius: '12px', 
                     background: 'transparent', border: '2px solid var(--primary)', color: 'var(--primary)',
@@ -1049,7 +1050,7 @@ function StudentDashboardContent() {
                   🖨 Print
                 </button>
                 <button 
-                  onClick={() => downloadReceiptPDF(receiptData.id)}
+                  onClick={() => downloadReceiptPDF(receiptData.id, false)}
                   disabled={downloadingPDF}
                   style={{ 
                     flex: 2, minWidth: '150px', padding: '0.8rem 1.25rem', borderRadius: '12px', 

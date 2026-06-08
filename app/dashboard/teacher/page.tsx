@@ -698,17 +698,8 @@ Depending on your specific focus, this represents the vital equation model for t
           <button 
             key={tab}
             onClick={() => handleTabChange(tab)}
-            style={{ 
-              padding: '0.75rem 1rem', 
-              background: 'transparent', 
-              border: 'none', 
-              color: activeTab === tab ? '#10b981' : 'var(--text-muted)', 
-              borderBottom: activeTab === tab ? '2px solid #10b981' : '2px solid transparent', 
-              fontWeight: 600, 
-              whiteSpace: 'nowrap',
-              textTransform: 'capitalize',
-              cursor: 'pointer' 
-            }}
+            className={`dashboard-tab-button ${activeTab === tab ? 'active' : ''}`}
+            style={{ textTransform: 'capitalize' }}
           >
             {tab === 'messages' && unreadMessages > 0 && (
               <span style={{ background: '#10b981', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>

@@ -250,7 +250,7 @@ h1, h2, h3, h4, h5, h6 {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: var(--radius);
-  padding: 2.5rem;
+  padding: 1.5rem; /* Compact, premium padding */
   box-shadow: var(--shadow);
   transition: all 0.3s ease;
   position: relative;
@@ -410,14 +410,48 @@ textarea:focus {
 }
 .dashboard-tab-bar {
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 2rem;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 .dashboard-tab-bar::-webkit-scrollbar { display: none; }
+
+[data-theme="dark"] .dashboard-tab-bar {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dashboard-tab-button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dashboard-tab-button:hover {
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .dashboard-tab-button:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dashboard-tab-button.active {
+  background: var(--primary);
+  color: white !important;
+}
 
 /* ── Large tablets (1024px) ── */
 @media (max-width: 1024px) {
@@ -488,7 +522,7 @@ textarea:focus {
 
   /* Cards: mobile padding */
   .glass-card {
-    padding: 1.5rem 1rem !important;
+    padding: 1.25rem 1rem !important;
     border-radius: 16px !important;
   }
 
@@ -934,15 +968,15 @@ textarea:focus {
 }
 
 .receipt-inner-container {
-  padding: 2.5rem;
-  border: 8px solid #f3f4f6;
+  padding: 1.5rem;
+  border: 4px solid #f3f4f6;
 }
 
 /* Responsive and scroll styles */
 @media (max-width: 600px) {
   .receipt-inner-container {
-    padding: 1.25rem 1.25rem !important;
-    border-width: 4px !important;
+    padding: 1rem !important;
+    border-width: 2px !important;
   }
   .flex-mobile-stack {
     flex-direction: column !important;
