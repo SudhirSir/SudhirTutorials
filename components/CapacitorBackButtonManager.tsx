@@ -1,19 +1,22 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export function CapacitorBackButtonManager() {
-  const pathname = usePathname();
   const router = useRouter();
-  // Debounce ref to prevent double-trigger on rapid back presses
-  const lastBackPress = useRef<number>(0);
+  const routerRef = useRef(router);
+
+  // Keep the router reference fresh so the listener always uses the current router
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let isListenerActive = true;
     let backListener: any = null;
+    const lastBackPress = { current: 0 };
 
     const setupListener = async () => {
       try {
@@ -30,8 +33,6 @@ export function CapacitorBackButtonManager() {
         }
 
         backListener = await App.addListener('backButton', ({ canGoBack }) => {
-          if (!isListenerActive) return;
-
           // Debounce: ignore presses within 350ms of the last one
           const now = Date.now();
           if (now - lastBackPress.current < 350) return;
@@ -44,35 +45,42 @@ export function CapacitorBackButtonManager() {
             return;
           }
 
+          // Read pathname and tab parameters LIVE from the window at press-time
+          const pathname = window.location.pathname;
+          const cleanPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
           const searchParams = new URLSearchParams(window.location.search);
           const tab = searchParams.get('tab');
 
+          console.log('[CapacitorBackButton] Press intercepted. Path:', cleanPathname, 'Tab:', tab, 'canGoBack:', canGoBack);
+
           // Check if we are on dashboard sub-tabs and redirect to home tab instead of exiting
-          if (pathname === '/dashboard/admin' && tab && tab !== 'overview') {
-            router.push('/dashboard/admin?tab=overview');
+          if (cleanPathname === '/dashboard/admin' && tab && tab !== 'overview') {
+            routerRef.current.push('/dashboard/admin?tab=overview');
             return;
           }
-          if (pathname === '/dashboard/teacher' && tab && tab !== 'classes') {
-            router.push('/dashboard/teacher?tab=classes');
+          if (cleanPathname === '/dashboard/teacher' && tab && tab !== 'classes') {
+            routerRef.current.push('/dashboard/teacher?tab=classes');
             return;
           }
-          if (pathname === '/dashboard/student' && tab && tab !== 'dashboard') {
-            router.push('/dashboard/student?tab=dashboard');
+          if (cleanPathname === '/dashboard/student' && tab && tab !== 'dashboard') {
+            routerRef.current.push('/dashboard/student?tab=dashboard');
             return;
           }
 
           // Check if we are at the dashboard entry-point homes or root landing/login pages
-          const isAdminHome = pathname === '/dashboard/admin' && (!tab || tab === 'overview');
-          const isTeacherHome = pathname === '/dashboard/teacher' && (!tab || tab === 'classes');
-          const isStudentHome = pathname === '/dashboard/student' && (!tab || tab === 'dashboard');
-          const isExitPage = pathname === '/login' || pathname === '/';
+          const isAdminHome = cleanPathname === '/dashboard/admin' && (!tab || tab === 'overview');
+          const isTeacherHome = cleanPathname === '/dashboard/teacher' && (!tab || tab === 'classes');
+          const isStudentHome = cleanPathname === '/dashboard/student' && (!tab || tab === 'dashboard');
+          const isExitPage = cleanPathname === '/login' || cleanPathname === '/';
 
           if (isExitPage || isAdminHome || isTeacherHome || isStudentHome || !canGoBack) {
+            console.log('[CapacitorBackButton] Exiting app');
             App.exitApp();
             return;
           }
 
           // Otherwise, navigate back in the WebView history
+          console.log('[CapacitorBackButton] Navigating back in WebView history');
           window.history.back();
         });
       } catch (err) {
@@ -83,12 +91,11 @@ export function CapacitorBackButtonManager() {
     setupListener();
 
     return () => {
-      isListenerActive = false;
       if (backListener) {
         backListener.remove();
       }
     };
-  }, [pathname, router]);
+  }, []); // Run exactly once on mount to prevent duplicates/leaks
 
   return null;
 }
