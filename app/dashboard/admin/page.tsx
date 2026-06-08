@@ -117,7 +117,7 @@ function AdminDashboardContent() {
       if (document.visibilityState === 'visible') {
         fetchUnreadCounts();
       }
-    }, 40000);
+    }, 15000);
 
     document.addEventListener('visibilitychange', handleVisibility);
 
@@ -1185,19 +1185,20 @@ function AdminDashboardContent() {
       };
 
       const { Capacitor } = await import('@capacitor/core');
-      if (Capacitor.isNativePlatform()) {
+      const cap = (window as any).Capacitor || Capacitor;
+      const Filesystem = cap?.Plugins?.Filesystem;
+      const Share = cap?.Plugins?.Share;
+
+      if (Capacitor.isNativePlatform() && Filesystem && Share) {
         const pdfDataUri = await (window as any).html2pdf().from(original).set(opt).output('datauristring');
         const base64Data = pdfDataUri.split(',')[1];
         
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
-        const { Share } = await import('@capacitor/share');
-
         const filename = `Receipt_${activeReceipt?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`;
         
         const writeResult = await Filesystem.writeFile({
           path: filename,
           data: base64Data,
-          directory: Directory.Cache
+          directory: 'CACHE'
         });
 
         await Share.share({

@@ -91,23 +91,9 @@ export function NotificationsPanel({
   };
 
   useEffect(() => {
-    fetchNotifications();
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        fetchNotifications();
-      }
-    };
-
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchNotifications();
-      }
-    }, 30000);
-
-    document.addEventListener('visibilitychange', handleVisibility);
-
     let eventSource: EventSource | null = null;
+    let reconnectTimeout: any = null;
+    let fallbackInterval: any = null;
 
     const connectSSE = () => {
       if (eventSource) {
@@ -115,6 +101,15 @@ export function NotificationsPanel({
       }
 
       eventSource = new EventSource('/api/notifications/subscribe');
+
+      eventSource.onopen = () => {
+        console.log('[SSE Notifications] Connection established successfully');
+        fetchNotifications();
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval);
+          fallbackInterval = null;
+        }
+      };
 
       eventSource.onmessage = (event) => {
         try {
@@ -131,21 +126,59 @@ export function NotificationsPanel({
       };
 
       eventSource.onerror = () => {
+        console.error('[SSE Notifications] Connection error. Closing stream...');
         if (eventSource) {
           eventSource.close();
+          eventSource = null;
         }
-        // Attempt reconnection after 5 seconds
-        setTimeout(connectSSE, 5000);
+        
+        // Attempt reconnection after 30 seconds
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(connectSSE, 30000);
+
+        // Start fallback polling (once every 15s) while SSE is down
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+              fetchNotifications();
+            }
+          }, 15000);
+        }
       };
     };
 
-    connectSSE();
+    // Initial load
+    fetchNotifications();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        connectSSE();
+      } else {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval);
+          fallbackInterval = null;
+        }
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      connectSSE();
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
       if (eventSource) {
         eventSource.close();
+      }
+      clearTimeout(reconnectTimeout);
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
       }
     };
   }, []);

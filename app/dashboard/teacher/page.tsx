@@ -74,7 +74,7 @@ function TeacherDashboardContent() {
       if (document.visibilityState === 'visible') {
         fetchUnreadCounts();
       }
-    }, 40000);
+    }, 15000);
 
     document.addEventListener('visibilitychange', handleVisibility);
 

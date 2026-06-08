@@ -260,9 +260,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           eventSource = null;
         }
         
-        // Reconnect after 5 seconds
+        // Reconnect after 30 seconds
         clearTimeout(reconnectTimeout);
-        reconnectTimeout = setTimeout(connectSSE, 5000);
+        reconnectTimeout = setTimeout(connectSSE, 30000);
 
         // Start fallback polling (once every 15s) while SSE is down
         if (!fallbackInterval) {
