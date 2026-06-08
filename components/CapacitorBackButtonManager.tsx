@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 export function CapacitorBackButtonManager() {
   const router = useRouter();
   const routerRef = useRef(router);
+  const navigationCount = useRef(0);
 
   // Keep the router reference fresh so the listener always uses the current router
   useEffect(() => {
@@ -17,6 +18,27 @@ export function CapacitorBackButtonManager() {
 
     let backListener: any = null;
     const lastBackPress = { current: 0 };
+
+    // Track navigation count live via history pushState/replaceState and popstate
+    const handleLocationChange = () => {
+      navigationCount.current += 1;
+      console.log('[CapacitorBackButton] Navigation detected. New count:', navigationCount.current);
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+
+    const originalPush = window.history.pushState;
+    const originalReplace = window.history.replaceState;
+
+    window.history.pushState = function(...args) {
+      originalPush.apply(this, args);
+      handleLocationChange();
+    };
+
+    window.history.replaceState = function(...args) {
+      originalReplace.apply(this, args);
+      handleLocationChange();
+    };
 
     const setupListener = async () => {
       try {
@@ -52,30 +74,29 @@ export function CapacitorBackButtonManager() {
             const searchParams = new URLSearchParams(window.location.search);
             const tab = searchParams.get('tab');
 
-            console.log('[CapacitorBackButton] Press intercepted. Path:', cleanPathname, 'Tab:', tab, 'canGoBack:', canGoBack);
+            console.log('[CapacitorBackButton] Press. Path:', cleanPathname, 'Tab:', tab, 'Count:', navigationCount.current, 'canGoBack:', canGoBack);
 
-            // Check if we are on dashboard sub-tabs and redirect to home tab instead of exiting
-            if (cleanPathname.startsWith('/dashboard/admin') && tab && tab !== 'overview') {
-              if (routerRef.current) {
-                routerRef.current.push('/dashboard/admin?tab=overview');
+            // Check if we are on dashboard sub-tabs
+            const isSubTab = 
+              (cleanPathname.startsWith('/dashboard/admin') && tab && tab !== 'overview') ||
+              (cleanPathname.startsWith('/dashboard/teacher') && tab && tab !== 'classes') ||
+              (cleanPathname.startsWith('/dashboard/student') && tab && tab !== 'dashboard');
+
+            if (isSubTab) {
+              if (navigationCount.current > 0) {
+                console.log('[CapacitorBackButton] Going back stepwise');
+                // Adjust count: popstate will fire and add +1, so we do -2 for a net -1
+                navigationCount.current = Math.max(0, navigationCount.current - 2); 
+                window.history.back();
               } else {
-                window.location.href = '/dashboard/admin?tab=overview';
-              }
-              return;
-            }
-            if (cleanPathname.startsWith('/dashboard/teacher') && tab && tab !== 'classes') {
-              if (routerRef.current) {
-                routerRef.current.push('/dashboard/teacher?tab=classes');
-              } else {
-                window.location.href = '/dashboard/teacher?tab=classes';
-              }
-              return;
-            }
-            if (cleanPathname.startsWith('/dashboard/student') && tab && tab !== 'dashboard') {
-              if (routerRef.current) {
-                routerRef.current.push('/dashboard/student?tab=dashboard');
-              } else {
-                window.location.href = '/dashboard/student?tab=dashboard';
+                console.log('[CapacitorBackButton] No history, redirecting to home');
+                if (cleanPathname.startsWith('/dashboard/admin')) {
+                  routerRef.current.push('/dashboard/admin?tab=overview');
+                } else if (cleanPathname.startsWith('/dashboard/teacher')) {
+                  routerRef.current.push('/dashboard/teacher?tab=classes');
+                } else if (cleanPathname.startsWith('/dashboard/student')) {
+                  routerRef.current.push('/dashboard/student?tab=dashboard');
+                }
               }
               return;
             }
@@ -93,11 +114,11 @@ export function CapacitorBackButtonManager() {
             }
 
             // Otherwise, navigate back in the WebView history
-            console.log('[CapacitorBackButton] Navigating back in WebView history');
+            console.log('[CapacitorBackButton] Navigating back stepwise');
+            navigationCount.current = Math.max(0, navigationCount.current - 2);
             window.history.back();
           } catch (error) {
             console.error('[CapacitorBackButton] Error handling back button:', error);
-            // Fallback: if everything else fails, let history.back() handle it or exit if no history
             if (canGoBack) {
               window.history.back();
             } else {
@@ -113,11 +134,14 @@ export function CapacitorBackButtonManager() {
     setupListener();
 
     return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.history.pushState = originalPush;
+      window.history.replaceState = originalReplace;
       if (backListener) {
         backListener.remove();
       }
     };
-  }, []); // Run exactly once on mount to prevent duplicates/leaks
+  }, []);
 
   return null;
 }
