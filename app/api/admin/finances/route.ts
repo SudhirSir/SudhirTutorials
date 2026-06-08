@@ -76,6 +76,7 @@ export async function GET(req: Request) {
                 email: true,
                 fatherName: true,
                 address: true,
+                scholarship: true,
               }
             }
           } 
@@ -100,11 +101,15 @@ export async function GET(req: Request) {
       // Fast fallback receipt format, full sequential serial computed only when requesting/downloading receipt
       const receiptNo = `REC-${fee.id.slice(-6).toUpperCase()}`;
 
+      const scholarship = fee.student?.studentProfile?.scholarship || 0;
+      const effectiveDiscount = Math.max(fee.discount, scholarship);
+
       return {
         ...fee,
+        discount: effectiveDiscount,
         daysLate: daysLate > 0 ? daysLate : 0,
         currentLateFine: currentFine,
-        totalDue: Math.max(0, fee.amount + currentFine - fee.discount - (fee.paidAmount || 0)),
+        totalDue: Math.max(0, fee.amount + currentFine - effectiveDiscount - (fee.paidAmount || 0)),
         receiptNo
       };
     });
@@ -151,7 +156,7 @@ export async function POST(req: Request) {
         select: {
           id: true,
           username: true,
-          studentProfile: { select: { baseFee: true } }
+          studentProfile: { select: { baseFee: true, scholarship: true } }
         }
       }));
       
@@ -163,6 +168,8 @@ export async function POST(req: Request) {
         }));
         if (existing) continue;
 
+        const sScholarship = s.studentProfile?.scholarship || 0;
+        const sDiscount = Math.max(discount || 0, sScholarship);
         const finalAssignedAmount = amount || s.studentProfile?.baseFee || 0;
         await withDbRetry(() => prisma.payment.create({
           data: {
@@ -173,7 +180,7 @@ export async function POST(req: Request) {
             createdAt: finalCreatedAt,
             title: title || 'Monthly Fee',
             status: 'PENDING',
-            discount: discount || 0,
+            discount: sDiscount,
             remarks
           }
         }));
@@ -207,7 +214,7 @@ export async function POST(req: Request) {
       // Individual
       const student = await withDbRetry(() => prisma.user.findUnique({ 
         where: { username: studentId },
-        select: { id: true, studentProfile: { select: { baseFee: true } } }
+        select: { id: true, studentProfile: { select: { baseFee: true, scholarship: true } } }
       }));
       if (!student) return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
 
@@ -217,6 +224,8 @@ export async function POST(req: Request) {
       }));
       if (existing) return NextResponse.json({ error: 'Fee already assigned for this month' }, { status: 400 });
 
+      const sScholarship = student.studentProfile?.scholarship || 0;
+      const sDiscount = Math.max(discount || 0, sScholarship);
       const finalAssignedAmount = amount || student.studentProfile?.baseFee || 0;
       const payment = await withDbRetry(() => prisma.payment.create({
         data: {
@@ -227,7 +236,7 @@ export async function POST(req: Request) {
           createdAt: finalCreatedAt,
           title: title || 'Monthly Fee',
           status: 'PENDING',
-          discount: discount || 0,
+          discount: sDiscount,
           remarks
         },
       }));
@@ -275,7 +284,18 @@ export async function PATCH(req: Request) {
 
     const { id, status, paymentMethod, transactionId, discount, remarks, paidAmount, paidAt } = validation.data;
 
-    const currentFee = await withDbRetry(() => prisma.payment.findUnique({ where: { id } }));
+    const currentFee = await withDbRetry(() => prisma.payment.findUnique({ 
+      where: { id },
+      include: {
+        student: {
+          select: {
+            studentProfile: {
+              select: { scholarship: true }
+            }
+          }
+        }
+      }
+    }));
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
@@ -300,7 +320,10 @@ export async function PATCH(req: Request) {
       lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
     }
 
-    const netDueBefore = currentFee.amount + lateFine - (discount ?? currentFee.discount);
+    const scholarship = currentFee.student?.studentProfile?.scholarship || 0;
+    const effectiveDiscount = Math.max(discount !== undefined ? discount : currentFee.discount, scholarship);
+
+    const netDueBefore = currentFee.amount + lateFine - effectiveDiscount;
     const remainingDueBefore = Math.max(0, netDueBefore - (currentFee.paidAmount || 0));
 
     // Custom paidAmount can be passed
@@ -350,7 +373,7 @@ export async function PATCH(req: Request) {
         paymentMethod,
         transactionId,
         remarks,
-        discount: discount !== undefined ? discount : currentFee.discount,
+        discount: effectiveDiscount,
         lateFine,
         paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus)
           ? newTotalPaidAmount
@@ -369,7 +392,7 @@ export async function PATCH(req: Request) {
           data: {
             userId: currentFee.studentId,
             title: '✅ Fee Payment Verified',
-            message: `Your payment of ₹${(currentFee.amount + lateFine - (discount ?? currentFee.discount)).toFixed(0)} for ${currentFee.title} (${currentFee.billingMonth}) has been verified by the admin and updated in the ledger. You can now download your receipt!`,
+            message: `Your payment of ₹${(currentFee.amount + lateFine - effectiveDiscount).toFixed(0)} for ${currentFee.title} (${currentFee.billingMonth}) has been verified by the admin and updated in the ledger. You can now download your receipt!`,
             type: 'FEE',
             isRead: false
           }
@@ -404,14 +427,31 @@ export async function PUT(req: Request) {
     const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks } = body;
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
 
-    const existing = await withDbRetry(() => prisma.payment.findUnique({ where: { id } }));
+    const existing = await withDbRetry(() => prisma.payment.findUnique({ 
+      where: { id },
+      include: {
+        student: {
+          select: {
+            studentProfile: {
+              select: { scholarship: true }
+            }
+          }
+        }
+      }
+    }));
     if (!existing) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
     if (billingMonth !== undefined) updateData.billingMonth = billingMonth;
     if (amount !== undefined) updateData.amount = parseFloat(String(amount));
-    if (discount !== undefined) updateData.discount = parseFloat(String(discount));
+    const scholarship = existing.student?.studentProfile?.scholarship || 0;
+    const inputDiscount = discount !== undefined ? parseFloat(String(discount)) : existing.discount;
+    const effectiveDiscount = Math.max(inputDiscount, scholarship);
+
+    if (discount !== undefined || existing.discount !== effectiveDiscount) {
+      updateData.discount = effectiveDiscount;
+    }
     if (lateFine !== undefined) updateData.lateFine = parseFloat(String(lateFine));
     if (status !== undefined) updateData.status = status;
     if (remarks !== undefined) updateData.remarks = remarks;
@@ -427,7 +467,7 @@ export async function PUT(req: Request) {
       if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') {
         const finalAmount = (updateData.amount ?? existing.amount);
         const finalFine = (updateData.lateFine ?? existing.lateFine);
-        const finalDiscount = (updateData.discount ?? existing.discount);
+        const finalDiscount = (updateData.discount ?? effectiveDiscount);
         updateData.paidAmount = Math.max(0, finalAmount + finalFine - finalDiscount);
         updateData.paidAt = new Date();
         if (status === 'PAID' || status === 'VERIFIED') {

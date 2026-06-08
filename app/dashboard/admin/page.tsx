@@ -885,14 +885,14 @@ function AdminDashboardContent() {
       setIsCreating(false);
       return;
     }
-    if (newUserName.length > 100 || !/^[a-zA-Z\s]+$/.test(newUserName.trim())) {
-      setErrorMsg("Name must contain only alphabets and spaces, and be at most 100 characters.");
+    if (newUserName.length > 150 || !/^[a-zA-Z\s]+$/.test(newUserName.trim())) {
+      setErrorMsg("Name must contain only alphabets and spaces, and be at most 150 characters.");
       setIsCreating(false);
       return;
     }
     if (newUserRole === 'STUDENT') {
-      if (newStudentFatherName && (newStudentFatherName.length > 100 || !/^[a-zA-Z\s]+$/.test(newStudentFatherName.trim()))) {
-        setErrorMsg("Father's name must contain only alphabets and spaces, and be at most 100 characters.");
+      if (newStudentFatherName && (newStudentFatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(newStudentFatherName.trim()))) {
+        setErrorMsg("Father's name must contain only alphabets and spaces, and be at most 150 characters.");
         setIsCreating(false);
         return;
       }
@@ -1530,6 +1530,28 @@ function AdminDashboardContent() {
     } catch (err) { console.error(err); } finally { setIsVerifying(null); }
   };
 
+  const parseNotificationMessage = (msg: string) => {
+    let cleanMessage = msg || "";
+    let screenshot: string | null = null;
+    let email: string | null = null;
+
+    // Extract screenshot: support standard base64 URL format
+    const ssMatch = cleanMessage.match(/\[Screenshot:\s*(data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+)\]/i);
+    if (ssMatch) {
+      screenshot = ssMatch[1];
+      cleanMessage = cleanMessage.replace(ssMatch[0], '').trim();
+    }
+
+    // Extract email metadata
+    const emailMatch = cleanMessage.match(/\[Email:\s*([^\]]+)\]/i);
+    if (emailMatch) {
+      email = emailMatch[1];
+      cleanMessage = cleanMessage.replace(emailMatch[0], '').trim();
+    }
+
+    return { cleanMessage, screenshot, email };
+  };
+
   const fetchBugReports = async () => {
     setIsLoadingBugReports(true);
     try {
@@ -1780,14 +1802,14 @@ function AdminDashboardContent() {
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingProfile.name) {
-      if (editingProfile.name.length > 100 || !/^[a-zA-Z\s]+$/.test(editingProfile.name.trim())) {
-        alert("Name must contain only alphabets and spaces, and be at most 100 characters.");
+      if (editingProfile.name.length > 150 || !/^[a-zA-Z\s]+$/.test(editingProfile.name.trim())) {
+        alert("Name must contain only alphabets and spaces, and be at most 150 characters.");
         return;
       }
     }
     if (editingProfile.role === 'STUDENT' && editingProfile.fatherName) {
-      if (editingProfile.fatherName.length > 100 || !/^[a-zA-Z\s]+$/.test(editingProfile.fatherName.trim())) {
-        alert("Father's name must contain only alphabets and spaces, and be at most 100 characters.");
+      if (editingProfile.fatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(editingProfile.fatherName.trim())) {
+        alert("Father's name must contain only alphabets and spaces, and be at most 150 characters.");
         return;
       }
     }
@@ -2460,59 +2482,86 @@ function AdminDashboardContent() {
                 <p style={{ color: 'var(--text-muted)' }}>No bug or user reports registered in the database.</p>
               ) : (
                 <div style={{ display: 'grid', gap: '1.25rem' }}>
-                  {bugReports.map(report => (
-                    <div key={report.id} style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div>
-                          <span style={{ 
-                            padding: '3px 8px', 
-                            borderRadius: '6px', 
-                            fontSize: '0.7rem', 
-                            fontWeight: 800, 
-                            background: report.title.includes('Bug') ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)', 
-                            color: report.title.includes('Bug') ? '#ef4444' : '#f59e0b',
-                            border: `1px solid ${report.title.includes('Bug') ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
-                            marginRight: '0.5rem'
-                          }}>
-                            {report.title.includes('Bug') ? 'BUG REPORT' : 'USER REPORT'}
-                          </span>
-                          <h4 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text)' }}>
-                            {report.title}
-                          </h4>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Logged: {new Date(report.createdAt).toLocaleString()}
-                          </span>
+                  {bugReports.map(report => {
+                    const { cleanMessage, screenshot, email } = parseNotificationMessage(report.message);
+                    return (
+                      <div key={report.id} style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                          <div>
+                            <span style={{ 
+                              padding: '3px 8px', 
+                              borderRadius: '6px', 
+                              fontSize: '0.7rem', 
+                              fontWeight: 800, 
+                              background: report.title.includes('Bug') ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)', 
+                              color: report.title.includes('Bug') ? '#ef4444' : '#f59e0b',
+                              border: `1px solid ${report.title.includes('Bug') ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                              marginRight: '0.5rem'
+                            }}>
+                              {report.title.includes('Bug') ? 'BUG REPORT' : 'USER REPORT'}
+                            </span>
+                            <h4 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text)' }}>
+                              {report.title}
+                            </h4>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Logged: {new Date(report.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {screenshot && (
+                              <button
+                                onClick={() => setLightboxUrl(screenshot)}
+                                style={{
+                                  background: 'rgba(99, 102, 241, 0.12)',
+                                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                                  color: '#818cf8',
+                                  padding: '6px 14px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                👁️ View Attachment
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleDeleteBugReport(report.id)}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: 'none',
+                                color: '#ef4444',
+                                padding: '6px 14px',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Dismiss / Delete
+                            </button>
+                          </div>
                         </div>
-                        <button 
-                          onClick={() => handleDeleteBugReport(report.id)}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: 'none',
-                            color: '#ef4444',
-                            padding: '6px 14px',
-                            borderRadius: '8px',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Dismiss / Delete
-                        </button>
+                        <div style={{ 
+                          background: 'rgba(0,0,0,0.15)', 
+                          padding: '1rem', 
+                          borderRadius: '10px', 
+                          border: '1px solid var(--border)',
+                          whiteSpace: 'pre-wrap', 
+                          fontSize: '0.88rem', 
+                          color: 'var(--text)',
+                          fontFamily: 'monospace'
+                        }}>
+                          {cleanMessage}
+                        </div>
+                        {email && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            ✉️ Reporter Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
+                          </div>
+                        )}
                       </div>
-                      <div style={{ 
-                        background: 'rgba(0,0,0,0.15)', 
-                        padding: '1rem', 
-                        borderRadius: '10px', 
-                        border: '1px solid var(--border)',
-                        whiteSpace: 'pre-wrap', 
-                        fontSize: '0.88rem', 
-                        color: 'var(--text)',
-                        fontFamily: 'monospace'
-                      }}>
-                        {report.message}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -5950,28 +5999,26 @@ function AdminDashboardContent() {
             )}
 
             <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
-              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.5rem', display: 'block' }} />
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.3rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
-                <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
-                <div style={{ height: '1px', background: '#e5e7eb', width: '40px', margin: '0.75rem auto' }}></div>
-                <h2 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151' }}>Payment Receipt</h2>
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
+                <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
+                <div style={{ height: '1px', background: '#e5e7eb', width: '30px', margin: '0.5rem auto' }}></div>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0' }}>FEE PAYMENT RECEIPT</h2>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
-                <div>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', fontWeight: 800 }}>Student Name</div>
-                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{activeReceipt.student?.name}</div>
-                  <div style={{ color: '#6b7280' }}>ID: {activeReceipt.student?.username}</div>
+              <div style={{ marginBottom: '1rem', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Name: <span style={{ fontWeight: 700 }}>{activeReceipt.student?.name}</span></span>
+                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Receipt #: <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</span></span>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', fontWeight: 800 }}>Receipt #</div>
-                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</div>
-                  <div style={{ color: '#6b7280' }}>
-                    {activeReceipt.paidAt 
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280' }}>
+                  <span>ID: {activeReceipt.student?.username}</span>
+                  <span>
+                    Date: {activeReceipt.paidAt 
                       ? `${formatDateDisplay(activeReceipt.paidAt)}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
                       : formatDateDisplay(new Date())}
-                  </div>
+                  </span>
                 </div>
               </div>
 

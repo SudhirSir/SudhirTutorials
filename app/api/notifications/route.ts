@@ -15,29 +15,44 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const fetchSent = searchParams.get('sent') === 'true';
+    const limit = parseInt(searchParams.get('limit') || '10', 10) || 10;
 
     if (fetchSent) {
       if (!['ADMIN', 'TEACHER'].includes(session.user.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
+      const totalCount = await withDbRetry(() => prisma.notification.findMany({
+        where: { senderId: session.user.id },
+        distinct: ['title', 'message', 'createdAt'],
+        select: { id: true },
+      })).then(res => res.length);
+
       const notifications = await withDbRetry(() => prisma.notification.findMany({
         where: { senderId: session.user.id },
         distinct: ['title', 'message', 'createdAt'],
         orderBy: { createdAt: 'desc' },
-        take: 50,
+        take: limit,
       }));
 
-      return NextResponse.json({ notifications });
+      return NextResponse.json({ notifications, totalCount });
     }
+
+    const totalCount = await withDbRetry(() => prisma.notification.count({
+      where: { userId: session.user.id }
+    }));
+
+    const unreadCount = await withDbRetry(() => prisma.notification.count({
+      where: { userId: session.user.id, isRead: false }
+    }));
 
     const notifications = await withDbRetry(() => prisma.notification.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: limit,
     }));
 
-    return NextResponse.json({ notifications });
+    return NextResponse.json({ notifications, totalCount, unreadCount });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

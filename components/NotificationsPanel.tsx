@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
 interface Notification {
@@ -65,8 +65,15 @@ export function NotificationsPanel({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [panelTab, setPanelTab] = useState<'received' | 'sent'>('received');
+
+  const visibleCountRef = useRef(10);
+  useEffect(() => {
+    visibleCountRef.current = visibleCount;
+  }, [visibleCount]);
 
   // Admin-only broadcast form state
   const [showCompose, setShowCompose] = useState(false);
@@ -78,20 +85,31 @@ export function NotificationsPanel({
 
   const role = (session?.user as any)?.role as string;
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (currentLimit?: number) => {
     try {
-      const url = panelTab === 'sent' ? '/api/notifications?sent=true' : '/api/notifications';
+      const limitToUse = currentLimit ?? visibleCountRef.current;
+      const url = panelTab === 'sent' 
+        ? `/api/notifications?sent=true&limit=${limitToUse}` 
+        : `/api/notifications?limit=${limitToUse}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
+        setTotalCount(data.totalCount || 0);
         if (panelTab === 'received') {
-          const unread = (data.notifications || []).filter((n: Notification) => !n.isRead).length;
+          const unread = data.unreadCount ?? 0;
+          setUnreadCount(unread);
           onUnreadChange?.(unread);
         }
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  };
+
+  const handleLoadMore = () => {
+    const newLimit = visibleCount + 10;
+    setVisibleCount(newLimit);
+    fetchNotifications(newLimit);
   };
 
   useEffect(() => {
@@ -219,7 +237,7 @@ export function NotificationsPanel({
     finally { setComposing(false); }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // unreadCount is managed as a state synchronized from the fetchNotifications call
 
   return (
     <div style={{ maxWidth: '720px' }}>
@@ -319,7 +337,7 @@ export function NotificationsPanel({
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
         ) : notifications.length === 0 ? (
           <div style={{ padding: '4rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.4 }}>🔔</div>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem', opacity: 0.4 }}>🔔</div>
             <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>{panelTab === 'sent' ? 'No sent broadcasts' : 'No notifications yet'}</div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{panelTab === 'sent' ? 'Broadcast notices to see them listed here.' : "You'll see messages from admin and teachers here."}</div>
           </div>
@@ -334,8 +352,8 @@ export function NotificationsPanel({
                 onClick={() => panelTab === 'received' && !n.isRead && markOneRead(n.id)}
                 style={{
                   display: 'flex',
-                  gap: '1rem',
-                  padding: '1.25rem 1.5rem',
+                  gap: '0.75rem',
+                  padding: '0.85rem 1.25rem',
                   borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
                   background: (panelTab === 'received' && !n.isRead) ? 'rgba(99,102,241,0.04)' : 'transparent',
                   cursor: (panelTab === 'received' && !n.isRead) ? 'pointer' : 'default',
@@ -344,9 +362,9 @@ export function NotificationsPanel({
               >
                 {/* Icon */}
                 <div style={{
-                  width: '42px', height: '42px', borderRadius: '50%',
+                  width: '32px', height: '32px', borderRadius: '50%',
                   background: style.bg, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0
+                  justifyContent: 'center', fontSize: '1rem', flexShrink: 0
                 }}>
                   {style.icon}
                 </div>
@@ -375,16 +393,25 @@ export function NotificationsPanel({
                   )}
 
                   {screenshot && (
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>📸 Bug Screenshot (Click to enlarge):</span>
-                      <img 
-                        src={screenshot} 
-                        alt="Bug Screenshot" 
-                        onClick={(e) => { e.stopPropagation(); setLightboxImg(screenshot); }} 
-                        style={{ width: '120px', height: 'auto', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'zoom-in', transition: 'transform 0.2s' }}
-                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
-                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-                      />
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setLightboxImg(screenshot); }}
+                        style={{
+                          background: 'rgba(99,102,241,0.1)',
+                          border: '1px solid rgba(99,102,241,0.2)',
+                          color: '#818cf8',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        📎 View Attachment
+                      </button>
                     </div>
                   )}
 
@@ -399,9 +426,9 @@ export function NotificationsPanel({
               </div>
             );
             })}
-            {visibleCount < notifications.length && (
+            {notifications.length < totalCount && (
               <button 
-                onClick={() => setVisibleCount(prev => prev + 10)} 
+                onClick={handleLoadMore} 
                 style={{ width: '100%', padding: '1rem', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.05)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}

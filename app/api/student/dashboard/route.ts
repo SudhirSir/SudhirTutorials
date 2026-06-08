@@ -55,6 +55,7 @@ export async function GET() {
               photoUrl: true,
               rollNumber: true,
               grade: true,
+              scholarship: true,
             }
           },
           payments: {
@@ -110,12 +111,15 @@ export async function GET() {
       const pendingPayment = user.payments[0];
       const { perDayFine, flatFineAfter10Days } = feeSettings;
       const lateFine = calculateLateFine(pendingPayment.dueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
+      const scholarship = user.studentProfile?.scholarship || 0;
+      const effectiveDiscount = Math.max(pendingPayment.discount ?? 0, scholarship);
       feeHighlight = {
         ...pendingPayment,
+        discount: effectiveDiscount,
         isOverdue: lateFine > 0,
         lateFine,
         currentLateFine: lateFine,
-        totalAmount: pendingPayment.amount + lateFine - (pendingPayment.discount ?? 0),
+        totalAmount: pendingPayment.amount + lateFine - effectiveDiscount,
       };
     }
 

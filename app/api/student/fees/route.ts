@@ -35,6 +35,7 @@ export async function GET() {
                 email: true,
                 fatherName: true,
                 address: true,
+                scholarship: true,
               }
             }
           }
@@ -55,12 +56,17 @@ export async function GET() {
       const currentFine = fee.status === 'PENDING'
         ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days)
         : fee.lateFine;
+
+      const scholarship = fee.student?.studentProfile?.scholarship || 0;
+      const effectiveDiscount = Math.max(fee.discount, scholarship);
+
       return {
         ...fee,
+        discount: effectiveDiscount,
         daysLate: daysLate > 0 ? daysLate : 0,
         lateFine: currentFine,
         currentLateFine: currentFine,
-        totalAmount: fee.amount + currentFine - fee.discount
+        totalAmount: fee.amount + currentFine - effectiveDiscount
       };
     });
 

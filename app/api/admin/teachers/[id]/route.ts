@@ -71,13 +71,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Validate inputs
     if (name !== undefined) {
-      if (name.length > 100 || !/^[a-zA-Z\s]+$/.test(name.trim())) {
-        return NextResponse.json({ error: 'Name must contain only alphabets and spaces, and be at most 100 characters long.' }, { status: 400 });
+      if (name.length > 150 || !/^[a-zA-Z\s]+$/.test(name.trim())) {
+        return NextResponse.json({ error: 'Name must contain only alphabets and spaces, and be at most 150 characters long.' }, { status: 400 });
       }
     }
     if (address !== undefined) {
-      if (address && address.length > 60) {
-        return NextResponse.json({ error: 'Address must be at most 60 characters long.' }, { status: 400 });
+      if (address && address.length > 150) {
+        return NextResponse.json({ error: 'Address must be at most 150 characters long.' }, { status: 400 });
       }
     }
     if (phone !== undefined && phone !== null && phone !== '') {

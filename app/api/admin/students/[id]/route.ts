@@ -84,23 +84,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Validate inputs
     if (name !== undefined) {
-      if (name.length > 25 || !/^[a-zA-Z\s]+$/.test(name)) {
-        return NextResponse.json({ error: 'Name must contain only alphabets and spaces, and be at most 25 characters long.' }, { status: 400 });
+      if (name.length > 150 || !/^[a-zA-Z\s]+$/.test(name)) {
+        return NextResponse.json({ error: 'Name must contain only alphabets and spaces, and be at most 150 characters long.' }, { status: 400 });
       }
     }
     if (fatherName !== undefined) {
-      if (fatherName && (fatherName.length > 25 || !/^[a-zA-Z\s]+$/.test(fatherName))) {
-        return NextResponse.json({ error: "Father's name must contain only alphabets and spaces, and be at most 25 characters long." }, { status: 400 });
+      if (fatherName && (fatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(fatherName))) {
+        return NextResponse.json({ error: "Father's name must contain only alphabets and spaces, and be at most 150 characters long." }, { status: 400 });
       }
     }
     if (parentName !== undefined) {
-      if (parentName && (parentName.length > 25 || !/^[a-zA-Z\s]+$/.test(parentName))) {
-        return NextResponse.json({ error: "Parent's name must contain only alphabets and spaces, and be at most 25 characters long." }, { status: 400 });
+      if (parentName && (parentName.length > 150 || !/^[a-zA-Z\s]+$/.test(parentName))) {
+        return NextResponse.json({ error: "Parent's name must contain only alphabets and spaces, and be at most 150 characters long." }, { status: 400 });
       }
     }
     if (address !== undefined) {
-      if (address && address.length > 60) {
-        return NextResponse.json({ error: 'Address must be at most 60 characters long.' }, { status: 400 });
+      if (address && address.length > 150) {
+        return NextResponse.json({ error: 'Address must be at most 150 characters long.' }, { status: 400 });
       }
     }
     if (phone !== undefined && phone !== null && phone !== '') {

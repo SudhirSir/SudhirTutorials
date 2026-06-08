@@ -36,7 +36,15 @@ export async function POST(req: Request) {
       const allPayments = await withDbRetry(() => prisma.payment.findMany({
         where: { studentId: session.user.id },
         orderBy: { dueDate: 'asc' },
-        include: { student: true }
+        include: {
+          student: {
+            include: {
+              studentProfile: {
+                select: { scholarship: true }
+              }
+            }
+          }
+        }
       }));
 
       const studentUser = allPayments[0]?.student;
@@ -50,7 +58,9 @@ export async function POST(req: Request) {
         const storedFine = fee.lateFine || 0;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
-        const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+        const scholarship = fee.student?.studentProfile?.scholarship || 0;
+        const effectiveDiscount = Math.max(fee.discount, scholarship);
+        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
         return pendingInvoiceDue > 0;
       });
@@ -64,7 +74,9 @@ export async function POST(req: Request) {
         const storedFine = fee.lateFine || 0;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
-        const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+        const scholarship = fee.student?.studentProfile?.scholarship || 0;
+        const effectiveDiscount = Math.max(fee.discount, scholarship);
+        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
 
         const paymentToApply = Math.min(remainingPaidPool, pendingInvoiceDue);
@@ -82,6 +94,7 @@ export async function POST(req: Request) {
             paymentMethod: paymentMethod || 'Razorpay Direct Link',
             transactionId: txId,
             lateFine: activeFine,
+            discount: effectiveDiscount,
             paidAmount: updatedPaidAmount,
             remarks: fee.remarks 
               ? `${fee.remarks} (Paid ₹${paymentToApply.toFixed(2)})` 
@@ -101,7 +114,9 @@ export async function POST(req: Request) {
         const storedFine = fee.lateFine || 0;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
-        const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+        const scholarship = fee.student?.studentProfile?.scholarship || 0;
+        const effectiveDiscount = Math.max(fee.discount, scholarship);
+        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
         return sum + pendingInvoiceDue;
       }, 0) - totalApplied;
@@ -113,7 +128,15 @@ export async function POST(req: Request) {
       // Month-wise specific fee payment
       const fee = await withDbRetry(() => prisma.payment.findUnique({
         where: { id: feeId },
-        include: { student: true }
+        include: {
+          student: {
+            include: {
+              studentProfile: {
+                select: { scholarship: true }
+              }
+            }
+          }
+        }
       }));
 
       if (!fee || fee.studentId !== session.user.id) {
@@ -127,7 +150,9 @@ export async function POST(req: Request) {
       const storedFine = fee.lateFine || 0;
       const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
       const activeFine = Math.max(storedFine, realTimeFine);
-      const totalInvoiceAmount = fee.amount + activeFine - fee.discount;
+      const scholarship = fee.student?.studentProfile?.scholarship || 0;
+      const effectiveDiscount = Math.max(fee.discount, scholarship);
+      const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
       const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
 
       if (parsedCustom > pendingInvoiceDue) {
@@ -145,6 +170,7 @@ export async function POST(req: Request) {
           paymentMethod: paymentMethod || 'Razorpay Direct Link',
           transactionId: txId,
           lateFine: activeFine,
+          discount: effectiveDiscount,
           paidAmount: updatedPaidAmount,
           remarks: fee.remarks 
             ? `${fee.remarks} (Paid ₹${parsedCustom.toFixed(2)})` 

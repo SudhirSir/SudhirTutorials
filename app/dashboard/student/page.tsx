@@ -959,28 +959,26 @@ function StudentDashboardContent() {
             )}
 
             <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
-              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.5rem', display: 'block' }} />
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.3rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
-                <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
-                <div style={{ height: '1px', background: '#e5e7eb', width: '40px', margin: '0.75rem auto' }}></div>
-                <h2 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151' }}>Payment Receipt</h2>
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
+                <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
+                <div style={{ height: '1px', background: '#e5e7eb', width: '30px', margin: '0.5rem auto' }}></div>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0' }}>FEE PAYMENT RECEIPT</h2>
               </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
-                <div>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', fontWeight: 800 }}>Student Name</div>
-                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{receiptData.student?.name}</div>
-                  <div style={{ color: '#6b7280' }}>ID: {receiptData.student?.username}</div>
+
+              <div style={{ marginBottom: '1rem', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Name: <span style={{ fontWeight: 700 }}>{receiptData.student?.name}</span></span>
+                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Receipt #: <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></span>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#9ca3af', textTransform: 'uppercase', fontSize: '0.6rem', fontWeight: 800 }}>Receipt #</div>
-                  <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</div>
-                  <div style={{ color: '#6b7280' }}>
-                    {receiptData.paidAt 
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280' }}>
+                  <span>ID: {receiptData.student?.username}</span>
+                  <span>
+                    Date: {receiptData.paidAt 
                       ? `${formatDateDisplay(receiptData.paidAt)}, ${new Date(receiptData.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
                       : formatDateDisplay(new Date())}
-                  </div>
+                  </span>
                 </div>
               </div>
 

@@ -23,18 +23,34 @@ export async function GET(req: Request) {
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     // Role-based Access Control (RBAC) to prevent IDOR
+    let hasFullAccess = true;
     if (session.user.role !== 'ADMIN') {
       if (session.user.role === 'STUDENT') {
         if (targetUserId !== session.user.id && user.role !== 'TEACHER') {
-          return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
+          hasFullAccess = false;
         }
       } else if (session.user.role === 'TEACHER') {
         if (targetUserId !== session.user.id && user.role !== 'STUDENT') {
-          return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
+          hasFullAccess = false;
         }
       } else {
-        return NextResponse.json({ error: 'Forbidden: Access Denied' }, { status: 403 });
+        if (targetUserId !== session.user.id) {
+          hasFullAccess = false;
+        }
       }
+    }
+
+    if (!hasFullAccess) {
+      return NextResponse.json({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        isProfileVerified: user.isProfileVerified,
+        photoUrl: user.photoUrl,
+        createdAt: user.createdAt,
+        profile: null
+      });
     }
 
     let profile = user.role === 'STUDENT'

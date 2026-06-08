@@ -36,7 +36,8 @@ export async function GET(req: Request) {
         studentProfile: {
           select: {
             baseFee: true,
-            className: true
+            className: true,
+            scholarship: true
           }
         },
         studentBatches: {
@@ -64,7 +65,9 @@ export async function GET(req: Request) {
     const preview = students.map(s => {
       const isBilled = alreadyBilledIds.has(s.id);
       let calculatedBaseFee = 2500;
+      let scholarship = 0;
       if (s.studentProfile) {
+        scholarship = s.studentProfile.scholarship || 0;
         const baseFeeVal = s.studentProfile.baseFee;
         if (baseFeeVal === null || baseFeeVal === undefined) {
           calculatedBaseFee = 2500;
@@ -89,7 +92,7 @@ export async function GET(req: Request) {
         name: s.name || 'Unnamed Student',
         username: s.username,
         class: s.studentProfile?.className || 'Unassigned',
-        baseFee: calculatedBaseFee,
+        baseFee: Math.max(0, calculatedBaseFee - scholarship),
         alreadyBilled: isBilled
       };
     });
@@ -144,7 +147,8 @@ export async function POST(req: Request) {
         username: true,
         studentProfile: {
           select: {
-            baseFee: true
+            baseFee: true,
+            scholarship: true
           }
         },
         studentBatches: {
@@ -175,7 +179,9 @@ export async function POST(req: Request) {
 
       // Automatically calculate fee using student's baseFee, fallback to default 2500 if unset
       let finalAmount = 2500;
+      let scholarship = 0;
       if (student.studentProfile) {
+        scholarship = student.studentProfile.scholarship || 0;
         const baseFeeVal = student.studentProfile.baseFee;
         if (baseFeeVal === null || baseFeeVal === undefined) {
           finalAmount = 2500;
@@ -200,7 +206,7 @@ export async function POST(req: Request) {
           dueDate,
           title: `Monthly Tuition Fee - ${billingMonth}`,
           status: 'PENDING',
-          discount: 0,
+          discount: scholarship,
           remarks: 'Automated monthly fee assignment'
         }
       }));
@@ -211,7 +217,7 @@ export async function POST(req: Request) {
           data: {
             userId: student.id,
             title: `💳 Monthly Fee Generated: ${billingMonth}`,
-            message: `Your monthly tuition fee invoice of ₹${finalAmount.toFixed(0)} has been automatically generated for ${billingMonth}. Please pay online before ${String(dueDate.getDate()).padStart(2, '0')}/${String(dueDate.getMonth() + 1).padStart(2, '0')}/${dueDate.getFullYear()} to avoid late fines.`,
+            message: `Your monthly tuition fee invoice of ₹${(finalAmount - scholarship).toFixed(0)} has been automatically generated for ${billingMonth}. Please pay online before ${String(dueDate.getDate()).padStart(2, '0')}/${String(dueDate.getMonth() + 1).padStart(2, '0')}/${dueDate.getFullYear()} to avoid late fines.`,
             type: 'FEE',
             isRead: false
           }
