@@ -214,18 +214,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', marginTop: '0.25rem' }}>
-                {/* Profile Photo in Sidebar */}
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
-                  {profilePhoto ? (
-                    <img src={profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    (session?.user?.name || 'U').charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', width: '100%', overflow: 'hidden' }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={session?.user?.name || 'User'}>
+              <Link 
+                href={`/dashboard/${role.toLowerCase()}?tab=profile`}
+                className="sidebar-user-info-card"
+                onClick={handleNavLinkClick}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  gap: '0.75rem', 
+                  padding: '0.6rem 0.75rem', 
+                  background: 'rgba(255,255,255,0.03)', 
+                  borderRadius: '12px', 
+                  marginTop: '0.25rem',
+                  textDecoration: 'none',
+                  border: '1px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  width: '100%'
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', flexWrap: 'wrap' }}>
+                    <span style={{ whiteSpace: 'normal', flex: 1, lineHeight: '1.2' }} title={session?.user?.name || 'User'}>
                       {session?.user?.name || 'User'}
                     </span>
                     {isVerified && (
@@ -239,7 +250,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {isVerified ? 'Verified' : 'Online'}
                   </div>
                 </div>
-              </div>
+                {/* Profile Photo in Sidebar */}
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
+                  {profilePhoto ? (
+                    <img src={profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    (session?.user?.name || 'U').charAt(0).toUpperCase()
+                  )}
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -371,6 +390,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
 
       <style jsx>{`
+        .sidebar-user-info-card:hover {
+          border-color: var(--primary) !important;
+          background: rgba(99, 102, 241, 0.05) !important;
+        }
+
         .student-portal {
           --primary: hsl(217, 80%, 45%) !important;
           --primary-hover: hsl(217, 80%, 35%) !important;

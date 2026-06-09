@@ -183,7 +183,39 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
       </nav>
 
       <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem', padding: '0 0.25rem' }}>
+        <div 
+          onClick={() => setActiveTab('profile')}
+          className="sidebar-profile-card"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            gap: '0.75rem', 
+            marginBottom: '1.5rem', 
+            padding: '0.5rem 0.75rem',
+            borderRadius: '12px',
+            border: '1px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            width: '100%',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100%', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'normal', display: 'block', flex: 1, lineHeight: '1.2' }} title={name}>
+                {name}
+              </span>
+              {isVerified && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} aria-label="Verified Profile">
+                  <title>Verified Profile</title>
+                  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#3b82f6"/>
+                </svg>
+              )}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
+              {isVerified ? 'Verified Account' : 'Online'}
+            </div>
+          </div>
           <div style={{ 
             width: '40px', 
             height: '40px', 
@@ -204,22 +236,6 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
             ) : (
               name.charAt(0)
             )}
-          </div>
-          <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100%' }}>
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', flex: 1 }} title={name}>
-                {name}
-              </span>
-              {isVerified && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} aria-label="Verified Profile">
-                  <title>Verified Profile</title>
-                  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#3b82f6"/>
-                </svg>
-              )}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
-              {isVerified ? 'Verified Account' : 'Online'}
-            </div>
           </div>
         </div>
         
@@ -250,6 +266,10 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
         button:hover {
           background: rgba(255, 255, 255, 0.05) !important;
           transform: translateX(5px);
+        }
+        .sidebar-profile-card:hover {
+          border-color: var(--primary) !important;
+          background: rgba(99, 102, 241, 0.05) !important;
         }
       `}</style>
     </div>

@@ -199,6 +199,7 @@ function TeacherDashboardContent() {
   const [teacherGuruLanguage, setTeacherGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
   const [teacherGuruHistory, setTeacherGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([]);
   const [teacherGuruLoading, setTeacherGuruLoading] = useState(false);
+  const [showFullWeekModal, setShowFullWeekModal] = useState(false);
 
   // Lesson PPT/Notes Generator States
   const [pptTopic, setPptTopic] = useState('');
@@ -779,59 +780,33 @@ Depending on your specific focus, this represents the vital equation model for t
           <div className="glass-card" style={{ padding: '2rem', marginBottom: '3rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Timetable</h2>
-              <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Teaching Schedule</span>
+              <button
+                onClick={() => setShowFullWeekModal(true)}
+                style={{
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                  color: '#10b981',
+                  padding: '4px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                📅 Full Week
+              </button>
             </div>
             
-            {/* Today's Schedule Area */}
-            {(() => {
-              const todayIdx = new Date().getDay();
-              const todaySchedules: any[] = [];
-              classes.forEach(b => {
-                b.schedules?.forEach((s: any) => {
-                  if (s.dayOfWeek === todayIdx) todaySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
-                });
-              });
-              todaySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+            {/* Unified Today-First Scrollable Schedule Area */}
+            <div style={{ maxHeight: '350px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '4px' }}>
+              {(() => {
+                const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const todayIdx = new Date().getDay();
+                const orderedDayIndices = Array.from({ length: 7 }, (_, i) => (todayIdx + i) % 7);
 
-              return (
-                <div style={{ 
-                  background: 'rgba(16, 185, 129, 0.08)', 
-                  borderRadius: '16px', 
-                  padding: '1.25rem', 
-                  border: '2px solid #10b981', 
-                  marginBottom: '1.5rem',
-                  boxShadow: '0 8px 24px rgba(16, 185, 129, 0.15)'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#10b981' }}>📅 Today's Schedule</span>
-                    <span style={{ fontSize: '0.7rem', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: 900, textTransform: 'uppercase' }}>Active</span>
-                  </div>
-                  
-                  {todaySchedules.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {todaySchedules.map(ds => (
-                        <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
-                          </div>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem 0' }}>No classes scheduled for today.</p>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Other Days Schedule Area */}
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 850, margin: '0 0 1rem 0', color: 'var(--text-muted)' }}>📅 Weekly Calendar</h3>
-              
-              <div style={{ maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '4px' }}>
-                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => {
+                return orderedDayIndices.map(idx => {
+                  const day = daysOfWeek[idx];
                   const daySchedules: any[] = [];
                   classes.forEach(b => {
                     b.schedules?.forEach((s: any) => {
@@ -839,40 +814,52 @@ Depending on your specific focus, this represents the vital equation model for t
                     });
                   });
                   daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
-                  const isToday = idx === new Date().getDay();
+                  const isToday = idx === todayIdx;
 
                   return (
                     <div 
                       key={day} 
                       style={{ 
-                        background: isToday ? 'rgba(16, 185, 129, 0.04)' : 'rgba(255,255,255,0.01)', 
-                        borderRadius: '12px', 
-                        padding: '1rem', 
-                        border: isToday ? '1px solid #10b981' : '1px solid var(--border)',
+                        background: isToday ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.01)', 
+                        borderRadius: '16px', 
+                        padding: '1.25rem', 
+                        border: isToday ? '2px solid #10b981' : '1px solid var(--border)',
+                        boxShadow: isToday ? '0 8px 24px rgba(16, 185, 129, 0.15)' : 'none',
                         transition: 'all 0.2s'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.5rem' : 0 }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text-heading)' }}>{day}</span>
-                        {isToday && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800, textTransform: 'uppercase' }}>Today</span>}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.75rem' : 0 }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text-heading)' }}>
+                          {isToday ? '📅 Today\'s Schedule' : `📅 ${day}`}
+                        </span>
+                        {isToday && (
+                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: 900, textTransform: 'uppercase' }}>
+                            Active
+                          </span>
+                        )}
                       </div>
 
                       {daySchedules.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                           {daySchedules.map(ds => (
-                            <div key={ds.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--card-bg-alt)', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                              <span style={{ fontWeight: 650 }}>{ds.subject || 'Lecture'} ({ds.batchName})</span>
-                              <span style={{ color: 'var(--text-muted)' }}>{ds.startTime} - {ds.endTime}</span>
+                            <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
+                              </div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No classes scheduled</span>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem 0', fontStyle: 'italic' }}>
+                          No classes scheduled.
+                        </p>
                       )}
                     </div>
                   );
-                })}
-              </div>
+                });
+              })()}
             </div>
           </div>
 
@@ -1490,7 +1477,7 @@ Depending on your specific focus, this represents the vital equation model for t
       )}
 
       {activeTab === 'guru-ai' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '420px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
+        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '580px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
           {/* Guru AI Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -1773,6 +1760,102 @@ Depending on your specific focus, this represents the vital equation model for t
             handleTabChange('messages');
           }}
         />
+      )}
+      {showFullWeekModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 4000,
+          padding: '1rem'
+        }}>
+          <div className="glass-card animate-scale-up" style={{
+            width: '95%',
+            maxWidth: '1000px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2rem',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '24px',
+            position: 'relative',
+            boxShadow: 'var(--shadow-2xl)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: 'var(--text)' }}>📅 Full Weekly Timetable</h3>
+              <button 
+                onClick={() => setShowFullWeekModal(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
+              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => {
+                const daySchedules: any[] = [];
+                classes.forEach(b => {
+                  b.schedules?.forEach((s: any) => {
+                    if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name });
+                  });
+                });
+                daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+                const isToday = idx === new Date().getDay();
+
+                return (
+                  <div 
+                    key={day} 
+                    style={{ 
+                      background: isToday ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)', 
+                      borderRadius: '16px', 
+                      padding: '1rem', 
+                      border: isToday ? '2px solid #10b981' : '1px solid var(--border)',
+                      minHeight: '200px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text)' }}>{day}</span>
+                      {isToday && <span style={{ fontSize: '0.6rem', color: '#10b981', fontWeight: 900, textTransform: 'uppercase' }}>Today</span>}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                      {daySchedules.length > 0 ? (
+                        daySchedules.map(ds => (
+                          <div key={ds.id} style={{ background: 'var(--surface)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.7rem' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--text-heading)', display: 'block', marginBottom: '2px' }}>{ds.subject || 'Lecture'}</span>
+                            <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.65rem' }}>{ds.batchName}</span>
+                            <span style={{ color: '#10b981', fontWeight: 600, display: 'block', marginTop: '4px', fontSize: '0.65rem' }}>{ds.startTime} - {ds.endTime}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 'auto' }}>No classes</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

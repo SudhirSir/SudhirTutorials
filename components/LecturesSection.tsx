@@ -21,20 +21,104 @@ interface Lecture {
   };
 }
 
-export function LecturesSection() {
+interface LecturesSectionProps {
+  subTab?: 'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN';
+  setSubTab?: (tab: 'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN') => void;
+}
+
+export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}) {
   const { data: session } = useSession();
   const role = (session?.user as any)?.role || 'STUDENT';
   const currentUserId = (session?.user as any)?.id;
 
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lectureSubTab, setLectureSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
+  const [localSubTab, setLocalSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
+  const lectureSubTab = subTab || localSubTab;
+  const setLectureSubTab = setSubTab || setLocalSubTab;
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'LIVE' | 'RECORDED'>('ALL');
   const [subjectFilter, setSubjectFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Theater Player State
   const [activeLecture, setActiveLecture] = useState<Lecture | null>(null);
+  const [isCinemaMode, setIsCinemaMode] = useState(false);
+
+  const renderTheaterPlayer = () => {
+    if (!activeLecture) return null;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎬 Now Watching / Selected Lecture</h4>
+        <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+          {/* Main Video Embed */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div 
+              className="video-fullscreen-wrapper"
+              style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'black' }}
+            >
+              <iframe
+                src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=0&rel=0&modestbranding=1&fs=1`}
+                title={activeLecture.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                allowFullScreen
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                type="button"
+                onClick={() => setIsCinemaMode(true)}
+                className="btn-secondary"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                📺 Watch Full Screen
+              </button>
+            </div>
+          </div>
+
+          {/* Video Metadata & Theatre Info */}
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+            <div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ 
+                  background: activeLecture.type === 'LIVE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)', 
+                  color: activeLecture.type === 'LIVE' ? '#ef4444' : 'var(--primary)',
+                  padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px'
+                }}>
+                  {activeLecture.type === 'LIVE' ? '🔴 LIVE STREAM' : '🎥 RECORDED'}
+                </span>
+                <span style={{ background: 'var(--card-bg-alt)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
+                  {activeLecture.subject}
+                </span>
+              </div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0', lineHeight: 1.3 }}>{activeLecture.title}</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, maxHeight: '150px', overflowY: 'auto' }}>
+                {activeLecture.description || 'No descriptive details available for this lecture slot.'}
+              </p>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block' }}>Assigned Batch:</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)' }}>
+                  {activeLecture.batch?.name || 'N/A'} ({activeLecture.batch?.className || 'N/A'})
+                </span>
+              </div>
+              
+              {(role === 'ADMIN' || (role === 'TEACHER' && activeLecture.assignedById === currentUserId)) && (
+                <button 
+                  onClick={(e) => handleDeleteLecture(activeLecture.id, e)}
+                  style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  🗑️ Delete Slot
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
   
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -277,77 +361,7 @@ export function LecturesSection() {
 
           {/* Theater Player Area */}
           {activeLecture ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎬 Now Watching / Selected Lecture</h4>
-              <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-                {/* Main Video Embed */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div 
-                    ref={videoContainerRef}
-                    className="video-fullscreen-wrapper"
-                    style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'black' }}
-                  >
-                    <iframe
-                      src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=0&rel=0&modestbranding=1&fs=1`}
-                      title={activeLecture.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                      allowFullScreen
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button 
-                      type="button"
-                      onClick={handleToggleFullscreen}
-                      className="btn-secondary"
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      📺 Watch Full Screen
-                    </button>
-                  </div>
-                </div>
-
-                {/* Video Metadata & Theatre Info */}
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.5rem 0' }}>
-                  <div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <span style={{ 
-                        background: activeLecture.type === 'LIVE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)', 
-                        color: activeLecture.type === 'LIVE' ? '#ef4444' : 'var(--primary)',
-                        padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px'
-                      }}>
-                        {activeLecture.type === 'LIVE' ? '🔴 LIVE STREAM' : '🎥 RECORDED'}
-                      </span>
-                      <span style={{ background: 'var(--card-bg-alt)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
-                        {activeLecture.subject}
-                      </span>
-                    </div>
-                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0', lineHeight: 1.3 }}>{activeLecture.title}</h2>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, maxHeight: '150px', overflowY: 'auto' }}>
-                      {activeLecture.description || 'No descriptive details available for this lecture slot.'}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block' }}>Assigned Batch:</span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)' }}>
-                        {activeLecture.batch.name} ({activeLecture.batch.className || 'N/A'})
-                      </span>
-                    </div>
-                    
-                    {(role === 'ADMIN' || (role === 'TEACHER' && activeLecture.assignedById === currentUserId)) && (
-                      <button 
-                        onClick={(e) => handleDeleteLecture(activeLecture.id, e)}
-                        style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        🗑️ Delete Slot
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            renderTheaterPlayer()
           ) : (
             <div style={{ 
               display: 'flex', 
@@ -384,6 +398,7 @@ export function LecturesSection() {
       {/* ── SUB-TAB: LIVE BROADCASTS ────────────────────────────────────── */}
       {lectureSubTab === 'LIVE' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {activeLecture && renderTheaterPlayer()}
           {/* Filter and Search controls */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--card-bg-alt)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>🔴 Live Timetable & Active Streams</h4>
@@ -423,7 +438,7 @@ export function LecturesSection() {
               {filteredLectures.filter(l => l.type === 'LIVE').map(lecture => (
                 <div 
                   key={lecture.id}
-                  onClick={() => { setActiveLecture(lecture); setLectureSubTab('DASHBOARD'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => { setActiveLecture(lecture); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className="lecture-grid-card"
                   style={{
                     borderRadius: '16px',
@@ -503,6 +518,7 @@ export function LecturesSection() {
       {/* ── SUB-TAB: RECORDED ARCHIVE ───────────────────────────────────── */}
       {lectureSubTab === 'RECORDED' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {activeLecture && renderTheaterPlayer()}
           {/* Filter and Search controls */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--card-bg-alt)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>🎥 Recorded Session Video Library</h4>
@@ -542,7 +558,7 @@ export function LecturesSection() {
               {filteredLectures.filter(l => l.type === 'RECORDED').map(lecture => (
                 <div 
                   key={lecture.id}
-                  onClick={() => { setActiveLecture(lecture); setLectureSubTab('DASHBOARD'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => { setActiveLecture(lecture); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className="lecture-grid-card"
                   style={{
                     borderRadius: '16px',
@@ -734,6 +750,57 @@ export function LecturesSection() {
                 {assignLoading ? 'Scheduling...' : '🚀 Broadcast & Assign Lecture'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cinema Fullscreen Overlay */}
+      {isCinemaMode && activeLecture && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: '#000000',
+          zIndex: 5000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100vw',
+          height: '100vh'
+        }}>
+          {/* Close button at top-right */}
+          <button 
+            onClick={() => setIsCinemaMode(false)}
+            style={{
+              position: 'absolute',
+              top: '15px',
+              right: '15px',
+              background: 'rgba(255, 255, 255, 0.25)',
+              border: 'none',
+              color: '#ffffff',
+              padding: '10px 20px',
+              borderRadius: '30px',
+              fontSize: '0.9rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              zIndex: 5100,
+              transition: 'all 0.2s',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}
+          >
+            ✕ Close Full Screen
+          </button>
+          
+          {/* Video iframe taking full space */}
+          <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=1&rel=0&modestbranding=1&fs=1`}
+              title={activeLecture.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+              allowFullScreen
+              style={{ width: '100%', height: '100%', border: 'none', position: 'absolute', top: 0, left: 0 }}
+            />
           </div>
         </div>
       )}

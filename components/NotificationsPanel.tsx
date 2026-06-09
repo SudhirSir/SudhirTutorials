@@ -270,7 +270,6 @@ export function NotificationsPanel({
               </span>
             )}
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>Stay updated with messages from your institute.</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           {unreadCount > 0 && (

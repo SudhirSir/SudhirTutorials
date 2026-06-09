@@ -70,6 +70,7 @@ function AdminDashboardContent() {
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
   const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions'>('menu');
+  const [lectureSubTab, setLectureSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES'>('ALL');
   const [statementMonth, setStatementMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
   const [statementYear, setStatementYear] = useState(String(new Date().getFullYear()));
@@ -1291,10 +1292,15 @@ function AdminDashboardContent() {
       const net = totalIn - (totalExp + totalSal);
 
       tempElement = document.createElement('div');
+      tempElement.style.position = 'absolute';
+      tempElement.style.top = '-9999px';
+      tempElement.style.left = '-9999px';
+      tempElement.style.width = '790px';
       tempElement.style.padding = '30px';
       tempElement.style.background = '#ffffff';
       tempElement.style.color = '#1f2937';
       tempElement.style.fontFamily = 'sans-serif';
+      tempElement.style.boxSizing = 'border-box';
 
       const formatD = (dStr: any) => {
         const d = new Date(dStr);
@@ -1303,9 +1309,12 @@ function AdminDashboardContent() {
 
       tempElement.innerHTML = `
         <div style="border-bottom: 3px solid #ef4444; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-size: 24px; font-weight: bold; color: #ef4444;">SUDHIR TUTORIALS</div>
-            <div style="font-size: 14px; color: #4b5563;">Institute Financial Statement</div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="/logo.png" alt="Logo" style="width: 45px; height: 45px; object-fit: contain; border-radius: 8px;" />
+            <div>
+              <div style="font-size: 24px; font-weight: bold; color: #ef4444; line-height: 1.1;">SUDHIR TUTORIALS</div>
+              <div style="font-size: 14px; color: #4b5563;">Institute Financial Statement</div>
+            </div>
           </div>
           <div style="text-align: right">
             <div style="font-weight: bold; font-size: 16px;">${statementMonth.toUpperCase()} ${statementYear}</div>
@@ -1394,7 +1403,7 @@ function AdminDashboardContent() {
           useCORS: true,
           letterRendering: true,
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
       const cap = (window as any).Capacitor;
@@ -2380,29 +2389,44 @@ function AdminDashboardContent() {
 
       {/* Academic Sub-tab Back Navigation Header */}
       {activeTab === 'academics' && academicSubTab !== 'menu' && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '2rem' }} className="no-print">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }} className="no-print">
           <button 
-            onClick={() => setAcademicSubTab('menu')}
+            onClick={() => {
+              if (academicSubTab === 'lectures' && lectureSubTab !== 'DASHBOARD') {
+                setLectureSubTab('DASHBOARD');
+              } else {
+                setAcademicSubTab('menu');
+              }
+            }}
             style={{
               background: 'rgba(255, 255, 255, 0.05)',
               border: '1px solid var(--border)',
               color: 'var(--text)',
-              padding: '0.6rem 1.25rem',
-              borderRadius: '12px',
+              padding: '0.45rem 0.9rem',
+              borderRadius: '8px',
               fontWeight: 700,
-              fontSize: '0.85rem',
+              fontSize: '0.75rem',
               cursor: 'pointer',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.4rem'
             }}
             className="academic-back-btn"
           >
             ⬅ Back to Academic Services Menu
           </button>
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
-            Academic Service / {academicSubTab === 'courses' ? 'Courses & Batches' : academicSubTab === 'attendance' ? 'Attendance Logs' : academicSubTab === 'materials' ? 'Study Materials' : academicSubTab === 'tests' ? 'Tests & Exams' : academicSubTab === 'analytics' ? 'Performance Analytics' : academicSubTab === 'lectures' ? 'Lectures/Classes' : academicSubTab === 'admissions' ? 'Admissions Inquiries' : academicSubTab}
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Academic Service / {
+              academicSubTab === 'courses' ? 'Courses & Batches' : 
+              academicSubTab === 'attendance' ? 'Attendance Logs' : 
+              academicSubTab === 'materials' ? 'Study Materials' : 
+              academicSubTab === 'tests' ? 'Tests & Exams' : 
+              academicSubTab === 'analytics' ? 'Performance Analytics' : 
+              academicSubTab === 'lectures' ? `Lectures/Classes${lectureSubTab !== 'DASHBOARD' ? ' / ' + (lectureSubTab === 'LIVE' ? 'Live Streams' : lectureSubTab === 'RECORDED' ? 'Video Archive' : 'Broadcast Scheduler') : ''}` : 
+              academicSubTab === 'admissions' ? 'Admissions Inquiries' : 
+              academicSubTab
+            }
           </span>
         </div>
       )}
@@ -2421,7 +2445,7 @@ function AdminDashboardContent() {
               { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
               { id: 'analytics', title: '📈 Performance Analytics', desc: 'Get graphical insights on class progress, marks distribution, and attendance trends.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
               { id: 'lectures', title: '📺 Lectures/Classes', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
-              { id: 'admissions', title: '🏫 Admissions Inquiries', desc: 'Review, approve, or reject student enrollment inquiries, and register them as students.', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
+              { id: 'admissions', title: 'Student Admission Enquiries', desc: '', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
             ].map(svc => (
               <div 
                 key={svc.id}
@@ -3221,9 +3245,6 @@ function AdminDashboardContent() {
                   <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     Search Student Fee Statement & Ledger
                   </h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-                    Type the name or registration ID of a student to instantly view their complete chronological fee ledger, outstanding balances, paid history, and receipts.
-                  </p>
                 </div>
                 
                 <div style={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
@@ -4242,9 +4263,6 @@ function AdminDashboardContent() {
                   <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)' }}>
                     📊 Monthly Financial Transaction Statement
                   </h3>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Check completed transaction statements, fee inflows, outflows, and paid salary ledgers by month and year.
-                  </p>
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -4268,92 +4286,12 @@ function AdminDashboardContent() {
                       ))}
                     </select>
                   </div>
-                  
                   <button 
                     onClick={() => downloadStatementPDF(false)}
                     className="btn-secondary" 
                     style={{ padding: '0.55rem 1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
                   >
                     📥 Download PDF
-                  </button>
-
-                  <button 
-                    onClick={() => downloadStatementPDF(true)}
-                    className="btn-secondary" 
-                    style={{ padding: '0.55rem 1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
-                  >
-                    🖨️ Print PDF
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      const inflow = fees.filter(f => {
-                        if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
-                        const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
-                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
-                      });
-                      
-                      const outExpenses = expenses.filter(e => {
-                        const date = new Date(e.date || e.createdAt);
-                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
-                      });
-                      
-                      const outSalaries = adminSalaries.filter(s => {
-                        if (s.status !== 'PAID') return false;
-                        const date = s.paidAt ? new Date(s.paidAt) : s.createdAt ? new Date(s.createdAt) : new Date();
-                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
-                      });
-
-                      const ledgerData = [
-                        ...inflow.map(f => ({
-                          date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
-                          ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
-                          desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
-                          type: 'FEE_INFLOW',
-                          inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
-                          outflow: 0
-                        })),
-                        ...outExpenses.map(e => ({
-                          date: new Date(e.date || e.createdAt),
-                          ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
-                          desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
-                          type: 'EXPENSE_OUTFLOW',
-                          inflow: 0,
-                          outflow: e.amount
-                        })),
-                        ...outSalaries.map(s => ({
-                          date: s.paidAt ? new Date(s.paidAt) : s.createdAt ? new Date(s.createdAt) : new Date(),
-                          ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
-                          desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
-                          type: 'SALARY_OUTFLOW',
-                          inflow: 0,
-                          outflow: s.netPaid
-                        }))
-                      ].sort((a,b) => a.date.getTime() - b.date.getTime());
-
-                      const headers = ['Date', 'Reference No.', 'Description', 'Type', 'Credit (Cr)', 'Debit (Dr)'];
-                      const rows = ledgerData.map(t => [
-                        ((d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)(t.date),
-                        t.ref,
-                        `"${t.desc.replace(/"/g, '""')}"`,
-                        t.type,
-                        t.inflow > 0 ? t.inflow : 0,
-                        t.outflow > 0 ? t.outflow : 0
-                      ]);
-                      const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.setAttribute('href', url);
-                      link.setAttribute('download', `Sudhir_Tutorials_Statement_${statementMonth}_${statementYear}.csv`);
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                    className="btn-primary" 
-                    style={{ padding: '0.55rem 1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
-                  >
-                    📥 Download CSV
                   </button>
                 </div>
               </div>
@@ -5378,7 +5316,7 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'guru-ai' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '420px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
+        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '360px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
           {/* Academic Assistant Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -5523,7 +5461,7 @@ function AdminDashboardContent() {
       )}
 
       {(activeTab === 'lectures' || (activeTab === 'academics' && academicSubTab === 'lectures')) && (
-        <LecturesSection />
+        <LecturesSection subTab={lectureSubTab} setSubTab={setLectureSubTab} />
       )}
 
       {(activeTab === 'admissions' || (activeTab === 'verifications' && showAdmissionsInquiriesList) || (activeTab === 'academics' && academicSubTab === 'admissions')) && (

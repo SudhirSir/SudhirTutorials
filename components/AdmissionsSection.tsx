@@ -84,6 +84,14 @@ export function AdmissionsSection({
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApp, setSelectedApp] = useState<AdmissionApplication | null>(null);
+  const [isWide, setIsWide] = useState(true);
+
+  useEffect(() => {
+    const handleResize = () => setIsWide(window.innerWidth > 1024);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchApplications = async () => {
     try {
@@ -158,13 +166,10 @@ export function AdmissionsSection({
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header Banner */}
-      <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
+      <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(99,102,241,0.05) 100%)', border: '1px solid var(--border)' }}>
         <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          🏫 Student Admission Inquiries
+          Student Admission Enquiries
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.5rem', maxWidth: '750px', lineHeight: '1.5' }}>
-          Manage incoming enrollment inquiries from the public website. Review prospective student records, filter by grade/board, and instantly convert approved inquiries into student profiles with auto-generated registration details.
-        </p>
       </div>
 
       {error && (
@@ -174,28 +179,29 @@ export function AdmissionsSection({
       )}
 
       {/* Main layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: selectedApp ? '3fr 2fr' : '1fr', gap: '2rem', transition: 'all 0.3s ease' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: selectedApp && isWide ? '1.8fr 1.2fr' : '1fr', gap: '1.5rem', transition: 'all 0.3s ease' }}>
         
         {/* Inquiry List */}
-        <div className="glass-card" style={{ padding: '2rem' }}>
+        <div className="glass-card" style={{ padding: '1.5rem', minWidth: 0, overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
           {/* Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.25rem', borderRadius: '10px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', background: 'var(--input-bg)', padding: '0.25rem', borderRadius: '10px', border: '1px solid var(--border)', maxWidth: '100%' }}>
               {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setFilter(tab)}
                   style={{
-                    padding: '0.5rem 1rem',
+                    padding: '0.45rem 0.85rem',
                     borderRadius: '8px',
                     border: 'none',
                     background: filter === tab ? '#ef4444' : 'transparent',
                     color: filter === tab ? '#fff' : 'var(--text-muted)',
                     fontWeight: 700,
-                    fontSize: '0.8rem',
+                    fontSize: '0.75rem',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {tab}
@@ -210,6 +216,7 @@ export function AdmissionsSection({
               value={searchTerm} 
               onChange={e => setSearchTerm(e.target.value)} 
               style={{
+                width: '100%',
                 maxWidth: '300px',
                 padding: '0.5rem 1rem',
                 borderRadius: '10px',
@@ -230,8 +237,8 @@ export function AdmissionsSection({
               No inquiries found.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+            <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', width: '100%', maxWidth: '100%', borderRadius: '8px' }}>
+              <table style={{ width: '100%', minWidth: '850px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border)' }}>
                     <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)' }}>App No.</th>
@@ -341,7 +348,7 @@ export function AdmissionsSection({
 
         {/* Details Panel */}
         {selectedApp && (
-          <div className="glass-card animate-scale-up" style={{ padding: '2rem', height: 'fit-content', position: 'sticky', top: '2rem', border: '1px solid var(--border)' }}>
+          <div className="glass-card animate-scale-up" style={{ padding: '2rem', height: 'fit-content', position: 'sticky', top: '2rem', border: '1px solid var(--border)', width: '100%', maxWidth: '100%', minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Application Details</h3>
               <button 
