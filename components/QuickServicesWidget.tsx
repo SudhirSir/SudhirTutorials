@@ -34,7 +34,7 @@ const SERVICE_OPTIONS: Record<string, ServiceOption[]> = {
     { id: 'fees', label: 'Pay / View Fees', icon: '💰', tab: 'fees' },
     { id: 'tests', label: 'Tests & Marks', icon: '📝', tab: 'tests' },
     { id: 'lectures', label: 'Lectures/Classes', icon: '🎥', tab: 'lectures' },
-    { id: 'guru-ji', label: 'Digital Guru Ji', icon: '🤖', tab: 'guru-ji' },
+    { id: 'guru-ji', label: 'Guru Ji', icon: '🤖', tab: 'guru-ji' },
     { id: 'attendance', label: 'My Attendance', icon: '📅', tab: 'attendance' }
   ]
 };
@@ -153,7 +153,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
                     }}
                   />
                   <span>{opt.icon}</span>
-                  <span style={{ fontWeight: 600 }}>{opt.label}</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{opt.label}</span>
                 </label>
               );
             })}
@@ -204,7 +204,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
                 {service.icon}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text)' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
                   {service.label}
                 </span>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>

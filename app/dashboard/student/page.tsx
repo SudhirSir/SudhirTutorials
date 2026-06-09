@@ -505,7 +505,7 @@ function StudentDashboardContent() {
             key={tab}
             onClick={() => handleTabChange(tab)}
             className={`dashboard-tab-button ${activeTab === tab ? 'active' : ''}`}
-            style={{ textTransform: 'capitalize' }}
+            style={{ textTransform: 'capitalize', whiteSpace: 'nowrap' }}
           >
             {tab === 'messages' && unreadMessages > 0 && (
               <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>
@@ -519,7 +519,7 @@ function StudentDashboardContent() {
              tab === 'tests' ? 'Tests & Marks' :
              tab === 'fees' ? 'Pay/View fees' :
              tab === 'lectures' ? 'Lectures/Classes' :
-             tab === 'guru-ji' ? 'Digital Guru Ji' :
+             tab === 'guru-ji' ? 'Guru Ji' :
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
@@ -1478,7 +1478,24 @@ function StudentDashboardContent() {
         }
       `}</style>
       {activeTab === 'guru-ji' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 180px)', minHeight: '580px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
+        <div 
+          className="animate-scale-up" 
+          style={{ 
+            padding: '0', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: 'calc(100vh - 180px)', 
+            minHeight: '450px', 
+            background: 'var(--glass-bg)', 
+            border: '1px solid var(--glass-border)', 
+            borderRadius: '24px',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: 'var(--shadow)',
+            marginBottom: '2rem', 
+            overflow: 'hidden' 
+          }}
+        >
           {/* Guru Ji Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.65rem 1.25rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -1488,7 +1505,7 @@ function StudentDashboardContent() {
                 </svg>
               </div>
               <div>
-                <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b', margin: 0 }}>Digital Guru Ji</h2>
+                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f59e0b', margin: 0, whiteSpace: 'nowrap' }}>Guru Ji</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.65rem', margin: '2px 0 0 0' }}>AI Tutor • Online</p>
               </div>
             </div>
@@ -1594,7 +1611,7 @@ function StudentDashboardContent() {
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 1.2rem' }}>
               <input 
                 type="text"
-                placeholder="Ask Digital Guru Ji a question..." 
+                placeholder="Ask Guru Ji a question..." 
                 value={guruQuestion}
                 onChange={(e) => setGuruQuestion(e.target.value)}
                 onKeyDown={(e) => {

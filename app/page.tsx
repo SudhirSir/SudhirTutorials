@@ -419,72 +419,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3D Showcase Highlights Section */}
-      <section className="interactive-arena-section" style={{
-        background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.02) 0%, var(--background) 100%)',
-        padding: '3rem 6% 2rem 6%',
-        zIndex: 2,
-        position: 'relative'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '2rem',
-          perspective: '1000px'
-        }}>
-          {[
-            { value: '98.4%', label: 'JEE/NEET Selection Rate', icon: '🏆', border: 'var(--primary)', shadow: 'rgba(239, 68, 68, 0.2)' },
-            { value: '12 : 1', label: 'Student-Teacher Ratio', icon: '👨‍🏫', border: 'var(--secondary)', shadow: 'rgba(37, 99, 235, 0.2)' },
-            { value: '24/7', label: 'AI + Offline Doubt Desk', icon: '⚡', border: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.2)' },
-            { value: '10K+', label: 'Successful Alumni', icon: '🎓', border: '#10b981', shadow: 'rgba(16, 185, 129, 0.2)' }
-          ].map((stat, idx) => (
-            <div 
-              key={idx}
-              className="glass-card stat-3d-card"
-              style={{
-                padding: '2rem 1.5rem',
-                textAlign: 'center',
-                borderRadius: '20px',
-                border: `1px solid ${stat.border}33`,
-                background: 'var(--glass-bg)',
-                transformStyle: 'preserve-3d',
-                transform: 'translateZ(0)',
-                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                cursor: 'pointer',
-                ['--card-accent' as any]: stat.border,
-                ['--card-shadow-color' as any]: stat.shadow
-              }}
-            >
-              <div style={{
-                fontSize: '2.5rem',
-                marginBottom: '0.5rem',
-                transform: 'translateZ(30px)',
-                display: 'inline-block'
-              }}>{stat.icon}</div>
-              <h4 style={{
-                fontSize: '2.2rem',
-                fontWeight: 900,
-                color: 'var(--text-heading)',
-                margin: '0 0 0.5rem 0',
-                background: `linear-gradient(135deg, ${stat.border} 0%, var(--text-heading) 100%)`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                transform: 'translateZ(40px)'
-              }}>{stat.value}</h4>
-              <p style={{
-                fontSize: '0.85rem',
-                color: 'var(--text-muted)',
-                fontWeight: 700,
-                margin: 0,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                transform: 'translateZ(20px)'
-              }}>{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Mobile App Promotion Section */}
       <section className="mobile-app-section" id="mobile-app" style={{
         padding: '6rem 2rem',
@@ -626,6 +560,72 @@ export default function Home() {
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* 3D Showcase Highlights Section */}
+      <section className="interactive-arena-section" style={{
+        background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.02) 0%, var(--background) 100%)',
+        padding: '3rem 6% 2rem 6%',
+        zIndex: 2,
+        position: 'relative'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '2rem',
+          perspective: '1000px'
+        }}>
+          {[
+            { value: '98.4%', label: 'JEE/NEET Selection Rate', icon: '🏆', border: 'var(--primary)', shadow: 'rgba(239, 68, 68, 0.2)' },
+            { value: '12 : 1', label: 'Student-Teacher Ratio', icon: '👨‍🏫', border: 'var(--secondary)', shadow: 'rgba(37, 99, 235, 0.2)' },
+            { value: '24/7', label: 'AI + Offline Doubt Desk', icon: '⚡', border: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.2)' },
+            { value: '10K+', label: 'Successful Alumni', icon: '🎓', border: '#10b981', shadow: 'rgba(16, 185, 129, 0.2)' }
+          ].map((stat, idx) => (
+            <div 
+              key={idx}
+              className="glass-card stat-3d-card"
+              style={{
+                padding: '2rem 1.5rem',
+                textAlign: 'center',
+                borderRadius: '20px',
+                border: `1px solid ${stat.border}33`,
+                background: 'var(--glass-bg)',
+                transformStyle: 'preserve-3d',
+                transform: 'translateZ(0)',
+                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                cursor: 'pointer',
+                ['--card-accent' as any]: stat.border,
+                ['--card-shadow-color' as any]: stat.shadow
+              }}
+            >
+              <div style={{
+                fontSize: '2.5rem',
+                marginBottom: '0.5rem',
+                transform: 'translateZ(30px)',
+                display: 'inline-block'
+              }}>{stat.icon}</div>
+              <h4 style={{
+                fontSize: '2.2rem',
+                fontWeight: 900,
+                color: 'var(--text-heading)',
+                margin: '0 0 0.5rem 0',
+                background: `linear-gradient(135deg, ${stat.border} 0%, var(--text-heading) 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                transform: 'translateZ(40px)'
+              }}>{stat.value}</h4>
+              <p style={{
+                fontSize: '0.85rem',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                margin: 0,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transform: 'translateZ(20px)'
+              }}>{stat.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
