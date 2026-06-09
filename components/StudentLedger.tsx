@@ -20,6 +20,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
   const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(true);
+  const [downloadingStatement, setDownloadingStatement] = useState(false);
 
   useEffect(() => {
     fetchLedger();
@@ -148,122 +149,186 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
     });
   }, [fees]);
 
-  const handlePrintStatement = () => {
-    const postings = getStatementPostings;
-    const totalDebit = postings.reduce((s, p) => s + p.debit, 0);
-    const totalCredit = postings.reduce((s, p) => s + p.credit, 0);
-    const finalBalance = postings.length > 0 ? postings[postings.length - 1].balance : 0;
+  const handlePrintStatement = async () => {
+    setDownloadingStatement(true);
+    let tempElement: HTMLDivElement | null = null;
+    try {
+      const loadHtml2Pdf = () => {
+        return new Promise<void>((resolve, reject) => {
+          if ((window as any).html2pdf) {
+            resolve();
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load html2pdf script.'));
+          document.head.appendChild(script);
+        });
+      };
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Sudhir Tutorials – Student Fee Statement</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1a1a2e; }
-            .header { border-bottom: 2px solid #ef4444; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
-            .header h1 { margin: 0; font-size: 24px; color: #ef4444; }
-            .header p { margin: 5px 0 0; font-size: 14px; color: #666; }
-            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-            .meta-card { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
-            .meta-card h3 { margin: 0 0 8px 0; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
-            .meta-card p { margin: 0; font-size: 16px; font-weight: bold; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 12px 10px; text-align: left; font-size: 12px; text-transform: uppercase; }
-            td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
-            .debit { color: #dc2626; }
-            .credit { color: #1d4ed8; }
-            .balance { font-weight: bold; }
-            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px dashed #d1d5db; padding-top: 20px; }
-            .sign-row { display: flex; justify-content: space-between; margin-top: 50px; }
-            .sign-box { border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 8px; font-size: 12px; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div style="display: flex; align-items: center; gap: 15px;">
-              <img src="/logo.png" alt="Sudhir Tutorials Logo" style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px;" />
-              <div>
-                <h1 style="margin: 0; font-size: 24px; color: #ef4444;">SUDHIR TUTORIALS</h1>
-                <p style="margin: 5px 0 0; font-size: 14px; color: #666;">Official Student Fee Statement</p>
-              </div>
-            </div>
-            <div style="text-align: right;">
-              <p style="font-weight: bold; color: #ef4444; margin: 0 0 5px 0;">OFFICIAL STUDENT FEE STATEMENT</p>
-              <p style="margin: 0;">Generated: ${new Date().toLocaleDateString('en-GB')}</p>
+      await loadHtml2Pdf();
+
+      const postings = getStatementPostings;
+      const totalDebit = postings.reduce((s, p) => s + p.debit, 0);
+      const totalCredit = postings.reduce((s, p) => s + p.credit, 0);
+      const finalBalance = postings.length > 0 ? postings[postings.length - 1].balance : 0;
+
+      tempElement = document.createElement('div');
+      tempElement.style.position = 'absolute';
+      tempElement.style.top = '-9999px';
+      tempElement.style.left = '-9999px';
+      tempElement.style.width = '790px';
+      tempElement.style.padding = '30px';
+      tempElement.style.background = '#ffffff';
+      tempElement.style.color = '#1f2937';
+      tempElement.style.fontFamily = 'sans-serif';
+      tempElement.style.boxSizing = 'border-box';
+
+      tempElement.innerHTML = `
+        <div style="border-bottom: 3px solid #ef4444; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="/logo.png" alt="Logo" style="width: 45px; height: 45px; object-fit: contain; border-radius: 8px;" />
+            <div>
+              <div style="font-size: 24px; font-weight: bold; color: #ef4444; line-height: 1.1;">SUDHIR TUTORIALS</div>
+              <div style="font-size: 14px; color: #4b5563;">Official Student Fee Statement</div>
             </div>
           </div>
-          <div class="meta-grid">
-            <div class="meta-card">
-              <h3>Student Profile</h3>
-              <p style="font-size: 18px; margin-bottom: 8px; color: #1a1a2e; font-weight: bold;">${fees[0]?.student?.name || 'Academic Student'}</p>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 12px; color: #4b5563;">
-                <div><strong>Student ID:</strong> ${fees[0]?.student?.username || 'N/A'}</div>
-                <div><strong>Roll Number:</strong> ${fees[0]?.student?.studentProfile?.rollNumber || 'N/A'}</div>
-                <div><strong>Class / Grade:</strong> ${fees[0]?.student?.studentProfile?.className || 'N/A'}</div>
-                <div><strong>Batch:</strong> ${fees[0]?.student?.studentProfile?.batch || 'N/A'}</div>
-                <div><strong>Father's Name:</strong> ${fees[0]?.student?.studentProfile?.fatherName || 'N/A'}</div>
-                <div><strong>Contact:</strong> ${fees[0]?.student?.studentProfile?.phone || 'N/A'}</div>
-              </div>
-            </div>
-            <div class="meta-card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div>
-                <h3>Total Charged (Dr)</h3>
-                <p class="debit">₹${totalDebit.toFixed(2)}</p>
-              </div>
-              <div>
-                <h3>Total Settled (Cr)</h3>
-                <p class="credit">₹${totalCredit.toFixed(2)}</p>
-              </div>
-              <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
-                <h3>Outstanding Balance</h3>
-                <p style="color: ${finalBalance > 0 ? '#10b981' : finalBalance < 0 ? '#dc2626' : '#1d4ed8'}">
-                  ${finalBalance > 0 ? '+₹' + finalBalance.toFixed(2) + ' Credit (Advance)' : finalBalance < 0 ? '₹' + Math.abs(finalBalance).toFixed(2) + ' Due' : 'Settled'}
-                </p>
-              </div>
+          <div style="text-align: right">
+            <div style="font-weight: bold; font-size: 16px; color: #ef4444;">FEE STATEMENT</div>
+            <div style="font-size: 12px; color: #6b7280;">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Student Profile</h3>
+            <p style="font-size: 16px; margin: 0 0 8px 0; color: #1a1a2e; font-weight: bold;">${fees[0]?.student?.name || 'Academic Student'}</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 12px; color: #4b5563;">
+              <div><strong>Student ID:</strong> ${fees[0]?.student?.username || 'N/A'}</div>
+              <div><strong>Roll Number:</strong> ${fees[0]?.student?.studentProfile?.rollNumber || 'N/A'}</div>
+              <div><strong>Class / Grade:</strong> ${fees[0]?.student?.studentProfile?.className || 'N/A'}</div>
+              <div><strong>Batch:</strong> ${fees[0]?.student?.studentProfile?.batch || 'N/A'}</div>
+              <div><strong>Father's Name:</strong> ${fees[0]?.student?.studentProfile?.fatherName || 'N/A'}</div>
+              <div><strong>Contact:</strong> ${fees[0]?.student?.studentProfile?.phone || 'N/A'}</div>
             </div>
           </div>
-          <table>
-            <thead>
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Total Charged (Dr)</h3>
+              <p style="margin: 0; font-size: 16px; font-weight: bold; color: #dc2626;">₹${totalDebit.toFixed(2)}</p>
+            </div>
+            <div>
+              <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Total Settled (Cr)</h3>
+              <p style="margin: 0; font-size: 16px; font-weight: bold; color: #1d4ed8;">₹${totalCredit.toFixed(2)}</p>
+            </div>
+            <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+              <h3 style="margin: 0 0 4px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Outstanding Balance</h3>
+              <p style="margin: 0; font-size: 16px; font-weight: bold; color: ${finalBalance > 0 ? '#10b981' : finalBalance < 0 ? '#dc2626' : '#1d4ed8'}">
+                ${finalBalance > 0 ? '+₹' + finalBalance.toFixed(2) + ' Credit (Advance)' : finalBalance < 0 ? '₹' + Math.abs(finalBalance).toFixed(2) + ' Due' : 'Settled'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr>
+              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase;">Date</th>
+              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase;">Ref No.</th>
+              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase;">Description</th>
+              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: right; font-size: 11px; text-transform: uppercase; width: 110px;">Debit (Dr)</th>
+              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: right; font-size: 11px; text-transform: uppercase; width: 110px;">Credit (Cr)</th>
+              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: right; font-size: 11px; text-transform: uppercase; width: 110px;">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${postings.map(p => `
               <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Ref No.</th>
-                <th style="text-align:right">Debit (Dr)</th>
-                <th style="text-align:right">Credit (Cr)</th>
-                <th style="text-align:right">Balance</th>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${new Date(p.date).toLocaleDateString('en-GB')}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; font-family: monospace;">${p.reference}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${p.description}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: right; color: #dc2626;">${p.debit > 0 ? '₹' + p.debit.toFixed(2) : '-'}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: right; color: #1d4ed8;">${p.credit > 0 ? '₹' + p.credit.toFixed(2) : '-'}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: right; font-weight: bold; color: ${p.balance >= 0 ? '#1d4ed8' : '#dc2626'}">
+                  ${p.balance >= 0 ? '₹' + p.balance.toFixed(2) + ' Cr' : '₹' + Math.abs(p.balance).toFixed(2) + ' Dr'}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              ${postings.map(p => `
-                <tr>
-                  <td>${new Date(p.date).toLocaleDateString('en-GB')}</td>
-                  <td>${p.description}</td>
-                  <td style="font-family:monospace">${p.reference}</td>
-                  <td class="debit" style="text-align:right">${p.debit > 0 ? '₹' + p.debit.toFixed(2) : '-'}</td>
-                  <td class="credit" style="text-align:right">${p.credit > 0 ? '₹' + p.credit.toFixed(2) : '-'}</td>
-                  <td class="balance" style="text-align:right;color:${p.balance >= 0 ? '#1d4ed8' : '#dc2626'}">
-                    ${p.balance >= 0 ? '₹' + p.balance.toFixed(2) + ' Cr' : '₹' + Math.abs(p.balance).toFixed(2) + ' Dr'}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="sign-row">
-            <div class="sign-box" style="border:none;text-align:left;color:#6b7280;font-style:italic;">
-              * Computer generated statement.<br/>No signature required.
-            </div>
-            <div class="sign-box">Authorized Signatory</div>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 50px;">
+          <div style="text-align: left; color: #6b7280; font-style: italic; font-size: 11px; width: 250px;">
+            * Computer generated statement.<br/>No signature required.
           </div>
-          <div class="footer">
-            &copy; ${new Date().getFullYear()} Sudhir Tutorials. All rights reserved. Confidential Academic Record.
-          </div>
-          <script>window.onload = function() { window.print(); };</script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+          <div style="border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 8px; font-size: 12px; font-weight: bold;">Authorized Signatory</div>
+        </div>
+        <div style="margin-top: 50px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px dashed #d1d5db; padding-top: 20px;">
+          &copy; ${new Date().getFullYear()} Sudhir Tutorials. All rights reserved. Confidential Academic Record.
+        </div>
+      `;
+
+      document.body.appendChild(tempElement);
+
+      const studentName = fees[0]?.student?.name?.replace(/\s+/g, '_') || 'Student';
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Sudhir_Tutorials_Statement_${studentName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      const cap = (window as any).Capacitor;
+      const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+      let Filesystem: any = null;
+      let Share: any = null;
+      if (isNative) {
+        try {
+          const fs = await import('@capacitor/filesystem');
+          Filesystem = fs.Filesystem;
+          const sh = await import('@capacitor/share');
+          Share = sh.Share;
+        } catch (e) {
+          console.error('Failed to load Capacitor plugins dynamically:', e);
+        }
+      }
+
+      if (isNative && Filesystem && Share) {
+        const pdfDataUri = await (window as any).html2pdf().from(tempElement).set(opt).output('datauristring');
+        const base64Data = pdfDataUri.split(',')[1];
+        const filename = `Sudhir_Tutorials_Statement_${studentName}.pdf`;
+        
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE'
+        });
+        await Share.share({
+          title: 'Fee Statement',
+          text: `Fee Statement for ${fees[0]?.student?.name || 'Student'}`,
+          files: [writeResult.uri],
+          dialogTitle: 'View/Print Fee Statement'
+        });
+      } else {
+        await (window as any).html2pdf().from(tempElement).set(opt).save();
+        alert('Statement downloaded successfully!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate statement PDF.');
+    } finally {
+      if (tempElement && tempElement.parentNode) {
+        tempElement.parentNode.removeChild(tempElement);
+      }
+      setDownloadingStatement(false);
+    }
   };
 
   // Memoized derived data – only recalculates when fees changes
@@ -600,10 +665,10 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>All chronological credit/debit postings</span>
-              <button type="button" onClick={handlePrintStatement}
+              <button type="button" onClick={handlePrintStatement} disabled={downloadingStatement}
                 className="btn-secondary"
                 style={{ padding: '8px 18px', borderRadius: '20px', fontWeight: 700, fontSize: '0.85rem' }}>
-                Print / Save PDF
+                {downloadingStatement ? 'Generating PDF...' : 'Download Statement PDF'}
               </button>
             </div>
 
