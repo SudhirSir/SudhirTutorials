@@ -38,7 +38,17 @@ export async function GET() {
         courseId: { in: courseIds }
       },
       include: {
-        course: { select: { name: true } }
+        course: { select: { name: true } },
+        results: {
+          where: { studentId: session.user.id },
+          select: {
+            id: true,
+            marks: true,
+            totalMarks: true,
+            remarks: true,
+            testId: true
+          }
+        }
       },
       orderBy: {
         date: 'asc'

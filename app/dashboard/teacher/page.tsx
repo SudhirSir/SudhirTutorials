@@ -200,6 +200,7 @@ function TeacherDashboardContent() {
   const [teacherGuruHistory, setTeacherGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([]);
   const [teacherGuruLoading, setTeacherGuruLoading] = useState(false);
   const [showFullWeekModal, setShowFullWeekModal] = useState(false);
+  const [selectedBatchDetails, setSelectedBatchDetails] = useState<any | null>(null);
 
   // Lesson PPT/Notes Generator States
   const [pptTopic, setPptTopic] = useState('');
@@ -870,7 +871,21 @@ Depending on your specific focus, this represents the vital equation model for t
                 <p style={{ color: 'var(--text-muted)' }}>No batches assigned yet.</p>
               ) : (
                 classes.map(batch => (
-                  <div key={batch.id} style={{ border: '1px solid var(--border)', padding: '1.5rem', borderRadius: '20px', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'transform 0.3s' }}>
+                  <div 
+                    key={batch.id} 
+                    onClick={() => setSelectedBatchDetails(batch)}
+                    className="batch-hover-card"
+                    style={{ 
+                      border: '1px solid var(--border)', 
+                      padding: '1.5rem', 
+                      borderRadius: '20px', 
+                      background: 'rgba(255,255,255,0.02)', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      justifyContent: 'space-between', 
+                      cursor: 'pointer'
+                    }}
+                  >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                         <div>
@@ -880,28 +895,46 @@ Depending on your specific focus, this represents the vital equation model for t
                         <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>ACTIVE</div>
                       </div>
                       
-                      {batch.schedules && batch.schedules.length > 0 && (
-                        <div style={{ marginBottom: '1.5rem' }}>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem', fontWeight: 800 }}>Weekly Schedule</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            {[...batch.schedules].sort((a, b) => {
-                              if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
-                              return a.startTime.localeCompare(b.startTime);
-                            }).map((s: any) => (
-                              <div key={s.id} style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                <span style={{ fontWeight: 800 }}>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]}</span> • {s.startTime} {s.subject && `(${s.subject})`}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedBatchDetails(batch);
+                        }}
+                        style={{ 
+                          marginBottom: '1.5rem', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '6px', 
+                          color: '#10b981', 
+                          fontSize: '0.85rem', 
+                          cursor: 'pointer', 
+                          fontWeight: 700, 
+                          textDecoration: 'underline decoration-dotted',
+                          transition: 'opacity 0.2s'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                      >
+                        📅 View Details & Timetable
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                          <span style={{ fontSize: '1rem' }}>👥</span> {batch._count?.students || 0} Students
                       </div>
-                      <button onClick={() => { setAttBatchId(batch.id); handleTabChange('attendance'); }} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.9'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Take Attendance</button>
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setAttBatchId(batch.id); 
+                          handleTabChange('attendance'); 
+                        }} 
+                        style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', transition: 'all 0.2s' }} 
+                        onMouseEnter={e => e.currentTarget.style.opacity = '0.9'} 
+                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                      >
+                        Take Attendance
+                      </button>
                     </div>
                   </div>
                 ))
@@ -1528,6 +1561,15 @@ Depending on your specific focus, this represents the vital equation model for t
               color: var(--primary);
               font-weight: 600;
             }
+            .batch-hover-card {
+              transition: all 0.3s ease !important;
+            }
+            .batch-hover-card:hover {
+              transform: translateY(-4px);
+              border-color: var(--primary) !important;
+              background: rgba(255,255,255,0.05) !important;
+              box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
+            }
           `}</style>
 
           {/* Message Feed */}
@@ -1853,6 +1895,176 @@ Depending on your specific focus, this represents the vital equation model for t
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedBatchDetails && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 4000,
+          padding: '1rem'
+        }}>
+          <div className="glass-card animate-scale-up" style={{
+            width: '95%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2rem',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '24px',
+            position: 'relative',
+            boxShadow: 'var(--shadow-2xl)'
+          }}>
+            {/* Close Button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+              <div>
+                <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '4px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', display: 'inline-block', marginBottom: '0.5rem' }}>Batch Information</span>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: 'var(--text)' }}>{selectedBatchDetails.name}</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedBatchDetails(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Details Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>Course</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>{selectedBatchDetails.course?.name || 'N/A'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>Target Class</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>{selectedBatchDetails.className || 'General/All'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>Subjects</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'normal', wordBreak: 'break-word' }}>{selectedBatchDetails.subjects || 'All Subjects'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>Strength</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>👥 {selectedBatchDetails._count?.students || 0} Enrolled Students</div>
+              </div>
+            </div>
+
+            {/* Schedule Section */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📅</span> Weekly Timetable
+              </h4>
+              
+              {selectedBatchDetails.schedules && selectedBatchDetails.schedules.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {[...selectedBatchDetails.schedules].sort((a, b) => {
+                    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+                    return a.startTime.localeCompare(b.startTime);
+                  }).map((s: any) => (
+                    <div 
+                      key={s.id} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        background: 'rgba(255,255,255,0.03)', 
+                        padding: '0.85rem 1.25rem', 
+                        borderRadius: '12px', 
+                        border: '1px solid rgba(255,255,255,0.06)' 
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ 
+                          width: '45px', 
+                          height: '24px', 
+                          background: new Date().getDay() === s.dayOfWeek ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)', 
+                          color: new Date().getDay() === s.dayOfWeek ? '#10b981' : 'var(--text-muted)', 
+                          borderRadius: '6px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 800, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}>
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]}
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>
+                          {s.subject || 'Lecture'}
+                        </div>
+                      </div>
+                      <div style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 700 }}>
+                        🕒 {s.startTime} - {s.endTime}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', textAlign: 'center' }}>
+                  No classes scheduled for this batch.
+                </p>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+              <button 
+                onClick={() => setSelectedBatchDetails(null)}
+                style={{ 
+                  padding: '0.6rem 1.25rem', 
+                  borderRadius: '10px', 
+                  background: 'transparent', 
+                  border: '1px solid var(--border)', 
+                  color: 'var(--text-muted)', 
+                  cursor: 'pointer', 
+                  fontWeight: 700, 
+                  fontSize: '0.85rem' 
+                }}
+              >
+                Close Details
+              </button>
+              <button 
+                onClick={() => {
+                  setAttBatchId(selectedBatchDetails.id);
+                  setSelectedBatchDetails(null);
+                  handleTabChange('attendance');
+                }} 
+                style={{ 
+                  padding: '0.6rem 1.5rem', 
+                  borderRadius: '10px', 
+                  background: '#10b981', 
+                  border: 'none', 
+                  color: 'white', 
+                  cursor: 'pointer', 
+                  fontWeight: 700, 
+                  fontSize: '0.85rem' 
+                }}
+              >
+                Take Attendance
+              </button>
             </div>
           </div>
         </div>

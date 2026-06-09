@@ -200,22 +200,22 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
             width: '100%',
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100%', flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'normal', display: 'block', flex: 1, lineHeight: '1.2' }} title={name}>
-                {name}
-              </span>
-              {isVerified && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} aria-label="Verified Profile">
-                  <title>Verified Profile</title>
-                  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#3b82f6"/>
-                </svg>
-              )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'normal', display: 'block', lineHeight: '1.2' }} title={name}>
+                  {name}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <span>{isVerified ? 'Verified Account' : 'Online'}</span>
+                {isVerified && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} aria-label="Verified Profile">
+                    <title>Verified Profile</title>
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#3b82f6"/>
+                  </svg>
+                )}
+              </div>
             </div>
-            <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)' }}>
-              {isVerified ? 'Verified Account' : 'Online'}
-            </div>
-          </div>
           <div style={{ 
             width: '40px', 
             height: '40px', 

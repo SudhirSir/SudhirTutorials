@@ -92,6 +92,8 @@ export async function GET() {
           id: true,
           marks: true,
           totalMarks: true,
+          testId: true,
+          remarks: true,
           test: { select: { id: true, title: true, subject: true, date: true } }
         },
         orderBy: { id: 'desc' },

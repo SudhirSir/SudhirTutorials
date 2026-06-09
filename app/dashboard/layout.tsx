@@ -235,19 +235,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', flexWrap: 'wrap' }}>
-                    <span style={{ whiteSpace: 'normal', flex: 1, lineHeight: '1.2' }} title={session?.user?.name || 'User'}>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text)', whiteSpace: 'normal', display: 'block', lineHeight: '1.2' }} title={session?.user?.name || 'User'}>
                       {session?.user?.name || 'User'}
                     </span>
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: isVerified ? '#10b981' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <span>{isVerified ? 'Verified' : 'Online'}</span>
                     {isVerified && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} aria-label="Verified Profile">
                         <title>Verified Profile</title>
                         <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#3b82f6"/>
                       </svg>
                     )}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: isVerified ? '#10b981' : 'var(--text-muted)' }}>
-                    {isVerified ? 'Verified' : 'Online'}
                   </div>
                 </div>
                 {/* Profile Photo in Sidebar */}

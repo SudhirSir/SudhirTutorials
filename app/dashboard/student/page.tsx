@@ -876,7 +876,7 @@ function StudentDashboardContent() {
               tests.map(test => {
                 const testDate = new Date(test.date);
                 const isUpcoming = testDate > new Date();
-                const result = (dashboard as any)?.testStats?.results?.find((r: any) => r.testId === test.id);
+                const result = test.results?.[0] || (dashboard as any)?.testStats?.results?.find((r: any) => r.testId === test.id);
                 
                 return (
                   <div key={test.id} className="flex-mobile-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: `1px solid ${isUpcoming ? 'var(--primary)' : 'var(--border)'}`, borderRadius: '12px', background: isUpcoming ? 'rgba(79, 70, 229, 0.05)' : 'rgba(255,255,255,0.02)' }}>
