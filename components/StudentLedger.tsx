@@ -151,186 +151,236 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
 
   const handlePrintStatement = async () => {
     setDownloadingStatement(true);
-    let tempElement: HTMLDivElement | null = null;
     try {
-      const loadHtml2Pdf = () => {
-        return new Promise<void>((resolve, reject) => {
-          if ((window as any).html2pdf) {
-            resolve();
-            return;
-          }
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load html2pdf script.'));
-          document.head.appendChild(script);
+      // Dynamically load jsPDF (much more reliable than html2canvas on mobile)
+      const loadJsPDF = (): Promise<any> =>
+        new Promise((resolve, reject) => {
+          if ((window as any).jspdf?.jsPDF) { resolve((window as any).jspdf.jsPDF); return; }
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+          s.onload = () => resolve((window as any).jspdf.jsPDF);
+          s.onerror = () => reject(new Error('Failed to load jsPDF'));
+          document.head.appendChild(s);
         });
-      };
 
-      await loadHtml2Pdf();
+      const jsPDF = await loadJsPDF();
 
       const postings = getStatementPostings;
-      const totalDebit = postings.reduce((s, p) => s + p.debit, 0);
-      const totalCredit = postings.reduce((s, p) => s + p.credit, 0);
+      const totalDebit  = postings.reduce((s: number, p: any) => s + p.debit,  0);
+      const totalCredit = postings.reduce((s: number, p: any) => s + p.credit, 0);
       const finalBalance = postings.length > 0 ? postings[postings.length - 1].balance : 0;
+      const student = fees[0]?.student;
+      const sp      = student?.studentProfile;
+      const studentName = student?.name || 'Student';
+      const today   = new Date().toLocaleDateString('en-GB');
 
-      tempElement = document.createElement('div');
-      tempElement.style.position = 'absolute';
-      tempElement.style.top = '-9999px';
-      tempElement.style.left = '-9999px';
-      tempElement.style.width = '790px';
-      tempElement.style.padding = '30px';
-      tempElement.style.background = '#ffffff';
-      tempElement.style.color = '#1f2937';
-      tempElement.style.fontFamily = 'sans-serif';
-      tempElement.style.boxSizing = 'border-box';
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const PAGE_W = 210;
+      const MARGIN = 14;
+      const COL_W  = PAGE_W - MARGIN * 2;
+      let y = MARGIN;
 
-      tempElement.innerHTML = `
-        <div style="border-bottom: 3px solid #ef4444; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="/logo.png" alt="Logo" style="width: 45px; height: 45px; object-fit: contain; border-radius: 8px;" />
-            <div>
-              <div style="font-size: 24px; font-weight: bold; color: #ef4444; line-height: 1.1;">SUDHIR TUTORIALS</div>
-              <div style="font-size: 14px; color: #4b5563;">Official Student Fee Statement</div>
-            </div>
-          </div>
-          <div style="text-align: right">
-            <div style="font-weight: bold; font-size: 16px; color: #ef4444;">FEE STATEMENT</div>
-            <div style="font-size: 12px; color: #6b7280;">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
-          </div>
-        </div>
+      // ── Header bar ──
+      doc.setFillColor(239, 68, 68);
+      doc.rect(0, 0, PAGE_W, 18, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(255, 255, 255);
+      doc.text('SUDHIR TUTORIALS', MARGIN, 11);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Official Student Fee Statement', MARGIN, 15.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('FEE STATEMENT', PAGE_W - MARGIN, 9, { align: 'right' });
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Generated: ' + today, PAGE_W - MARGIN, 14.5, { align: 'right' });
+      y = 25;
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
-            <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Student Profile</h3>
-            <p style="font-size: 16px; margin: 0 0 8px 0; color: #1a1a2e; font-weight: bold;">${fees[0]?.student?.name || 'Academic Student'}</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 12px; color: #4b5563;">
-              <div><strong>Student ID:</strong> ${fees[0]?.student?.username || 'N/A'}</div>
-              <div><strong>Roll Number:</strong> ${fees[0]?.student?.studentProfile?.rollNumber || 'N/A'}</div>
-              <div><strong>Class / Grade:</strong> ${fees[0]?.student?.studentProfile?.className || 'N/A'}</div>
-              <div><strong>Batch:</strong> ${fees[0]?.student?.studentProfile?.batch || 'N/A'}</div>
-              <div><strong>Father's Name:</strong> ${fees[0]?.student?.studentProfile?.fatherName || 'N/A'}</div>
-              <div><strong>Contact:</strong> ${fees[0]?.student?.studentProfile?.phone || 'N/A'}</div>
-            </div>
-          </div>
-          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div>
-              <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Total Charged (Dr)</h3>
-              <p style="margin: 0; font-size: 16px; font-weight: bold; color: #dc2626;">₹${totalDebit.toFixed(2)}</p>
-            </div>
-            <div>
-              <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Total Settled (Cr)</h3>
-              <p style="margin: 0; font-size: 16px; font-weight: bold; color: #1d4ed8;">₹${totalCredit.toFixed(2)}</p>
-            </div>
-            <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
-              <h3 style="margin: 0 0 4px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Outstanding Balance</h3>
-              <p style="margin: 0; font-size: 16px; font-weight: bold; color: ${finalBalance > 0 ? '#10b981' : finalBalance < 0 ? '#dc2626' : '#1d4ed8'}">
-                ${finalBalance > 0 ? '+₹' + finalBalance.toFixed(2) + ' Credit (Advance)' : finalBalance < 0 ? '₹' + Math.abs(finalBalance).toFixed(2) + ' Due' : 'Settled'}
-              </p>
-            </div>
-          </div>
-        </div>
+      // ── Student info box ──
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(229, 231, 235);
+      doc.roundedRect(MARGIN, y, COL_W, 32, 2, 2, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(107, 114, 128);
+      doc.text('STUDENT PROFILE', MARGIN + 4, y + 6);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(26, 26, 46);
+      doc.text(studentName, MARGIN + 4, y + 12);
 
-        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-          <thead>
-            <tr>
-              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase;">Date</th>
-              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase;">Ref No.</th>
-              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase;">Description</th>
-              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: right; font-size: 11px; text-transform: uppercase; width: 110px;">Debit (Dr)</th>
-              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: right; font-size: 11px; text-transform: uppercase; width: 110px;">Credit (Cr)</th>
-              <th style="background: #f3f4f6; color: #374151; font-weight: bold; border-bottom: 2px solid #d1d5db; padding: 10px; text-align: right; font-size: 11px; text-transform: uppercase; width: 110px;">Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${postings.map(p => `
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${new Date(p.date).toLocaleDateString('en-GB')}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; font-family: monospace;">${p.reference}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${p.description}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: right; color: #dc2626;">${p.debit > 0 ? '₹' + p.debit.toFixed(2) : '-'}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: right; color: #1d4ed8;">${p.credit > 0 ? '₹' + p.credit.toFixed(2) : '-'}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: right; font-weight: bold; color: ${p.balance >= 0 ? '#1d4ed8' : '#dc2626'}">
-                  ${p.balance >= 0 ? '₹' + p.balance.toFixed(2) + ' Cr' : '₹' + Math.abs(p.balance).toFixed(2) + ' Dr'}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+      const infoRows: string[][] = [
+        ['Student ID', student?.username || 'N/A', 'Class / Grade', sp?.className || 'N/A'],
+        ['Roll Number', sp?.rollNumber  || 'N/A', 'Batch',         sp?.batch      || 'N/A'],
+        ["Father's Name", sp?.fatherName || 'N/A', 'Contact',      sp?.phone      || 'N/A'],
+      ];
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(75, 85, 99);
+      infoRows.forEach((row, ri) => {
+        const ry = y + 17 + ri * 5;
+        doc.setFont('helvetica', 'bold');   doc.text(row[0] + ':', MARGIN + 4, ry);
+        doc.setFont('helvetica', 'normal'); doc.text(row[1], MARGIN + 30, ry);
+        doc.setFont('helvetica', 'bold');   doc.text(row[2] + ':', MARGIN + COL_W / 2 + 2, ry);
+        doc.setFont('helvetica', 'normal'); doc.text(row[3], MARGIN + COL_W / 2 + 28, ry);
+      });
+      y += 37;
 
-        <div style="display: flex; justify-content: space-between; margin-top: 50px;">
-          <div style="text-align: left; color: #6b7280; font-style: italic; font-size: 11px; width: 250px;">
-            * Computer generated statement.<br/>No signature required.
-          </div>
-          <div style="border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 8px; font-size: 12px; font-weight: bold;">Authorized Signatory</div>
-        </div>
-        <div style="margin-top: 50px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px dashed #d1d5db; padding-top: 20px;">
-          &copy; ${new Date().getFullYear()} Sudhir Tutorials. All rights reserved. Confidential Academic Record.
-        </div>
-      `;
-
-      document.body.appendChild(tempElement);
-
-      const studentName = fees[0]?.student?.name?.replace(/\s+/g, '_') || 'Student';
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `Sudhir_Tutorials_Statement_${studentName}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
+      // ── Summary boxes ──
+      const BOX_W = (COL_W - 4) / 3;
+      const summaryItems: { label: string; val: string; color: [number,number,number] }[] = [
+        { label: 'TOTAL CHARGED (Dr)', val: 'Rs. ' + totalDebit.toFixed(2),  color: [220, 38, 38] },
+        { label: 'TOTAL SETTLED (Cr)', val: 'Rs. ' + totalCredit.toFixed(2), color: [29, 78, 216] },
+        {
+          label: 'OUTSTANDING BALANCE',
+          val: finalBalance === 0
+            ? 'Settled'
+            : finalBalance > 0
+              ? '+Rs. ' + finalBalance.toFixed(2) + ' (Adv)'
+              : 'Rs. ' + Math.abs(finalBalance).toFixed(2) + ' Due',
+          color: finalBalance > 0 ? [16, 185, 129] : finalBalance < 0 ? [220, 38, 38] : [29, 78, 216],
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+      ];
+      summaryItems.forEach((item, i) => {
+        const bx = MARGIN + i * (BOX_W + 2);
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(229, 231, 235);
+        doc.roundedRect(bx, y, BOX_W, 16, 2, 2, 'FD');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(107, 114, 128);
+        doc.text(item.label, bx + 4, y + 5.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...item.color);
+        doc.text(item.val, bx + 4, y + 12);
+      });
+      y += 22;
 
-      const cap = (window as any).Capacitor;
-      const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
-      let Filesystem: any = null;
-      let Share: any = null;
-      if (isNative) {
-        try {
-          const fs = await import('@capacitor/filesystem');
-          Filesystem = fs.Filesystem;
-          const sh = await import('@capacitor/share');
-          Share = sh.Share;
-        } catch (e) {
-          console.error('Failed to load Capacitor plugins dynamically:', e);
-        }
+      // ── Table header ──
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(55, 65, 81);
+      doc.text('TRANSACTION LEDGER', MARGIN, y + 1);
+      y += 5;
+
+      const cols: { label: string; w: number; align: string }[] = [
+        { label: 'Date',        w: 22, align: 'left'  },
+        { label: 'Ref No.',     w: 28, align: 'left'  },
+        { label: 'Description', w: 62, align: 'left'  },
+        { label: 'Debit (Dr)',  w: 24, align: 'right' },
+        { label: 'Credit (Cr)', w: 24, align: 'right' },
+        { label: 'Balance',     w: 22, align: 'right' },
+      ];
+      const ROW_H = 7;
+      const HEAD_H = 8;
+
+      doc.setFillColor(243, 244, 246);
+      doc.setDrawColor(209, 213, 219);
+      doc.rect(MARGIN, y, COL_W, HEAD_H, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(55, 65, 81);
+      let cx = MARGIN + 2;
+      cols.forEach(col => {
+        doc.text(col.label, col.align === 'right' ? cx + col.w - 2 : cx, y + 5.5, { align: col.align as any });
+        cx += col.w;
+      });
+      y += HEAD_H;
+
+      // ── Table rows ──
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      postings.forEach((p: any, idx: number) => {
+        if (y + ROW_H > 270) { doc.addPage(); y = MARGIN; }
+        const bg: [number,number,number] = idx % 2 === 0 ? [255,255,255] : [249,250,251];
+        doc.setFillColor(...bg);
+        doc.setDrawColor(229, 231, 235);
+        doc.rect(MARGIN, y, COL_W, ROW_H, 'FD');
+        const isDebit  = p.type === 'DEBIT' || p.type === 'FINE';
+        const isCredit = p.type === 'CREDIT';
+        cx = MARGIN + 2;
+        const cells: { val: string; color: [number,number,number]; w: number; align: string }[] = [
+          { val: new Date(p.date).toLocaleDateString('en-GB'), color: [31,41,55],   w: cols[0].w, align: 'left'  },
+          { val: p.reference,                                  color: [75,85,99],   w: cols[1].w, align: 'left'  },
+          { val: p.description.length > 38 ? p.description.substring(0,38)+'...' : p.description, color: [31,41,55], w: cols[2].w, align: 'left' },
+          { val: p.debit  > 0 ? 'Rs. ' + p.debit.toFixed(2)  : '-', color: isDebit  ? [220,38,38]  : [107,114,128], w: cols[3].w, align: 'right' },
+          { val: p.credit > 0 ? 'Rs. ' + p.credit.toFixed(2) : '-', color: isCredit ? [29,78,216]  : [107,114,128], w: cols[4].w, align: 'right' },
+          { val: p.balance >= 0 ? 'Rs. '+p.balance.toFixed(2)+' Cr' : 'Rs. '+Math.abs(p.balance).toFixed(2)+' Dr',
+            color: p.balance >= 0 ? [29,78,216] : [220,38,38], w: cols[5].w, align: 'right' },
+        ];
+        cells.forEach(cell => {
+          doc.setFont('helvetica', cell.align === 'right' ? 'bold' : 'normal');
+          doc.setTextColor(...cell.color);
+          doc.text(cell.val, cell.align === 'right' ? cx + cell.w - 2 : cx, y + 4.8, { align: cell.align as any });
+          cx += cell.w;
+        });
+        y += ROW_H;
+      });
+
+      if (postings.length === 0) {
+        doc.setTextColor(107, 114, 128);
+        doc.setFont('helvetica', 'italic');
+        doc.text('No transactions found.', MARGIN + 4, y + 5);
+        y += 10;
       }
 
-      if (isNative && Filesystem && Share) {
-        const pdfDataUri = await (window as any).html2pdf().from(tempElement).set(opt).output('datauristring');
-        const base64Data = pdfDataUri.split(',')[1];
-        const filename = `Sudhir_Tutorials_Statement_${studentName}.pdf`;
-        
-        const writeResult = await Filesystem.writeFile({
-          path: filename,
-          data: base64Data,
-          directory: 'CACHE'
-        });
-        await Share.share({
-          title: 'Fee Statement',
-          text: `Fee Statement for ${fees[0]?.student?.name || 'Student'}`,
-          files: [writeResult.uri],
-          dialogTitle: 'View/Print Fee Statement'
-        });
+      // ── Footer ──
+      y += 12;
+      if (y > 260) { doc.addPage(); y = MARGIN; }
+      doc.setDrawColor(209, 213, 219);
+      doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+      y += 6;
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(156, 163, 175);
+      doc.text('* Computer generated statement. No signature required.', MARGIN, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(55, 65, 81);
+      doc.text('Authorized Signatory', PAGE_W - MARGIN, y, { align: 'right' });
+      y += 10;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(156, 163, 175);
+      doc.text('(c) ' + new Date().getFullYear() + ' Sudhir Tutorials. All rights reserved. Confidential Academic Record.', PAGE_W / 2, y, { align: 'center' });
+
+      // ── Save / share ──
+      const filename = 'Sudhir_Tutorials_Statement_' + studentName.replace(/\s+/g, '_') + '.pdf';
+      const cap = (window as any).Capacitor;
+      const isNative = cap?.isNativePlatform?.();
+      if (isNative) {
+        try {
+          const { Filesystem } = await import('@capacitor/filesystem');
+          const { Share }      = await import('@capacitor/share');
+          const base64 = doc.output('datauristring').split(',')[1];
+          let uri = '';
+          try {
+            const wr = await Filesystem.writeFile({ path: filename, data: base64, directory: 'DOCUMENTS' as any });
+            uri = wr.uri;
+            alert('Statement saved to Downloads as ' + filename);
+          } catch {
+            const wr = await Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' as any });
+            uri = wr.uri;
+          }
+          if (uri) await Share.share({ title: 'Fee Statement', files: [uri], dialogTitle: 'Open / Share Fee Statement' });
+        } catch (e) {
+          console.error('Mobile save error:', e);
+          doc.save(filename);
+        }
       } else {
-        await (window as any).html2pdf().from(tempElement).set(opt).save();
+        doc.save(filename);
         alert('Statement downloaded successfully!');
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to generate statement PDF.');
+      alert('Failed to generate statement PDF. Please try again.');
     } finally {
-      if (tempElement && tempElement.parentNode) {
-        tempElement.parentNode.removeChild(tempElement);
-      }
       setDownloadingStatement(false);
     }
   };
-
   // Memoized derived data – only recalculates when fees changes
   const years = useMemo(() => {
     const feeYears = fees.map(f => getParsedFeeDetails(f).year);
