@@ -15,30 +15,31 @@ export async function GET(req: NextRequest) {
     const userId = session.user.id;
     let isClosed = false;
 
+    const encoder = new TextEncoder();
+
     const stream = new ReadableStream({
       start(controller) {
-        // Send a connection established message
-        controller.enqueue('data: {"type":"connected"}\n\n');
-
-        // Periodically send ping to keep connection alive
-        const pingInterval = setInterval(() => {
+        const enqueue = (data: string) => {
           if (isClosed) return;
           try {
-            controller.enqueue('data: {"type":"ping"}\n\n');
-          } catch (e) {
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          } catch {
             cleanup();
           }
-        }, 15000);
+        };
+
+        // Immediately confirm connection
+        enqueue('{"type":"connected"}');
+
+        // Keep-alive ping every 20s (Vercel times out idle connections at 25s)
+        const pingInterval = setInterval(() => {
+          enqueue('{"type":"ping"}');
+        }, 20000);
 
         const onMessage = (data: any) => {
-          if (isClosed) return;
-          // Send event if it's relevant to the current user
-          if (data.senderId === userId || data.receiverId === userId) {
-            try {
-              controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
-            } catch (e) {
-              cleanup();
-            }
+          // Only send events relevant to this user
+          if (data.senderId === userId || data.receiverId === userId || data.deletedByUserId === userId) {
+            enqueue(JSON.stringify(data));
           }
         };
 
@@ -49,25 +50,23 @@ export async function GET(req: NextRequest) {
           isClosed = true;
           clearInterval(pingInterval);
           messageEmitter.off('message', onMessage);
-          try {
-            controller.close();
-          } catch (e) {}
+          try { controller.close(); } catch {}
         };
 
-        // If the request is aborted (client disconnects), clean up
         req.signal.addEventListener('abort', cleanup);
-      }
+      },
     });
 
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
+        'Cache-Control': 'no-cache, no-store, no-transform',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no', // Prevent nginx buffering
       },
     });
   } catch (error) {
-    console.error('SSE Subscription Error:', error);
+    console.error('[SSE] Error:', error);
     return new Response('Internal Server Error', { status: 500 });
   }
 }
