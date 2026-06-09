@@ -194,6 +194,7 @@ function AdminDashboardContent() {
   const [newFeeClassAmount, setNewFeeClassAmount] = useState('');
   const [showSettingsLateFee, setShowSettingsLateFee] = useState(false);
   const [showSettingsClassFees, setShowSettingsClassFees] = useState(false);
+  const [showSettingsCareers, setShowSettingsCareers] = useState(false);
 
   // Staff Salary States
   const [adminSalaries, setAdminSalaries] = useState<any[]>([]);
@@ -1990,9 +1991,7 @@ function AdminDashboardContent() {
       fetchPendingVerifications();
       fetchBugReports();
     }
-    if (activeTab === 'careers') {
-      fetchJobApplications();
-    }
+
     if (activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) {
       Promise.all([
         fetchCourses(),
@@ -2018,6 +2017,7 @@ function AdminDashboardContent() {
     }
     if (activeTab === 'settings') {
       fetchSettings();
+      fetchJobApplications();
     }
     if (activeTab === 'salary') {
       fetchTeachers();
@@ -2429,7 +2429,7 @@ function AdminDashboardContent() {
 
       {/* Tabs */}
       <div className="dashboard-tab-bar no-scrollbar no-print">
-        {['overview', 'users', 'verifications', 'careers', 'finances', 'salary', 'academics', 'guru-ai', 'messages', 'notifications', 'profile', 'settings'].map(tab => (
+        {['overview', 'users', 'verifications', 'finances', 'salary', 'academics', 'guru-ai', 'messages', 'notifications', 'profile', 'settings'].map(tab => (
           <button 
             key={tab}
             onClick={() => {
@@ -2442,9 +2442,6 @@ function AdminDashboardContent() {
             {tab === 'verifications' && pendingVerifications.length > 0 && (
               <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', marginRight: '6px' }}>{pendingVerifications.length}</span>
             )}
-            {tab === 'careers' && jobApplications.length > 0 && (
-              <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', marginRight: '6px' }}>{jobApplications.length}</span>
-            )}
             {tab === 'messages' && unreadMessages > 0 && (
               <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>
             )}
@@ -2454,7 +2451,6 @@ function AdminDashboardContent() {
             {tab === 'overview' ? 'Dashboard' :
              tab === 'users' ? 'Users Directory' :
              tab === 'verifications' ? 'Approvals & Queries' :
-             tab === 'careers' ? '💼 Careers' :
              tab === 'finances' ? 'Finances & Fees' :
              tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
@@ -2898,81 +2894,7 @@ function AdminDashboardContent() {
         </div>
       )}
 
-      {/* ─── CAREERS TAB ─── */}
-      {activeTab === 'careers' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              💼 Careers & Job Applications
-              {jobApplications.length > 0 && (
-                <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.75rem', padding: '2px 10px', borderRadius: '10px', fontWeight: 800 }}>
-                  {jobApplications.length}
-                </span>
-              )}
-            </h2>
-            {isLoadingJobApplications ? (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
-                <div className="spinner" style={{ margin: '0 auto 1rem', width: '24px', height: '24px', border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                Loading job applications...
-              </div>
-            ) : jobApplications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
-                <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>No job applications yet</p>
-                <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Applications submitted through the Careers page will appear here.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: '1.25rem' }}>
-                {jobApplications.map(app => (
-                  <div key={app.id} style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '16px', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: 'rgba(56, 189, 248, 0.12)', color: 'var(--secondary)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-                            {app.position.toUpperCase()}
-                          </span>
-                          <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: app.status === 'PENDING' ? 'rgba(245, 158, 11, 0.12)' : app.status === 'SHORTLISTED' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', color: app.status === 'PENDING' ? '#f59e0b' : app.status === 'SHORTLISTED' ? '#10b981' : '#ef4444', border: `1px solid ${app.status === 'PENDING' ? 'rgba(245,158,11,0.2)' : app.status === 'SHORTLISTED' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
-                            {app.status}
-                          </span>
-                        </div>
-                        <h4 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.15rem', fontWeight: 900, color: 'var(--text)' }}>
-                          {app.name}
-                        </h4>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          <span>📞 {app.phone}</span>
-                          <span>✉️ {app.email}</span>
-                          <span>💼 Experience: {app.experience}</span>
-                          <span>📅 Submitted: {new Date(app.createdAt).toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {app.resumeUrl && (
-                          <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            📄 View Resume
-                          </a>
-                        )}
-                        <select value={app.status} onChange={(e) => handleUpdateJobStatus(app.id, e.target.value)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
-                          <option value="PENDING">Pending</option>
-                          <option value="SHORTLISTED">Shortlist</option>
-                          <option value="REJECTED">Reject</option>
-                        </select>
-                        <button onClick={() => handleDeleteJobApplication(app.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                    {app.coverLetter && (
-                      <div style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border)', whiteSpace: 'pre-wrap', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', fontStyle: 'italic' }}>
-                        "{app.coverLetter}"
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+
 
       {activeTab === 'users' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -7279,6 +7201,116 @@ function AdminDashboardContent() {
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Collapsible Accordion 3: Job Applications */}
+          <div className="glass-card" style={{ padding: '0', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+            <button 
+              type="button"
+              onClick={() => setShowSettingsCareers(prev => !prev)}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1.25rem',
+                background: showSettingsCareers ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease',
+                color: 'var(--text)'
+              }}
+            >
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6' }}>
+                  Job Applications
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
+                  Review and manage incoming careers applications.
+                </p>
+              </div>
+              <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsCareers ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                ▼
+              </span>
+            </button>
+
+            {showSettingsCareers && (
+              <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                      Job Applications
+                    </h4>
+                    {jobApplications.length > 0 && (
+                      <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.75rem', padding: '2px 10px', borderRadius: '10px', fontWeight: 800 }}>
+                        {jobApplications.length}
+                      </span>
+                    )}
+                  </div>
+                  {isLoadingJobApplications ? (
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                      <div className="spinner" style={{ margin: '0 auto 1rem', width: '24px', height: '24px', border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      Loading job applications...
+                    </div>
+                  ) : jobApplications.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+                      <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>No job applications yet</p>
+                      <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Applications submitted through the Careers page will appear here.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '1.25rem' }}>
+                      {jobApplications.map(app => (
+                        <div key={app.id} style={{ padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: 'rgba(56, 189, 248, 0.12)', color: 'var(--secondary)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                                  {app.position.toUpperCase()}
+                                </span>
+                                <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: app.status === 'PENDING' ? 'rgba(245, 158, 11, 0.12)' : app.status === 'SHORTLISTED' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', color: app.status === 'PENDING' ? '#f59e0b' : app.status === 'SHORTLISTED' ? '#10b981' : '#ef4444', border: `1px solid ${app.status === 'PENDING' ? 'rgba(245,158,11,0.2)' : app.status === 'SHORTLISTED' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                                  {app.status}
+                                </span>
+                              </div>
+                              <h5 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.1rem', fontWeight: 900, color: 'var(--text)' }}>
+                                {app.name}
+                              </h5>
+                              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                <span>📞 {app.phone}</span>
+                                <span>✉️ {app.email}</span>
+                                <span>💼 Experience: {app.experience}</span>
+                                <span>📅 Submitted: {new Date(app.createdAt).toLocaleString()}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {app.resumeUrl && (
+                                <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  📄 View Resume
+                                </a>
+                              )}
+                              <select value={app.status} onChange={(e) => handleUpdateJobStatus(app.id, e.target.value)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                                <option value="PENDING">Pending</option>
+                                <option value="SHORTLISTED">Shortlist</option>
+                                <option value="REJECTED">Reject</option>
+                              </select>
+                              <button onClick={() => handleDeleteJobApplication(app.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                          {app.coverLetter && (
+                            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border)', whiteSpace: 'pre-wrap', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', fontStyle: 'italic' }}>
+                              "{app.coverLetter}"
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

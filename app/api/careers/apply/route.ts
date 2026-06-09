@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir, readFile } from 'fs/promises';
 import { join } from 'path';
+import { prisma, withDbRetry } from '@/lib/prisma';
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,30 @@ export async function POST(req: Request) {
 
     applications.push(newApplication);
     await writeFile(applicationsPath, JSON.stringify(applications, null, 2));
+
+    // Send notifications to all Admins in DB
+    try {
+      const admins = await withDbRetry(() => prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true }
+      }));
+      
+      if (admins.length > 0) {
+        const notifications = admins.map(admin => ({
+          userId: admin.id,
+          title: `💼 New Job Application: ${name}`,
+          message: `A new application for the position of "${position}" has been submitted by ${name}.\nExperience: ${experience}\nEmail: ${email}\nPhone: ${phone}`,
+          type: 'SYSTEM',
+          isRead: false,
+        }));
+
+        await withDbRetry(() => prisma.notification.createMany({
+          data: notifications,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to create notifications for new job application:', err);
+    }
 
     return NextResponse.json({
       success: true,
