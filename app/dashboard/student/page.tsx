@@ -965,7 +965,7 @@ function StudentDashboardContent() {
 
               <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
-                  <div><strong>#Receipt:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></div>
+                  <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></div>
                   <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{receiptData.paidAt ? formatDateDisplay(receiptData.paidAt) : formatDateDisplay(new Date())}</span></div>
                 </div>
                 <div style={{ color: '#1a1a1a' }}>

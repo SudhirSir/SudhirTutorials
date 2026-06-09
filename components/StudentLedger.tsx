@@ -180,22 +180,70 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
       const COL_W  = PAGE_W - MARGIN * 2;
       let y = MARGIN;
 
-      // ── Header bar ──
-      doc.setFillColor(239, 68, 68);
-      doc.rect(0, 0, PAGE_W, 18, 'F');
+      // ── Dual-color top accent bar ──
+      doc.setFillColor(239, 68, 68); // Red
+      doc.rect(0, 0, PAGE_W / 2, 2, 'F');
+      doc.setFillColor(37, 99, 235); // Blue
+      doc.rect(PAGE_W / 2, 0, PAGE_W / 2, 2, 'F');
+
+      let hasLogo = false;
+      let logoDataUrl = '';
+      // Try to add logo
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = 'anonymous';
+        logoImg.src = '/logo.png';
+        await new Promise<void>((resolve) => {
+          logoImg.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = logoImg.naturalWidth;
+            canvas.height = logoImg.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(logoImg, 0, 0);
+              logoDataUrl = canvas.toDataURL('image/png');
+              hasLogo = true;
+            }
+            resolve();
+          };
+          logoImg.onerror = () => resolve();
+          setTimeout(() => resolve(), 2000);
+        });
+      } catch (_) { /* logo optional */ }
+
+      // Brand name: SUDHIR (red) + TUTORIALS (blue)
+      const logoOffset = hasLogo ? MARGIN + 15 : MARGIN;
+      if (hasLogo && logoDataUrl) {
+        doc.addImage(logoDataUrl, 'PNG', MARGIN, 6, 12, 12);
+      }
+
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(255, 255, 255);
-      doc.text('SUDHIR TUTORIALS', MARGIN, 11);
+      doc.setFontSize(15);
+      doc.setTextColor(239, 68, 68); // Red
+      doc.text('SUDHIR', logoOffset, 12);
+      const sudhirWidth = doc.getTextWidth('SUDHIR');
+      doc.setTextColor(37, 99, 235); // Blue
+      doc.text(' TUTORIALS', logoOffset + sudhirWidth, 12);
+      
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      doc.text('Official Student Fee Statement', MARGIN, 15.5);
+      doc.setTextColor(107, 114, 128); // Gray
+      doc.text('Official Student Fee Statement', logoOffset, 17);
+
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.text('FEE STATEMENT', PAGE_W - MARGIN, 9, { align: 'right' });
+      doc.setTextColor(17, 24, 39); // Dark Gray
+      doc.text('FEE STATEMENT', PAGE_W - MARGIN, 11, { align: 'right' });
       doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
-      doc.text('Generated: ' + today, PAGE_W - MARGIN, 14.5, { align: 'right' });
+      doc.setTextColor(107, 114, 128); // Gray
+      doc.text('Generated: ' + today, PAGE_W - MARGIN, 16.5, { align: 'right' });
+
+      // Divider line
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, 21, PAGE_W - MARGIN, 21);
+
       y = 25;
 
       // ── Student info box ──

@@ -3020,14 +3020,104 @@ function AdminDashboardContent() {
           </div>
 
           {userSubTab === 'DIRECTORY' && (
-            <div className="glass-card" style={{ padding: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <h2 style={{ fontSize: '1.5rem', margin: 0 }}>User Directory</h2>
-                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px', maxWidth: '100%', overflowX: 'auto', flexWrap: 'wrap' }}>
-                  <button onClick={() => setDirectoryFilter('ALL')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>All</button>
-                  <button onClick={() => setDirectoryFilter('STUDENT')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'STUDENT' ? 'var(--primary)' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Students</button>
-                  <button onClick={() => setDirectoryFilter('TEACHER')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Teachers</button>
-                  <button onClick={() => setDirectoryFilter('ADMIN')} style={{ padding: '0.5rem 1rem', background: directoryFilter === 'ADMIN' ? '#f59e0b' : 'transparent', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Admins</button>
+            <div className="glass-card" style={{ 
+              padding: '2rem',
+              transition: 'all 0.3s ease',
+              border: `1px solid ${
+                directoryFilter === 'STUDENT' ? 'rgba(59, 130, 246, 0.3)' : 
+                directoryFilter === 'TEACHER' ? 'rgba(16, 185, 129, 0.3)' : 
+                directoryFilter === 'ADMIN' ? 'rgba(239, 68, 68, 0.3)' : 
+                'var(--border)'
+              }`,
+              boxShadow: directoryFilter === 'STUDENT' ? '0 8px 32px rgba(59, 130, 246, 0.08)' :
+                         directoryFilter === 'TEACHER' ? '0 8px 32px rgba(16, 185, 129, 0.08)' :
+                         directoryFilter === 'ADMIN' ? '0 8px 32px rgba(239, 68, 68, 0.08)' :
+                         'none'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '0.4rem', 
+                  background: 'rgba(255, 255, 255, 0.05)', 
+                  padding: '4px', 
+                  borderRadius: '12px', 
+                  width: '100%', 
+                  justifyContent: 'center', 
+                  maxWidth: '480px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <button 
+                    onClick={() => setDirectoryFilter('ALL')} 
+                    style={{ 
+                      flex: 1,
+                      padding: '0.55rem 1rem', 
+                      background: directoryFilter === 'ALL' ? '#2563eb' : 'transparent', 
+                      color: directoryFilter === 'ALL' ? '#fff' : 'var(--text-muted)', 
+                      border: 'none', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer', 
+                      fontWeight: 700, 
+                      fontSize: '0.8rem', 
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    ALL
+                  </button>
+                  <button 
+                    onClick={() => setDirectoryFilter('STUDENT')} 
+                    style={{ 
+                      flex: 1,
+                      padding: '0.55rem 1rem', 
+                      background: directoryFilter === 'STUDENT' ? '#2563eb' : 'transparent', 
+                      color: directoryFilter === 'STUDENT' ? '#fff' : 'var(--text-muted)', 
+                      border: 'none', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer', 
+                      fontWeight: 700, 
+                      fontSize: '0.8rem', 
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    Students
+                  </button>
+                  <button 
+                    onClick={() => setDirectoryFilter('TEACHER')} 
+                    style={{ 
+                      flex: 1,
+                      padding: '0.55rem 1rem', 
+                      background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', 
+                      color: directoryFilter === 'TEACHER' ? '#fff' : 'var(--text-muted)', 
+                      border: 'none', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer', 
+                      fontWeight: 700, 
+                      fontSize: '0.8rem', 
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    Teachers
+                  </button>
+                  <button 
+                    onClick={() => setDirectoryFilter('ADMIN')} 
+                    style={{ 
+                      flex: 1,
+                      padding: '0.55rem 1rem', 
+                      background: directoryFilter === 'ADMIN' ? '#ef4444' : 'transparent', 
+                      color: directoryFilter === 'ADMIN' ? '#fff' : 'var(--text-muted)', 
+                      border: 'none', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer', 
+                      fontWeight: 700, 
+                      fontSize: '0.8rem', 
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    Admins
+                  </button>
                 </div>
               </div>
 
@@ -3039,7 +3129,21 @@ function AdminDashboardContent() {
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
                   list="user-directory-search-suggestions"
-                  style={{ flex: 1, minWidth: '250px', padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  style={{ 
+                    flex: 1, 
+                    minWidth: '250px', 
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '8px', 
+                    background: 'var(--input-bg)', 
+                    border: `1px solid ${
+                      directoryFilter === 'STUDENT' ? 'rgba(59, 130, 246, 0.4)' : 
+                      directoryFilter === 'TEACHER' ? 'rgba(16, 185, 129, 0.4)' : 
+                      directoryFilter === 'ADMIN' ? 'rgba(239, 68, 68, 0.4)' : 
+                      'var(--border)'
+                    }`, 
+                    color: 'var(--text)',
+                    transition: 'all 0.3s ease'
+                  }}
                 />
                 <datalist id="user-directory-search-suggestions">
                   {directoryUsers.flatMap(u => [
@@ -3049,7 +3153,24 @@ function AdminDashboardContent() {
                     <option key={idx} value={item.val} label={item.desc} />
                   ))}
                 </datalist>
-                <button onClick={handleSearchDirectory} className="btn-primary" disabled={isSearching} style={{ padding: '0.75rem 2rem' }}>
+                <button 
+                  onClick={handleSearchDirectory} 
+                  disabled={isSearching} 
+                  style={{ 
+                    padding: '0.75rem 2rem',
+                    background: 
+                      directoryFilter === 'STUDENT' ? '#2563eb' : 
+                      directoryFilter === 'TEACHER' ? '#10b981' : 
+                      directoryFilter === 'ADMIN' ? '#ef4444' : 
+                      'var(--primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
                   {isSearching ? "Searching..." : "Search"}
                 </button>
               </div>
@@ -3061,7 +3182,24 @@ function AdminDashboardContent() {
                   filteredDirectoryUsers.map(u => (
                     <div key={u.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
-                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold', border: '2px solid var(--primary)', flexShrink: 0 }}>
+                        <div style={{ 
+                          width: '50px', 
+                          height: '50px', 
+                          borderRadius: '50%', 
+                          overflow: 'hidden', 
+                          background: 'rgba(255,255,255,0.05)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontSize: '1.2rem', 
+                          fontWeight: 'bold', 
+                          border: `2px solid ${
+                            u.role === 'ADMIN' ? '#ef4444' : 
+                            u.role === 'TEACHER' ? '#10b981' : 
+                            '#2563eb'
+                          }`, 
+                          flexShrink: 0 
+                        }}>
                           {u.photoUrl ? (
                             <img src={u.photoUrl} alt={u.name} onClick={() => setLightboxUrl(u.photoUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }} />
                           ) : (
@@ -3088,7 +3226,25 @@ function AdminDashboardContent() {
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
                         <button 
                           onClick={() => setSelectedUserDetail(u)}
-                          style={{ flex: 1, padding: '0.5rem', background: 'var(--primary)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
+                          style={{ 
+                            flex: 1, 
+                            padding: '0.5rem', 
+                            background: 
+                              u.role === 'ADMIN' ? '#ef4444' : 
+                              u.role === 'TEACHER' ? '#10b981' : 
+                              '#2563eb', 
+                            border: 'none', 
+                            borderRadius: '8px', 
+                            color: 'white', 
+                            cursor: 'pointer', 
+                            fontSize: '0.8rem', 
+                            fontWeight: 700, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            gap: '3px',
+                            transition: 'all 0.2s ease'
+                          }}
                         >
                           🔍 Details
                         </button>
@@ -6450,7 +6606,7 @@ function AdminDashboardContent() {
 
               <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
-                  <div><strong>#Receipt:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</span></div>
+                  <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</span></div>
                   <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.paidAt ? formatDateDisplay(activeReceipt.paidAt) : formatDateDisplay(new Date())}</span></div>
                 </div>
                 <div style={{ color: '#1a1a1a' }}>
