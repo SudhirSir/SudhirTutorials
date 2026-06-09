@@ -939,12 +939,7 @@ function StudentDashboardContent() {
               </div>
             )}
 
-            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2rem 1.5rem 1.5rem' }}>
-
-              <div style={{ fontSize: '0.65rem', color: '#9ca3af', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Printed Date: {formatDateDisplay(new Date())}</span>
-                <span>Sudhir Tutorials Fee Receipt</span>
-              </div>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2.5rem 1.5rem 1.5rem' }}>
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
@@ -955,7 +950,7 @@ function StudentDashboardContent() {
 
               <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
-                  <div><strong>Receipt No:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></div>
+                  <div><strong>#Receipt:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></div>
                   <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{receiptData.paidAt ? formatDateDisplay(receiptData.paidAt) : formatDateDisplay(new Date())}</span></div>
                 </div>
                 <div style={{ color: '#1a1a1a' }}>
