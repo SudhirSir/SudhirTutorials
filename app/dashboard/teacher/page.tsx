@@ -166,6 +166,7 @@ function TeacherDashboardContent() {
   const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
+  const [showCreateTestForm, setShowCreateTestForm] = useState(false);
   const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
   
   // Profile State
@@ -407,9 +408,7 @@ Depending on your specific focus, this represents the vital equation model for t
 
   useEffect(() => {
     if (profile?.name) {
-      setTeacherGuruHistory([
-        { role: 'guru', content: `Hello, Teacher ${profile.name}! 👋 I am Digital Sahayak, your premium teaching companion. Let's make learning, lesson planning, and notes generation incredibly creative today!` }
-      ]);
+      setTeacherGuruHistory([]);
     }
   }, [profile]);
 
@@ -779,101 +778,97 @@ Depending on your specific focus, this represents the vital equation model for t
           {/* Weekly Timetable Grid */}
           <div className="glass-card" style={{ padding: '2rem', marginBottom: '3rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Weekly Timetable</h2>
+              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Timetable</h2>
               <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Teaching Schedule</span>
             </div>
             
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', paddingBottom: '0.5rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.75rem', minWidth: '800px' }}>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => {
+            {/* Today's Schedule Area */}
+            {(() => {
+              const todayIdx = new Date().getDay();
+              const todaySchedules: any[] = [];
+              classes.forEach(b => {
+                b.schedules?.forEach((s: any) => {
+                  if (s.dayOfWeek === todayIdx) todaySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
+                });
+              });
+              todaySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+              return (
+                <div style={{ 
+                  background: 'rgba(16, 185, 129, 0.08)', 
+                  borderRadius: '16px', 
+                  padding: '1.25rem', 
+                  border: '2px solid #10b981', 
+                  marginBottom: '1.5rem',
+                  boxShadow: '0 8px 24px rgba(16, 185, 129, 0.15)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#10b981' }}>📅 Today's Schedule</span>
+                    <span style={{ fontSize: '0.7rem', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: 900, textTransform: 'uppercase' }}>Active</span>
+                  </div>
+                  
+                  {todaySchedules.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {todaySchedules.map(ds => (
+                        <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
+                          </div>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem 0' }}>No classes scheduled for today.</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Other Days Schedule Area */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 850, margin: '0 0 1rem 0', color: 'var(--text-muted)' }}>📅 Weekly Calendar</h3>
+              
+              <div style={{ maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '4px' }}>
+                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => {
                   const daySchedules: any[] = [];
                   classes.forEach(b => {
                     b.schedules?.forEach((s: any) => {
                       if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
                     });
                   });
-
-                  // Sort chronologically by start time
                   daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
-
                   const isToday = idx === new Date().getDay();
 
                   return (
                     <div 
                       key={day} 
                       style={{ 
-                        background: isToday ? 'rgba(16, 185, 129, 0.06)' : 'rgba(255,255,255,0.02)', 
-                        borderRadius: '16px', 
-                        padding: '1.25rem 0.75rem', 
-                        minHeight: '160px', 
-                        border: isToday ? '2px solid #10b981' : '1px solid var(--border)',
-                        boxShadow: isToday ? '0 8px 20px rgba(16, 185, 129, 0.15)' : 'none',
-                        transition: 'all 0.3s ease',
-                        position: 'relative'
+                        background: isToday ? 'rgba(16, 185, 129, 0.04)' : 'rgba(255,255,255,0.01)', 
+                        borderRadius: '12px', 
+                        padding: '1rem', 
+                        border: isToday ? '1px solid #10b981' : '1px solid var(--border)',
+                        transition: 'all 0.2s'
                       }}
                     >
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text-muted)' }}>{day}</span>
-                        {isToday && (
-                          <span style={{ 
-                            fontSize: '0.55rem', 
-                            background: '#10b981', 
-                            color: 'white', 
-                            padding: '2px 6px', 
-                            borderRadius: '20px', 
-                            fontWeight: 900, 
-                            textTransform: 'uppercase', 
-                            letterSpacing: '0.5px',
-                            marginTop: '4px',
-                            boxShadow: '0 2px 5px rgba(16, 185, 129, 0.4)'
-                          }}>
-                            Today
-                          </span>
-                        )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.5rem' : 0 }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text-heading)' }}>{day}</span>
+                        {isToday && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800, textTransform: 'uppercase' }}>Today</span>}
                       </div>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {daySchedules.length > 0 ? (
-                          daySchedules.map(ds => (
-                            <div 
-                              key={ds.id} 
-                              style={{ 
-                                background: 'var(--card-bg-alt)', 
-                                border: '1px solid var(--border)', 
-                                color: 'var(--text)', 
-                                fontSize: '0.7rem', 
-                                padding: '8px', 
-                                borderRadius: '10px',
-                                boxShadow: 'var(--shadow-sm)',
-                                transition: 'transform 0.2s',
-                              }}
-                            >
-                              <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.75rem', marginBottom: '2px' }}>{ds.startTime}</div>
-                              {ds.subject && (
-                                <div style={{ 
-                                  fontWeight: 700, 
-                                  fontSize: '0.6rem', 
-                                  background: 'rgba(16, 185, 129, 0.1)', 
-                                  color: '#10b981', 
-                                  padding: '2px 4px', 
-                                  borderRadius: '4px', 
-                                  display: 'inline-block', 
-                                  margin: '2px 0', 
-                                  textTransform: 'uppercase', 
-                                  letterSpacing: '0.5px' 
-                                }}>
-                                  {ds.subject}
-                                </div>
-                              )}
-                              <div style={{ opacity: 0.85, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }} title={`${ds.batchName} (${ds.courseName || ''})`}>
-                                {ds.batchName}
-                              </div>
+
+                      {daySchedules.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {daySchedules.map(ds => (
+                            <div key={ds.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--card-bg-alt)', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                              <span style={{ fontWeight: 650 }}>{ds.subject || 'Lecture'} ({ds.batchName})</span>
+                              <span style={{ color: 'var(--text-muted)' }}>{ds.startTime} - {ds.endTime}</span>
                             </div>
-                          ))
-                        ) : (
-                          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.65rem', fontStyle: 'italic', padding: '1rem 0' }}>No classes</div>
-                        )}
-                      </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No classes scheduled</span>
+                      )}
                     </div>
                   );
                 })}
@@ -1303,76 +1298,117 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
       {activeTab === 'tests' && (
-        <div className="resp-grid-2col" style={{}}>
-          {/* Tests List */}
-          <div className="glass-card" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Test Schedule & Results</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {tests.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)' }}>No tests scheduled yet.</p>
-              ) : (
-                tests.map(test => (
-                  <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {formatDateDisplay(test.date)}
-                      </div>
-                      {(test.time || test.syllabus) && (
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                          {test.time && <span>🕒 Time: <strong>{test.time}</strong></span>}
-                          {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
-                         Results recorded: {test.results?.length || 0} students
-                      </div>
-                    </div>
-                    <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
-                       Enter Marks →
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
+        <div className="animate-scale-up" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Button bar to toggle between Scheduled Tests and Schedule New Test */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+            <button 
+              onClick={() => setShowCreateTestForm(false)}
+              style={{
+                padding: '0.6rem 1.25rem',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                background: !showCreateTestForm ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                color: !showCreateTestForm ? '#fff' : 'var(--text-muted)',
+                border: !showCreateTestForm ? 'none' : '1px solid var(--border)',
+                transition: 'all 0.2s'
+              }}
+            >
+              📋 Scheduled Tests
+            </button>
+            <button 
+              onClick={() => setShowCreateTestForm(true)}
+              style={{
+                padding: '0.6rem 1.25rem',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                background: showCreateTestForm ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                color: showCreateTestForm ? '#fff' : 'var(--text-muted)',
+                border: showCreateTestForm ? 'none' : '1px solid var(--border)',
+                transition: 'all 0.2s'
+              }}
+            >
+              ➕ Schedule New Test
+            </button>
           </div>
 
-          {/* Schedule New Test Form */}
-          <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Schedule New Test</h3>
-            <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="input-group">
-                <label>Test Title</label>
-                <input type="text" required placeholder="e.g. Unit 1 Exam" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+          {!showCreateTestForm ? (
+            /* Tests List */
+            <div className="glass-card" style={{ padding: '2rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 700 }}>Test Schedule & Results</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>View, record, or update student test scores.</p>
               </div>
-              <div className="input-group">
-                <label>Subject</label>
-                <input type="text" required placeholder="e.g. Chemistry" value={newTest.subject} onChange={e => setNewTest({ ...newTest, subject: e.target.value })} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {tests.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)' }}>No tests scheduled yet.</p>
+                ) : (
+                  tests.map(test => (
+                    <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {formatDateDisplay(test.date)}
+                        </div>
+                        {(test.time || test.syllabus) && (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            {test.time && <span>🕒 Time: <strong>{test.time}</strong></span>}
+                            {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
+                           Results recorded: {test.results?.length || 0} students
+                        </div>
+                      </div>
+                      <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                         Enter Marks →
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
-              <div className="input-group">
-                <label>Course</label>
-                <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                  <option value="">Select a course...</option>
-                  {uniqueCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="input-group">
-                <label>Test Date</label>
-                <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label>Test Time / Duration (Optional)</label>
-                <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={newTest.time} onChange={e => setNewTest({ ...newTest, time: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label>Syllabus (Optional)</label>
-                <textarea placeholder="e.g. Chapters 1 to 4, Laws of Motion" value={newTest.syllabus} onChange={e => setNewTest({ ...newTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
-              </div>
-              <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: '#10b981', boxShadow: 'none' }}>
-                {isCreatingTest ? 'Creating...' : 'Schedule Test'}
-              </button>
-            </form>
-          </div>
+            </div>
+          ) : (
+            /* Schedule New Test Form */
+            <div className="glass-card animate-scale-up" style={{ padding: '2rem', height: 'fit-content', maxWidth: '600px' }}>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: 'var(--primary)' }}>Schedule New Test</h3>
+              <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="input-group">
+                  <label>Test Title</label>
+                  <input type="text" required placeholder="e.g. Unit 1 Exam" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>Subject</label>
+                  <input type="text" required placeholder="e.g. Chemistry" value={newTest.subject} onChange={e => setNewTest({ ...newTest, subject: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>Course</label>
+                  <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                    <option value="">Select a course...</option>
+                    {uniqueCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label>Test Date</label>
+                  <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>Test Time / Duration (Optional)</label>
+                  <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={newTest.time} onChange={e => setNewTest({ ...newTest, time: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>Syllabus (Optional)</label>
+                  <textarea placeholder="e.g. Chapters 1 to 4, Laws of Motion" value={newTest.syllabus} onChange={e => setNewTest({ ...newTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
+                </div>
+                <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: 'var(--primary)', border: 'none' }}>
+                  {isCreatingTest ? 'Creating...' : 'Schedule Test'}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
@@ -1454,13 +1490,13 @@ Depending on your specific focus, this represents the vital equation model for t
       )}
 
       {activeTab === 'guru-ai' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
+        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '420px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
           {/* Guru AI Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)', animation: 'pulse 2s infinite' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg>
               </div>
               <div>
@@ -1469,7 +1505,7 @@ Depending on your specific focus, this represents the vital equation model for t
               </div>
             </div>
             <button 
-              onClick={() => setTeacherGuruHistory([{ role: 'guru', content: `Hello, Teacher ${profile?.name || 'Academic'}! 👋 I am Digital Sahayak, your premium teaching companion. Let's make learning, lesson planning, and notes generation incredibly creative today!` }])}
+              onClick={() => setTeacherGuruHistory([])}
               style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               🧹 Clear Chat
@@ -1509,35 +1545,44 @@ Depending on your specific focus, this represents the vital equation model for t
 
           {/* Message Feed */}
           <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
-            {teacherGuruHistory.map((msg, i) => (
-              <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
-                {msg.role !== 'user' && (
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.8rem' }}>🤖</span>
-                  </div>
-                )}
-                <div 
-                  className="chat-bubble"
-                  style={{ 
-                    background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
-                    border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                    color: msg.role === 'user' ? '#fff' : 'var(--text)',
-                    borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
-                    borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
-                  <div>
-                    <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
-                  </div>
-                </div>
-                {msg.role === 'user' && (
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
-                    {profile?.name?.charAt(0).toUpperCase() || 'T'}
-                  </div>
-                )}
+            {teacherGuruHistory.length === 0 ? (
+              <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ask me anything</span>
               </div>
-            ))}
+            ) : (
+              teacherGuruHistory.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
+                  {msg.role !== 'user' && (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                    </div>
+                  )}
+                  <div 
+                    className="chat-bubble"
+                    style={{ 
+                      background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
+                      border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+                      color: msg.role === 'user' ? '#fff' : 'var(--text)',
+                      borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
+                      borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}
+                  >
+                    <div>
+                      <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                    </div>
+                  </div>
+                  {msg.role === 'user' && (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                      {profile?.name?.charAt(0).toUpperCase() || 'T'}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
             
             {teacherGuruLoading && (
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>

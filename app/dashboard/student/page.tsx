@@ -155,15 +155,11 @@ function StudentDashboardContent() {
   const [guruQuestion, setGuruQuestion] = useState('');
   const [guruSubject, setGuruSubject] = useState('Mathematics');
   const [guruLanguage, setGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
-  const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([
-    { role: 'guru', content: 'Greetings, dear student! 👋 I am Digital Guru Ji, your virtual personal AI tutor. Let\'s conquer your academic doubts today! Choose a subject, select your preferred language, and ask away.' }
-  ]);
+  const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([]);
 
   useEffect(() => {
     if (session?.user?.name) {
-      setGuruHistory([
-        { role: 'guru', content: `Hello, ${session.user.name}! 👋 I am Digital Guru Ji, your personal AI tutor. Let's conquer your academic doubts today! Choose a subject, select your preferred language, and ask away.` }
-      ]);
+      setGuruHistory([]);
     }
   }, [session?.user?.name]);
 
@@ -415,36 +411,37 @@ function StudentDashboardContent() {
       };
 
       const cap = (window as any).Capacitor;
-      const Filesystem = cap?.Plugins?.Filesystem;
-      const Share = cap?.Plugins?.Share;
+      const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+      let Filesystem: any = null;
+      let Share: any = null;
+      if (isNative) {
+        try {
+          const fs = await import('@capacitor/filesystem');
+          Filesystem = fs.Filesystem;
+          const sh = await import('@capacitor/share');
+          Share = sh.Share;
+        } catch (e) {
+          console.error('Failed to load Capacitor plugins dynamically:', e);
+        }
+      }
 
-      if (Capacitor.isNativePlatform() && Filesystem && Share) {
+      if (isNative && Filesystem && Share) {
         const pdfDataUri = await (window as any).html2pdf().from(original).set(opt).output('datauristring');
         const base64Data = pdfDataUri.split(',')[1];
-        
         const filename = `Receipt_${receiptData?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`;
         
-        if (isPrint) {
-          const writeResult = await Filesystem.writeFile({
-            path: filename,
-            data: base64Data,
-            directory: 'CACHE'
-          });
-          await Share.share({
-            title: 'Print Receipt',
-            text: `Receipt for ${receiptData?.title}`,
-            files: [writeResult.uri],
-            dialogTitle: 'Print Receipt'
-          });
-          alert('Receipt shared successfully for printing!');
-        } else {
-          await Filesystem.writeFile({
-            path: filename,
-            data: base64Data,
-            directory: 'DOCUMENTS'
-          });
-          alert(`Success! Receipt downloaded to your Documents folder as:\n${filename}`);
-        }
+        // Write to CACHE and share to avoid write permission errors on native platforms
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE'
+        });
+        await Share.share({
+          title: 'Fee Receipt',
+          text: `Receipt for ${receiptData?.title}`,
+          files: [writeResult.uri],
+          dialogTitle: 'View/Print Fee Receipt'
+        });
       } else {
         await (window as any).html2pdf().from(original).set(opt).save();
         alert('Receipt downloaded successfully!');
@@ -539,103 +536,100 @@ function StudentDashboardContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               
               {/* Weekly Timetable */}
+              {/* Weekly Timetable */}
               <div className="glass-card" style={{ padding: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Weekly Timetable</h2>
+                  <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Timetable</h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Live Schedule</span>
                 </div>
                 
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', paddingBottom: '0.5rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.75rem', minWidth: '800px' }}>
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => {
+                {/* Today's Schedule Area */}
+                {(() => {
+                  const todayIdx = new Date().getDay();
+                  const todaySchedules: any[] = [];
+                  dashboard?.batches?.forEach(b => {
+                    b.schedules?.forEach((s: any) => {
+                      if (s.dayOfWeek === todayIdx) todaySchedules.push({ ...s, batchName: b.name });
+                    });
+                  });
+                  todaySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+                  return (
+                    <div style={{ 
+                      background: 'rgba(99, 102, 241, 0.08)', 
+                      borderRadius: '16px', 
+                      padding: '1.25rem', 
+                      border: '2px solid var(--primary)', 
+                      marginBottom: '1.5rem',
+                      boxShadow: '0 8px 24px rgba(99, 102, 241, 0.15)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)' }}>📅 Today's Schedule</span>
+                        <span style={{ fontSize: '0.7rem', background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: 900, textTransform: 'uppercase' }}>Active</span>
+                      </div>
+                      
+                      {todaySchedules.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {todaySchedules.map(ds => (
+                            <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
+                              </div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem 0' }}>No classes scheduled for today.</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Other Days Schedule Area */}
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 850, margin: '0 0 1rem 0', color: 'var(--text-muted)' }}>📅 Weekly Calendar</h3>
+                  
+                  <div style={{ maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '4px' }}>
+                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => {
                       const daySchedules: any[] = [];
                       dashboard?.batches?.forEach(b => {
                         b.schedules?.forEach((s: any) => {
                           if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name });
                         });
                       });
-
-                      // Sort chronologically by start time
                       daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
-
                       const isToday = idx === new Date().getDay();
 
                       return (
                         <div 
                           key={day} 
                           style={{ 
-                            background: isToday ? 'rgba(99, 102, 241, 0.06)' : 'rgba(255,255,255,0.02)', 
-                            borderRadius: '16px', 
-                            padding: '1.25rem 0.75rem', 
-                            minHeight: '160px', 
-                            border: isToday ? '2px solid var(--primary)' : '1px solid var(--border)',
-                            boxShadow: isToday ? '0 8px 20px rgba(99, 102, 241, 0.15)' : 'none',
-                            transition: 'all 0.3s ease',
-                            position: 'relative'
+                            background: isToday ? 'rgba(99, 102, 241, 0.04)' : 'rgba(255,255,255,0.01)', 
+                            borderRadius: '12px', 
+                            padding: '1rem', 
+                            border: isToday ? '1px solid var(--primary)' : '1px solid var(--border)',
+                            transition: 'all 0.2s'
                           }}
                         >
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? 'var(--primary)' : 'var(--text-muted)' }}>{day}</span>
-                            {isToday && (
-                              <span style={{ 
-                                fontSize: '0.55rem', 
-                                background: 'var(--primary)', 
-                                color: 'white', 
-                                padding: '2px 6px', 
-                                borderRadius: '20px', 
-                                fontWeight: 900, 
-                                textTransform: 'uppercase', 
-                                letterSpacing: '0.5px',
-                                marginTop: '4px',
-                                boxShadow: '0 2px 5px rgba(99, 102, 241, 0.4)'
-                              }}>
-                                Today
-                              </span>
-                            )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.5rem' : 0 }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? 'var(--primary)' : 'var(--text-heading)' }}>{day}</span>
+                            {isToday && <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 800, textTransform: 'uppercase' }}>Today</span>}
                           </div>
-                          
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {daySchedules.length > 0 ? (
-                              daySchedules.map(ds => (
-                                <div 
-                                  key={ds.id} 
-                                  style={{ 
-                                    background: 'var(--card-bg-alt)', 
-                                    border: '1px solid var(--border)', 
-                                    color: 'var(--text)', 
-                                    fontSize: '0.7rem', 
-                                    padding: '8px', 
-                                    borderRadius: '10px',
-                                    boxShadow: 'var(--shadow-sm)',
-                                    transition: 'transform 0.2s',
-                                  }}
-                                >
-                                  <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.75rem', marginBottom: '2px' }}>{ds.startTime}</div>
-                                  {ds.subject && (
-                                    <div style={{ 
-                                      fontWeight: 700, 
-                                      fontSize: '0.6rem', 
-                                      background: 'rgba(99, 102, 241, 0.1)', 
-                                      color: 'var(--primary)', 
-                                      padding: '2px 4px', 
-                                      borderRadius: '4px', 
-                                      display: 'inline-block', 
-                                      margin: '2px 0', 
-                                      textTransform: 'uppercase', 
-                                      letterSpacing: '0.5px' 
-                                    }}>
-                                      {ds.subject}
-                                    </div>
-                                  )}
-                                  <div style={{ opacity: 0.85, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }} title={ds.batchName}>
-                                    {ds.batchName}
-                                  </div>
+
+                          {daySchedules.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {daySchedules.map(ds => (
+                                <div key={ds.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--card-bg-alt)', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                  <span style={{ fontWeight: 650 }}>{ds.subject || 'Lecture'} ({ds.batchName})</span>
+                                  <span style={{ color: 'var(--text-muted)' }}>{ds.startTime} - {ds.endTime}</span>
                                 </div>
-                              ))
-                            ) : (
-                              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.65rem', fontStyle: 'italic', padding: '1rem 0' }}>No classes</div>
-                            )}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No classes scheduled</span>
+                          )}
                         </div>
                       );
                     })}
@@ -958,27 +952,30 @@ function StudentDashboardContent() {
               </div>
             )}
 
-            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2rem 1.5rem 1.5rem' }}>
+
+              <div style={{ fontSize: '0.65rem', color: '#9ca3af', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Printed Date: {formatDateDisplay(new Date())}</span>
+                <span>Sudhir Tutorials Fee Receipt</span>
+              </div>
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
                 <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
                 <div style={{ height: '1px', background: '#e5e7eb', width: '30px', margin: '0.5rem auto' }}></div>
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0' }}>FEE PAYMENT RECEIPT</h2>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0', whiteSpace: 'nowrap' }}>FEE PAYMENT RECEIPT</h2>
               </div>
 
-              <div style={{ marginBottom: '1rem', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Name: <span style={{ fontWeight: 700 }}>{receiptData.student?.name}</span></span>
-                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Receipt #: <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></span>
+              <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
+                  <div><strong>Receipt No:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></div>
+                  <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{receiptData.paidAt ? formatDateDisplay(receiptData.paidAt) : formatDateDisplay(new Date())}</span></div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280' }}>
-                  <span>ID: {receiptData.student?.username}</span>
-                  <span>
-                    Date: {receiptData.paidAt 
-                      ? `${formatDateDisplay(receiptData.paidAt)}, ${new Date(receiptData.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
-                      : formatDateDisplay(new Date())}
-                  </span>
+                <div style={{ color: '#1a1a1a' }}>
+                  <strong>Student Name:</strong> <span style={{ fontWeight: 700 }}>{receiptData.student?.name}</span>
+                </div>
+                <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                  <strong>Student ID:</strong> <span style={{ fontWeight: 650 }}>{receiptData.student?.username}</span>
                 </div>
               </div>
 
@@ -1499,7 +1496,7 @@ function StudentDashboardContent() {
         }
       `}</style>
       {activeTab === 'guru-ji' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
+        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '420px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
           {/* Guru Ji Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '1rem 1.5rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -1514,7 +1511,7 @@ function StudentDashboardContent() {
               </div>
             </div>
             <button 
-              onClick={() => setGuruHistory([{ role: 'guru', content: `Hello, ${session?.user?.name || 'student'}! 👋 I am Digital Guru Ji, your personal AI tutor. Let's conquer your academic doubts today! Ask away.` }])}
+              onClick={() => setGuruHistory([])}
               style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               🧹 Clear Chat
@@ -1554,39 +1551,48 @@ function StudentDashboardContent() {
 
           {/* Message Feed */}
           <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
-            {guruHistory.map((msg, i) => (
-              <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
-                {msg.role !== 'user' && (
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.8rem' }}>🤖</span>
-                  </div>
-                )}
-                <div 
-                  className="chat-bubble"
-                  style={{ 
-                    background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
-                    border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                    color: msg.role === 'user' ? '#fff' : 'var(--text)',
-                    borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
-                    borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
-                  <div>
-                    {msg.role === 'guru' ? (
-                      formatGuruResponse(msg.content)
-                    ) : (
-                      <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
-                    )}
-                  </div>
-                </div>
-                {msg.role === 'user' && (
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
-                    {session?.user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                )}
+            {guruHistory.length === 0 ? (
+              <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ask me anything</span>
               </div>
-            ))}
+            ) : (
+              guruHistory.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
+                  {msg.role !== 'user' && (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                    </div>
+                  )}
+                  <div 
+                    className="chat-bubble"
+                    style={{ 
+                      background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
+                      border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+                      color: msg.role === 'user' ? '#fff' : 'var(--text)',
+                      borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
+                      borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}
+                  >
+                    <div>
+                      {msg.role === 'guru' ? (
+                        formatGuruResponse(msg.content)
+                      ) : (
+                        <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                      )}
+                    </div>
+                  </div>
+                  {msg.role === 'user' && (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                      {session?.user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
             
             {guruLoading && (
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>

@@ -37,6 +37,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   
   // Custom states for attachments, progress & failures
   const [isUploading, setIsUploading] = useState(false);
@@ -158,6 +159,44 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     }
   };
 
+  const handleEditMessage = async (messageId: string, currentContent: string) => {
+    if (currentContent.startsWith('{') && currentContent.endsWith('}')) {
+      alert('Attachments cannot be edited.');
+      return;
+    }
+    const msg = messages.find(m => m.id === messageId);
+    if (msg) {
+      const timeElapsed = Date.now() - new Date(msg.createdAt).getTime();
+      if (timeElapsed > 240000) {
+        alert('Editing time window (4 minutes) expired.');
+        return;
+      }
+    }
+    const newContent = window.prompt('Edit your message:', currentContent);
+    if (newContent === null) return;
+    if (newContent.trim() === '') {
+      alert('Message content cannot be empty.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, content: newContent.trim() })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: data.message.content } : m));
+      } else {
+        const errData = await res.json();
+        alert(`Failed to edit message: ${errData.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error. Failed to edit message.');
+    }
+  };
+
   // Re-fetch messages when the window/app gains focus or becomes visible
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -230,9 +269,12 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             if (onMessagesRead) onMessagesRead();
           } 
           else if (data.type === 'delete') {
-            if (data.messageId) {
+            if (data.deletedByUserId === currentUserId && data.messageId) {
               setMessages(prev => prev.filter(m => m.id !== data.messageId));
-            } else if (data.chatUserId) {
+            }
+          }
+          else if (data.type === 'deleteChat') {
+            if (data.deletedByUserId === currentUserId) {
               const chatUserId = data.chatUserId;
               setMessages(prev => prev.filter(m => m.senderId !== chatUserId && m.receiverId !== chatUserId));
               setContacts(prev => prev.filter(c => c.id !== chatUserId));
@@ -240,6 +282,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                 setSelectedUser(null);
               }
             }
+          }
+          else if (data.type === 'update') {
+            const updatedMsg = data.message;
+            setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
           }
         } catch (e) {
           console.error('[SSE] Message parsing error:', e);
@@ -522,7 +568,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           const isImg = media.fileType?.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(media.fileName);
           if (isImg) {
             return (
-              <div style={{ margin: '4px 0', maxWidth: '100%', cursor: 'pointer' }} onClick={() => window.open(media.mediaUrl, '_blank')}>
+              <div style={{ margin: '4px 0', maxWidth: '100%', cursor: 'pointer' }} onClick={() => setLightboxUrl(media.mediaUrl)}>
                 <img 
                   src={media.mediaUrl} 
                   alt={media.fileName} 
@@ -985,29 +1031,55 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                        }}
                      >
                        {hoveredMessageId === m.id && !m.id.startsWith('temp-') && (
-                         <button
-                           onClick={() => handleDeleteMessage(m.id)}
-                           title="Delete Message"
-                           style={{
-                             background: 'transparent',
-                             border: 'none',
-                             color: '#f87171',
-                             cursor: 'pointer',
-                             fontSize: '0.8rem',
-                             padding: '4px',
-                             display: 'flex',
-                             alignItems: 'center',
-                             justifyContent: 'center',
-                             opacity: 0.6,
-                             transition: 'all 0.2s',
-                             flexShrink: 0
-                           }}
-                           onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                           onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                         >
-                           🗑️
-                         </button>
-                       )}
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {isMe && (Date.now() - new Date(m.createdAt).getTime() <= 240000) && (
+                              <button
+                                onClick={() => handleEditMessage(m.id, m.content)}
+                                title="Edit Message"
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#60a5fa',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                  padding: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  opacity: 0.6,
+                                  transition: 'all 0.2s',
+                                  flexShrink: 0
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                              >
+                                ✏️
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteMessage(m.id)}
+                              title="Delete Message"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#f87171',
+                                cursor: 'pointer',
+                                fontSize: '0.8rem',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                opacity: 0.6,
+                                transition: 'all 0.2s',
+                                flexShrink: 0
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        )}
                        <div style={{ 
                          padding: '0.6rem 0.95rem', 
                          borderRadius: isMe 
@@ -1248,6 +1320,60 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {lightboxUrl && (
+        <div 
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1.5rem',
+            cursor: 'zoom-out'
+          }}
+        >
+          <button 
+            onClick={() => setLightboxUrl(null)}
+            style={{
+              position: 'absolute',
+              top: '1.5rem',
+              right: '1.5rem',
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none',
+              color: 'white',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '1.5rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.2s'
+            }}
+          >
+            ×
+          </button>
+          <img 
+            src={lightboxUrl} 
+            alt="Enlarged media view" 
+            style={{
+              maxWidth: '95%',
+              maxHeight: '95vh',
+              objectFit: 'contain',
+              borderRadius: '12px',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+              cursor: 'default'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

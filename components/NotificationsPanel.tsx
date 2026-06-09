@@ -12,13 +12,30 @@ interface Notification {
   createdAt: string;
 }
 
-const typeColors: Record<string, { bg: string; color: string; icon: string }> = {
-  SYSTEM:  { bg: 'rgba(99,102,241,0.12)', color: '#818cf8', icon: '🔔' },
-  FEE:     { bg: 'rgba(239,68,68,0.12)',  color: '#f87171', icon: '💰' },
-  ALERT:   { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', icon: '⚠️' },
-  MESSAGE: { bg: 'rgba(16,185,129,0.12)', color: '#34d399', icon: '💬' },
-  REPORT:  { bg: 'rgba(239,68,68,0.15)',  color: '#ef4444', icon: '🐛' },
+const typeColors: Record<string, { bg: string; color: string }> = {
+  SYSTEM:  { bg: 'rgba(99,102,241,0.12)', color: '#818cf8' },
+  FEE:     { bg: 'rgba(239,68,68,0.12)',  color: '#f87171' },
+  ALERT:   { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24' },
+  MESSAGE: { bg: 'rgba(16,185,129,0.12)', color: '#34d399' },
+  REPORT:  { bg: 'rgba(239,68,68,0.15)',  color: '#ef4444' },
 };
+
+function getNotificationIcon(type: string) {
+  switch (type) {
+    case 'SYSTEM':
+      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
+    case 'FEE':
+      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+    case 'ALERT':
+      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+    case 'MESSAGE':
+      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+    case 'REPORT':
+      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18.6 18.6L16 16M5.4 5.4L8 8m10.6-2.6L16 8M5.4 18.6L8 16M2 12h3m14 0h3M12 2v3m0 14v3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>;
+    default:
+      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
+  }
+}
 
 function timeAgo(date: string) {
   const diff = (Date.now() - new Date(date).getTime()) / 1000;
@@ -228,7 +245,7 @@ export function NotificationsPanel({
       });
       const data = await res.json();
       if (res.ok) {
-        setComposeSuccess(`✅ Sent to ${data.sent} user(s)!`);
+        setComposeSuccess(`Sent to ${data.sent} user(s)!`);
         setComposeTitle('');
         setComposeMsg('');
         setTimeout(() => { setComposeSuccess(''); setShowCompose(false); }, 3000);
@@ -263,7 +280,7 @@ export function NotificationsPanel({
           )}
           {(role === 'ADMIN' || role === 'TEACHER') && (
             <button onClick={() => setShowCompose(!showCompose)} className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}>
-              {showCompose ? 'Cancel' : '📣 Send Notice'}
+              {showCompose ? 'Cancel' : 'Send Notice'}
             </button>
           )}
         </div>
@@ -272,7 +289,7 @@ export function NotificationsPanel({
       {/* Compose Form (Admin/Teacher) */}
       {showCompose && (
         <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid rgba(99,102,241,0.3)' }}>
-          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.1rem' }}>📣 Broadcast Notification</h3>
+          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.1rem' }}>Broadcast Notification</h3>
           {composeSuccess && (
             <div style={{ background: 'rgba(16,185,129,0.1)', color: '#34d399', padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1rem', fontWeight: 600 }}>
               {composeSuccess}
@@ -319,14 +336,14 @@ export function NotificationsPanel({
             className={`dashboard-tab-button ${panelTab === 'received' ? 'active' : ''}`}
             style={{ flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.8rem' }}
           >
-            📥 Inbox
+            Inbox
           </button>
           <button 
             onClick={() => { setLoading(true); setPanelTab('sent'); }}
             className={`dashboard-tab-button ${panelTab === 'sent' ? 'active' : ''}`}
             style={{ flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.8rem' }}
           >
-            📤 Sent Notices
+            Sent Notices
           </button>
         </div>
       )}
@@ -337,7 +354,9 @@ export function NotificationsPanel({
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
         ) : notifications.length === 0 ? (
           <div style={{ padding: '4rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem', opacity: 0.4 }}>🔔</div>
+            <div style={{ display: 'inline-flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '50%', padding: '1rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
             <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>{panelTab === 'sent' ? 'No sent broadcasts' : 'No notifications yet'}</div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{panelTab === 'sent' ? 'Broadcast notices to see them listed here.' : "You'll see messages from admin and teachers here."}</div>
           </div>
@@ -364,9 +383,10 @@ export function NotificationsPanel({
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '50%',
                   background: style.bg, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: '1rem', flexShrink: 0
+                  justifyContent: 'center', fontSize: '1rem', flexShrink: 0,
+                  color: style.color
                 }}>
-                  {style.icon}
+                  {getNotificationIcon(n.type)}
                 </div>
 
                 {/* Content */}
@@ -388,7 +408,7 @@ export function NotificationsPanel({
                   
                   {email && (
                     <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      ✉️ Contact Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
+                      Contact Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
                     </div>
                   )}
 
@@ -410,7 +430,7 @@ export function NotificationsPanel({
                           gap: '4px'
                         }}
                       >
-                        📎 View Attachment
+                        View Attachment
                       </button>
                     </div>
                   )}

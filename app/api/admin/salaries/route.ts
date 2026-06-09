@@ -198,3 +198,116 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Failed to process payout' }, { status: 500 });
   }
 }
+
+export async function PUT(req: Request) {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id, month, baseSalary, bonus, deductions, remarks, status, transactionId } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing salary record ID' }, { status: 400 });
+    }
+
+    const record = await withDbRetry(() => prisma.salaryRecord.findUnique({
+      where: { id }
+    }));
+
+    if (!record) {
+      return NextResponse.json({ error: 'Salary record not found' }, { status: 404 });
+    }
+
+    const finalBaseSalary = baseSalary !== undefined ? parseFloat(baseSalary) : record.baseSalary;
+    const finalBonus = bonus !== undefined ? parseFloat(bonus) : record.bonus;
+    const finalDeductions = deductions !== undefined ? parseFloat(deductions) : record.deductions;
+    const netPaid = Math.max(0, finalBaseSalary + finalBonus - finalDeductions);
+
+    const data: any = {
+      baseSalary: finalBaseSalary,
+      bonus: finalBonus,
+      deductions: finalDeductions,
+      netPaid,
+      remarks: remarks !== undefined ? remarks : record.remarks,
+      month: month !== undefined ? month : record.month
+    };
+
+    if (status !== undefined) {
+      data.status = status;
+      if (status === 'PAID') {
+        data.paidAt = record.paidAt || new Date();
+        data.transactionId = transactionId || record.transactionId || `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      } else {
+        data.paidAt = null;
+        data.transactionId = null;
+      }
+    }
+
+    const updatedRecord = await withDbRetry(() => prisma.salaryRecord.update({
+      where: { id },
+      data,
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+            username: true
+          }
+        }
+      }
+    }));
+
+    await logActivity(
+      session.user.id,
+      'EDIT_SALARY_RECORD',
+      `Edited salary record ID ${id} for teacher ${updatedRecord.teacher.name}. New Net Paid: ₹${netPaid}`
+    );
+
+    return NextResponse.json({ success: true, salaryRecord: updatedRecord });
+  } catch (error) {
+    console.error('Error updating salary record:', error);
+    return NextResponse.json({ error: 'Failed to update salary record' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing salary record ID' }, { status: 400 });
+    }
+
+    const record = await withDbRetry(() => prisma.salaryRecord.findUnique({
+      where: { id },
+      include: { teacher: true }
+    }));
+
+    if (!record) {
+      return NextResponse.json({ error: 'Salary record not found' }, { status: 404 });
+    }
+
+    await withDbRetry(() => prisma.salaryRecord.delete({
+      where: { id }
+    }));
+
+    await logActivity(
+      session.user.id,
+      'DELETE_SALARY_RECORD',
+      `Deleted salary record for teacher ${record.teacher.name} for ${record.month}`
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting salary record:', error);
+    return NextResponse.json({ error: 'Failed to delete salary record' }, { status: 500 });
+  }
+}

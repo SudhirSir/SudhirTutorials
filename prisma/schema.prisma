@@ -49,14 +49,16 @@ model User {
 }
 
 model Message {
-  id         String   @id @default(cuid())
-  content    String
-  senderId   String
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId String
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  isRead     Boolean  @default(false)
+  id                String   @id @default(cuid())
+  content           String
+  senderId          String
+  sender            User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId        String
+  receiver          User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  isRead            Boolean  @default(false)
+  deletedBySender   Boolean  @default(false)
+  deletedByReceiver Boolean  @default(false)
 
   @@index([senderId])
   @@index([receiverId])

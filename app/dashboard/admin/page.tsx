@@ -73,7 +73,7 @@ function AdminDashboardContent() {
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES'>('ALL');
   const [statementMonth, setStatementMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
   const [statementYear, setStatementYear] = useState(String(new Date().getFullYear()));
-  const [isLedgerListOpen, setIsLedgerListOpen] = useState(false);
+  const [isLedgerListOpen, setIsLedgerListOpen] = useState(true);
   const [courseSubTab, setCourseSubTab] = useState<'COURSES' | 'BATCHES' | 'TIMETABLE'>('COURSES');
   const [pptDifficulty, setPptDifficulty] = useState('Intermediate');
   const [pptDuration, setPptDuration] = useState('45');
@@ -212,6 +212,18 @@ function AdminDashboardContent() {
   const [isProcessingPayout, setIsProcessingPayout] = useState(false);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
 
+  // Staff Salary Edit States
+  const [editingSalaryRecord, setEditingSalaryRecord] = useState<any | null>(null);
+  const [editSalaryMonth, setEditSalaryMonth] = useState('');
+  const [editSalaryBase, setEditSalaryBase] = useState('');
+  const [editSalaryBonus, setEditSalaryBonus] = useState('');
+  const [editSalaryDeductions, setEditSalaryDeductions] = useState('');
+  const [editSalaryRemarks, setEditSalaryRemarks] = useState('');
+  const [editSalaryStatus, setEditSalaryStatus] = useState('PENDING');
+  const [editSalaryTxnId, setEditSalaryTxnId] = useState('');
+  const [isSavingSalaryEdit, setIsSavingSalaryEdit] = useState(false);
+  const [showEditSalaryModal, setShowEditSalaryModal] = useState(false);
+
   // Activity Log view state
   const [showAllActivities, setShowAllActivities] = useState(false);
 
@@ -347,9 +359,7 @@ function AdminDashboardContent() {
   const [adminGuruQuestion, setAdminGuruQuestion] = useState('');
   const [adminGuruSubject, setAdminGuruSubject] = useState('Mathematics');
   const [adminGuruLanguage, setAdminGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
-  const [adminGuruHistory, setAdminGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([
-    { role: 'guru', content: `Hello, Admin! 👋 I am Digital Sahayak, your premium administrative and planning assistant. Let's make scheduling and learning management incredibly streamlined today!` }
-  ]);
+  const [adminGuruHistory, setAdminGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([]);
   const [adminGuruLoading, setAdminGuruLoading] = useState(false);
 
   // Lesson PPT/Notes Generator States
@@ -569,6 +579,7 @@ function AdminDashboardContent() {
   const [testMarks, setTestMarks] = useState<Record<string, { marks: string, totalMarks: string, remarks: string }>>({});
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
+  const [showCreateTestForm, setShowCreateTestForm] = useState(false);
   const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
   const [testStudents, setTestStudents] = useState<any[]>([]);
 
@@ -1190,38 +1201,38 @@ function AdminDashboardContent() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      const { Capacitor } = await import('@capacitor/core');
-      const cap = (window as any).Capacitor || Capacitor;
-      const Filesystem = cap?.Plugins?.Filesystem;
-      const Share = cap?.Plugins?.Share;
+      const cap = (window as any).Capacitor;
+      const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+      let Filesystem: any = null;
+      let Share: any = null;
+      if (isNative) {
+        try {
+          const fs = await import('@capacitor/filesystem');
+          Filesystem = fs.Filesystem;
+          const sh = await import('@capacitor/share');
+          Share = sh.Share;
+        } catch (e) {
+          console.error('Failed to load Capacitor plugins dynamically:', e);
+        }
+      }
 
-      if (Capacitor.isNativePlatform() && Filesystem && Share) {
+      if (isNative && Filesystem && Share) {
         const pdfDataUri = await (window as any).html2pdf().from(original).set(opt).output('datauristring');
         const base64Data = pdfDataUri.split(',')[1];
-        
         const filename = `Receipt_${activeReceipt?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`;
         
-        if (isPrint) {
-          const writeResult = await Filesystem.writeFile({
-            path: filename,
-            data: base64Data,
-            directory: 'CACHE'
-          });
-          await Share.share({
-            title: 'Print Receipt',
-            text: `Receipt for ${activeReceipt?.title}`,
-            files: [writeResult.uri],
-            dialogTitle: 'Print Receipt'
-          });
-          alert('Receipt shared successfully for printing!');
-        } else {
-          await Filesystem.writeFile({
-            path: filename,
-            data: base64Data,
-            directory: 'DOCUMENTS'
-          });
-          alert(`Success! Receipt downloaded to your Documents folder as:\n${filename}`);
-        }
+        // Write to CACHE and share to avoid write permission errors on native platforms
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE'
+        });
+        await Share.share({
+          title: 'Fee Receipt',
+          text: `Receipt for ${activeReceipt?.title}`,
+          files: [writeResult.uri],
+          dialogTitle: 'View/Print Fee Receipt'
+        });
       } else {
         await (window as any).html2pdf().from(original).set(opt).save();
         alert('Receipt downloaded successfully!');
@@ -1234,6 +1245,214 @@ function AdminDashboardContent() {
       alert('Failed to generate PDF. Please use the Print option.');
     } finally {
       setDownloadingPDF(false);
+    }
+  };
+
+  const downloadStatementPDF = async (isPrint = false) => {
+    let tempElement: HTMLDivElement | null = null;
+    try {
+      const loadHtml2Pdf = () => {
+        return new Promise<void>((resolve, reject) => {
+          if ((window as any).html2pdf) {
+            resolve();
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load html2pdf script.'));
+          document.head.appendChild(script);
+        });
+      };
+
+      await loadHtml2Pdf();
+
+      const inflow = fees.filter(f => {
+        if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
+        const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
+        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+      });
+      
+      const outExpenses = expenses.filter(e => {
+        const date = new Date(e.date || e.createdAt);
+        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+      });
+      
+      const outSalaries = adminSalaries.filter(s => {
+        if (s.status !== 'PAID') return false;
+        const date = s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt);
+        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+      });
+      
+      const totalIn = inflow.reduce((sum, f) => sum + (f.paidAmount || (f.amount + f.lateFine - f.discount)), 0);
+      const totalExp = outExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const totalSal = outSalaries.reduce((sum, s) => sum + s.netPaid, 0);
+      const net = totalIn - (totalExp + totalSal);
+
+      tempElement = document.createElement('div');
+      tempElement.style.padding = '30px';
+      tempElement.style.background = '#ffffff';
+      tempElement.style.color = '#1f2937';
+      tempElement.style.fontFamily = 'sans-serif';
+
+      const formatD = (dStr: any) => {
+        const d = new Date(dStr);
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      };
+
+      tempElement.innerHTML = `
+        <div style="border-bottom: 3px solid #ef4444; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #ef4444;">SUDHIR TUTORIALS</div>
+            <div style="font-size: 14px; color: #4b5563;">Institute Financial Statement</div>
+          </div>
+          <div style="text-align: right">
+            <div style="font-weight: bold; font-size: 16px;">${statementMonth.toUpperCase()} ${statementYear}</div>
+            <div style="font-size: 12px; color: #6b7280;">Generated: ${formatD(new Date())}</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+          <div style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: bold;">Fee Inflows</div>
+            <div style="font-size: 18px; font-weight: bold; margin-top: 5px; color: #059669;">₹${totalIn.toLocaleString()}</div>
+          </div>
+          <div style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: bold;">Admin Expenses</div>
+            <div style="font-size: 18px; font-weight: bold; margin-top: 5px; color: #dc2626;">₹${totalExp.toLocaleString()}</div>
+          </div>
+          <div style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: bold;">Salaries Paid</div>
+            <div style="font-size: 18px; font-weight: bold; margin-top: 5px; color: #dc2626;">₹${totalSal.toLocaleString()}</div>
+          </div>
+          <div style="padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; border-left: 4px solid ${net >= 0 ? '#059669' : '#dc2626'}">
+            <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: bold;">Net Cash Flow</div>
+            <div style="font-size: 18px; font-weight: bold; margin-top: 5px; color: ${net >= 0 ? '#059669' : '#dc2626'}">₹${net.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <thead>
+            <tr>
+              <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Date</th>
+              <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Reference No.</th>
+              <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Transaction Description</th>
+              <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Type</th>
+              <th style="background: #f3f4f6; padding: 10px; text-align: right; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db; width: 110px;">Inflow (Cr)</th>
+              <th style="background: #f3f4f6; padding: 10px; text-align: right; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db; width: 110px;">Outflow (Dr)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${[
+              ...inflow.map(f => ({
+                date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
+                ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
+                desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
+                type: 'FEE_INFLOW',
+                inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
+                outflow: 0
+              })),
+              ...outExpenses.map(e => ({
+                date: new Date(e.date || e.createdAt),
+                ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
+                desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
+                type: 'EXPENSE_OUTFLOW',
+                inflow: 0,
+                outflow: e.amount
+              })),
+              ...outSalaries.map(s => ({
+                date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
+                ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
+                desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
+                type: 'SALARY_OUTFLOW',
+                inflow: 0,
+                outflow: s.netPaid
+              }))
+            ].sort((a,b) => a.date.getTime() - b.date.getTime()).map(t => `
+              <tr>
+                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${formatD(t.date)}</td>
+                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${t.ref}</td>
+                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${t.desc}</td>
+                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${t.type}</td>
+                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: bold;">${t.inflow > 0 ? '₹' + t.inflow.toLocaleString() : '-'}</td>
+                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: bold;">${t.outflow > 0 ? '₹' + t.outflow.toLocaleString() : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      document.body.appendChild(tempElement);
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Sudhir_Tutorials_Statement_${statementMonth}_${statementYear}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      const cap = (window as any).Capacitor;
+      const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+      let Filesystem: any = null;
+      let Share: any = null;
+      if (isNative) {
+        try {
+          const fs = await import('@capacitor/filesystem');
+          Filesystem = fs.Filesystem;
+          const sh = await import('@capacitor/share');
+          Share = sh.Share;
+        } catch (e) {
+          console.error('Failed to load Capacitor plugins dynamically:', e);
+        }
+      }
+
+      if (isNative && Filesystem && Share) {
+        const pdfDataUri = await (window as any).html2pdf().from(tempElement).set(opt).output('datauristring');
+        const base64Data = pdfDataUri.split(',')[1];
+        const filename = `Sudhir_Tutorials_Statement_${statementMonth}_${statementYear}.pdf`;
+        
+        // Write to CACHE and share to avoid write permission errors on native platforms
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE'
+        });
+        await Share.share({
+          title: 'Monthly Statement',
+          text: `Financial Statement for ${statementMonth} ${statementYear}`,
+          files: [writeResult.uri],
+          dialogTitle: 'View/Print Monthly Statement'
+        });
+      } else {
+        if (isPrint) {
+          await (window as any).html2pdf().from(tempElement).set(opt).toPdf().get('pdf').then((pdf: any) => {
+            const blobUrl = pdf.output('bloburl');
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = blobUrl;
+            document.body.appendChild(iframe);
+            iframe.contentWindow?.print();
+            // Remove the iframe after a short delay so it doesn't linger in DOM
+            setTimeout(() => document.body.removeChild(iframe), 60000);
+          });
+        } else {
+          await (window as any).html2pdf().from(tempElement).set(opt).save();
+          alert('Statement downloaded successfully!');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate statement PDF.');
+    } finally {
+      if (tempElement && tempElement.parentNode) {
+        tempElement.parentNode.removeChild(tempElement);
+      }
     }
   };
 
@@ -1409,6 +1628,63 @@ function AdminDashboardContent() {
       alert('Connection error occurred.');
     } finally {
       setIsProcessingPayout(false);
+    }
+  };
+
+  const handleEditSalary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSalaryRecord) return;
+    setIsSavingSalaryEdit(true);
+    try {
+      const res = await fetch('/api/admin/salaries', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingSalaryRecord.id,
+          month: editSalaryMonth,
+          baseSalary: editSalaryBase,
+          bonus: editSalaryBonus,
+          deductions: editSalaryDeductions,
+          remarks: editSalaryRemarks,
+          status: editSalaryStatus,
+          transactionId: editSalaryTxnId
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowEditSalaryModal(false);
+        setEditingSalaryRecord(null);
+        fetchAdminSalaries();
+        fetchFinSummary();
+        alert('Salary record updated successfully!');
+      } else {
+        alert(data.error || 'Failed to update salary record.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Connection error occurred.');
+    } finally {
+      setIsSavingSalaryEdit(false);
+    }
+  };
+
+  const handleDeleteSalary = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this salary record?')) return;
+    try {
+      const res = await fetch(`/api/admin/salaries?id=${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        fetchAdminSalaries();
+        fetchFinSummary();
+        alert('Salary record deleted successfully!');
+      } else {
+        alert(data.error || 'Failed to delete salary record.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Connection error occurred.');
     }
   };
 
@@ -2849,13 +3125,6 @@ function AdminDashboardContent() {
 
           {financeSubTab === 'OVERVIEW' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              {/* Premium Welcome Banner */}
-              <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(59,130,246,0.05) 100%)', border: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: '1.3rem', margin: 0, fontWeight: 800 }}>Smart Financial Command Center</h3>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem', maxWidth: '700px' }}>
-                  Monitor institute collections, record administrative expenses, and automate student invoice generation seamlessly in one unified interface.
-                </p>
-              </div>
 
               {/* ── Top Level Stats Grid ── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
@@ -2989,7 +3258,7 @@ function AdminDashboardContent() {
                     )}
                   </div>
 
-                      {showFinanceSuggestions && financeStudentSearchQuery.trim().length > 0 && (
+                      {showFinanceSuggestions && (
                     <>
                       <div 
                         onClick={() => setShowFinanceSuggestions(false)} 
@@ -3165,7 +3434,7 @@ function AdminDashboardContent() {
                           onFocus={() => setShowLedgerSuggestions(true)}
                           style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
                         />
-                        {showLedgerSuggestions && feeSearchQuery.trim().length > 0 && (
+                        {showLedgerSuggestions && (
                           <>
                             <div 
                               onClick={() => setShowLedgerSuggestions(false)} 
@@ -3328,18 +3597,9 @@ function AdminDashboardContent() {
                               </tr>
                             ))
                           ) : (() => {
-                            if (!feeSearchQuery.trim()) {
-                              return (
-                                <tr>
-                                  <td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                    🔍 Type a student's name or ID above to view their fee ledger.
-                                  </td>
-                                </tr>
-                              );
-                            }
-
                             const filteredFees = fees.filter(f => {
-                              const matchesSearch = f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
+                              const matchesSearch = !feeSearchQuery.trim() || 
+                                                    f.student?.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
                                                     f.student?.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
                               const matchesMonth = (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
                                 (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
@@ -4010,147 +4270,19 @@ function AdminDashboardContent() {
                   </div>
                   
                   <button 
-                    onClick={() => {
-                      const printWindow = window.open('', '_blank');
-                      if (!printWindow) return;
-                      
-                      const inflow = fees.filter(f => {
-                        if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
-                        const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
-                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
-                      });
-                      
-                      const outExpenses = expenses.filter(e => {
-                        const date = new Date(e.date || e.createdAt);
-                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
-                      });
-                      
-                      const outSalaries = adminSalaries.filter(s => {
-                        if (s.status !== 'PAID') return false;
-                        const date = s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt);
-                        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
-                      });
-                      
-                      const totalIn = inflow.reduce((sum, f) => sum + (f.paidAmount || (f.amount + f.lateFine - f.discount)), 0);
-                      const totalExp = outExpenses.reduce((sum, e) => sum + e.amount, 0);
-                      const totalSal = outSalaries.reduce((sum, s) => sum + s.netPaid, 0);
-                      const net = totalIn - (totalExp + totalSal);
-
-                      const formatD = (dStr: any) => {
-                        const d = new Date(dStr);
-                        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-                      };
-
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>Sudhir Tutorials - Financial Statement: ${statementMonth} ${statementYear}</title>
-                            <style>
-                              body { font-family: sans-serif; padding: 40px; color: #1f2937; }
-                              .header { border-bottom: 3px solid #ef4444; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; }
-                              .title { font-size: 24px; font-weight: bold; color: #ef4444; }
-                              .meta { font-size: 14px; color: #4b5563; }
-                              .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
-                              .card { padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
-                              .card-title { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: bold; }
-                              .card-value { font-size: 18px; font-weight: bold; margin-top: 5px; }
-                              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                              th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db; }
-                              td { padding: 10px; font-size: 13px; border-bottom: 1px solid #e5e7eb; }
-                              .inflow { color: #059669; font-weight: bold; }
-                              .outflow { color: #dc2626; font-weight: bold; }
-                            </style>
-                          </head>
-                          <body>
-                            <div class="header">
-                              <div>
-                                <div class="title">SUDHIR TUTORIALS</div>
-                                <div class="meta">Institute Financial Statement</div>
-                              </div>
-                              <div style="text-align: right">
-                                <div style="font-weight: bold">${statementMonth.toUpperCase()} ${statementYear}</div>
-                                <div class="meta">Generated: ${((() => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })())}</div>
-                              </div>
-                            </div>
-
-                            <div class="grid">
-                              <div class="card">
-                                <div class="card-title">Fee Inflows</div>
-                                <div class="card-value" style="color: #059669">₹${totalIn.toLocaleString()}</div>
-                              </div>
-                              <div class="card">
-                                <div class="card-title">Admin Expenses</div>
-                                <div class="card-value" style="color: #dc2626">₹${totalExp.toLocaleString()}</div>
-                              </div>
-                              <div class="card">
-                                <div class="card-title">Salaries Paid</div>
-                                <div class="card-value" style="color: #dc2626">₹${totalSal.toLocaleString()}</div>
-                              </div>
-                              <div class="card" style="border-left: 4px solid ${net >= 0 ? '#059669' : '#dc2626'}">
-                                <div class="card-title">Net Cash Flow</div>
-                                <div class="card-value" style="color: ${net >= 0 ? '#059669' : '#dc2626'}">₹${net.toLocaleString()}</div>
-                              </div>
-                            </div>
-
-                            <table>
-                              <thead>
-                                <tr>
-                                  <th>Date</th>
-                                  <th>Reference No.</th>
-                                  <th>Transaction Description</th>
-                                  <th>Type</th>
-                                  <th style="text-align: right">Inflow (Cr)</th>
-                                  <th style="text-align: right">Outflow (Dr)</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                ${[
-                                  ...inflow.map(f => ({
-                                    date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
-                                    ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
-                                    desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
-                                    type: 'FEE_INFLOW',
-                                    inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
-                                    outflow: 0
-                                  })),
-                                  ...outExpenses.map(e => ({
-                                    date: new Date(e.date || e.createdAt),
-                                    ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
-                                    desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
-                                    type: 'EXPENSE_OUTFLOW',
-                                    inflow: 0,
-                                    outflow: e.amount
-                                  })),
-                                  ...outSalaries.map(s => ({
-                                    date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
-                                    ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
-                                    desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
-                                    type: 'SALARY_OUTFLOW',
-                                    inflow: 0,
-                                    outflow: s.netPaid
-                                  }))
-                                ].sort((a,b) => a.date.getTime() - b.date.getTime()).map(t => `
-                                  <tr>
-                                    <td>${((d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)(t.date)}</td>
-                                    <td style="font-family: monospace">${t.ref}</td>
-                                    <td>${t.desc}</td>
-                                    <td>${t.type}</td>
-                                    <td class="inflow" style="text-align: right">${t.inflow > 0 ? '₹' + t.inflow.toLocaleString() : '-'}</td>
-                                    <td class="outflow" style="text-align: right">${t.outflow > 0 ? '₹' + t.outflow.toLocaleString() : '-'}</td>
-                                  </tr>
-                                `).join('')}
-                              </tbody>
-                            </table>
-                            <script>window.onload = function() { window.print(); }</script>
-                          </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                    }}
+                    onClick={() => downloadStatementPDF(false)}
                     className="btn-secondary" 
                     style={{ padding: '0.55rem 1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
                   >
-                    🖨️ Print Statement
+                    📥 Download PDF
+                  </button>
+
+                  <button 
+                    onClick={() => downloadStatementPDF(true)}
+                    className="btn-secondary" 
+                    style={{ padding: '0.55rem 1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '12px' }}
+                  >
+                    🖨️ Print PDF
                   </button>
 
                   <button 
@@ -5052,86 +5184,120 @@ function AdminDashboardContent() {
       )}
 
       {(activeTab === 'tests' || (activeTab === 'academics' && academicSubTab === 'tests')) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }} className="animate-scale-up tests-grid">
-          <style>{`
-            @media (max-width: 900px) {
-              .tests-grid {
-                grid-template-columns: 1fr !important;
-              }
-            }
-          `}</style>
-          {/* Tests List */}
-          <div className="glass-card" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 700 }}>📝 Scheduled Tests & Marks</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {tests.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)' }}>No tests scheduled yet.</p>
-              ) : (
-                tests.map(test => (
-                  <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {formatDateDisplay(test.date)}
-                      </div>
-                      {(test.time || test.syllabus) && (
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                          {test.time && <span>🕒 Time: <strong>{test.time}</strong></span>}
-                          {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
-                         Marks recorded: {test.results?.length || 0} students
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
-                         Enter Marks →
-                      </button>
-                      <button onClick={() => handleDeleteTest(test.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+        <div className="animate-scale-up" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Button bar to toggle between Scheduled Tests and Schedule New Test */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+            <button 
+              onClick={() => setShowCreateTestForm(false)}
+              style={{
+                padding: '0.6rem 1.25rem',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                background: !showCreateTestForm ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                color: !showCreateTestForm ? '#fff' : 'var(--text-muted)',
+                border: !showCreateTestForm ? 'none' : '1px solid var(--border)',
+                transition: 'all 0.2s'
+              }}
+            >
+              📋 Scheduled Tests
+            </button>
+            <button 
+              onClick={() => setShowCreateTestForm(true)}
+              style={{
+                padding: '0.6rem 1.25rem',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                background: showCreateTestForm ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                color: showCreateTestForm ? '#fff' : 'var(--text-muted)',
+                border: showCreateTestForm ? 'none' : '1px solid var(--border)',
+                transition: 'all 0.2s'
+              }}
+            >
+              ➕ Schedule New Test
+            </button>
           </div>
 
-          {/* Schedule New Test Form */}
-          <div className="glass-card" style={{ padding: '2rem', height: 'fit-content' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>Schedule New Test</h3>
-            <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Test Title</label>
-                <input type="text" required placeholder="e.g. Unit 1 Exam" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+          {!showCreateTestForm ? (
+            /* Tests List */
+            <div className="glass-card" style={{ padding: '2rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 700 }}>📝 Scheduled Tests & Marks</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>View, record, or update student test scores.</p>
               </div>
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Subject</label>
-                <input type="text" required placeholder="e.g. Chemistry" value={newTest.subject} onChange={e => setNewTest({ ...newTest, subject: e.target.value })} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {tests.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)' }}>No tests scheduled yet.</p>
+                ) : (
+                  tests.map(test => (
+                    <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{test.title}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Course: <strong>{test.course?.name}</strong>{test.subject && <> • Subject: <strong>{test.subject}</strong></>} • Date: {formatDateDisplay(test.date)}
+                        </div>
+                        {(test.time || test.syllabus) && (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            {test.time && <span>🕒 Time: <strong>{test.time}</strong></span>}
+                            {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>
+                           Marks recorded: {test.results?.length || 0} students
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                           Enter Marks →
+                        </button>
+                        <button onClick={() => handleDeleteTest(test.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Course Category</label>
-                <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                  <option value="">Select a Course...</option>
-                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Test Date</label>
-                <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Test Time / Duration (Optional)</label>
-                <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={newTest.time} onChange={e => setNewTest({ ...newTest, time: e.target.value })} />
-              </div>
-              <div className="input-group">
-                <label style={{ fontWeight: 600 }}>Syllabus (Optional)</label>
-                <textarea placeholder="e.g. Chapters 1 to 4, Laws of Motion" value={newTest.syllabus} onChange={e => setNewTest({ ...newTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
-              </div>
-              <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: '#10b981', border: 'none' }}>
-                {isCreatingTest ? 'Scheduling...' : '📝 Schedule Test'}
-              </button>
-            </form>
-          </div>
+            </div>
+          ) : (
+            /* Schedule New Test Form */
+            <div className="glass-card animate-scale-up" style={{ padding: '2rem', height: 'fit-content', maxWidth: '600px' }}>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: 'var(--primary)' }}>Schedule New Test</h3>
+              <form onSubmit={handleCreateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Test Title</label>
+                  <input type="text" required placeholder="e.g. Unit 1 Exam" value={newTest.title} onChange={e => setNewTest({ ...newTest, title: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Subject</label>
+                  <input type="text" required placeholder="e.g. Chemistry" value={newTest.subject} onChange={e => setNewTest({ ...newTest, subject: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Course Category</label>
+                  <select required value={newTest.courseId} onChange={e => setNewTest({ ...newTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                    <option value="">Select a Course...</option>
+                    {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Test Date</label>
+                  <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Test Time / Duration (Optional)</label>
+                  <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={newTest.time} onChange={e => setNewTest({ ...newTest, time: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Syllabus (Optional)</label>
+                  <textarea placeholder="e.g. Chapters 1 to 4, Laws of Motion" value={newTest.syllabus} onChange={e => setNewTest({ ...newTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
+                </div>
+                <button type="submit" className="btn-primary" disabled={isCreatingTest} style={{ background: 'var(--primary)', border: 'none' }}>
+                  {isCreatingTest ? 'Scheduling...' : '📝 Schedule Test'}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
@@ -5212,7 +5378,7 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'guru-ai' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '650px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
+        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '420px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
           {/* Academic Assistant Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -5227,7 +5393,7 @@ function AdminDashboardContent() {
               </div>
             </div>
             <button 
-              onClick={() => setAdminGuruHistory([{ role: 'guru', content: `Hello, Admin! 👋 I am Academic Assistant. How can I assist you in verifying details or planning today?` }])}
+              onClick={() => setAdminGuruHistory([])}
               style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               🧹 Clear Chat
@@ -5267,35 +5433,44 @@ function AdminDashboardContent() {
 
           {/* Message Feed */}
           <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
-            {adminGuruHistory.map((msg, i) => (
-              <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
-                {msg.role !== 'user' && (
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.8rem' }}>🤖</span>
-                  </div>
-                )}
-                <div 
-                  className="chat-bubble"
-                  style={{ 
-                    background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
-                    border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                    color: msg.role === 'user' ? '#fff' : 'var(--text)',
-                    borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
-                    borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
-                  <div>
-                    <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
-                  </div>
-                </div>
-                {msg.role === 'user' && (
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
-                    A
-                  </div>
-                )}
+            {adminGuruHistory.length === 0 ? (
+              <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ask me anything</span>
               </div>
-            ))}
+            ) : (
+              adminGuruHistory.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
+                  {msg.role !== 'user' && (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                    </div>
+                  )}
+                  <div 
+                    className="chat-bubble"
+                    style={{ 
+                      background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
+                      border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+                      color: msg.role === 'user' ? '#fff' : 'var(--text)',
+                      borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
+                      borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}
+                  >
+                    <div>
+                      <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                    </div>
+                  </div>
+                  {msg.role === 'user' && (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                      A
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
             
             {adminGuruLoading && (
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
@@ -6149,27 +6324,29 @@ function AdminDashboardContent() {
               </div>
             )}
 
-            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2 }}>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2rem 1.5rem 1.5rem' }}>
+              <div style={{ fontSize: '0.65rem', color: '#9ca3af', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Printed Date: {formatDateDisplay(new Date())}</span>
+                <span>Sudhir Tutorials Fee Receipt</span>
+              </div>
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
                 <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
                 <div style={{ height: '1px', background: '#e5e7eb', width: '30px', margin: '0.5rem auto' }}></div>
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0' }}>FEE PAYMENT RECEIPT</h2>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0', whiteSpace: 'nowrap' }}>FEE PAYMENT RECEIPT</h2>
               </div>
 
-              <div style={{ marginBottom: '1rem', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Name: <span style={{ fontWeight: 700 }}>{activeReceipt.student?.name}</span></span>
-                  <span style={{ color: '#1a1a1a', fontWeight: 600 }}>Receipt #: <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</span></span>
+              <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
+                  <div><strong>Receipt No:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</span></div>
+                  <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.paidAt ? formatDateDisplay(activeReceipt.paidAt) : formatDateDisplay(new Date())}</span></div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280' }}>
-                  <span>ID: {activeReceipt.student?.username}</span>
-                  <span>
-                    Date: {activeReceipt.paidAt 
-                      ? `${formatDateDisplay(activeReceipt.paidAt)}, ${new Date(activeReceipt.paidAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
-                      : formatDateDisplay(new Date())}
-                  </span>
+                <div style={{ color: '#1a1a1a' }}>
+                  <strong>Student Name:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.student?.name}</span>
+                </div>
+                <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                  <strong>Student ID:</strong> <span style={{ fontWeight: 650 }}>{activeReceipt.student?.username}</span>
                 </div>
               </div>
 
@@ -7041,34 +7218,82 @@ function AdminDashboardContent() {
                             )}
                           </td>
                           <td style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>
-                            {s.status === 'PENDING' ? (
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'flex-end' }}>
+                              {s.status === 'PENDING' ? (
+                                <button
+                                  onClick={() => {
+                                    setPayoutSalaryRecord(s);
+                                    setPayoutTransactionId(`TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
+                                    setShowPayoutModal(true);
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.8rem',
+                                    background: '#10b981',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                  }}
+                                >
+                                  💸 Pay
+                                </button>
+                              ) : (
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                  {s.paidAt ? formatDateDisplay(s.paidAt) : 'Completed'}
+                                </div>
+                              )}
                               <button
                                 onClick={() => {
-                                  setPayoutSalaryRecord(s);
-                                  setPayoutTransactionId(`TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
-                                  setShowPayoutModal(true);
+                                  setEditingSalaryRecord(s);
+                                  setEditSalaryMonth(s.month);
+                                  setEditSalaryBase(String(s.baseSalary));
+                                  setEditSalaryBonus(String(s.bonus));
+                                  setEditSalaryDeductions(String(s.deductions));
+                                  setEditSalaryRemarks(s.remarks || '');
+                                  setEditSalaryStatus(s.status);
+                                  setEditSalaryTxnId(s.transactionId || '');
+                                  setShowEditSalaryModal(true);
                                 }}
+                                title="Edit"
                                 style={{
-                                  padding: '0.45rem 1rem',
-                                  background: '#10b981',
-                                  color: 'white',
-                                  border: 'none',
+                                  background: 'rgba(255,255,255,0.05)',
+                                  border: '1px solid var(--border)',
+                                  color: 'var(--text)',
                                   borderRadius: '8px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 700,
+                                  padding: '0.4rem',
                                   cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.8rem',
                                   transition: 'all 0.2s'
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                               >
-                                💸 Pay Salary
+                                ✏️
                               </button>
-                            ) : (
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {s.paidAt ? formatDateDisplay(s.paidAt) : 'Completed'}
-                              </div>
-                            )}
+                              <button
+                                onClick={() => handleDeleteSalary(s.id)}
+                                title="Delete"
+                                style={{
+                                  background: 'rgba(239, 68, 68, 0.1)',
+                                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                                  color: '#ef4444',
+                                  borderRadius: '8px',
+                                  padding: '0.4rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.8rem',
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                🗑️
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )) : (
@@ -7166,6 +7391,129 @@ function AdminDashboardContent() {
                 }}
               >
                 {isProcessingPayout ? 'Processing disbursement...' : '✅ Complete Disbursement'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Salary Edit Modal ─────────────────── */}
+      {showEditSalaryModal && editingSalaryRecord && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000, padding: '1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', position: 'relative', border: '1px solid var(--border)', borderRadius: '24px', background: 'var(--card-bg)' }}>
+            <button 
+              onClick={() => {
+                setShowEditSalaryModal(false);
+                setEditingSalaryRecord(null);
+              }} 
+              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ×
+            </button>
+
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>✏️ Edit Salary Record</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Update details for {editingSalaryRecord.teacher?.name}.</p>
+
+            <form onSubmit={handleEditSalary} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Billing Month *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={editSalaryMonth} 
+                    onChange={e => setEditSalaryMonth(e.target.value)} 
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+                <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Status *</label>
+                  <select 
+                    value={editSalaryStatus} 
+                    onChange={e => setEditSalaryStatus(e.target.value)} 
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="PENDING" style={{ background: 'var(--card-bg)' }}>PENDING</option>
+                    <option value="PAID" style={{ background: 'var(--card-bg)' }}>PAID</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Base Salary (₹) *</label>
+                  <input 
+                    type="number" 
+                    required 
+                    min="0"
+                    value={editSalaryBase} 
+                    onChange={e => setEditSalaryBase(e.target.value)} 
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+                <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Bonus (₹)</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={editSalaryBonus} 
+                    onChange={e => setEditSalaryBonus(e.target.value)} 
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Deductions (₹)</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={editSalaryDeductions} 
+                    onChange={e => setEditSalaryDeductions(e.target.value)} 
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
+                <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Transaction ID</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. UPI Ref (for PAID)"
+                    value={editSalaryTxnId} 
+                    onChange={e => setEditSalaryTxnId(e.target.value)} 
+                    disabled={editSalaryStatus !== 'PAID'}
+                    style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none', opacity: editSalaryStatus !== 'PAID' ? 0.5 : 1 }}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Remarks</label>
+                <input 
+                  type="text" 
+                  value={editSalaryRemarks} 
+                  onChange={e => setEditSalaryRemarks(e.target.value)} 
+                  style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', outline: 'none' }}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isSavingSalaryEdit}
+                className="btn-primary"
+                style={{ 
+                  padding: '1rem', 
+                  background: 'var(--primary)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  fontWeight: 700, 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  marginTop: '0.5rem'
+                }}
+              >
+                {isSavingSalaryEdit ? 'Saving changes...' : '💾 Save Changes'}
               </button>
             </form>
           </div>

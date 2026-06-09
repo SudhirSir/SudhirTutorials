@@ -214,19 +214,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className={`role-badge-modern ${role.toLowerCase()}`}>{role} Portal</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', marginTop: '0.25rem' }}>
                 {/* Profile Photo in Sidebar */}
-                <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
                   {profilePhoto ? (
                     <img src={profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     (session?.user?.name || 'U').charAt(0).toUpperCase()
                   )}
                 </div>
-                <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px', wordBreak: 'break-word', lineHeight: '1.2' }}>
-                    {session?.user?.name || 'User'}
-                    {isVerified && <span title="Verified" style={{ color: '#3b82f6', fontSize: '0.75rem' }}>🔵</span>}
+                <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', width: '100%', overflow: 'hidden' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={session?.user?.name || 'User'}>
+                      {session?.user?.name || 'User'}
+                    </span>
+                    {isVerified && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} aria-label="Verified Profile">
+                        <title>Verified Profile</title>
+                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#3b82f6"/>
+                      </svg>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.7rem', color: isVerified ? '#10b981' : 'var(--text-muted)' }}>
                     {isVerified ? 'Verified' : 'Online'}
@@ -414,7 +421,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         .sidebar-header {
-          padding: 2.5rem 1.75rem;
+          padding: 2.5rem 1.1rem;
         }
 
         .logo-small {

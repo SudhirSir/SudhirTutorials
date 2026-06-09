@@ -288,7 +288,7 @@ export function LecturesSection() {
                     style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'black' }}
                   >
                     <iframe
-                      src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=1&rel=0&modestbranding=1&fs=1`}
+                      src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=0&rel=0&modestbranding=1&fs=1`}
                       title={activeLecture.title}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                       allowFullScreen

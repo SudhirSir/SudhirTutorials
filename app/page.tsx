@@ -747,6 +747,150 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Mobile App Promotion Section */}
+      <section className="mobile-app-section" id="mobile-app" style={{
+        padding: '6rem 2rem',
+        background: 'linear-gradient(180deg, var(--background) 0%, rgba(99, 102, 241, 0.05) 50%, var(--background) 100%)',
+        borderTop: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)'
+      }}>
+        <div className="section-container" style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '4rem',
+          alignItems: 'center'
+        }}>
+          <div className="mobile-app-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <span style={{
+              background: 'linear-gradient(90deg, rgba(239,68,68,0.15) 0%, rgba(37,99,235,0.15) 100%)',
+              color: 'var(--primary)',
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              alignSelf: 'flex-start'
+            }}>
+              Now on Android & iOS
+            </span>
+            
+            <h2 style={{
+              fontSize: '2.5rem',
+              fontWeight: 900,
+              lineHeight: '1.2',
+              margin: 0,
+              color: 'var(--text)',
+              letterSpacing: '-1px'
+            }}>
+              Download Our <span className="gradient-text">Mobile App</span>
+            </h2>
+
+            <p style={{
+              fontSize: '1.05rem',
+              lineHeight: '1.6',
+              color: 'var(--text-muted)',
+              margin: 0
+            }}>
+              Take your learning workspace wherever you go! With the official Sudhir Tutorials mobile companion, students can join live online batches, chat directly with teachers, receive instant notice board broadcasts, check schedules, and review fee ledger status on the move.
+            </p>
+
+            <ul style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: '0.5rem 0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              {[
+                '📅 Scrollable Daily/Weekly Batch Timetables',
+                '💬 Safe & Secure Single-Sided Chat Deletion',
+                '🔴 Live Broadcast Stream Player & Video Archive',
+                '💵 Instant Online Fee Payments & PDF Receipt Downloads'
+              ].map((benefit, idx) => (
+                <li key={idx} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.95rem',
+                  color: 'var(--text)',
+                  fontWeight: 600
+                }}>
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+
+            <div style={{ marginTop: '1rem' }}>
+              <a 
+                href="https://drive.google.com/drive/folders/1q1hIGvl-ilAepbElMnR3y96IRqnh32Gw?usp=drive_link" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn-primary"
+                style={{
+                  padding: '1rem 2rem',
+                  borderRadius: '16px',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 8px 30px rgba(99, 102, 241, 0.3)'
+                }}
+              >
+                📲 Download Our Mobile App
+              </a>
+            </div>
+          </div>
+
+          <div className="mobile-app-image-side" style={{
+            position: 'relative',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            {/* Background glowing aura */}
+            <div style={{
+              position: 'absolute',
+              width: '350px',
+              height: '350px',
+              background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(239,68,68,0.05) 50%, transparent 100%)',
+              filter: 'blur(40px)',
+              zIndex: 0
+            }}></div>
+
+            <div style={{
+              position: 'relative',
+              zIndex: 1,
+              maxWidth: '100%',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+              border: '1px solid var(--border)',
+              transition: 'transform 0.4s ease'
+            }}
+            >
+              <Image 
+                src="/mobile_app_promo.png" 
+                alt="Sudhir Sir and the Mobile App" 
+                width={450} 
+                height={450}
+                style={{
+                  display: 'block',
+                  maxWidth: '100%',
+                  height: 'auto',
+                  objectFit: 'cover'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="footer-container">
         <div className="footer-grid">
@@ -1893,6 +2037,18 @@ export default function Home() {
           .features-layout {
             grid-template-columns: 1fr !important;
             gap: 3rem;
+          }
+          .mobile-app-section .section-container {
+            grid-template-columns: 1fr !important;
+            gap: 3rem !important;
+            text-align: center !important;
+          }
+          .mobile-app-content {
+            align-items: center !important;
+          }
+          .mobile-app-content ul {
+            align-items: flex-start !important;
+            margin: 0.5rem auto !important;
           }
           .footer-grid {
             grid-template-columns: 1fr 1fr;
