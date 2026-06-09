@@ -43,6 +43,19 @@ export default function Home() {
   const [admissionsError, setAdmissionsError] = useState<string>("");
   const [admissionsSuccess, setAdmissionsSuccess] = useState<string | null>(null);
 
+  // Careers modal states
+  const [showCareersModal, setShowCareersModal] = useState<boolean>(false);
+  const [careersName, setCareersName] = useState<string>("");
+  const [careersEmail, setCareersEmail] = useState<string>("");
+  const [careersPhone, setCareersPhone] = useState<string>("");
+  const [careersPosition, setCareersPosition] = useState<string>("Mathematics Teacher");
+  const [careersExperience, setCareersExperience] = useState<string>("");
+  const [careersCoverLetter, setCareersCoverLetter] = useState<string>("");
+  const [careersFile, setCareersFile] = useState<File | null>(null);
+  const [careersSuccess, setCareersSuccess] = useState<string | null>(null);
+  const [careersError, setCareersError] = useState<string>("");
+  const [careersSubmitting, setCareersSubmitting] = useState<boolean>(false);
+
   // Bug Report states
   const [showReportBugModal, setShowReportBugModal] = useState<boolean>(false);
   const [reportTitle, setReportTitle] = useState<string>("");
@@ -281,6 +294,70 @@ export default function Home() {
     }
   };
 
+  // Careers submit handler
+  const handleCareersSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCareersSubmitting(true);
+    setCareersError("");
+    setCareersSuccess(null);
+
+    // Validate
+    if (!careersName.trim() || !careersEmail.trim() || !careersPhone.trim() || !careersPosition || !careersExperience.trim()) {
+      setCareersError("Please fill out all mandatory fields.");
+      setCareersSubmitting(false);
+      return;
+    }
+    if (!/^\d{10}$/.test(careersPhone.trim())) {
+      setCareersError("Phone number must be exactly 10 digits.");
+      setCareersSubmitting(false);
+      return;
+    }
+    if (careersName.length > 150 || !/^[a-zA-Z\s]+$/.test(careersName)) {
+      setCareersError("Name must contain only alphabets and spaces, and be at most 150 characters.");
+      setCareersSubmitting(false);
+      return;
+    }
+    if (!careersFile) {
+      setCareersError("Please attach your resume file (PDF or DOCX).");
+      setCareersSubmitting(false);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('name', careersName);
+      formData.append('email', careersEmail);
+      formData.append('phone', careersPhone);
+      formData.append('position', careersPosition);
+      formData.append('experience', careersExperience);
+      formData.append('coverLetter', careersCoverLetter);
+      formData.append('file', careersFile);
+
+      const res = await fetch('/api/careers/apply', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCareersSuccess(data.appNumber);
+        // Reset fields
+        setCareersName("");
+        setCareersEmail("");
+        setCareersPhone("");
+        setCareersPosition("Mathematics Teacher");
+        setCareersExperience("");
+        setCareersCoverLetter("");
+        setCareersFile(null);
+      } else {
+        setCareersError(data.error || "Submission failed. Please try again.");
+      }
+    } catch (err) {
+      setCareersError("Network error. Could not connect to system.");
+    } finally {
+      setCareersSubmitting(false);
+    }
+  };
+
   // Simulated AI Doubt Solver
   const handleSolveDoubt = (e: React.FormEvent) => {
     e.preventDefault();
@@ -352,6 +429,7 @@ export default function Home() {
         <nav className="navbar-links">
           <Link href="#programs" className="nav-link">Flagship Programs</Link>
           <Link href="#about" className="nav-link">Why Us</Link>
+          <span onClick={() => setShowCareersModal(true)} className="nav-link" style={{ cursor: 'pointer' }}>Careers</span>
           <span onClick={() => setShowAdmissionsModal(true)} className="nav-link" style={{ cursor: 'pointer' }}>Apply Admissions</span>
           <Link href="/login" className="login-portal-btn">
             🎓 Portal Login <span className="arrow">→</span>
@@ -932,6 +1010,7 @@ export default function Home() {
               <li><Link href="/login" className="footer-link">Student Login</Link></li>
               <li><Link href="/login" className="footer-link">Teacher Panel</Link></li>
               <li><Link href="/login" className="footer-link">Admin Command Center</Link></li>
+              <li><span onClick={() => setShowCareersModal(true)} className="footer-link" style={{ cursor: 'pointer' }}>Careers</span></li>
             </ul>
           </div>
 
@@ -1219,6 +1298,273 @@ export default function Home() {
                     {admissionsLoading ? "Submitting Inquiry..." : "🚀 Submit Admission Inquiry"}
                   </button>
                 </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Careers Modal */}
+      {showCareersModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem',
+          overflowY: 'auto'
+        }}>
+          <div className="glass-card animate-scale-up" style={{
+            width: '100%',
+            maxWidth: '850px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2.5rem',
+            border: '1px solid var(--border)',
+            borderRadius: '24px',
+            position: 'relative',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(20px)'
+          }}>
+            {/* Close Button */}
+            <button 
+              onClick={() => {
+                setShowCareersModal(false);
+                setCareersSuccess(null);
+                setCareersError("");
+              }}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: 'var(--card-bg-alt)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                borderRadius: '50%',
+                width: '36px',
+                height: '36px',
+                cursor: 'pointer',
+                fontSize: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                zIndex: 10
+              }}
+            >
+              ×
+            </button>
+
+            {careersSuccess ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>💼</div>
+                <h3 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--secondary)' }}>Application Submitted!</h3>
+                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+                  Thank you for applying to Sudhir Tutorials. Your job application has been registered successfully.
+                </p>
+                <div style={{
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px dashed var(--secondary)',
+                  padding: '1.25rem',
+                  borderRadius: '16px',
+                  display: 'inline-block',
+                  marginBottom: '2rem'
+                }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800 }}>Application Ref Number</span>
+                  <strong style={{ fontSize: '1.8rem', color: 'var(--secondary)', letterSpacing: '1px' }}>{careersSuccess}</strong>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Our recruitment team will review your resume and contact you if your profile matches our requirements.
+                </p>
+                <button 
+                  onClick={() => {
+                    setShowCareersModal(false);
+                    setCareersSuccess(null);
+                  }}
+                  className="btn-primary"
+                  style={{ marginTop: '2rem', border: 'none', width: '100%' }}
+                >
+                  Close Window
+                </button>
+              </div>
+            ) : (
+              <div>
+                <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--primary)', letterSpacing: '-0.5px' }}>
+                  Work with <span className="text-gradient">Sudhir Tutorials</span>
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: '1.5' }}>
+                  Join Ludhiana's premier academic coaching institute. We are always looking for passionate educators and administrators who want to make a real difference.
+                </p>
+
+                {/* Grid layout for info and form */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.2fr', gap: '2.5rem' }} className="careers-modal-grid">
+                  <style>{`
+                    @media (max-width: 768px) {
+                      .careers-modal-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 2rem !important;
+                      }
+                    }
+                  `}</style>
+                  
+                  {/* Left Column: Work Culture & Perks */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ background: 'var(--surface-light)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        🧠 Our Pedagogy & Culture
+                      </h4>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
+                        At Sudhir Tutorials, work culture is built strictly on academic freedom, structured practice, and collaborative teacher training. We believe in providing premium resources so you can focus on what matters most: mentoring minds.
+                      </p>
+                    </div>
+
+                    <div style={{ background: 'var(--surface-light)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        🎁 Perks & Benefits
+                      </h4>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.82rem', color: 'var(--text)' }}>
+                        <li>📈 <strong>Competitive Salary:</strong> Performance-based yearly increments.</li>
+                        <li>🩺 <strong>Health Benefits:</strong> Comprehensive wellness coverage.</li>
+                        <li>🚀 <strong>Professional Growth:</strong> Access to structured pedagogy training.</li>
+                        <li>🎨 <strong>Digital Support:</strong> Custom LMS and AI assistant interfaces.</li>
+                      </ul>
+                    </div>
+
+                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '16px', border: '1px dashed var(--primary)' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                        🎯 Current Openings
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>
+                        • Mathematics Educator (IIT JEE Advanced)<br/>
+                        • Physics Educator (JEE/NEET Main & Adv)<br/>
+                        • Chemistry & Biology Faculty (Foundation/NEET)<br/>
+                        • Academic Counselors & Operations Leads
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Application Form */}
+                  <div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-heading)' }}>
+                      Apply For a Position
+                    </h3>
+
+                    {careersError && (
+                      <div style={{ padding: '0.85rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1rem', fontSize: '0.8rem' }}>
+                        ⚠️ {careersError}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleCareersSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div className="input-group">
+                        <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Full Name *</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. Amit Sharma"
+                          value={careersName}
+                          onChange={e => setCareersName(e.target.value)}
+                          style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="input-group">
+                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Email *</label>
+                          <input 
+                            type="email" 
+                            required 
+                            placeholder="e.g. amit@mail.com"
+                            value={careersEmail}
+                            onChange={e => setCareersEmail(e.target.value)}
+                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
+                          />
+                        </div>
+                        <div className="input-group">
+                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Phone *</label>
+                          <input 
+                            type="text" 
+                            required 
+                            placeholder="10-digit number"
+                            value={careersPhone}
+                            onChange={e => setCareersPhone(e.target.value)}
+                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1rem' }}>
+                        <div className="input-group">
+                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Position Applied For *</label>
+                          <select 
+                            required 
+                            value={careersPosition}
+                            onChange={e => setCareersPosition(e.target.value)}
+                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
+                          >
+                            <option value="Mathematics Teacher">Maths Teacher (JEE/NEET)</option>
+                            <option value="Physics Teacher">Physics Teacher (JEE/NEET)</option>
+                            <option value="Chemistry Teacher">Chemistry Teacher (JEE/NEET)</option>
+                            <option value="Biology Teacher">Biology Teacher (NEET)</option>
+                            <option value="Academic Counselor">Academic Counselor</option>
+                            <option value="LMS Administrator">LMS Administrator</option>
+                            <option value="Other">Other Position</option>
+                          </select>
+                        </div>
+                        <div className="input-group">
+                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Experience *</label>
+                          <input 
+                            type="text" 
+                            required 
+                            placeholder="e.g. 3 Years"
+                            value={careersExperience}
+                            onChange={e => setCareersExperience(e.target.value)}
+                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="input-group">
+                        <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Upload Resume (PDF/DOCX) *</label>
+                        <input 
+                          type="file" 
+                          required 
+                          accept=".pdf,.docx,.doc"
+                          onChange={e => {
+                            if (e.target.files && e.target.files[0]) {
+                              setCareersFile(e.target.files[0]);
+                            }
+                          }}
+                          style={{ padding: '0.5rem', borderRadius: '8px', border: '1px dashed var(--border)', color: 'var(--text)', fontSize: '0.8rem', width: '100%' }}
+                        />
+                      </div>
+
+                      <div className="input-group">
+                        <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Cover Letter / Notes</label>
+                        <textarea 
+                          rows={2} 
+                          placeholder="Tell us briefly about yourself..."
+                          value={careersCoverLetter}
+                          onChange={e => setCareersCoverLetter(e.target.value)}
+                          style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', resize: 'vertical' }}
+                        ></textarea>
+                      </div>
+
+                      <button 
+                        type="submit" 
+                        className="btn-primary" 
+                        style={{ border: 'none', padding: '0.75rem', fontWeight: 800, marginTop: '0.25rem', width: '100%' }}
+                        disabled={careersSubmitting}
+                      >
+                        {careersSubmitting ? "Uploading & Applying..." : "📨 Apply Now"}
+                      </button>
+                    </form>
+                  </div>
+                </div>
               </div>
             )}
           </div>

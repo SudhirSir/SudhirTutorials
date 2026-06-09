@@ -1217,23 +1217,38 @@ function AdminDashboardContent() {
         }
       }
 
-      if (isNative && Filesystem && Share) {
+      if (isNative && Filesystem) {
         const pdfDataUri = await (window as any).html2pdf().from(original).set(opt).output('datauristring');
         const base64Data = pdfDataUri.split(',')[1];
         const filename = `Receipt_${activeReceipt?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`;
         
-        // Write to CACHE and share to avoid write permission errors on native platforms
-        const writeResult = await Filesystem.writeFile({
-          path: filename,
-          data: base64Data,
-          directory: 'CACHE'
-        });
-        await Share.share({
-          title: 'Fee Receipt',
-          text: `Receipt for ${activeReceipt?.title}`,
-          files: [writeResult.uri],
-          dialogTitle: 'View/Print Fee Receipt'
-        });
+        try {
+          // Attempt to write to DOCUMENTS directory (accessible downloads/documents on mobile)
+          await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'DOCUMENTS'
+          });
+          alert(`Receipt downloaded successfully! Saved in your Documents/Downloads folder as ${filename}`);
+        } catch (err) {
+          console.error("Failed to write to DOCUMENTS, falling back to cache & share:", err);
+          // Fallback to cache and share if documents write fails
+          const writeResult = await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'CACHE'
+          });
+          if (Share) {
+            await Share.share({
+              title: 'Fee Receipt',
+              text: `Receipt for ${activeReceipt?.title}`,
+              files: [writeResult.uri],
+              dialogTitle: 'View/Print Fee Receipt'
+            });
+          } else {
+            alert('Receipt generated in cache.');
+          }
+        }
       } else {
         await (window as any).html2pdf().from(original).set(opt).save();
         alert('Receipt downloaded successfully!');
@@ -2360,7 +2375,7 @@ function AdminDashboardContent() {
               if (tab === 'academics') setAcademicSubTab('menu');
             }}
             className={`dashboard-tab-button ${activeTab === tab ? 'active' : ''}`}
-            style={{ textTransform: 'capitalize' }}
+            style={{ textTransform: 'capitalize', whiteSpace: 'nowrap' }}
           >
             {tab === 'verifications' && pendingVerifications.length > 0 && (
               <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', marginRight: '6px' }}>{pendingVerifications.length}</span>
@@ -2377,7 +2392,7 @@ function AdminDashboardContent() {
              tab === 'finances' ? 'Finances & Fees' :
              tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
-             tab === 'guru-ai' ? 'Guru AI' :
+             tab === 'guru-ai' ? 'Guru Ji' :
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
@@ -5316,7 +5331,24 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'guru-ai' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '360px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
+        <div 
+          className="animate-scale-up" 
+          style={{ 
+            padding: '0', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: 'calc(100vh - 180px)', 
+            minHeight: '360px', 
+            background: 'var(--glass-bg)', 
+            border: '1px solid var(--glass-border)', 
+            borderRadius: '24px',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: 'var(--shadow)',
+            marginBottom: '2rem', 
+            overflow: 'hidden' 
+          }}
+        >
           {/* Academic Assistant Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -5326,7 +5358,7 @@ function AdminDashboardContent() {
                 </svg>
               </div>
               <div>
-                <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ef4444', margin: 0 }}>Academic Assistant</h2>
+                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444', margin: 0, whiteSpace: 'nowrap' }}>Guru Ji</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
               </div>
             </div>
@@ -5428,7 +5460,7 @@ function AdminDashboardContent() {
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 1.2rem' }}>
               <input 
                 type="text"
-                placeholder="Ask Academic Assistant a question or planning query..." 
+                placeholder="Ask Guru Ji a question or planning query..." 
                 value={adminGuruQuestion}
                 onChange={(e) => setAdminGuruQuestion(e.target.value)}
                 onKeyDown={(e) => {

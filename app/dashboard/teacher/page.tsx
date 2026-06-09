@@ -700,7 +700,7 @@ Depending on your specific focus, this represents the vital equation model for t
             key={tab}
             onClick={() => handleTabChange(tab)}
             className={`dashboard-tab-button ${activeTab === tab ? 'active' : ''}`}
-            style={{ textTransform: 'capitalize' }}
+            style={{ textTransform: 'capitalize', whiteSpace: 'nowrap' }}
           >
             {tab === 'messages' && unreadMessages > 0 && (
               <span style={{ background: '#10b981', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', marginRight: '6px', fontWeight: 800 }}>{unreadMessages}</span>
@@ -715,7 +715,7 @@ Depending on your specific focus, this represents the vital equation model for t
              tab === 'tests' ? 'Tests & Marks' :
              tab === 'salary' ? 'Salary Records' :
              tab === 'lectures' ? 'Lectures/Classes' :
-             tab === 'guru-ai' ? 'Guru AI' :
+             tab === 'guru-ai' ? 'Guru Ji' :
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
@@ -1510,8 +1510,25 @@ Depending on your specific focus, this represents the vital equation model for t
       )}
 
       {activeTab === 'guru-ai' && (
-        <div className="glass-card animate-scale-up" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 180px)', minHeight: '580px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', marginBottom: '2rem', overflow: 'hidden' }}>
-          {/* Guru AI Header */}
+        <div 
+          className="animate-scale-up" 
+          style={{ 
+            padding: '0', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: 'calc(100vh - 180px)', 
+            minHeight: '450px', 
+            background: 'var(--glass-bg)', 
+            border: '1px solid var(--glass-border)', 
+            borderRadius: '24px',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: 'var(--shadow)',
+            marginBottom: '2rem', 
+            overflow: 'hidden' 
+          }}
+        >
+          {/* Guru Ji Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)', animation: 'pulse 2s infinite' }}>
@@ -1520,7 +1537,7 @@ Depending on your specific focus, this represents the vital equation model for t
                 </svg>
               </div>
               <div>
-                <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#10b981', margin: 0 }}>Guru AI</h2>
+                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981', margin: 0, whiteSpace: 'nowrap' }}>Guru Ji</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
               </div>
             </div>
@@ -1631,7 +1648,7 @@ Depending on your specific focus, this represents the vital equation model for t
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 1.2rem' }}>
               <input 
                 type="text"
-                placeholder="Ask Digital Sahayak a question or lesson planning query..." 
+                placeholder="Ask Guru Ji a question or lesson planning query..." 
                 value={teacherGuruQuestion}
                 onChange={(e) => setTeacherGuruQuestion(e.target.value)}
                 onKeyDown={(e) => {

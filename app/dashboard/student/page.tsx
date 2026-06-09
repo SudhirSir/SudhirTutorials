@@ -426,23 +426,38 @@ function StudentDashboardContent() {
         }
       }
 
-      if (isNative && Filesystem && Share) {
+      if (isNative && Filesystem) {
         const pdfDataUri = await (window as any).html2pdf().from(original).set(opt).output('datauristring');
         const base64Data = pdfDataUri.split(',')[1];
         const filename = `Receipt_${receiptData?.receiptNo?.replace(/\//g, '_') || 'REC_' + receiptId.slice(-6).toUpperCase()}.pdf`;
         
-        // Write to CACHE and share to avoid write permission errors on native platforms
-        const writeResult = await Filesystem.writeFile({
-          path: filename,
-          data: base64Data,
-          directory: 'CACHE'
-        });
-        await Share.share({
-          title: 'Fee Receipt',
-          text: `Receipt for ${receiptData?.title}`,
-          files: [writeResult.uri],
-          dialogTitle: 'View/Print Fee Receipt'
-        });
+        try {
+          // Attempt to write to DOCUMENTS directory (accessible downloads/documents on mobile)
+          await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'DOCUMENTS'
+          });
+          alert(`Receipt downloaded successfully! Saved in your Documents/Downloads folder as ${filename}`);
+        } catch (err) {
+          console.error("Failed to write to DOCUMENTS, falling back to cache & share:", err);
+          // Fallback to cache and share if documents write fails
+          const writeResult = await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'CACHE'
+          });
+          if (Share) {
+            await Share.share({
+              title: 'Fee Receipt',
+              text: `Receipt for ${receiptData?.title}`,
+              files: [writeResult.uri],
+              dialogTitle: 'View/Print Fee Receipt'
+            });
+          } else {
+            alert('Receipt generated in cache.');
+          }
+        }
       } else {
         await (window as any).html2pdf().from(original).set(opt).save();
         alert('Receipt downloaded successfully!');
