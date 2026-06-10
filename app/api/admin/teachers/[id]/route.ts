@@ -66,7 +66,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       experience,
       salary,
       batch,
-      createdAt
+      createdAt,
+      gender,
+      religion
     } = body;
 
     // Validate inputs
@@ -139,6 +141,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(qualification !== undefined && { qualification }),
         ...(experience !== undefined && { experience }),
         ...(salary !== undefined && { salary: parseFloat(String(salary)) }),
+        ...(gender !== undefined && { gender }),
+        ...(religion !== undefined && { religion }),
       },
       create: {
         userId: user.id,
@@ -151,6 +155,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         qualification: qualification || null,
         experience: experience || null,
         salary: salary ? parseFloat(String(salary)) : 0,
+        gender: gender || null,
+        religion: religion || null,
       },
     }));
 

@@ -50,7 +50,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const { id } = await params;
     const body = await req.json();
-    const { name, email, phone, address, dob, photoUrl, createdAt } = body;
+    const { name, email, phone, address, dob, photoUrl, createdAt, gender, religion } = body;
 
     // Validate inputs
     if (name !== undefined) {
@@ -99,6 +99,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(address !== undefined && { address }),
         ...(dob !== undefined && { dob }),
         ...(photoUrl !== undefined && { photoUrl }),
+        ...(gender !== undefined && { gender }),
+        ...(religion !== undefined && { religion }),
       },
       create: {
         userId: user.id,
@@ -107,6 +109,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         address: address || null,
         dob: dob || null,
         photoUrl: photoUrl || null,
+        gender: gender || null,
+        religion: religion || null,
       },
     }));
 

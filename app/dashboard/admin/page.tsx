@@ -708,6 +708,7 @@ function AdminDashboardContent() {
   const [fees, setFees] = useState<any[]>([]);
   const [feeSearchQuery, setFeeSearchQuery] = useState('');
   const [showLedgerSuggestions, setShowLedgerSuggestions] = useState(false);
+  const [showDirSuggestions, setShowDirSuggestions] = useState(false);
   const [showAssignSalaryForm, setShowAssignSalaryForm] = useState(false);
   const [showCreateBatchForm, setShowCreateBatchForm] = useState(false);
   const [showUploadedMaterials, setShowUploadedMaterials] = useState(false);
@@ -2593,36 +2594,12 @@ function AdminDashboardContent() {
           <QuickServicesWidget role="ADMIN" setActiveTab={setActiveTab} />
           
           {overviewStatsError && (
-            <div className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #ef4444', background: 'rgba(239, 68, 68, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>⚠️</span>
-                <div>
-                  <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Database Retrieval Congested</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Could not load overview statistics from the database. Click retry to refresh.</div>
-                </div>
+            <div className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #ef4444', background: 'rgba(239, 68, 68, 0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+              <div>
+                <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Database Retrieval Congested</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Could not load overview statistics from the database. Please try again later.</div>
               </div>
-              <button 
-                onClick={() => fetchOverviewStats()} 
-                style={{ 
-                  background: '#ef4444', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '0.5rem 1.25rem', 
-                  borderRadius: '8px', 
-                  fontSize: '0.8rem', 
-                  fontWeight: 700, 
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
-                onMouseOut={(e) => e.currentTarget.style.filter = 'none'}
-              >
-                🔄 Retry
-              </button>
             </div>
           )}
 
@@ -3109,48 +3086,97 @@ function AdminDashboardContent() {
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                <input 
-                  type="text" 
-                  placeholder="Search by Name or ID (e.g. STU12345)" 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
-                  list="user-directory-search-suggestions"
-                  style={{ 
-                    flex: 1, 
-                    minWidth: '250px', 
-                    padding: '0.75rem 1rem', 
-                    borderRadius: '8px', 
-                    background: 'var(--input-bg)', 
-                    border: `1px solid ${
-                      directoryFilter === 'STUDENT' ? 'rgba(59, 130, 246, 0.4)' : 
-                      directoryFilter === 'TEACHER' ? 'rgba(16, 185, 129, 0.4)' : 
-                      directoryFilter === 'ADMIN' ? 'rgba(239, 68, 68, 0.4)' : 
-                      'var(--border)'
-                    }`, 
-                    color: 'var(--text)',
-                    transition: 'all 0.3s ease'
-                  }}
-                />
-                <datalist id="user-directory-search-suggestions">
-                  {searchQuery.trim() ? (
-                    directoryUsers
-                      .filter(u => directoryFilter === 'ALL' || u.role === directoryFilter)
-                      .flatMap(u => [
-                        { val: u.name, desc: u.username },
-                        { val: u.username, desc: u.name }
-                      ])
-                      .filter(item => 
-                        item.val && 
-                        (item.val.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         item.desc?.toLowerCase().includes(searchQuery.toLowerCase()))
-                      )
-                      .slice(0, 15)
-                      .map((item, idx) => (
-                        <option key={idx} value={item.val} label={item.desc} />
-                      ))
-                  ) : null}
-                </datalist>
+                <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Search by Name or ID (e.g. Rahul, STU12345)..." 
+                    value={searchQuery}
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
+                      setShowDirSuggestions(true);
+                    }}
+                    onFocus={() => setShowDirSuggestions(true)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
+                    style={{ 
+                      width: '100%',
+                      padding: '0.75rem 1rem', 
+                      borderRadius: '8px', 
+                      background: 'var(--input-bg)', 
+                      border: `1px solid ${
+                        directoryFilter === 'STUDENT' ? 'rgba(59, 130, 246, 0.4)' : 
+                        directoryFilter === 'TEACHER' ? 'rgba(16, 185, 129, 0.4)' : 
+                        directoryFilter === 'ADMIN' ? 'rgba(239, 68, 68, 0.4)' : 
+                        'var(--border)'
+                      }`, 
+                      color: 'var(--text)',
+                      transition: 'all 0.3s ease'
+                    }}
+                  />
+                  {showDirSuggestions && searchQuery.trim() && (
+                    <>
+                      <div 
+                        onClick={() => setShowDirSuggestions(false)} 
+                        style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '12px',
+                        marginTop: '0.5rem',
+                        maxHeight: '250px',
+                        overflowY: 'auto',
+                        zIndex: 9999,
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                        padding: '0.5rem'
+                      }}>
+                        {(() => {
+                          const matches = directoryUsers
+                            .filter(u => directoryFilter === 'ALL' || u.role === directoryFilter)
+                            .filter(u => 
+                              u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              u.username?.toLowerCase().includes(searchQuery.toLowerCase())
+                            );
+                          if (matches.length === 0) {
+                            return (
+                              <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
+                                No users found
+                              </div>
+                            );
+                          }
+                          return matches.map(s => (
+                            <div 
+                              key={s.id}
+                              onClick={() => {
+                                setSearchQuery(s.username || s.name || '');
+                                setShowDirSuggestions(false);
+                                setSelectedUserDetail(s);
+                              }}
+                              style={{
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                color: 'var(--text)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                borderBottom: '1px solid rgba(255,255,255,0.01)'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <span>{s.name} ({s.username})</span>
+                              <span className="role-badge" style={{ fontSize: '0.65rem', background: s.role === 'STUDENT' ? 'rgba(59, 130, 246, 0.15)' : s.role === 'TEACHER' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: s.role === 'STUDENT' ? '#3b82f6' : s.role === 'TEACHER' ? '#10b981' : '#ef4444' }}>{s.role}</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </>
+                  )}
+                </div>
                 <button 
                   onClick={handleSearchDirectory} 
                   disabled={isSearching} 
@@ -3557,7 +3583,7 @@ function AdminDashboardContent() {
               <div className="glass-card search-panel-overflow" style={{ position: 'relative', zIndex: 20, overflow: 'visible', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)', border: '1px solid var(--border)' }}>
                 <div>
                   <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    Search Student Fee Statement & Ledger
+                    Search Student Fee Statement
                   </h3>
                 </div>
                 
@@ -6047,13 +6073,23 @@ function AdminDashboardContent() {
                       </select>
                     </div>
                     <div className="input-group">
-                      <label>Religion</label>
-                      <input type="text" value={editingProfile.religion || ''} onChange={e => setEditingProfile({...editingProfile, religion: e.target.value})} placeholder="e.g. Hinduism, Islam, Christianity, etc." style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }} />
-                    </div>
-                    <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-                      <label>School Name</label>
-                      <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
-                   </div>
+                       <label>Religion</label>
+                       <select 
+                         value={editingProfile.religion || ''}
+                         onChange={e => setEditingProfile({...editingProfile, religion: e.target.value})}
+                         style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                       >
+                         <option value="">Select Religion...</option>
+                         <option value="Hinduism">Hinduism</option>
+                         <option value="Islam">Islam</option>
+                         <option value="Christianity">Christianity</option>
+                         <option value="Sikhism">Sikhism</option>
+                         <option value="Buddhism">Buddhism</option>
+                         <option value="Jainism">Jainism</option>
+                         <option value="Other">Other</option>
+                       </select>
+                     </div>
+
 
                    <div className="input-group" style={{ gridColumn: '1 / -1', marginTop: '0.75rem', background: 'rgba(245,158,11,0.05)', padding: '1.25rem', borderRadius: '12px', border: '1px dashed rgba(245,158,11,0.3)' }}>
                      <label style={{ color: '#f59e0b', fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -6109,37 +6145,71 @@ function AdminDashboardContent() {
                      )}
                    </div>
                  </>
-               ) : editingProfile.role === 'TEACHER' ? (
+               ) : editingProfile.role === 'TEACHER' || editingProfile.role === 'ADMIN' ? (
                  <>
+                   {editingProfile.role === 'TEACHER' && (
+                     <>
+                       <div className="input-group">
+                         <label>Subject</label>
+                         <input type="text" value={editingProfile.subject || ''} onChange={e => setEditingProfile({...editingProfile, subject: e.target.value})} placeholder="e.g. Mathematics" />
+                       </div>
+                       <div className="input-group">
+                         <label>Assigned Batch</label>
+                         <select 
+                           value={editingProfile.batch || ''} 
+                           onChange={e => setEditingProfile({...editingProfile, batch: e.target.value})}
+                           style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                         >
+                           <option value="">Select Batch...</option>
+                           {batches.map(b => (
+                             <option key={b.id} value={b.name}>{b.name}</option>
+                           ))}
+                         </select>
+                       </div>
+                       <div className="input-group">
+                         <label>Salary (₹)</label>
+                         <input type="number" value={editingProfile.salary || ''} onChange={e => setEditingProfile({...editingProfile, salary: parseFloat(e.target.value)})} placeholder="e.g. 25000" />
+                       </div>
+                       <div className="input-group">
+                         <label>Qualification</label>
+                         <input type="text" value={editingProfile.qualification || ''} onChange={e => setEditingProfile({...editingProfile, qualification: e.target.value})} placeholder="e.g. M.Sc. B.Ed." />
+                       </div>
+                       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                         <label>Experience</label>
+                         <input type="text" value={editingProfile.experience || ''} onChange={e => setEditingProfile({...editingProfile, experience: e.target.value})} placeholder="e.g. 5 Years" />
+                       </div>
+                     </>
+                   )}
                    <div className="input-group">
-                     <label>Subject</label>
-                     <input type="text" value={editingProfile.subject || ''} onChange={e => setEditingProfile({...editingProfile, subject: e.target.value})} placeholder="e.g. Mathematics" />
-                   </div>
-                   <div className="input-group">
-                     <label>Assigned Batch</label>
+                     <label>Gender</label>
                      <select 
-                       value={editingProfile.batch || ''} 
-                       onChange={e => setEditingProfile({...editingProfile, batch: e.target.value})}
-                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                       value={editingProfile.gender || ''}
+                       onChange={e => setEditingProfile({...editingProfile, gender: e.target.value})}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
                      >
-                       <option value="">Select Batch...</option>
-                       {batches.map(b => (
-                         <option key={b.id} value={b.name}>{b.name}</option>
-                       ))}
+                       <option value="">Select Gender...</option>
+                       <option value="Male">Male</option>
+                       <option value="Female">Female</option>
+                       <option value="Other">Other</option>
                      </select>
                    </div>
                    <div className="input-group">
-                     <label>Salary (₹)</label>
-                     <input type="number" value={editingProfile.salary || ''} onChange={e => setEditingProfile({...editingProfile, salary: parseFloat(e.target.value)})} placeholder="e.g. 25000" />
-                   </div>
-                   <div className="input-group">
-                     <label>Qualification</label>
-                     <input type="text" value={editingProfile.qualification || ''} onChange={e => setEditingProfile({...editingProfile, qualification: e.target.value})} placeholder="e.g. M.Sc. B.Ed." />
-                   </div>
-                   <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-                     <label>Experience</label>
-                     <input type="text" value={editingProfile.experience || ''} onChange={e => setEditingProfile({...editingProfile, experience: e.target.value})} placeholder="e.g. 5 Years" />
-                   </div>
+                      <label>Religion</label>
+                      <select 
+                        value={editingProfile.religion || ''}
+                        onChange={e => setEditingProfile({...editingProfile, religion: e.target.value})}
+                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      >
+                        <option value="">Select Religion...</option>
+                        <option value="Hinduism">Hinduism</option>
+                        <option value="Islam">Islam</option>
+                        <option value="Christianity">Christianity</option>
+                        <option value="Sikhism">Sikhism</option>
+                        <option value="Buddhism">Buddhism</option>
+                        <option value="Jainism">Jainism</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
                  </>
                ) : null}
 
@@ -8152,6 +8222,17 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
+                  <div className="user-details-modal-grid-2col">
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Gender</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.gender || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Religion</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.religion || 'N/A'}</div>
+                    </div>
+                  </div>
+
                   <div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
                     <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.address || 'N/A'}</div>
@@ -8160,9 +8241,47 @@ function AdminDashboardContent() {
               )}
 
               {selectedUserDetail.role === 'ADMIN' && (
-                <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  💼 Admin profiles have full system-wide permissions and do not maintain restricted student or teacher records.
-                </div>
+                <>
+                  {selectedUserDetail.teacherProfile ? (
+                    <>
+                      <div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Email</div>
+                        <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.email || 'N/A'}</div>
+                      </div>
+
+                      <div className="user-details-modal-grid-2col">
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Phone</div>
+                          <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.phone || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
+                          <div style={{ fontWeight: 600 }}>{formatDobDisplay(selectedUserDetail.teacherProfile.dob)}</div>
+                        </div>
+                      </div>
+
+                      <div className="user-details-modal-grid-2col">
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Gender</div>
+                          <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.gender || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Religion</div>
+                          <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.religion || 'N/A'}</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
+                        <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.address || 'N/A'}</div>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      💼 Admin profiles have full system-wide permissions and do not maintain restricted student or teacher records.
+                    </div>
+                  )}
+                </>
               )}
                   
               {selectedUserDetail.role === 'STUDENT' && (

@@ -110,6 +110,8 @@ model TeacherProfile {
   qualification     String?
   experience        String?
   salary            Float?  @default(0)
+  gender            String?
+  religion          String?
 }
 
 model Payment {
