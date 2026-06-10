@@ -195,6 +195,8 @@ function AdminDashboardContent() {
   const [showSettingsLateFee, setShowSettingsLateFee] = useState(false);
   const [showSettingsClassFees, setShowSettingsClassFees] = useState(false);
   const [showSettingsCareers, setShowSettingsCareers] = useState(false);
+  const [showSettingsPromote, setShowSettingsPromote] = useState(false);
+  const [isPromotingStudents, setIsPromotingStudents] = useState(false);
 
   // Staff Salary States
   const [adminSalaries, setAdminSalaries] = useState<any[]>([]);
@@ -1555,6 +1557,27 @@ function AdminDashboardContent() {
       alert('Error saving settings.');
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handlePromoteAllStudents = async () => {
+    if (!confirm("Are you sure you want to promote all students to the next class grade? This action will instantly update all student profiles.")) {
+      return;
+    }
+    setIsPromotingStudents(true);
+    try {
+      const res = await fetch('/api/admin/students/promote', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`🎉 Successfully promoted ${data.promotedCount} students!`);
+        handleSearchDirectory();
+      } else {
+        alert(`⚠️ Failed to promote: ${data.error || 'Unknown error'}`);
+      }
+    } catch {
+      alert('⚠️ Network error. Please try again.');
+    } finally {
+      setIsPromotingStudents(false);
     }
   };
 
@@ -3068,12 +3091,23 @@ function AdminDashboardContent() {
                   }}
                 />
                 <datalist id="user-directory-search-suggestions">
-                  {directoryUsers.flatMap(u => [
-                    { val: u.name, desc: u.username },
-                    { val: u.username, desc: u.name }
-                  ]).filter(item => item.val).map((item, idx) => (
-                    <option key={idx} value={item.val} label={item.desc} />
-                  ))}
+                  {searchQuery.trim() ? (
+                    directoryUsers
+                      .filter(u => directoryFilter === 'ALL' || u.role === directoryFilter)
+                      .flatMap(u => [
+                        { val: u.name, desc: u.username },
+                        { val: u.username, desc: u.name }
+                      ])
+                      .filter(item => 
+                        item.val && 
+                        (item.val.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         item.desc?.toLowerCase().includes(searchQuery.toLowerCase()))
+                      )
+                      .slice(0, 15)
+                      .map((item, idx) => (
+                        <option key={idx} value={item.val} label={item.desc} />
+                      ))
+                  ) : null}
                 </datalist>
                 <button 
                   onClick={handleSearchDirectory} 
@@ -5956,6 +5990,27 @@ function AdminDashboardContent() {
                    <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                      <label>School Name</label>
                      <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
+                    </div>
+                    <div className="input-group">
+                      <label>Gender</label>
+                      <select 
+                        value={editingProfile.gender || ''}
+                        onChange={e => setEditingProfile({...editingProfile, gender: e.target.value})}
+                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                      >
+                        <option value="">Select Gender...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="input-group">
+                      <label>Religion</label>
+                      <input type="text" value={editingProfile.religion || ''} onChange={e => setEditingProfile({...editingProfile, religion: e.target.value})} placeholder="e.g. Hinduism, Islam, Christianity, etc." style={{ padding: '0.85rem 1.25rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }} />
+                    </div>
+                    <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                      <label>School Name</label>
+                      <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
                    </div>
 
                    <div className="input-group" style={{ gridColumn: '1 / -1', marginTop: '0.75rem', background: 'rgba(245,158,11,0.05)', padding: '1.25rem', borderRadius: '12px', border: '1px dashed rgba(245,158,11,0.3)' }}>
@@ -7315,6 +7370,69 @@ function AdminDashboardContent() {
             )}
           </div>
 
+          {/* Collapsible Accordion 4: Promote Student Classes */}
+          <div className="glass-card" style={{ padding: '0', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+            <button 
+              type="button"
+              onClick={() => setShowSettingsPromote(prev => !prev)}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1.25rem',
+                background: showSettingsPromote ? 'rgba(245, 158, 11, 0.05)' : 'transparent',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease',
+                color: 'var(--text)'
+              }}
+            >
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f59e0b' }}>
+                  <span>📈</span> Promote Student Classes
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
+                  Promote all students to their next respective class grade at once.
+                </p>
+              </div>
+              <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsPromote ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                ▼
+              </span>
+            </button>
+
+            {showSettingsPromote && (
+              <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
+                  This action will promote all students to the next grade class. 
+                  For example: <strong>Class 1 → Class 2</strong>, <strong>Class 12 → Graduated</strong>, and <strong>10th → 11th (Sci)</strong>. 
+                  This change is instant, safe, and will be immediately reflected in all student profiles.
+                </p>
+                
+                <button
+                  type="button"
+                  onClick={handlePromoteAllStudents}
+                  disabled={isPromotingStudents}
+                  className="btn-primary"
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
+                  }}
+                >
+                  {isPromotingStudents ? 'Promoting Students...' : '📈 Promote All Students Now'}
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Safety Warning */}
           <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', borderRadius: '10px', marginTop: '0.5rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>⚠️ Safety Warning</span>
@@ -7921,6 +8039,17 @@ function AdminDashboardContent() {
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Parent Contact</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.parentContact || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Gender</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.gender || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Religion</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.religion || 'N/A'}</div>
                     </div>
                   </div>
 

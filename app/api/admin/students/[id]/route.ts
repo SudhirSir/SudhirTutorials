@@ -80,6 +80,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       scholarship,
       aadhaarNumber,
       createdAt,
+      gender,
+      religion,
     } = body;
 
     // Validate inputs
@@ -183,6 +185,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(marksTotal !== undefined && { marksTotal: parseFloat(String(marksTotal)) }),
         ...(baseFee !== undefined && { baseFee: baseFee ? parseFloat(String(baseFee)) : 0 }),
         ...(aadhaarNumber !== undefined && { aadhaarNumber }),
+        ...(gender !== undefined && { gender }),
+        ...(religion !== undefined && { religion }),
       },
       create: {
         userId: user.id,
@@ -206,6 +210,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         marksTotal: marksTotal ? parseFloat(String(marksTotal)) : null,
         baseFee: baseFee ? parseFloat(String(baseFee)) : 0,
         aadhaarNumber: aadhaarNumber || null,
+        gender: gender || null,
+        religion: religion || null,
       },
     }));
 

@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     }
 
     const reports = await withDbRetry(() => prisma.notification.findMany({
-      where: { type: 'REPORT' },
+      where: { type: 'REPORT', userId: session.user.id },
       orderBy: { createdAt: 'desc' },
       take: 50
     }));

@@ -96,7 +96,7 @@ export async function PUT(req: Request) {
 
     const body = await req.json();
     const { name, email, phone, address, dob, photoUrl, subject, qualification, experience,
-            fatherName, parentContact, school, className } = body;
+            fatherName, parentContact, school, className, gender, religion } = body;
 
     // Validate inputs
     if (name !== undefined) {
@@ -173,6 +173,8 @@ export async function PUT(req: Request) {
           ...(school !== undefined && { school }),
           // Only admin can update className
           ...(className !== undefined && isAdmin && { className }),
+          ...(gender !== undefined && { gender }),
+          ...(religion !== undefined && { religion }),
         },
         create: {
           userId: session.user.id,
@@ -185,6 +187,8 @@ export async function PUT(req: Request) {
           parentContact: parentContact || null,
           school: school || null,
           className: isAdmin ? (className || null) : null,
+          gender: gender || null,
+          religion: religion || null,
         }
       }));
       console.log(`[API PUT /api/user/profile] Upserted StudentProfile successfully.`);

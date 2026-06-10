@@ -18,6 +18,8 @@ const profileSchema = z.object({
   phone: z.string().optional(),
   dob: z.string().optional(),
   aadhaarNumber: z.string().optional(),
+  gender: z.string().optional(),
+  religion: z.string().optional(),
 });
 
 export async function GET(req: Request) {

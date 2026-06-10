@@ -304,6 +304,19 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     return stopPolling;
   }, [startPolling, stopPolling, selectedUser?.id]);
 
+  // ── Auto-scroll to bottom unconditionally when opening a chat ──────────────
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !selectedUser) return;
+    // Use a small timeout to ensure DOM has updated with the selected user's messages
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [selectedUser?.id]);
+
   // ── Auto-scroll to bottom when messages change ────────────────────────────
   useEffect(() => {
     const el = scrollRef.current;
@@ -311,7 +324,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     // Only auto-scroll if already near the bottom (within 120px)
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     if (isNearBottom) el.scrollTop = el.scrollHeight;
-  }, [messages, selectedUser]);
+  }, [messages]);
 
   // ── Handle initialSelectedUserId prop ─────────────────────────────────────
   useEffect(() => {

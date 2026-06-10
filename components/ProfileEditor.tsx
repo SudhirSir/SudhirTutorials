@@ -79,6 +79,8 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           parentContact: data.profile?.parentContact || '',
           school: data.profile?.school || '',
           className: data.profile?.className || '',
+          gender: data.profile?.gender || '',
+          religion: data.profile?.religion || '',
         });
       } else {
         const d = await res.json().catch(() => ({}));
@@ -456,6 +458,19 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
               <div>
                 <label style={labelStyle}>Class / Grade</label>
                 <input style={inputStyle} value={form.className} onChange={e => setForm((f: any) => ({ ...f, className: e.target.value }))} disabled title="Only Admin can edit Class / Grade" />
+              </div>
+              <div>
+                <label style={labelStyle}>Gender</label>
+                <select style={inputStyle} value={form.gender} onChange={e => setForm((f: any) => ({ ...f, gender: e.target.value }))}>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Religion</label>
+                <input style={inputStyle} value={form.religion} onChange={e => setForm((f: any) => ({ ...f, religion: e.target.value }))} placeholder="e.g. Hinduism, Islam, Christianity, etc." />
               </div>
             </>
           )}

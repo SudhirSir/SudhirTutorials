@@ -92,6 +92,8 @@ model StudentProfile {
   marksObtained     Float?
   marksTotal        Float?
   aadhaarNumber     String?
+  gender            String?
+  religion          String?
 
   @@index([className])
 }
@@ -335,4 +337,20 @@ model AdmissionApplication {
   updatedAt    DateTime @updatedAt
 }
 
+model JobApplication {
+  id          String   @id @default(cuid())
+  appNumber   String   @unique
+  name        String
+  email       String
+  phone       String
+  position    String
+  experience  String
+  coverLetter String?
+  resumeUrl   String?
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@index([status])
+  @@index([createdAt])
+}

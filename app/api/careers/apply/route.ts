@@ -45,36 +45,19 @@ export async function POST(req: Request) {
       resumeUrl = `/uploads/resumes/${filename}`;
     }
 
-    // Save metadata to job_applications.json
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadDir, { recursive: true });
-    
-    const applicationsPath = join(uploadDir, 'job_applications.json');
-    let applications = [];
-    try {
-      const fileData = await readFile(applicationsPath, 'utf-8');
-      applications = JSON.parse(fileData);
-    } catch (e) {
-      // File doesn't exist yet, start with empty array
-    }
-
     const appNumber = `APP-JOB-${Date.now().toString().slice(-6)}`;
-    const newApplication = {
-      id: `job-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
-      appNumber,
-      name,
-      email,
-      phone,
-      position,
-      experience,
-      coverLetter,
-      resumeUrl,
-      status: 'PENDING',
-      createdAt: new Date().toISOString()
-    };
-
-    applications.push(newApplication);
-    await writeFile(applicationsPath, JSON.stringify(applications, null, 2));
+    const newApplication = await withDbRetry(() => prisma.jobApplication.create({
+      data: {
+        appNumber,
+        name,
+        email,
+        phone,
+        position,
+        experience,
+        coverLetter: coverLetter || null,
+        resumeUrl: resumeUrl || null,
+      }
+    }));
 
     // Send notifications to all Admins in DB
     try {

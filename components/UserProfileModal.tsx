@@ -159,6 +159,18 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
                   <span style={detailValueStyle}>{profile.fatherName}</span>
                 </div>
               )}
+              {profile.gender && (
+                <div>
+                  <span style={detailLabelStyle}>Gender</span>
+                  <span style={detailValueStyle}>{profile.gender}</span>
+                </div>
+              )}
+              {profile.religion && (
+                <div>
+                  <span style={detailLabelStyle}>Religion</span>
+                  <span style={detailValueStyle}>{profile.religion}</span>
+                </div>
+              )}
             </>
           )}
 
