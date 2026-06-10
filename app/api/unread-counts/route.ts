@@ -15,21 +15,18 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // Fetch counts in parallel for optimal speed
-    const [unreadNotifications, unreadMessages] = await Promise.all([
-      withDbRetry(() => prisma.notification.count({
-        where: {
-          userId,
-          isRead: false
-        }
-      })),
-      withDbRetry(() => prisma.message.count({
-        where: {
-          receiverId: userId,
-          isRead: false
-        }
-      }))
-    ]);
+    // Fetch counts in a single database round-trip for optimal speed
+    const countsResult = await withDbRetry(async () => {
+      const results = await prisma.$queryRaw<any[]>`
+        SELECT 
+          (SELECT COUNT(*)::int FROM "Notification" WHERE "userId" = ${userId} AND "isRead" = false) as "unreadNotifications",
+          (SELECT COUNT(*)::int FROM "Message" WHERE "receiverId" = ${userId} AND "isRead" = false) as "unreadMessages"
+      `;
+      return results[0];
+    });
+
+    const unreadNotifications = countsResult?.unreadNotifications || 0;
+    const unreadMessages = countsResult?.unreadMessages || 0;
 
     return NextResponse.json({ unreadNotifications, unreadMessages });
   } catch (error) {

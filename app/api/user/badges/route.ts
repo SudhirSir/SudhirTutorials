@@ -11,14 +11,17 @@ export async function GET() {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const [unreadMessages, unreadNotifications] = await withDbRetry(() => Promise.all([
-      withDbRetry(() => prisma.message.count({
-        where: { receiverId: session.user.id, isRead: false }
-      })),
-      withDbRetry(() => prisma.notification.count({
-        where: { userId: session.user.id, isRead: false }
-      }))
-    ]));
+    const countsResult = await withDbRetry(async () => {
+      const results = await prisma.$queryRaw<any[]>`
+        SELECT 
+          (SELECT COUNT(*)::int FROM "Message" WHERE "receiverId" = ${session.user.id} AND "isRead" = false) as "unreadMessages",
+          (SELECT COUNT(*)::int FROM "Notification" WHERE "userId" = ${session.user.id} AND "isRead" = false) as "unreadNotifications"
+      `;
+      return results[0];
+    });
+
+    const unreadMessages = countsResult?.unreadMessages || 0;
+    const unreadNotifications = countsResult?.unreadNotifications || 0;
 
     return NextResponse.json({ unreadMessages, unreadNotifications });
   } catch (error) {

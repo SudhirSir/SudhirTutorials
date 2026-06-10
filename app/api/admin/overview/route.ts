@@ -15,45 +15,39 @@ export async function GET() {
 
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-    // Run all queries in parallel – ~60% faster than sequential awaits
-    const [
-      totalStudents,
-      totalTeachers,
-      totalBatches,
-      totalCourses,
-      classStatsGroup,
-      paymentsThisMonth,
-      pendingDues
-    ] = await Promise.all([
-      withDbRetry(() => prisma.user.count({ where: { role: 'STUDENT' } })),
-      withDbRetry(() => prisma.user.count({ where: { role: 'TEACHER' } })),
-      withDbRetry(() => prisma.batch.count()),
-      withDbRetry(() => prisma.course.count()),
-      withDbRetry(() => prisma.studentProfile.groupBy({
-        by: ['className'],
-        _count: { userId: true },
-        where: { className: { not: null } },
-      })),
-      // Use paidAt so newly verified payments appear immediately
-      withDbRetry(() => prisma.payment.aggregate({
-        where: {
-          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-          paidAt: { gte: startOfMonth },
-        },
-        _sum: { paidAmount: true },
-      })),
-      withDbRetry(() => prisma.payment.aggregate({
-        where: { status: 'PENDING' },
-        _sum: { amount: true },
-      }))
-    ]);
+    const statsResult = await withDbRetry(async () => {
+      const results = await prisma.$queryRaw<any[]>`
+        SELECT 
+          (SELECT COUNT(*)::int FROM "User" WHERE role = 'STUDENT') as "totalStudents",
+          (SELECT COUNT(*)::int FROM "User" WHERE role = 'TEACHER') as "totalTeachers",
+          (SELECT COUNT(*)::int FROM "Batch") as "totalBatches",
+          (SELECT COUNT(*)::int FROM "Course") as "totalCourses",
+          (SELECT COALESCE(SUM("paidAmount"), 0)::float FROM "Payment" WHERE status IN ('PAID', 'VERIFIED', 'PAID_ONLINE') AND "paidAt" >= ${startOfMonth}) as "revenueThisMonth",
+          (SELECT COALESCE(SUM("amount"), 0)::float FROM "Payment" WHERE status = 'PENDING') as "pendingDues",
+          (SELECT COALESCE(json_agg(t), '[]'::json) FROM (
+             SELECT "className", COUNT("userId")::int as "count"
+             FROM "StudentProfile"
+             WHERE "className" IS NOT NULL
+             GROUP BY "className"
+           ) t) as "classStats"
+      `;
+      return results[0];
+    });
+
+    const totalStudents = statsResult?.totalStudents || 0;
+    const totalTeachers = statsResult?.totalTeachers || 0;
+    const totalBatches = statsResult?.totalBatches || 0;
+    const totalCourses = statsResult?.totalCourses || 0;
+    const revenueThisMonth = statsResult?.revenueThisMonth || 0;
+    const pendingDues = statsResult?.pendingDues || 0;
+    const classStatsRaw = statsResult?.classStats || [];
+
+    const classStats = classStatsRaw.map((g: any) => ({
+      className: g.className || 'Unknown',
+      count: g.count || 0,
+    }));
 
     const activityLogs: any[] = [];
-
-    const classStats = classStatsGroup.map(g => ({
-      className: g.className || 'Unknown',
-      count: g._count.userId,
-    }));
 
     const response = NextResponse.json({
       totalStudents,
@@ -61,8 +55,8 @@ export async function GET() {
       totalBatches,
       totalCourses,
       classStats,
-      revenueThisMonth: paymentsThisMonth._sum.paidAmount || 0,
-      pendingDues: pendingDues._sum.amount || 0,
+      revenueThisMonth,
+      pendingDues,
       activityLogs
     });
 

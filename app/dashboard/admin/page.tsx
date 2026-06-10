@@ -162,6 +162,7 @@ function AdminDashboardContent() {
     classStats?: Array<{ className: string; count: number }>;
   } | null>(null);
   const [isLoadingOverview, setIsLoadingOverview] = useState(false);
+  const [overviewStatsError, setOverviewStatsError] = useState(false);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
   const [newUserName, setNewUserName] = useState('');
@@ -1506,6 +1507,7 @@ function AdminDashboardContent() {
 
   const fetchOverviewStats = async () => {
     setIsLoadingOverview(true);
+    setOverviewStatsError(false);
     try {
       // cache: 'no-store' + timestamp param guarantees a fresh DB hit every call
       const res = await fetch(`/api/admin/overview?t=${Date.now()}`, {
@@ -1516,8 +1518,13 @@ function AdminDashboardContent() {
         const data = await res.json();
         setOverviewStats(data);
         if (data.activityLogs) setActivityLogs(data.activityLogs);
+      } else {
+        setOverviewStatsError(true);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setOverviewStatsError(true);
+    }
     finally { setIsLoadingOverview(false); }
   };
 
@@ -2584,18 +2591,53 @@ function AdminDashboardContent() {
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <QuickServicesWidget role="ADMIN" setActiveTab={setActiveTab} />
+          
+          {overviewStatsError && (
+            <div className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #ef4444', background: 'rgba(239, 68, 68, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+                <div>
+                  <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Database Retrieval Congested</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Could not load overview statistics from the database. Click retry to refresh.</div>
+                </div>
+              </div>
+              <button 
+                onClick={() => fetchOverviewStats()} 
+                style={{ 
+                  background: '#ef4444', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '0.5rem 1.25rem', 
+                  borderRadius: '8px', 
+                  fontSize: '0.8rem', 
+                  fontWeight: 700, 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
+                onMouseOut={(e) => e.currentTarget.style.filter = 'none'}
+              >
+                🔄 Retry
+              </button>
+            </div>
+          )}
+
           {/* Key Metrics Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {[
-              {label: 'Total Students', value: overviewStats?.totalStudents ?? 0, icon: '👥', color: '#ef4444' },
-              { label: 'Active Teachers', value: overviewStats?.totalTeachers ?? 0, icon: '👨‍🏫', color: '#10b981' },
-              { label: 'Revenue This Month', value: `₹${(overviewStats?.revenueThisMonth ?? 0).toLocaleString()}`, icon: '💰', color: '#3b82f6' },
-              { label: 'Pending Dues', value: `₹${(overviewStats?.pendingDues ?? 0).toLocaleString()}`, icon: '⚠️', color: '#ef4444' }
+              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : (isLoadingOverview ? '...' : '—'), icon: '👥', color: '#ef4444' },
+              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : (isLoadingOverview ? '...' : '—'), icon: '👨‍🏫', color: '#10b981' },
+              { label: 'Revenue This Month', value: overviewStats ? `₹${overviewStats.revenueThisMonth.toLocaleString()}` : (isLoadingOverview ? '...' : '—'), icon: '💰', color: '#3b82f6' },
+              { label: 'Pending Dues', value: overviewStats ? `₹${overviewStats.pendingDues.toLocaleString()}` : (isLoadingOverview ? '...' : '—'), icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
               <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '0.85rem', right: '0.85rem', fontSize: '1.6rem', opacity: 0.12 }}>{stat.icon}</div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.35rem', fontWeight: 700 }}>{stat.label}</div>
-                {isLoadingOverview && overviewStats === null ? (
+                {overviewStats === null ? (
                   <div style={{ height: '1.8rem', width: '60%', borderRadius: '8px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
                 ) : (
                   <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2621,18 +2663,18 @@ function AdminDashboardContent() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
-                  {isLoadingOverview && overviewStats === null ? (
+                  {overviewStats === null ? (
                     <div style={{ height: '1.8rem', width: '40px', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', margin: '4px 0' }} />
                   ) : (
-                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? 0}</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalBatches}</div>
                   )}
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
-                  {isLoadingOverview && overviewStats === null ? (
+                  {overviewStats === null ? (
                     <div style={{ height: '1.8rem', width: '40px', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', margin: '4px 0' }} />
                   ) : (
-                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? 0}</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalCourses}</div>
                   )}
                 </div>
               </div>

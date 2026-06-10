@@ -17,8 +17,8 @@ export async function GET() {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    // Parallelize all 4 independent database queries to run concurrently
-    const [courseStats, payments, totalAttendance, presentCount] = await Promise.all([
+    // Parallelize independent database queries to run concurrently
+    const [courseStats, payments, attendanceCounts] = await Promise.all([
       // 1. Enrollment by Course
       withDbRetry(() => prisma.course.findMany({
         select: {
@@ -41,10 +41,20 @@ export async function GET() {
           createdAt: true
         }
       })),
-      // 3. Attendance Overview (Global %)
-      withDbRetry(() => prisma.attendance.count()),
-      withDbRetry(() => prisma.attendance.count({ where: { status: 'PRESENT' } }))
+      // 3. Attendance Overview (Global %) in a single aggregate query
+      withDbRetry(async () => {
+        const results = await prisma.$queryRaw<any[]>`
+          SELECT 
+            COUNT(*)::int as "total",
+            COUNT(CASE WHEN status = 'PRESENT' THEN 1 END)::int as "present"
+          FROM "Attendance"
+        `;
+        return results[0] || { total: 0, present: 0 };
+      })
     ]);
+
+    const totalAttendance = attendanceCounts.total || 0;
+    const presentCount = attendanceCounts.present || 0;
 
     const enrollmentData = courseStats.map((c: any) => ({
       name: c.name,
