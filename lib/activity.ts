@@ -1,15 +1,6 @@
 import { prisma, withDbRetry } from './prisma';
 
 export async function logActivity(userId: string, action: string, details?: string) {
-  try {
-    await withDbRetry(() => prisma.activityLog.create({
-      data: {
-        userId,
-        action,
-        details,
-      },
-    }));
-  } catch (error) {
-    console.error('Failed to log activity:', error);
-  }
+  // Simple console log to avoid database write attempts and retry delays since the ActivityLog table was removed
+  console.log(`[ACTIVITY LOG] User: ${userId} | Action: ${action} | Details: ${details || 'None'}`);
 }

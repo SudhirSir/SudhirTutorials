@@ -41,7 +41,6 @@ model User {
   testResults        TestResult[]   @relation("StudentTestResults")
   materials          Material[]
   notifications      Notification[]
-  activityLogs       ActivityLog[]
   salaryRecords      SalaryRecord[]
 
   @@index([role])
@@ -279,18 +278,6 @@ model Lecture {
   createdAt    DateTime @default(now())
 
   @@index([batchId])
-}
-
-model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action    String
-  details   String?
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
 }
 
 model SalaryRecord {

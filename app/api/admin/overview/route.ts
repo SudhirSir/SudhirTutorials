@@ -23,8 +23,7 @@ export async function GET() {
       totalCourses,
       classStatsGroup,
       paymentsThisMonth,
-      pendingDues,
-      activityLogs
+      pendingDues
     ] = await Promise.all([
       withDbRetry(() => prisma.user.count({ where: { role: 'STUDENT' } })),
       withDbRetry(() => prisma.user.count({ where: { role: 'TEACHER' } })),
@@ -46,13 +45,10 @@ export async function GET() {
       withDbRetry(() => prisma.payment.aggregate({
         where: { status: 'PENDING' },
         _sum: { amount: true },
-      })),
-      withDbRetry(() => prisma.activityLog.findMany({
-        take: 50,
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { name: true } } }
       }))
     ]);
+
+    const activityLogs: any[] = [];
 
     const classStats = classStatsGroup.map(g => ({
       className: g.className || 'Unknown',
