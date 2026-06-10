@@ -907,11 +907,17 @@ function StudentDashboardContent() {
                           {test.syllabus && <span>📖 Syllabus: <strong>{test.syllabus}</strong></span>}
                         </div>
                       )}
-                      {result && (
+                      {test.isPublished && result ? (
                         <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>Score: {result.marks} / {result.totalMarks}</span>
                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{result.remarks}</span>
                         </div>
+                      ) : (
+                        !isUpcoming && (
+                          <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)', borderRadius: '6px', fontWeight: 600 }}>Result Pending</span>
+                          </div>
+                        )
                       )}
                     </div>
                     <div style={{ textAlign: 'right' }}>

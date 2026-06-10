@@ -587,6 +587,61 @@ function AdminDashboardContent() {
   const [showCreateTestForm, setShowCreateTestForm] = useState(false);
   const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
   const [testStudents, setTestStudents] = useState<any[]>([]);
+  const [editingTest, setEditingTest] = useState<any>(null);
+
+  const handleEditTest = (test: any) => {
+    setEditingTest({
+      id: test.id,
+      title: test.title,
+      subject: test.subject || '',
+      courseId: test.courseId,
+      date: new Date(test.date).toISOString().split('T')[0],
+      time: test.time || '',
+      syllabus: test.syllabus || '',
+      isPublished: test.isPublished
+    });
+  };
+
+  const handleUpdateTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTest.title || !editingTest.courseId) {
+      alert("Please fill all test fields!");
+      return;
+    }
+    try {
+      const res = await fetch('/api/teacher/tests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingTest)
+      });
+      if (res.ok) {
+        setEditingTest(null);
+        fetchTests();
+        alert('Test updated successfully!');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update test');
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handlePublishResult = async (testId: string) => {
+    if (!confirm('Are you sure you want to publish the results for this test? Once published, students will be able to view their marks.')) return;
+    try {
+      const res = await fetch('/api/teacher/tests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: testId, isPublished: true })
+      });
+      if (res.ok) {
+        fetchTests();
+        alert('Results published successfully!');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to publish results');
+      }
+    } catch (e) { console.error(e); }
+  };
 
   const fetchTests = async () => {
     try {
@@ -2572,7 +2627,6 @@ function AdminDashboardContent() {
                 }}
               >
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: svc.textColor, margin: 0 }}>{svc.title}</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{svc.desc}</p>
                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: svc.textColor, marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   Open Service ➔
                 </span>
@@ -3199,23 +3253,23 @@ function AdminDashboardContent() {
                 </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
                 {filteredDirectoryUsers.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', gridColumn: '1/-1', textAlign: 'center', padding: '3rem 0' }}>No users found.</p>
                 ) : (
                   filteredDirectoryUsers.map(u => (
-                    <div key={u.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div key={u.id} style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem' }}>
                         <div style={{ 
-                          width: '50px', 
-                          height: '50px', 
+                          width: '40px', 
+                          height: '40px', 
                           borderRadius: '50%', 
                           overflow: 'hidden', 
                           background: 'rgba(255,255,255,0.05)', 
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'center', 
-                          fontSize: '1.2rem', 
+                          fontSize: '1rem', 
                           fontWeight: 'bold', 
                           border: `2px solid ${
                             u.role === 'ADMIN' ? '#ef4444' : 
@@ -3234,25 +3288,25 @@ function AdminDashboardContent() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
                             <span 
                               onClick={() => setActiveProfileUserId(u.id)}
-                              style={{ fontWeight: 'bold', fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                              style={{ fontWeight: 'bold', fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
                               className="clickable-name"
                             >
                               {u.name || 'Unnamed'}
                             </span>
-                            <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '20px', background: u.role === 'ADMIN' ? 'rgba(239,68,68,0.2)' : u.role === 'TEACHER' ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)', color: u.role === 'ADMIN' ? '#f87171' : u.role === 'TEACHER' ? '#34d399' : '#60a5fa', flexShrink: 0 }}>
+                            <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '20px', background: u.role === 'ADMIN' ? 'rgba(239,68,68,0.2)' : u.role === 'TEACHER' ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)', color: u.role === 'ADMIN' ? '#f87171' : u.role === 'TEACHER' ? '#34d399' : '#60a5fa', flexShrink: 0 }}>
                               {u.role}
                             </span>
                           </div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{u.username}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{u.username}</div>
                         </div>
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Joined: {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}</div>
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Joined: {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}</div>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
                         <button 
                           onClick={() => setSelectedUserDetail(u)}
                           style={{ 
                             flex: 1, 
-                            padding: '0.5rem', 
+                            padding: '0.4rem 0.5rem', 
                             background: 
                               u.role === 'ADMIN' ? '#ef4444' : 
                               u.role === 'TEACHER' ? '#10b981' : 
@@ -3261,7 +3315,7 @@ function AdminDashboardContent() {
                             borderRadius: '8px', 
                             color: 'white', 
                             cursor: 'pointer', 
-                            fontSize: '0.8rem', 
+                            fontSize: '0.72rem', 
                             fontWeight: 700, 
                             display: 'flex', 
                             alignItems: 'center', 
@@ -3274,7 +3328,7 @@ function AdminDashboardContent() {
                         </button>
                         <button 
                           type="button" disabled={isFetchingProfile === u.id} onClick={(e) => { e.preventDefault(); fetchProfile(u.id, u.role); }}
-                          style={{ flex: 1, padding: '0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
+                          style={{ flex: 1, padding: '0.4rem 0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
                         >
                           ✎ Edit
                         </button>
@@ -3589,7 +3643,6 @@ function AdminDashboardContent() {
                 
                 <div style={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.25rem 0.5rem' }}>
-                    <span style={{ fontSize: '1.2rem', padding: '0 0.5rem', opacity: 0.7 }}>🔍</span>
                     <input 
                       type="text"
                       placeholder="Search student name or ID (e.g. Rahul, STU02837)..."
@@ -3781,7 +3834,7 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     {ledgerViewMode === 'ALL' && (
                       <div style={{ position: 'relative', display: 'flex', gap: '1rem' }}>
                         <input 
@@ -3885,9 +3938,9 @@ function AdminDashboardContent() {
                     <button
                       onClick={() => setIsLedgerListOpen(!isLedgerListOpen)}
                       style={{
-                        padding: '0.6rem 1.25rem',
+                        padding: '0.4rem 0.75rem',
                         borderRadius: '10px',
-                        fontSize: '0.8rem',
+                        fontSize: '0.72rem',
                         fontWeight: 700,
                         cursor: 'pointer',
                         background: isLedgerListOpen ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
@@ -5033,14 +5086,14 @@ function AdminDashboardContent() {
                         <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
                           <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{batch.course?.name}</span> • {batch.subjects || 'All Subjects'}
                         </div>
-                        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                           <span title="Enrolled Students">👥 <strong>{batch._count?.students || 0}</strong> Students</span>
                           <span title="Assigned Teachers">👨‍🏫 <strong>{batch.teachers?.length || 0}</strong> Teachers</span>
                           <span title="Weekly Schedule">🗓️ <strong>{batch.schedules?.length || 0}</strong> Slots/Week</span>
                           <span title="Default Batch Fee">💰 <strong>₹{batch.defaultFee || 0}</strong>/mo</span>
                         </div>
                         {batch.teachers && batch.teachers.length > 0 && (
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.5rem' }}>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.5rem', wordBreak: 'break-word' }}>
                             Assigned Instructors: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{batch.teachers.map((t: any) => t.name).join(', ')}</span>
                           </div>
                         )}
@@ -5527,7 +5580,15 @@ function AdminDashboardContent() {
                            Marks recorded: {test.results?.length || 0} students
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {test.isPublished ? (
+                          <span style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '6px', fontWeight: 600 }}>✅ Published</span>
+                        ) : (
+                          <button onClick={() => handlePublishResult(test.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Publish Result</button>
+                        )}
+                        <button onClick={() => handleEditTest(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                           Edit
+                        </button>
                         <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
                            Enter Marks →
                         </button>
@@ -5576,6 +5637,53 @@ function AdminDashboardContent() {
               </form>
             </div>
           )}
+        </div>
+      )}
+
+      {editingTest && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '600px', padding: '2.5rem', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--primary)' }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>Edit Test Details</h3>
+            <form onSubmit={handleUpdateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Title</label>
+                <input type="text" required value={editingTest.title} onChange={e => setEditingTest({ ...editingTest, title: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Subject</label>
+                <input type="text" required value={editingTest.subject} onChange={e => setEditingTest({ ...editingTest, subject: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Course Category</label>
+                <select required value={editingTest.courseId} onChange={e => setEditingTest({ ...editingTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <option value="">Select a Course...</option>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Date</label>
+                <input type="date" required value={editingTest.date} onChange={e => setEditingTest({ ...editingTest, date: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Time / Duration (Optional)</label>
+                <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={editingTest.time} onChange={e => setEditingTest({ ...editingTest, time: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Syllabus (Optional)</label>
+                <textarea placeholder="e.g. Chapters 1 to 4" value={editingTest.syllabus} onChange={e => setEditingTest({ ...editingTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <input type="checkbox" id="editTestIsPublished" checked={editingTest.isPublished} onChange={e => setEditingTest({ ...editingTest, isPublished: e.target.checked })} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                <label htmlFor="editTestIsPublished" style={{ fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Publish Results (Visible to Students)</label>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setEditingTest(null)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ flex: 1, background: 'var(--primary)', border: 'none' }}>
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -7096,12 +7204,9 @@ function AdminDashboardContent() {
               }}
             >
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
-                  <span>💰</span> Late Fee Penalty Policy
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#ef4444' }}>
+                  Late Fee Penalty Policy
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
-                  Manage daily fine rates and flat surcharges for overdue invoices.
-                </p>
               </div>
               <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsLateFee ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
@@ -7110,9 +7215,8 @@ function AdminDashboardContent() {
 
             {showSettingsLateFee && (
               <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-                  {/* Penalty Configuration Form */}
-                  <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '500px', width: '100%' }}>
                     {isLoadingSettings ? (
                       <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem' }}>
                         <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -7129,7 +7233,6 @@ function AdminDashboardContent() {
                             onChange={e => setPerDayFine(parseFloat(e.target.value) || 0)} 
                             style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
                           />
-                          <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>Fines accumulated per day for unpaid fees past the specified due date.</small>
                         </div>
 
                         <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
@@ -7142,7 +7245,6 @@ function AdminDashboardContent() {
                             onChange={e => setFlatFineAfter10Days(parseFloat(e.target.value) || 0)} 
                             style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
                           />
-                          <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>One-time surcharge automatically tacked onto invoice when payment is overdue by more than 10 days.</small>
                         </div>
 
                         <button 
@@ -7163,31 +7265,11 @@ function AdminDashboardContent() {
                             fontSize: '0.875rem'
                           }}
                         >
-                          {isSavingSettings ? 'Saving Settings...' : '💾 Apply Penalty Rules'}
+                          {isSavingSettings ? 'Saving Settings...' : 'Apply Penalty Rules'}
                         </button>
                       </>
                     )}
                   </form>
-
-                  {/* Mechanics Card */}
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 1rem 0', color: 'var(--text)' }}>
-                        ℹ️ Penalty Calculation Mechanics
-                      </h4>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', lineHeight: '1.5' }}>
-                        <p style={{ margin: 0 }}>
-                          <strong>Calculation Trigger:</strong> Late fines are generated only when the invoice status remains <code>PENDING</code> beyond its formal due date.
-                        </p>
-                        <p style={{ margin: 0 }}>
-                          <strong>Daily Accumulation:</strong> Outstanding invoices increment by the specified <code>Daily Rate</code> each consecutive morning the fee remains unpaid.
-                        </p>
-                        <p style={{ margin: 0 }}>
-                          <strong>10-Day Flat Threshold:</strong> Once an invoice is 11 or more days overdue, a secondary flat charge is added on top of the daily incremental fine to prompt urgent settlement.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -7213,12 +7295,9 @@ function AdminDashboardContent() {
               }}
             >
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
-                  <span>🏫</span> Class-wise Default Monthly Fees
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#10b981' }}>
+                  Class-wise Default Monthly Fees
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
-                  Configure default tuition fee packets for Class 1 to Class 12 & Custom Classes.
-                </p>
               </div>
               <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsClassFees ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
@@ -7227,10 +7306,6 @@ function AdminDashboardContent() {
 
             {showSettingsClassFees && (
               <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
-                  Enter the default monthly tuition fee for each grade from Class 1 to Class 12 or define custom classes. When creating a new student account, their base monthly fee is automatically populated using these settings.
-                </p>
-
                 {isLoadingSettings ? (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem' }}>
                     <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -7260,13 +7335,13 @@ function AdminDashboardContent() {
                     </div>
 
                     {/* Custom Classes Section */}
-                    <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '1.25rem', marginTop: '0.75rem' }}>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 0.75rem 0', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span>✨</span> Custom Classes & Default Fees
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginTop: '0.75rem' }}>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 0.75rem 0', color: 'var(--text)' }}>
+                        Custom Classes & Default Fees
                       </h4>
                       
                       {/* List of existing custom classes */}
-                      {Object.keys(classFees).filter(cls => !cls.match(/^Class \d+$/)).length > 0 ? (
+                      {Object.keys(classFees).filter(cls => !cls.match(/^Class \d+$/)).length > 0 && (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
                           {Object.keys(classFees).filter(cls => !cls.match(/^Class \d+$/)).map(cls => (
                             <div key={cls} className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0, position: 'relative' }}>
@@ -7279,10 +7354,10 @@ function AdminDashboardContent() {
                                     delete updated[cls];
                                     setClassFees(updated);
                                   }}
-                                  style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem', padding: '0 4px', display: 'flex', alignItems: 'center' }}
+                                  style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', padding: '0 4px', display: 'flex', alignItems: 'center' }}
                                   title="Delete custom class"
                                 >
-                                  🗑️
+                                  Delete
                                 </button>
                               </label>
                               <input 
@@ -7302,8 +7377,6 @@ function AdminDashboardContent() {
                             </div>
                           ))}
                         </div>
-                      ) : (
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>No custom classes added yet. Use the form below to add custom options (e.g. '11th Sci').</p>
                       )}
 
                       {/* Form to add a new custom class inline */}
@@ -7312,7 +7385,7 @@ function AdminDashboardContent() {
                           <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Class Name</label>
                           <input 
                             type="text" 
-                            placeholder="e.g. 11th Sci, Crash Course" 
+                            placeholder="e.g. 11th Sci" 
                             value={newFeeClassName} 
                             onChange={e => setNewFeeClassName(e.target.value)} 
                             style={{ padding: '0.5rem 0.75rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', outline: 'none', fontSize: '0.85rem' }} 
@@ -7340,7 +7413,7 @@ function AdminDashboardContent() {
                           className="btn-primary" 
                           style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', borderRadius: '8px', height: '36px', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}
                         >
-                          ➕ Add Custom Class
+                          Add Custom Class
                         </button>
                       </div>
                     </div>
@@ -7364,7 +7437,7 @@ function AdminDashboardContent() {
                         marginTop: '0.75rem'
                       }}
                     >
-                      {isSavingSettings ? 'Saving Class Fees...' : '💾 Save All Class Fees'}
+                      {isSavingSettings ? 'Saving Class Fees...' : 'Save All Class Fees'}
                     </button>
                   </div>
                 )}
@@ -7392,12 +7465,9 @@ function AdminDashboardContent() {
               }}
             >
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#3b82f6' }}>
                   Job Applications
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
-                  Review and manage incoming careers applications.
-                </p>
               </div>
               <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsCareers ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
@@ -7424,9 +7494,7 @@ function AdminDashboardContent() {
                     </div>
                   ) : jobApplications.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                      <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
                       <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>No job applications yet</p>
-                      <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Applications submitted through the Careers page will appear here.</p>
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gap: '1.25rem' }}>
@@ -7446,16 +7514,16 @@ function AdminDashboardContent() {
                                 {app.name}
                               </h5>
                               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                <span>📞 {app.phone}</span>
-                                <span>✉️ {app.email}</span>
-                                <span>💼 Experience: {app.experience}</span>
-                                <span>📅 Submitted: {new Date(app.createdAt).toLocaleString()}</span>
+                                <span>Phone: {app.phone}</span>
+                                <span>Email: {app.email}</span>
+                                <span>Experience: {app.experience}</span>
+                                <span>Submitted: {new Date(app.createdAt).toLocaleString()}</span>
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                               {app.resumeUrl && (
                                 <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  📄 View Resume
+                                  View Resume
                                 </a>
                               )}
                               <select value={app.status} onChange={(e) => handleUpdateJobStatus(app.id, e.target.value)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
@@ -7502,12 +7570,9 @@ function AdminDashboardContent() {
               }}
             >
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f59e0b' }}>
-                  <span>📈</span> Promote Student Classes
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#f59e0b' }}>
+                  Promote Student Classes
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0 0', fontWeight: 500 }}>
-                  Promote all students to their next respective class grade at once.
-                </p>
               </div>
               <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsPromote ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
@@ -7516,12 +7581,6 @@ function AdminDashboardContent() {
 
             {showSettingsPromote && (
               <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
-                  This action will promote all students to the next grade class. 
-                  For example: <strong>Class 1 → Class 2</strong>, <strong>Class 12 → Graduated</strong>, and <strong>10th → 11th (Sci)</strong>. 
-                  This change is instant, safe, and will be immediately reflected in all student profiles.
-                </p>
-                
                 <button
                   type="button"
                   onClick={handlePromoteAllStudents}
@@ -7539,16 +7598,10 @@ function AdminDashboardContent() {
                     boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
                   }}
                 >
-                  {isPromotingStudents ? 'Promoting Students...' : '📈 Promote All Students Now'}
+                  {isPromotingStudents ? 'Promoting Students...' : 'Promote All Students Now'}
                 </button>
               </div>
             )}
-          </div>
-
-          {/* Safety Warning */}
-          <div style={{ padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', borderRadius: '10px', marginTop: '0.5rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>⚠️ Safety Warning</span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4', display: 'block' }}>Changing these settings does not retroactively rewrite already completed checkout invoices, but applies to future daily late fee calculation rounds.</span>
           </div>
         </div>
       )}

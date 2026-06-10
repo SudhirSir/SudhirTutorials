@@ -87,7 +87,7 @@ export async function GET() {
       })),
       // Only recent test results (last 50)
       withDbRetry(() => prisma.testResult.findMany({
-        where: { studentId },
+        where: { studentId, test: { isPublished: true } },
         select: {
           id: true,
           marks: true,

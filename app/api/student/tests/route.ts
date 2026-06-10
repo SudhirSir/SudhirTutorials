@@ -55,7 +55,17 @@ export async function GET() {
       }
     }));
 
-    return NextResponse.json({ tests });
+    const sanitizedTests = tests.map(test => {
+      if (!test.isPublished) {
+        return {
+          ...test,
+          results: []
+        };
+      }
+      return test;
+    });
+
+    return NextResponse.json({ tests: sanitizedTests });
   } catch (error) {
     console.error('Error fetching student tests:', error);
     return NextResponse.json({ error: 'Failed to fetch tests' }, { status: 500 });

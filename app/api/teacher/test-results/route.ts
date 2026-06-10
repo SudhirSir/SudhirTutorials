@@ -31,6 +31,19 @@ export async function POST(req: Request) {
     }
 
     const { testId, results } = validation.data;
+    const isAdmin = session.user.role === 'ADMIN';
+
+    const testRecord = await withDbRetry(() => prisma.test.findUnique({
+      where: { id: testId }
+    }));
+
+    if (!testRecord) {
+      return NextResponse.json({ error: 'Test not found' }, { status: 404 });
+    }
+
+    if (testRecord.isPublished && !isAdmin) {
+      return NextResponse.json({ error: 'Marks for published tests can only be modified by admins' }, { status: 403 });
+    }
 
     const operations = results.map(r => 
       prisma.testResult.upsert({

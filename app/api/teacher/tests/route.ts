@@ -16,6 +16,18 @@ const testSchema = z.object({
   syllabus: z.string().optional()
 });
 
+const testEditSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  subject: z.string().optional(),
+  courseId: z.string().optional(),
+  date: z.string().optional(),
+  time: z.string().optional(),
+  syllabus: z.string().optional(),
+  isPublished: z.boolean().optional()
+});
+
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
@@ -129,3 +141,56 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Failed to delete test' }, { status: 500 });
   }
 }
+
+// PUT Edit Test (For Teachers & Admins)
+export async function PUT(req: Request) {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user || (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const validation = testEditSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: 'Invalid data', details: validation.error.format() }, { status: 400 });
+    }
+
+    const { id, title, subject, courseId, date, time, syllabus, isPublished } = validation.data;
+    const isAdmin = session.user.role === 'ADMIN';
+
+    // Fetch existing test to check publication status
+    const existingTest = await withDbRetry(() => prisma.test.findUnique({
+      where: { id }
+    }));
+
+    if (!existingTest) {
+      return NextResponse.json({ error: 'Test not found' }, { status: 404 });
+    }
+
+    // If test is published and user is not admin, reject editing
+    if (existingTest.isPublished && !isAdmin) {
+      return NextResponse.json({ error: 'Published tests can only be modified by admins' }, { status: 403 });
+    }
+
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (subject !== undefined) updateData.subject = subject;
+    if (courseId !== undefined) updateData.courseId = courseId;
+    if (date !== undefined) updateData.date = new Date(date);
+    if (time !== undefined) updateData.time = time;
+    if (syllabus !== undefined) updateData.syllabus = syllabus;
+    if (isPublished !== undefined) updateData.isPublished = isPublished;
+
+    const test = await withDbRetry(() => prisma.test.update({
+      where: { id },
+      data: updateData
+    }));
+
+    return NextResponse.json({ test, success: true });
+  } catch (error) {
+    console.error('Error updating test:', error);
+    return NextResponse.json({ error: 'Failed to update test' }, { status: 500 });
+  }
+}
+

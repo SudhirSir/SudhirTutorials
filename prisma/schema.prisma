@@ -226,15 +226,16 @@ model Notification {
 }
 
 model Test {
-  id        String   @id @default(cuid())
-  title     String
-  subject   String?
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
-  date      DateTime
-  time      String?
-  syllabus  String?
-  results   TestResult[]
+  id          String       @id @default(cuid())
+  title       String
+  subject     String?
+  courseId    String
+  course      Course       @relation(fields: [courseId], references: [id])
+  date        DateTime
+  time        String?
+  syllabus    String?
+  results     TestResult[]
+  isPublished Boolean      @default(false)
 
   @@index([courseId])
 }

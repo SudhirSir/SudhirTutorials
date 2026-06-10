@@ -168,6 +168,61 @@ function TeacherDashboardContent() {
   const [isCreatingTest, setIsCreatingTest] = useState(false);
   const [showCreateTestForm, setShowCreateTestForm] = useState(false);
   const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
+  const [editingTest, setEditingTest] = useState<any>(null);
+
+  const handleEditTest = (test: any) => {
+    setEditingTest({
+      id: test.id,
+      title: test.title,
+      subject: test.subject || '',
+      courseId: test.courseId,
+      date: new Date(test.date).toISOString().split('T')[0],
+      time: test.time || '',
+      syllabus: test.syllabus || '',
+      isPublished: test.isPublished
+    });
+  };
+
+  const handleUpdateTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTest.title || !editingTest.courseId) {
+      alert("Please fill all test fields!");
+      return;
+    }
+    try {
+      const res = await fetch('/api/teacher/tests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingTest)
+      });
+      if (res.ok) {
+        setEditingTest(null);
+        fetchTests();
+        alert('Test updated successfully!');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update test');
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handlePublishResult = async (testId: string) => {
+    if (!confirm('Are you sure you want to publish the results for this test? Once published, students will be able to view their marks and editing will be restricted.')) return;
+    try {
+      const res = await fetch('/api/teacher/tests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: testId, isPublished: true })
+      });
+      if (res.ok) {
+        fetchTests();
+        alert('Results published successfully!');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to publish results');
+      }
+    } catch (e) { console.error(e); }
+  };
   
   // Profile State
   const [profile, setProfile] = useState<any>(null);
@@ -1383,9 +1438,19 @@ Depending on your specific focus, this represents the vital equation model for t
                            Results recorded: {test.results?.length || 0} students
                         </div>
                       </div>
-                      <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
-                         Enter Marks →
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {test.isPublished ? (
+                          <span style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '6px', fontWeight: 600 }}>✅ Published</span>
+                        ) : (
+                          <>
+                            <button onClick={() => handlePublishResult(test.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Publish Result</button>
+                            <button onClick={() => handleEditTest(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>Edit</button>
+                          </>
+                        )}
+                        <button onClick={() => handleEnterMarks(test)} className="btn-secondary" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                           {test.isPublished ? 'View Marks →' : 'Enter Marks →'}
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1432,11 +1497,54 @@ Depending on your specific focus, this represents the vital equation model for t
         </div>
       )}
 
+      {editingTest && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '600px', padding: '2.5rem', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--primary)' }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>Edit Test Details</h3>
+            <form onSubmit={handleUpdateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Title</label>
+                <input type="text" required value={editingTest.title} onChange={e => setEditingTest({ ...editingTest, title: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Subject</label>
+                <input type="text" required value={editingTest.subject} onChange={e => setEditingTest({ ...editingTest, subject: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Course Category</label>
+                <select required value={editingTest.courseId} onChange={e => setEditingTest({ ...editingTest, courseId: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <option value="">Select a Course...</option>
+                  {uniqueCourses.map(c => c && <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Date</label>
+                <input type="date" required value={editingTest.date} onChange={e => setEditingTest({ ...editingTest, date: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Test Time / Duration (Optional)</label>
+                <input type="text" placeholder="e.g. 10:00 AM - 12:00 PM" value={editingTest.time} onChange={e => setEditingTest({ ...editingTest, time: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Syllabus (Optional)</label>
+                <textarea placeholder="e.g. Chapters 1 to 4" value={editingTest.syllabus} onChange={e => setEditingTest({ ...editingTest, syllabus: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px', minHeight: '60px', resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setEditingTest(null)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ flex: 1, background: 'var(--primary)', border: 'none' }}>
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Marks Entry Modal */}
       {selectedTest && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, padding: '1rem', overflowY: 'auto' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '700px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Enter Marks: {selectedTest.title}</h2>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{selectedTest.isPublished ? 'View Marks' : 'Enter Marks'}: {selectedTest.title}</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Course: {selectedTest.course?.name}</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
@@ -1463,6 +1571,7 @@ Depending on your specific focus, this represents the vital equation model for t
                         type="number" 
                         placeholder="Marks" 
                         value={data.marks} 
+                        disabled={selectedTest.isPublished}
                         onChange={e => setTestMarks({
                           ...testMarks,
                           [s.id]: { ...data, marks: e.target.value }
@@ -1475,6 +1584,7 @@ Depending on your specific focus, this represents the vital equation model for t
                         type="number" 
                         placeholder="Total" 
                         value={data.totalMarks} 
+                        disabled={selectedTest.isPublished}
                         onChange={e => setTestMarks({
                           ...testMarks,
                           [s.id]: { ...data, totalMarks: e.target.value }
@@ -1487,6 +1597,7 @@ Depending on your specific focus, this represents the vital equation model for t
                         type="text" 
                         placeholder="Remarks" 
                         value={data.remarks} 
+                        disabled={selectedTest.isPublished}
                         onChange={e => setTestMarks({
                           ...testMarks,
                           [s.id]: { ...data, remarks: e.target.value }
@@ -1500,10 +1611,12 @@ Depending on your specific focus, this represents the vital equation model for t
             </div>
 
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedTest(null)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 1, background: '#10b981', boxShadow: 'none' }} onClick={handleSaveMarks} disabled={isSavingMarks}>
-                {isSavingMarks ? 'Saving...' : 'Save Marks'}
-              </button>
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedTest(null)}>{selectedTest.isPublished ? 'Close' : 'Cancel'}</button>
+              {!selectedTest.isPublished && (
+                <button className="btn-primary" style={{ flex: 1, background: '#10b981', boxShadow: 'none' }} onClick={handleSaveMarks} disabled={isSavingMarks}>
+                  {isSavingMarks ? 'Saving...' : 'Save Marks'}
+                </button>
+              )}
             </div>
           </div>
         </div>
