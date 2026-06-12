@@ -42,9 +42,111 @@ export async function POST(req: Request) {
 
     const resolvedSubject = subject || (question ? detectSubject(question) : 'General Academics');
     
-    // Check for OpenAI API Key
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey) {
+    // Check for API Keys
+    const geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
+    const openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
+
+    if (geminiApiKey) {
+      try {
+        const parts: any[] = [];
+        if (isPdf) {
+          const base64Data = file.split(';base64,').pop() || '';
+          parts.push({
+            inlineData: {
+              mimeType: "application/pdf",
+              data: base64Data
+            }
+          });
+          parts.push({
+            text: question || "Solve the academic problem in the attached PDF document step-by-step."
+          });
+        } else if (activeImage) {
+          const mimeType = activeImage.match(/^data:([^;]+);base64,/)?.[1] || 'image/png';
+          const base64Data = activeImage.split(';base64,').pop() || '';
+          parts.push({
+            inlineData: {
+              mimeType: mimeType,
+              data: base64Data
+            }
+          });
+          parts.push({
+            text: question || "Solve the attached academic question from the image."
+          });
+        } else {
+          parts.push({
+            text: question
+          });
+        }
+
+        const systemPrompt = `You are 'Digital Guru Ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
+A student has submitted an academic doubt (as text, image, or PDF document).
+Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').
+
+You MUST structure your response EXACTLY with the following headers so it displays beautifully:
+
+### 📝 Extracted Question
+[Clearly transcribe the question or problem from the uploaded file/text. If there is no file, state the question that was asked. If the user typed any extra question/request, include/address it here.]
+
+### 🧮 Step-by-Step Solution
+[Provide the complete step-by-step mathematical or scientific derivation/solution. 
+CRITICAL RULE: You MUST separate each logical step of your solution with a line containing exactly '[STEP]' and nothing else.
+Example:
+Step 1: Write down the given values: m = 5 kg, F = 20 N.
+[STEP]
+Step 2: Apply Newton's Second Law: a = F/m = 20/5 = 4 m/s².
+[STEP]
+Step 3: Apply the first equation of motion: v = u + at = 0 + 4*6 = 24 m/s.
+This is extremely important for the interactive step reveal!]
+
+### 🧠 Stepwise Explanation
+[Explain the concepts, theories, and logical reasoning behind the solution. Break it down so a student can easily understand *why* we took each step.]
+
+### 💡 Guru Ji ka Tip
+[Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            contents: [
+              {
+                role: 'user',
+                parts: parts
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7
+            }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const solution = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (solution) {
+            return NextResponse.json({
+              success: true,
+              subject: resolvedSubject,
+              solution
+            });
+          } else {
+            console.error("Gemini API empty response candidates:", JSON.stringify(data));
+          }
+        } else {
+          const errText = await response.text();
+          console.error("Gemini API error response:", errText);
+        }
+      } catch (geminiError) {
+        console.error("Gemini API query error, using OpenAI fallback:", geminiError);
+      }
+    }
+
+    if (openAiApiKey) {
       try {
         let userContent: any = question || "Solve the attached doubt.";
         
@@ -95,7 +197,7 @@ This is extremely important for the interactive step reveal!]
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer ${openAiApiKey}`
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',

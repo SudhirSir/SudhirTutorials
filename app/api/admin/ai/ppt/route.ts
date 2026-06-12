@@ -22,16 +22,102 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
+    const openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
 
-    if (apiKey) {
+    if (geminiApiKey) {
+      try {
+        const systemPrompt = `You are Digital Sahayak, a premium AI learning assistant for the prestigious institute 'Sudhir Tutorials'. 
+You generate highly detailed, educational slide decks. 
+Every slide must have extremely detailed content (avoid short lists, provide extensive definitions, explanations, formulas, derivations, and examples). 
+The output MUST be a valid JSON object matching the following TypeScript interface:
+interface SlideDeck {
+  topic: string;
+  grade: string;
+  focus: string;
+  slides: {
+    type: 'TITLE' | 'CONCEPT' | 'FORMULA' | 'DERIVATION' | 'EXAM_PREP' | 'MCQ';
+    title: string;
+    subtitle: string;
+    badge: string; // MUST always be 'SUDHIR TUTORIALS'
+    meta: string;
+    content: string; // Long, comprehensive, robust scientific text with markdown headers, bold terms, equations and deep concepts
+  }[];
+}
+Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutorials as the premium learning institute.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `Generate a premium slide deck for topic: "${topic}", grade/class level: "${grade}", with a core focus on: "${focus}".` }]
+              }
+            ],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: "OBJECT",
+                properties: {
+                  topic: { type: "STRING" },
+                  grade: { type: "STRING" },
+                  focus: { type: "STRING" },
+                  slides: {
+                    type: "ARRAY",
+                    items: {
+                      type: "OBJECT",
+                      properties: {
+                        type: { type: "STRING", enum: ["TITLE", "CONCEPT", "FORMULA", "DERIVATION", "EXAM_PREP", "MCQ"] },
+                        title: { type: "STRING" },
+                        subtitle: { type: "STRING" },
+                        badge: { type: "STRING" },
+                        meta: { type: "STRING" },
+                        content: { type: "STRING" }
+                      },
+                      required: ["type", "title", "subtitle", "badge", "meta", "content"]
+                    }
+                  }
+                },
+                required: ["topic", "grade", "focus", "slides"]
+              },
+              temperature: 0.7
+            }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const jsonContent = JSON.parse(rawText);
+            return NextResponse.json({ success: true, ...jsonContent });
+          } else {
+            console.warn("Gemini API generated empty content for PPT:", JSON.stringify(data));
+          }
+        } else {
+          const errText = await response.text();
+          console.warn("Gemini API PPT call failed, falling back to OpenAI/Local:", errText);
+        }
+      } catch (geminiError) {
+        console.error("Gemini API PPT integration error, utilizing fallback:", geminiError);
+      }
+    }
+
+    if (openAiApiKey) {
       // Call Real ChatGPT API
       try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer ${openAiApiKey}`
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',

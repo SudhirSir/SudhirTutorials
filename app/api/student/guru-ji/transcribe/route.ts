@@ -18,8 +18,60 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Audio file is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey) {
+    const geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
+    const openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
+
+    if (geminiApiKey) {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const base64Data = buffer.toString('base64');
+        const mimeType = file.type || 'audio/webm';
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    text: "Transcribe the following audio recording exactly. Only return the transcribed text, with no introductory text, notes, comments, or formatting."
+                  },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1
+            }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          return NextResponse.json({
+            success: true,
+            text: text.trim()
+          });
+        } else {
+          const errText = await response.text();
+          console.error("Gemini Transcribe API error response:", errText);
+        }
+      } catch (geminiError) {
+        console.error("Gemini Transcribe error, using OpenAI fallback:", geminiError);
+      }
+    }
+
+    if (openAiApiKey) {
       try {
         const buffer = Buffer.from(await file.arrayBuffer());
         const blob = new Blob([buffer], { type: file.type });
@@ -31,7 +83,7 @@ export async function POST(req: Request) {
         const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer ${openAiApiKey}`
           },
           body: openAiFormData
         });
