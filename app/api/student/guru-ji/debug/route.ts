@@ -1,28 +1,28 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(req: Request) {
   try {
-    // const session = await getServerSession(authOptions) as any;
-    // if (!session || !session.user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-
     let rawGeminiKey = process.env.GEMINI_API_KEY || '';
     let rawOpenAIKey = process.env.OPENAI_API_KEY || '';
+    let rawDatabaseUrl = process.env.DATABASE_URL || '';
+    let rawDirectUrl = process.env.DIRECT_URL || '';
 
     const geminiKeyPresent = !!rawGeminiKey;
     const openaiKeyPresent = !!rawOpenAIKey;
+    const dbUrlPresent = !!rawDatabaseUrl;
+    const directUrlPresent = !!rawDirectUrl;
 
-    // Mask keys
-    const maskKey = (key: string) => {
-      if (!key) return 'NOT_SET';
-      if (key.length <= 8) return `SET (length ${key.length})`;
-      return `${key.slice(0, 4)}...${key.slice(-4)} (length ${key.length})`;
+    // Mask strings
+    const maskString = (str: string) => {
+      if (!str) return 'NOT_SET';
+      if (str.length <= 10) return `SET (length ${str.length})`;
+      return `${str.slice(0, 5)}...${str.slice(-5)} (length ${str.length})`;
     };
 
     const sanitizedGeminiKey = rawGeminiKey.trim().replace(/^["']|["']$/g, '');
@@ -86,24 +86,47 @@ export async function GET(req: Request) {
       }
     }
 
+    let dbDiagnostic = {};
+    try {
+      // Run a simple count query to verify Prisma client initialization and connection
+      const userCount = await prisma.user.count();
+      dbDiagnostic = {
+        success: true,
+        userCount
+      };
+    } catch (err: any) {
+      dbDiagnostic = {
+        success: false,
+        name: err.name || 'Error',
+        message: err.message || String(err),
+        code: err.code || null,
+        stack: err.stack ? err.stack.split('\n').slice(0, 5).join('\n') : null
+      };
+    }
+
     return NextResponse.json({
       environment: {
         gemini: {
           present: geminiKeyPresent,
-          rawMasked: maskKey(rawGeminiKey),
-          sanitizedMasked: maskKey(sanitizedGeminiKey),
+          masked: maskString(rawGeminiKey),
           hadQuotes: geminiCleanedQuotes
         },
         openai: {
           present: openaiKeyPresent,
-          rawMasked: maskKey(rawOpenAIKey),
-          sanitizedMasked: maskKey(sanitizedOpenAIKey),
+          masked: maskString(rawOpenAIKey),
           hadQuotes: openaiCleanedQuotes
+        },
+        database: {
+          urlPresent: dbUrlPresent,
+          urlMasked: maskString(rawDatabaseUrl),
+          directPresent: directUrlPresent,
+          directMasked: maskString(rawDirectUrl)
         }
       },
       diagnostics: {
         gemini: geminiDiagnostic,
-        openai: openaiDiagnostic
+        openai: openaiDiagnostic,
+        database: dbDiagnostic
       }
     });
   } catch (error: any) {
