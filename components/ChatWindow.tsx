@@ -1169,6 +1169,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                             setSelectedMessageIds(prev =>
                               prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
                             );
+                          } else {
+                            setActiveMenuMessageId(prev => prev === m.id ? null : m.id);
                           }
                         }}
                         style={{
@@ -1190,7 +1192,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                             style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }}
                           />
                         )}
-                        {!isTemp && !multiSelectMode && hoveredMessageId === m.id && (
+                        {!isTemp && !multiSelectMode && (hoveredMessageId === m.id || activeMenuMessageId === m.id) && (
                           <div style={{ position: 'relative', display: 'inline-block' }}>
                             <button onClick={(e) => {
                               e.stopPropagation();
@@ -1204,7 +1206,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                               ⋮
                             </button>
                             {activeMenuMessageId === m.id && (
-                              <div className="message-dropdown-menu" style={{
+                              <div className="message-dropdown-menu" 
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
                                 position: 'absolute',
                                 bottom: '100%',
                                 [isMe ? 'right' : 'left']: 0,
@@ -1271,7 +1275,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                   style={menuItemStyle}>
                                   ➡️ Forward
                                 </button>
-                                {(isMe || selectedUser.role === 'GROUP') && (
+                                {true && (
                                   <button onClick={() => {
                                     handleDeleteMessage(m.id);
                                     setActiveMenuMessageId(null);

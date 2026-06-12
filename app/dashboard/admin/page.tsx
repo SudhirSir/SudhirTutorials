@@ -655,49 +655,158 @@ function AdminDashboardContent() {
     if (!generatedPpt) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Sudhir Tutorials - Premium Lesson Slides: ${generatedPpt.topic}</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
-            .slide-page { page-break-after: always; border: 2px solid #ef4444; border-radius: 12px; padding: 30px; margin-bottom: 40px; background: #fff; min-height: 500px; display: flex; flexDirection: column; justify-content: space-between; }
-            .header { border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-            .header h1 { margin: 0; font-size: 20px; color: #ef4444; font-weight: 800; }
-            .badge { background: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-            .meta { font-size: 13px; color: #6b7280; margin-top: 5px; }
-            .content { font-size: 16px; line-height: 1.6; color: #374151; flex: 1; whiteSpace: pre-line; }
-            .footer { border-top: 1px dashed #d1d5db; padding-top: 15px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; font-weight: bold; }
-            .logo-text { font-size: 16px; font-weight: 900; color: #ef4444; letter-spacing: 0.5px; }
-          </style>
-        </head>
-        <body>
-          ${generatedPpt.slides.map((s: any, idx: number) => `
-            <div class="slide-page">
-              <div>
-                <div class="header">
-                  <div>
-                    <h1>${s.title}</h1>
-                    <div class="meta">${s.subtitle || ''}</div>
-                  </div>
-                  <div class="badge">${s.badge}</div>
-                </div>
-                <div style="font-size:12px; color:#6b7280; margin-bottom: 15px; font-weight: bold;">${s.meta}</div>
-                <div class="content">${s.content.replace(/\n/g, '<br/>')}</div>
-              </div>
-              <div class="footer">
-                <span class="logo-text">SUDHIR TUTORIALS</span>
-                <span>Slide ${idx + 1} of ${generatedPpt.slides.length}</span>
-              </div>
-            </div>
-          `).join('')}
-          <script>
-            window.onload = function() { window.print(); };
-          </script>
-        </body>
-      </html>
-    `);
+    printWindow.document.write(
+      '<html><head><title>Sudhir Tutorials - Premium Lesson Slides: ' + generatedPpt.topic + '</title>' +
+      '<style>' +
+      'body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }' +
+      '.slide-page { page-break-after: always; border: 2px solid #ef4444; border-radius: 12px; padding: 30px; margin-bottom: 40px; background: #fff; min-height: 500px; display: flex; flex-direction: column; justify-content: space-between; }' +
+      '.header { border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }' +
+      '.header h1 { margin: 0; font-size: 20px; color: #ef4444; font-weight: 800; }' +
+      '.badge { background: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }' +
+      '.meta { font-size: 13px; color: #6b7280; margin-top: 5px; }' +
+      '.content { font-size: 16px; line-height: 1.6; color: #374151; flex: 1; white-space: pre-line; }' +
+      '.footer { border-top: 1px dashed #d1d5db; padding-top: 15px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; font-weight: bold; }' +
+      '.logo-text { font-size: 16px; font-weight: 900; color: #ef4444; letter-spacing: 0.5px; }' +
+      '</style></head><body>' +
+      generatedPpt.slides.map(function(s, idx) {
+        return '<div class="slide-page"><div><div class="header"><div><h1>' + s.title + '</h1>' +
+          '<div class="meta">' + (s.subtitle || '') + '</div></div>' +
+          '<div class="badge">' + s.badge + '</div></div>' +
+          '<div style="font-size:12px; color:#6b7280; margin-bottom: 15px; font-weight: bold;">' + s.meta + '</div>' +
+          '<div class="content">' + s.content.replace(/\n/g, '<br/>') + '</div></div>' +
+          '<div class="footer"><span class="logo-text">SUDHIR TUTORIALS</span>' +
+          '<span>Slide ' + (idx + 1) + ' of ' + generatedPpt.slides.length + '</span></div></div>';
+      }).join('') +
+      '<script>window.onload = function() { window.print(); };</script></body></html>'
+    );
     printWindow.document.close();
+  };
+
+  const downloadAdminPptAsPdf = async () => {
+    if (!generatedPpt) return;
+    try {
+      const loadHtml2Pdf = () => {
+        return new Promise((resolve, reject) => {
+          if ((window as any).html2pdf) {
+            resolve();
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load html2pdf script.'));
+          document.head.appendChild(script);
+        });
+      };
+
+      await loadHtml2Pdf();
+      
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '-9999px';
+      tempDiv.style.width = '1120px';
+      
+      tempDiv.innerHTML = '<div style="font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f8f9fa; box-sizing: border-box;">' +
+        generatedPpt.slides.map(function(s, idx) {
+          return '<div style="page-break-after: always; border: 2px solid #ef4444; border-radius: 12px; padding: 30px; margin-bottom: 25px; background: #fff; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">' +
+            '<div>' +
+              '<div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">' +
+                '<div style="display: flex; align-items: center; gap: 10px;">' +
+                  '<img src="/logo.png" alt="Sudhir Tutorials" style="width: 38px; height: 38px; object-fit: contain; border-radius: 8px;" />' +
+                  '<div>' +
+                    '<h1 style="margin: 0; font-size: 20px; color: #ef4444; font-weight: 800;">' + s.title + '</h1>' +
+                    '<div style="font-size: 13px; color: #6b7280; margin-top: 2px;">' + (s.subtitle || '') + '</div>' +
+                  '</div>' +
+                '</div>' +
+                '<div style="background: #ef4444; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">' +
+                  (s.badge || 'SUDHIR TUTORIALS') +
+                '</div>' +
+              '</div>' +
+              '<div style="font-size: 12px; color: #6b7280; margin-bottom: 15px; font-weight: bold;">' + s.meta + '</div>' +
+              '<div style="font-size: 16px; line-height: 1.6; color: #374151; white-space: pre-line; flex: 1;">' +
+                s.content +
+              '</div>' +
+            '</div>' +
+            '<div style="border-top: 1px dashed #d1d5db; padding-top: 15px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; font-weight: bold; align-items: center;">' +
+              '<span style="font-size: 14px; font-weight: 900; color: #ef4444; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px;">' +
+                '<img src="/logo.png" alt="" style="width: 16px; height: 16px; object-fit: contain;" />' +
+                'SUDHIR TUTORIALS' +
+              '</span>' +
+              '<span>Slide ' + (idx + 1) + ' of ' + generatedPpt.slides.length + '</span>' +
+            '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+      
+      document.body.appendChild(tempDiv);
+
+      const opt = {
+        margin: [5, 5, 5, 5],
+        filename: 'Lesson_Slides_' + generatedPpt.topic.replace(/[\s\/]/g, '_') + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      const cap = (window as any).Capacitor;
+      const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+      let Filesystem = null;
+      let Share = null;
+      if (isNative) {
+        try {
+          const fs = await import('@capacitor/filesystem');
+          Filesystem = fs.Filesystem;
+          const sh = await import('@capacitor/share');
+          Share = sh.Share;
+        } catch (e) {
+          console.error('Failed to load Capacitor plugins dynamically:', e);
+        }
+      }
+
+      if (isNative && Filesystem) {
+        const pdfDataUri = await (window as any).html2pdf().from(tempDiv).set(opt).output('datauristring');
+        const base64Data = pdfDataUri.split(',')[1];
+        const filename = 'Lesson_Slides_' + generatedPpt.topic.replace(/[\s\/]/g, '_') + '.pdf';
+        
+        try {
+          await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'DOCUMENTS'
+          });
+          alert('Slides PDF downloaded successfully! Saved in your Documents/Downloads folder as ' + filename);
+        } catch (err) {
+          console.error("Failed to write to DOCUMENTS, falling back to cache & share:", err);
+          const writeResult = await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: 'CACHE'
+          });
+          if (Share) {
+            await Share.share({
+              title: 'Lesson Slides: ' + generatedPpt.topic,
+              url: writeResult.uri,
+              dialogTitle: 'Share/Save Lesson Slides PDF'
+            });
+          }
+        }
+      } else {
+        await (window as any).html2pdf().from(tempDiv).set(opt).save();
+      }
+
+      document.body.removeChild(tempDiv);
+    } catch (error) {
+      console.error('PDF generation error, falling back to popup print:', error);
+      printAdminPpt();
+    }
   };
 
   const askAdminGuru = async () => {
@@ -6288,6 +6397,77 @@ function AdminDashboardContent() {
               color: #ef4444;
               box-shadow: 0 0 10px rgba(239,68,68,0.1);
             }
+            .slide-workspace-container {
+              flex: 1;
+              display: flex;
+              padding: 1.5rem;
+              gap: 1.5rem;
+              overflow: hidden;
+              position: relative;
+            }
+            .slide-main-canvas {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              gap: 1rem;
+              overflow: hidden;
+            }
+            .slide-aspect-ratio-box {
+              flex: 1;
+              background: linear-gradient(135deg, #1e1e24 0%, #121214 100%);
+              border: 1px solid rgba(255,255,255,0.05);
+              border-radius: 16px;
+              padding: 2.5rem;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+              overflow-y: auto;
+              position: relative;
+            }
+            .notes-container {
+              flex: 1;
+              overflow-y: auto;
+              padding: 2rem;
+              background: #f8f9fa;
+            }
+            .notes-paper {
+              max-width: 800px;
+              margin: 0 auto;
+              background: #fff;
+              border-radius: 16px;
+              box-shadow: 0 4px 25px rgba(0,0,0,0.05);
+              border: 1px solid #e2e8f0;
+              padding: 3rem;
+              color: #1e293b;
+            }
+            @media (max-width: 768px) {
+              .slide-workspace-container {
+                flex-direction: column;
+                padding: 0.75rem;
+                gap: 0.75rem;
+                overflow-y: auto;
+              }
+              .slide-aspect-ratio-box {
+                padding: 1.25rem;
+                min-height: 320px;
+              }
+              .mobile-hide {
+                display: none !important;
+              }
+              .slide-toolbar {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                justify-content: center !important;
+              }
+              .notes-container {
+                padding: 0.5rem;
+              }
+              .notes-paper {
+                padding: 1.25rem;
+                border-radius: 12px;
+              }
+            }
           `}</style>
 
           {/* 1. SOLVER MODE */}
@@ -6661,7 +6841,7 @@ function AdminDashboardContent() {
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   
                   {/* Toolbar */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+                  <div className="slide-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', background: 'var(--surface-light)' }}>
                     {/* View Selector */}
                     <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--input-bg)', padding: '2px', borderRadius: '20px', border: '1px solid var(--border)' }}>
                       <button 
@@ -6717,7 +6897,7 @@ function AdminDashboardContent() {
                         </button>
                       )}
                       
-                      <button onClick={printAdminPpt} className="slide-btn">
+                      <button onClick={downloadAdminPptAsPdf} className="slide-btn">
                         🖨️ Print / PDF
                       </button>
                       
@@ -6733,7 +6913,7 @@ function AdminDashboardContent() {
 
                   {/* Slides Presentation Mode */}
                   {pptViewMode === 'SLIDES' && (
-                    <div style={{ flex: 1, display: 'flex', padding: '1.5rem', gap: '1.5rem', overflow: 'hidden', position: 'relative' }}>
+                    <div className="slide-workspace-container">
                       
                       {/* Left Sidebar Slide Deck Thumbnails (Desktop-only) */}
                       <div className="mobile-hide" style={{ width: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRight: '1px solid var(--border)', paddingRight: '1rem', flexShrink: 0 }}>
@@ -6762,22 +6942,10 @@ function AdminDashboardContent() {
                       </div>
 
                       {/* Main Slide Canvas */}
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+                      <div className="slide-main-canvas">
                         
                         {/* Slide Display aspect ratio box */}
-                        <div style={{ 
-                          flex: 1, 
-                          background: 'linear-gradient(135deg, #1e1e24 0%, #121214 100%)', 
-                          border: '1px solid rgba(255,255,255,0.05)', 
-                          borderRadius: '16px', 
-                          padding: '2.5rem', 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          justifyContent: 'space-between',
-                          boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)',
-                          overflowY: 'auto',
-                          position: 'relative'
-                        }}>
+                        <div className="slide-aspect-ratio-box">
                           {isEditingSlide ? (
                             /* Slide Editor View */
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', boxSizing: 'border-box' }}>
@@ -6818,14 +6986,19 @@ function AdminDashboardContent() {
                                 <>
                                   <div>
                                     {/* Top Metadata Header */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
-                                      <div>
-                                        <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{s.title}</h4>
-                                        <span style={{ fontSize: '0.75rem', color: '#a0a0a5', marginTop: '2px', display: 'block' }}>{s.subtitle || ''}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <img src="/logo.png" alt="Sudhir Tutorials" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px' }} />
+                                        <div>
+                                          <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{s.title}</h4>
+                                          <span style={{ fontSize: '0.75rem', color: '#a0a0a5', marginTop: '2px', display: 'block' }}>{s.subtitle || ''}</span>
+                                        </div>
                                       </div>
-                                      <span style={{ background: '#ef4444', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.5px' }}>
-                                        {s.badge || 'SUDHIR TUTORIALS'}
-                                      </span>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span style={{ background: '#ef4444', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.5px' }}>
+                                          {s.badge || 'SUDHIR TUTORIALS'}
+                                        </span>
+                                      </div>
                                     </div>
 
                                     {/* Slide Main Content */}
@@ -6835,8 +7008,11 @@ function AdminDashboardContent() {
                                   </div>
 
                                   {/* Slide Footer */}
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem', fontSize: '0.7rem', color: '#707075', fontWeight: 700 }}>
-                                    <span>SUDHIR TUTORIALS • PREMIUM LECTURE NOTE</span>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem', fontSize: '0.7rem', color: '#707075', fontWeight: 700, flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ef4444' }}>
+                                      <img src="/logo.png" alt="" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                                      SUDHIR TUTORIALS
+                                    </span>
                                     <span>SLIDE {activeSlideIndex + 1} OF {generatedPpt.slides.length}</span>
                                   </div>
                                 </>
@@ -6899,8 +7075,8 @@ function AdminDashboardContent() {
 
                   {/* Study Notes/Handout Mode */}
                   {pptViewMode === 'NOTES' && (
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#f8f9fa' }}>
-                      <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', padding: '3rem', color: '#1e293b' }}>
+                    <div className="notes-container">
+                      <div className="notes-paper">
                         
                         {/* Title Header */}
                         <div style={{ borderBottom: '3px solid #ef4444', paddingBottom: '1.5rem', marginBottom: '2rem', textAlign: 'center' }}>
@@ -6922,13 +7098,14 @@ function AdminDashboardContent() {
                             <div key={idx} style={{ borderBottom: idx === generatedPpt.slides.length - 1 ? 'none' : '1px solid #e2e8f0', paddingBottom: '2.5rem' }}>
                               
                               {/* Section Title */}
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <span style={{ color: '#ef4444', fontStyle: 'italic', fontSize: '0.9rem' }}>#{idx + 1}</span> 
+                                  <img src="/logo.png" alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', borderRadius: '4px' }} />
                                   {slide.title}
                                 </h3>
                                 <span style={{ background: '#f1f5f9', color: '#64748b', padding: '3px 10px', borderRadius: '12px', fontSize: '0.65rem', fontWeight: 800 }}>
-                                  {slide.type || 'CONCEPT'}
+                                  {slide.badge || 'SUDHIR TUTORIALS'}
                                 </span>
                               </div>
 
