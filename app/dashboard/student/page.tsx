@@ -30,6 +30,55 @@ function formatDateDisplay(dateInput: any): string {
   }
 }
 
+function TypewriterText({ text, speed = 8, onComplete }: { text: string; speed?: number; onComplete?: () => void }) {
+  const [displayedText, setDisplayedText] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const tokens = text.split(/(<[^>]*>)/g).filter(Boolean);
+    let currentText = '';
+    let tokenIndex = 0;
+    let charIndex = 0;
+    let timeoutId: any;
+
+    const type = () => {
+      if (!active) return;
+      if (tokenIndex >= tokens.length) {
+        if (onComplete) onComplete();
+        return;
+      }
+
+      const activeToken = tokens[tokenIndex];
+      if (activeToken.startsWith('<') && activeToken.endsWith('>')) {
+        currentText += activeToken;
+        setDisplayedText(currentText);
+        tokenIndex++;
+        charIndex = 0;
+        type();
+      } else {
+        if (charIndex < activeToken.length) {
+          currentText += activeToken[charIndex];
+          setDisplayedText(currentText);
+          charIndex++;
+          timeoutId = setTimeout(type, speed);
+        } else {
+          tokenIndex++;
+          charIndex = 0;
+          type();
+        }
+      }
+    };
+
+    type();
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
+  }, [text, speed]);
+
+  return <span dangerouslySetInnerHTML={{ __html: displayedText }} />;
+}
+
 function StudentDashboardContent() {
   const { data: session } = useSession();
   const { theme } = useTheme();
@@ -260,10 +309,10 @@ function StudentDashboardContent() {
     }
   };
 
-  const renderSimpleLines = (text: string, baseKey: any) => {
+  const renderSimpleLines = (text: string, baseKey: any, animate: boolean = false) => {
     return text.split('\n').map((line, idx) => {
       let lineText = line.trim();
-      if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.4rem' }} />;
+      if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.3rem' }} />;
       
       // Bold formatting
       lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -271,24 +320,36 @@ function StudentDashboardContent() {
       lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
 
       if (lineText.startsWith('👉 ')) {
-        return <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(245,158,11,0.06)', padding: '0.6rem 0.85rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.5rem 0', fontWeight: 700, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+        return (
+          <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(245,158,11,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit' }}>
+            {animate ? <TypewriterText text={lineText.slice(2)} /> : <span dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />}
+          </div>
+        );
       }
       if (lineText.startsWith('* ') || lineText.startsWith('- ')) {
-        return <li key={`${baseKey}_${idx}`} style={{ marginLeft: '1rem', marginBottom: '0.3rem', listStyleType: 'square', color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+        return (
+          <li key={`${baseKey}_${idx}`} style={{ marginLeft: '0.75rem', marginBottom: '0.2rem', listStyleType: 'square', color: 'var(--text)', fontSize: 'inherit' }}>
+            {animate ? <TypewriterText text={lineText.slice(2)} /> : <span dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />}
+          </li>
+        );
       }
       if (lineText.startsWith('---')) {
-        return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '1rem 0' }} />;
+        return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }} />;
       }
-      return <p key={`${baseKey}_${idx}`} style={{ margin: '0.35rem 0', color: 'var(--text)', lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: lineText }} />;
+      return (
+        <p key={`${baseKey}_${idx}`} style={{ margin: '0.2rem 0', color: 'var(--text)', lineHeight: 1.45, fontSize: 'inherit' }}>
+          {animate ? <TypewriterText text={lineText} /> : <span dangerouslySetInnerHTML={{ __html: lineText }} />}
+        </p>
+      );
     });
   };
 
   // High performance formatting engine to render clean unicode mathematics and science equations beautifully
-  const formatGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0) => {
+  const formatGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0, isNew: boolean = false) => {
     if (content.includes('### ')) {
       const sections = content.split(/(?=###\s+)/); // split but keep the header
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', width: '100%', alignItems: 'flex-start' }}>
           {sections.map((section, idx) => {
             const lines = section.trim().split('\n');
             const headerLine = lines[0] || '';
@@ -296,18 +357,19 @@ function StudentDashboardContent() {
             const bodyText = bodyLines.join('\n').trim();
             
             if (!headerLine.startsWith('### ')) {
-              return <div key={idx}>{renderSimpleLines(section, idx)}</div>;
+              return <div key={idx}>{renderSimpleLines(section, idx, isNew)}</div>;
             }
 
             const headerTitle = headerLine.replace('### ', '').trim();
             
             let cardStyle: React.CSSProperties = {
               borderRadius: '12px',
-              padding: '0.5rem 0.75rem',
+              padding: '0.4rem 0.65rem',
               border: '1px solid var(--border)',
               background: 'var(--surface-light)',
               boxShadow: 'var(--shadow-sm)',
-              width: '100%',
+              width: 'fit-content',
+              maxWidth: '100%',
               boxSizing: 'border-box'
             };
             let headerColor = '#f59e0b';
@@ -328,15 +390,18 @@ function StudentDashboardContent() {
 
               return (
                 <div key={idx} style={cardStyle} className="guru-response-card">
-                  <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
+                  <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
                     {headerTitle}
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    {visibleSteps.map((stepText, sIdx) => (
-                      <div key={sIdx} style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
-                        {renderSimpleLines(stepText, idx + '_step_' + sIdx)}
-                      </div>
-                    ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    {visibleSteps.map((stepText, sIdx) => {
+                      const shouldAnimateStep = isNew && (sIdx === revealedSteps - 1);
+                      return (
+                        <div key={sIdx} className="guru-card-text">
+                          {renderSimpleLines(stepText, idx + '_step_' + sIdx, shouldAnimateStep)}
+                        </div>
+                      );
+                    })}
                   </div>
                   
                   {hasMoreSteps && (
@@ -350,14 +415,14 @@ function StudentDashboardContent() {
                         }));
                       }}
                       style={{
-                        marginTop: '0.5rem',
-                        padding: '0.4rem 1rem',
+                        marginTop: '0.4rem',
+                        padding: '0.3rem 0.8rem',
                         background: 'linear-gradient(135deg, #10b981, #059669)',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '24px',
                         cursor: 'pointer',
-                        fontSize: '0.82rem',
+                        fontSize: '0.78rem',
                         fontWeight: '700',
                         display: 'flex',
                         alignItems: 'center',
@@ -385,11 +450,11 @@ function StudentDashboardContent() {
 
             return (
               <div key={idx} style={cardStyle} className="guru-response-card">
-                <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
+                <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
                   {headerTitle}
                 </h4>
-                <div style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
-                  {renderSimpleLines(bodyText, idx + '_body')}
+                <div className="guru-card-text">
+                  {renderSimpleLines(bodyText, idx + '_body', isNew)}
                 </div>
               </div>
             );
@@ -401,14 +466,17 @@ function StudentDashboardContent() {
     return (
       <div style={{
         borderRadius: '12px',
-        padding: '0.5rem 0.75rem',
+        padding: '0.4rem 0.65rem',
         border: '1px solid var(--border)',
         background: 'var(--surface-light)',
         boxShadow: 'var(--shadow-sm)',
-        width: '100%',
+        width: 'fit-content',
+        maxWidth: '100%',
         boxSizing: 'border-box'
-      }}>
-        {renderSimpleLines(content, 0)}
+      }} className="guru-response-card">
+        <div className="guru-card-text">
+          {renderSimpleLines(content, 0, isNew)}
+        </div>
       </div>
     );
   };
@@ -435,12 +503,12 @@ function StudentDashboardContent() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setGuruHistory(prev => [...prev, { role: 'guru', content: data.solution, revealedSteps: 1 }]);
+        setGuruHistory(prev => [...prev, { role: 'guru', content: data.solution, revealedSteps: 1, isNew: true }]);
       } else {
-        setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry dear child, I encountered a connection issue. Please try seeking my guidance again.', revealedSteps: 1 }]);
+        setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry dear child, I encountered a connection issue. Please try seeking my guidance again.', revealedSteps: 1, isNew: true }]);
       }
     } catch (e) {
-      setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.', revealedSteps: 1 }]);
+      setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.', revealedSteps: 1, isNew: true }]);
     } finally {
       setGuruLoading(false);
       // Scroll to bottom of chat feed
@@ -2000,7 +2068,7 @@ function StudentDashboardContent() {
                   >
                     <div>
                       {msg.role === 'guru' ? (
-                        formatGuruResponse(msg.content, msg.revealedSteps || 1, i)
+                        formatGuruResponse(msg.content, msg.revealedSteps || 1, i, (msg as any).isNew)
                       ) : (
                         <div>
                           {msg.image && (
