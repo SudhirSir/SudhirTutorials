@@ -476,10 +476,10 @@ function AdminDashboardContent() {
     }
   };
 
-  const renderAdminSimpleLines = (text: string, baseKey: any) => {
+   const renderAdminSimpleLines = (text: string, baseKey: any) => {
     return text.split('\n').map((line, idx) => {
       let lineText = line.trim();
-      if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.4rem' }} />;
+      if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.3rem' }} />;
       
       // Bold formatting
       lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -487,26 +487,26 @@ function AdminDashboardContent() {
       lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:#ef4444;font-weight:600;">$1</code>');
 
       if (lineText.startsWith('👉 ')) {
-        return <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(239,68,68,0.06)', padding: '0.6rem 0.85rem', borderRadius: '8px', borderLeft: '3px solid #ef4444', margin: '0.5rem 0', fontWeight: 700, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+        return <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(239,68,68,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #ef4444', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
       }
       if (lineText.startsWith('* ') || lineText.startsWith('- ')) {
-        return <li key={`${baseKey}_${idx}`} style={{ marginLeft: '1rem', marginBottom: '0.3rem', listStyleType: 'square', color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+        return <li key={`${baseKey}_${idx}`} style={{ marginLeft: '0.75rem', marginBottom: '0.2rem', listStyleType: 'square', color: 'var(--text)', fontSize: 'inherit' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
       }
       if (lineText.startsWith('---')) {
-        return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '1rem 0' }} />;
+        return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }} />;
       }
-      return <p key={`${baseKey}_${idx}`} style={{ margin: '0.35rem 0', color: 'var(--text)', lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: lineText }} />;
+      return <p key={`${baseKey}_${idx}`} style={{ margin: '0.2rem 0', color: 'var(--text)', lineHeight: 1.45, fontSize: 'inherit' }} dangerouslySetInnerHTML={{ __html: lineText }} />;
     });
   };
 
   const formatAdminGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0) => {
     if (content.includes('### ')) {
-      const sections = content.split(/(?=### )/);
+      const sections = content.split(/(?=###\s+)/); // split but keep the header
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', width: '100%', alignItems: 'flex-start' }}>
           {sections.map((section, idx) => {
             const lines = section.trim().split('\n');
-            const headerLine = lines[0];
+            const headerLine = lines[0] || '';
             const bodyText = lines.slice(1).join('\n').trim();
             if (!headerLine.startsWith('### ')) {
               return <div key={idx}>{renderAdminSimpleLines(section, idx)}</div>;
@@ -516,11 +516,12 @@ function AdminDashboardContent() {
             
             let cardStyle: React.CSSProperties = {
               borderRadius: '12px',
-              padding: '0.5rem 0.75rem',
+              padding: '0.4rem 0.65rem',
               border: '1px solid var(--border)',
               background: 'var(--surface-light)',
               boxShadow: 'var(--shadow-sm)',
-              width: '100%',
+              width: 'fit-content',
+              maxWidth: '100%',
               boxSizing: 'border-box'
             };
             let headerColor = '#f59e0b';
@@ -541,12 +542,12 @@ function AdminDashboardContent() {
 
               return (
                 <div key={idx} style={cardStyle} className="guru-response-card">
-                  <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
+                  <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
                     {headerTitle}
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                     {visibleSteps.map((stepText, sIdx) => (
-                      <div key={sIdx} style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                      <div key={sIdx} className="guru-card-text">
                         {renderAdminSimpleLines(stepText, idx + '_step_' + sIdx)}
                       </div>
                     ))}
@@ -563,14 +564,14 @@ function AdminDashboardContent() {
                         }));
                       }}
                       style={{
-                        marginTop: '0.5rem',
-                        padding: '0.4rem 1rem',
+                        marginTop: '0.4rem',
+                        padding: '0.3rem 0.8rem',
                         background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '24px',
                         cursor: 'pointer',
-                        fontSize: '0.82rem',
+                        fontSize: '0.78rem',
                         fontWeight: '700',
                         display: 'flex',
                         alignItems: 'center',
@@ -598,10 +599,10 @@ function AdminDashboardContent() {
 
             return (
               <div key={idx} style={cardStyle} className="guru-response-card">
-                <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
+                <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
                   {headerTitle}
                 </h4>
-                <div style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                <div className="guru-card-text">
                   {renderAdminSimpleLines(bodyText, idx + '_body')}
                 </div>
               </div>
@@ -614,14 +615,17 @@ function AdminDashboardContent() {
     return (
       <div style={{
         borderRadius: '12px',
-        padding: '0.5rem 0.75rem',
+        padding: '0.4rem 0.65rem',
         border: '1px solid var(--border)',
         background: 'var(--surface-light)',
         boxShadow: 'var(--shadow-sm)',
-        width: '100%',
+        width: 'fit-content',
+        maxWidth: '100%',
         boxSizing: 'border-box'
-      }}>
-        {renderAdminSimpleLines(content, 0)}
+      }} className="guru-response-card">
+        <div className="guru-card-text">
+          {renderAdminSimpleLines(content, 0)}
+        </div>
       </div>
     );
   };
@@ -6360,18 +6364,19 @@ function AdminDashboardContent() {
             }
             .chat-bubble {
               border-radius: 16px;
-              padding: 1rem 1.25rem;
+              padding: 0.6rem 0.85rem;
               max-width: 80%;
-              line-height: 1.6;
-              fontSize: 0.95rem;
+              line-height: 1.45;
+              font-size: 0.88rem;
             }
             .chat-bubble pre {
               background: var(--surface-light);
-              padding: 1rem;
+              padding: 0.75rem;
               border-radius: 8px;
               overflow-x: auto;
-              margin: 1rem 0;
+              margin: 0.5rem 0;
               border: 1px solid var(--border);
+              font-size: 0.82rem;
             }
             .chat-bubble code {
               font-family: monospace;
@@ -6380,6 +6385,11 @@ function AdminDashboardContent() {
               border-radius: 4px;
               color: #ef4444;
               font-weight: 600;
+            }
+            .guru-card-text {
+              font-size: 0.88rem;
+              line-height: 1.45;
+              color: var(--text);
             }
             .slide-btn {
               padding: 0.5rem 1rem;
@@ -6512,6 +6522,47 @@ function AdminDashboardContent() {
                 padding: 1.25rem;
                 border-radius: 12px;
               }
+              .chat-bubble {
+                max-width: 95% !important;
+                padding: 0.45rem 0.65rem !important;
+                font-size: 0.82rem !important;
+                line-height: 1.4 !important;
+              }
+              #admin-guru-chat-feed {
+                padding: 0.5rem !important;
+                gap: 0.5rem !important;
+              }
+              .guru-response-card {
+                padding: 0.35rem 0.55rem !important;
+                border-radius: 10px !important;
+              }
+              .guru-response-card h4 {
+                font-size: 0.8rem !important;
+                margin-bottom: 0.15rem !important;
+              }
+              .guru-card-text {
+                font-size: 0.82rem !important;
+                line-height: 1.4 !important;
+              }
+              .guru-input-bar {
+                padding: 0.5rem 0.5rem !important;
+              }
+              .guru-input-container {
+                gap: 0.35rem !important;
+                padding: 0.25rem 0.35rem 0.25rem 0.6rem !important;
+              }
+              .guru-input-field {
+                font-size: 0.82rem !important;
+              }
+              .guru-btn-circle {
+                width: 28px !important;
+                height: 28px !important;
+                margin-right: 2px !important;
+              }
+              .guru-send-btn {
+                width: 30px !important;
+                height: 30px !important;
+              }
             }
           `}</style>
 
@@ -6536,6 +6587,7 @@ function AdminDashboardContent() {
                         </div>
                       )}
                       <div 
+                        className={msg.role === 'user' ? 'chat-bubble' : ''}
                         style={msg.role === 'user' ? { 
                           background: 'linear-gradient(135deg, #ef4444, #f59e0b)', 
                           border: 'none',
@@ -6544,10 +6596,10 @@ function AdminDashboardContent() {
                           borderTopRightRadius: '4px',
                           boxShadow: 'var(--shadow-sm)',
                           borderRadius: '16px',
-                          padding: '1rem 1.25rem',
+                          padding: '0.6rem 0.85rem',
                           maxWidth: '80%',
-                          lineHeight: '1.6',
-                          fontSize: '0.95rem'
+                          lineHeight: '1.45',
+                          fontSize: '0.88rem'
                         } : {
                           background: 'none',
                           border: 'none',
@@ -6556,7 +6608,7 @@ function AdminDashboardContent() {
                           padding: '0',
                           maxWidth: '85%',
                           width: '100%',
-                          fontSize: '0.95rem'
+                          fontSize: '0.88rem'
                         }}
                       >
                         <div>
@@ -6620,7 +6672,7 @@ function AdminDashboardContent() {
               </div>
 
               {/* Bottom Chat Input Bar */}
-              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+              <div className="guru-input-bar" style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
                 {adminGuruFile && (
                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                     {adminGuruFile.startsWith('data:application/pdf') ? (
@@ -6650,10 +6702,11 @@ function AdminDashboardContent() {
                     </button>
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
+                <div className="guru-input-container" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
                   
                   {/* Attachment Picker */}
                   <label 
+                    className="attachment-btn guru-btn-circle"
                     style={{ 
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                       width: '32px', height: '32px', borderRadius: '50%', 
@@ -6677,6 +6730,7 @@ function AdminDashboardContent() {
                   <button 
                     onClick={adminIsRecording ? stopAdminVoiceRecording : startAdminVoiceRecording}
                     disabled={adminGuruLoading || adminIsTranscribing}
+                    className="attachment-btn guru-btn-circle"
                     style={{ 
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                       width: '32px', height: '32px', borderRadius: '50%', 
@@ -6697,6 +6751,7 @@ function AdminDashboardContent() {
 
                   <input 
                     type="text"
+                    className="guru-input-field"
                     placeholder={adminIsTranscribing ? "🎙️ Transcribing voice query..." : adminIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask Guru Ji a question, upload a PDF/Photo..."} 
                     value={adminGuruQuestion}
                     onChange={(e) => setAdminGuruQuestion(e.target.value)}
@@ -6711,6 +6766,7 @@ function AdminDashboardContent() {
                   <button 
                     onClick={askAdminGuru}
                     disabled={adminGuruLoading || (!adminGuruQuestion.trim() && !adminGuruFile) || adminIsRecording || adminIsTranscribing}
+                    className="guru-send-btn"
                     style={{ 
                       width: '36px', height: '36px', borderRadius: '50%', 
                       background: (adminGuruQuestion.trim() || adminGuruFile) ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--border)', 

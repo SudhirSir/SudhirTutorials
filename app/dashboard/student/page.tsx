@@ -1874,18 +1874,19 @@ function StudentDashboardContent() {
             }
             .chat-bubble {
               border-radius: 16px;
-              padding: 1rem 1.25rem;
+              padding: 0.6rem 0.85rem;
               max-width: 80%;
-              line-height: 1.6;
-              font-size: 0.95rem;
+              line-height: 1.45;
+              font-size: 0.88rem;
             }
             .chat-bubble pre {
               background: var(--surface-light);
-              padding: 1rem;
+              padding: 0.75rem;
               border-radius: 8px;
               overflow-x: auto;
-              margin: 1rem 0;
+              margin: 0.5rem 0;
               border: 1px solid var(--border);
+              font-size: 0.82rem;
             }
             .chat-bubble code {
               font-family: monospace;
@@ -1894,6 +1895,11 @@ function StudentDashboardContent() {
               border-radius: 4px;
               color: var(--primary);
               font-weight: 600;
+            }
+            .guru-card-text {
+              font-size: 0.88rem;
+              line-height: 1.45;
+              color: var(--text);
             }
             .attachment-btn {
               transition: all 0.2s ease;
@@ -1907,30 +1913,51 @@ function StudentDashboardContent() {
             }
             @media (max-width: 768px) {
               .chat-bubble {
-                max-width: 92% !important;
-                padding: 0.75rem 1rem !important;
-                font-size: 0.9rem !important;
+                max-width: 95% !important;
+                padding: 0.45rem 0.65rem !important;
+                font-size: 0.82rem !important;
+                line-height: 1.4 !important;
               }
               #guru-chat-feed {
-                padding: 1rem !important;
-                gap: 1rem !important;
+                padding: 0.5rem !important;
+                gap: 0.5rem !important;
               }
               .guru-response-card {
-                padding: 0.85rem 1rem !important;
-                border-radius: 12px !important;
+                padding: 0.35rem 0.55rem !important;
+                border-radius: 10px !important;
               }
               .guru-response-card h4 {
-                font-size: 0.95rem !important;
-                margin-bottom: 0.5rem !important;
+                font-size: 0.8rem !important;
+                margin-bottom: 0.15rem !important;
               }
-              .guru-response-card div {
-                font-size: 0.88rem !important;
+              .guru-card-text {
+                font-size: 0.82rem !important;
+                line-height: 1.4 !important;
+              }
+              .guru-input-bar {
+                padding: 0.5rem 0.5rem !important;
+              }
+              .guru-input-container {
+                gap: 0.35rem !important;
+                padding: 0.25rem 0.35rem 0.25rem 0.6rem !important;
+              }
+              .guru-input-field {
+                font-size: 0.82rem !important;
+              }
+              .guru-btn-circle {
+                width: 28px !important;
+                height: 28px !important;
+                margin-right: 2px !important;
+              }
+              .guru-send-btn {
+                width: 30px !important;
+                height: 30px !important;
               }
             }
           `}</style>
 
           {/* Message Feed */}
-          <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
+          <div style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }} id="guru-chat-feed">
             {guruHistory.length === 0 ? (
               <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
@@ -1956,19 +1983,19 @@ function StudentDashboardContent() {
                       borderTopRightRadius: '4px',
                       boxShadow: 'var(--shadow-sm)',
                       borderRadius: '16px',
-                      padding: '1rem 1.25rem',
+                      padding: '0.6rem 0.85rem',
                       maxWidth: '80%',
-                      lineHeight: '1.6',
-                      fontSize: '0.95rem'
+                      lineHeight: '1.45',
+                      fontSize: '0.88rem'
                     } : {
                       background: 'none',
                       border: 'none',
                       color: 'var(--text)',
                       boxShadow: 'none',
                       padding: '0',
-                      maxWidth: '85%',
+                      maxWidth: '90%',
                       width: '100%',
-                      fontSize: '0.95rem'
+                      fontSize: '0.88rem'
                     }}
                   >
                     <div>
@@ -2046,7 +2073,7 @@ function StudentDashboardContent() {
           </div>
 
           {/* Bottom Chat Input Bar */}
-          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+          <div className="guru-input-bar" style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
             {guruFile && (
               <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                 {guruFile.startsWith('data:application/pdf') ? (
@@ -2076,10 +2103,10 @@ function StudentDashboardContent() {
                 </button>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
+            <div className="guru-input-container" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
               {/* Attachment Picker */}
               <label 
-                className="attachment-btn"
+                className="attachment-btn guru-btn-circle"
                 style={{ 
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                   width: '32px', height: '32px', borderRadius: '50%', 
@@ -2103,7 +2130,7 @@ function StudentDashboardContent() {
               <button 
                 onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
                 disabled={guruLoading || isTranscribing}
-                className="attachment-btn"
+                className="attachment-btn guru-btn-circle"
                 style={{ 
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                   width: '32px', height: '32px', borderRadius: '50%', 
@@ -2124,6 +2151,7 @@ function StudentDashboardContent() {
 
               <input 
                 type="text"
+                className="guru-input-field"
                 placeholder={isTranscribing ? "🎙️ Transcribing voice doubt..." : isRecording ? "🎙️ Recording... speak your doubt clearly, click Mic to stop" : "Ask Guru Ji a question, upload a PDF/Photo..."}
                 value={guruQuestion}
                 onChange={(e) => setGuruQuestion(e.target.value)}
@@ -2138,6 +2166,7 @@ function StudentDashboardContent() {
               
               <button 
                 onClick={askGuruJi}
+                className="guru-send-btn"
                 disabled={guruLoading || (!guruQuestion.trim() && !guruFile) || isRecording || isTranscribing}
                 style={{ 
                   width: '36px', height: '36px', borderRadius: '50%', 
