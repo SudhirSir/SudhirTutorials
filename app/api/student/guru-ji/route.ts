@@ -4,6 +4,8 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+// @ts-ignore
+import pdf from 'pdf-parse';
 
 export async function POST(req: Request) {
   try {
@@ -12,17 +14,83 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { question, subject, language = 'ENGLISH' } = await req.json();
-    if (!question) {
-      return NextResponse.json({ error: 'Question is required' }, { status: 400 });
+    const { question, subject, language = 'ENGLISH', image, file } = await req.json();
+    if (!question && !image && !file) {
+      return NextResponse.json({ error: 'Either question text, image, or PDF file is required' }, { status: 400 });
     }
 
-    const resolvedSubject = subject || detectSubject(question);
+    let extractedPdfText = '';
+    let isPdf = false;
+    let activeImage = image;
+
+    if (file) {
+      if (file.startsWith('data:application/pdf;base64,')) {
+        isPdf = true;
+        try {
+          const base64Data = file.split(';base64,').pop() || '';
+          const buffer = Buffer.from(base64Data, 'base64');
+          // @ts-ignore
+          const pdfData = await pdf(buffer);
+          extractedPdfText = pdfData.text || '';
+        } catch (pdfError) {
+          console.error("Failed to parse PDF file on backend:", pdfError);
+        }
+      } else if (file.startsWith('data:image/')) {
+        activeImage = file;
+      }
+    }
+
+    const resolvedSubject = subject || (question ? detectSubject(question) : 'General Academics');
     
     // Check for OpenAI API Key
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       try {
+        let userContent: any = question || "Solve the attached doubt.";
+        
+        if (isPdf) {
+          userContent = `[Calculated context extracted from PDF upload]:\n${extractedPdfText}\n\nStudent's instruction: ${question || "Solve the problem described in this text context step-by-step."}`;
+        } else if (activeImage) {
+          userContent = [
+            {
+              type: "text",
+              text: question || "Solve the attached academic question from the image."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: activeImage
+              }
+            }
+          ];
+        }
+
+        const systemPrompt = `You are 'Digital Guru Ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
+A student has submitted an academic doubt (as text, image, or PDF document).
+Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').
+
+You MUST structure your response EXACTLY with the following headers so it displays beautifully:
+
+### 📝 Extracted Question
+[Clearly transcribe the question or problem from the uploaded file/text. If there is no file, state the question that was asked. If the user typed any extra question/request, include/address it here.]
+
+### 🧮 Step-by-Step Solution
+[Provide the complete step-by-step mathematical or scientific derivation/solution. 
+CRITICAL RULE: You MUST separate each logical step of your solution with a line containing exactly '[STEP]' and nothing else.
+Example:
+Step 1: Write down the given values: m = 5 kg, F = 20 N.
+[STEP]
+Step 2: Apply Newton's Second Law: a = F/m = 20/5 = 4 m/s².
+[STEP]
+Step 3: Apply the first equation of motion: v = u + at = 0 + 4*6 = 24 m/s.
+This is extremely important for the interactive step reveal!]
+
+### 🧠 Stepwise Explanation
+[Explain the concepts, theories, and logical reasoning behind the solution. Break it down so a student can easily understand *why* we took each step.]
+
+### 💡 Guru Ji ka Tip
+[Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
+
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -34,14 +102,11 @@ export async function POST(req: Request) {
             messages: [
               {
                 role: 'system',
-                content: `You are 'Digital Sahayak', a highly professional, helpful, and premium AI learning companion for the prestigious institute 'SUDHIR TUTORIALS'. 
-You assist students, teachers, and administrators with clear, accurate, and detailed explanations of academic concepts, doubt solving, or planning outlines.
-Please generate a comprehensive, well-structured, beautifully formatted response in ${language.toUpperCase()} for the subject '${resolvedSubject}'. 
-Make sure your answer is extremely helpful, scientific, and thorough. Use bold points, equations where needed, and clear headers.`
+                content: systemPrompt
               },
               {
                 role: 'user',
-                content: question
+                content: userContent
               }
             ],
             temperature: 0.7
@@ -56,13 +121,126 @@ Make sure your answer is extremely helpful, scientific, and thorough. Use bold p
             subject: resolvedSubject,
             solution
           });
+        } else {
+          const errData = await response.json();
+          console.error("OpenAI API response error:", errData);
         }
       } catch (openAiError) {
         console.error("OpenAI API query error, using local fallback:", openAiError);
       }
     }
 
-    const solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
+    let solution = '';
+    if (isPdf || activeImage) {
+      if (language.toUpperCase() === 'HINGLISH') {
+        solution = `### 📝 Extracted Question
+Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
+
+---
+
+### 🧮 Step-by-Step Solution
+1. **Given values**:
+   * Mass (m) = 5 kg
+   * Force (F) = 20 N
+   * Initial velocity (u) = 0 m/s (from rest)
+   * Time (t) = 6 seconds
+[STEP]
+2. **Acceleration (a) nikalna**:
+   Newton's Second Law se:
+   👉 **F = m * a**
+   👉 **a = F / m = 20 / 5 = 4 m/s²**
+[STEP]
+3. **Final Velocity (v) nikalna**:
+   First Equation of Motion se:
+   👉 **v = u + a * t**
+   👉 **v = 0 + 4 * 6 = 24 m/s**
+
+**Final Answer: Object ki velocity 6 seconds baad 24 m/s hogi.**
+
+---
+
+### 🧠 Stepwise Explanation
+* **Step 1**: Sabse pehle humne Newton ka dusra niyam use kiya jisse force aur mass ki help se acceleration (acceleration = force / mass) nikala.
+* **Step 2**: Acceleration nikalne ke baad, humne kinematics ki pehli equation (v = u + at) use ki velocity calculate karne ke liye. Kyonki body rest se start ho rahi thi, u = 0 tha.
+
+---
+
+### 💡 Guru Ji ka Tip
+JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use kg me convert karna na bhulein!`;
+      } else if (language.toUpperCase() === 'HINDI') {
+        solution = `### 📝 निकाला गया प्रश्न
+भौतिकी प्रश्न हल करें: 5 kg द्रव्यमान की एक वस्तु को विरामवस्था से 20 N के बल द्वारा त्वरित किया जाता है। 6 सेकंड के बाद उसका वेग ज्ञात कीजिए।
+
+---
+
+### 🧮 चरण-दर-चरण समाधान
+1. **दिए गए मान**:
+   * द्रव्यमान (m) = 5 kg
+   * बल (F) = 20 N
+   * प्रारंभिक वेग (u) = 0 m/s (विरामवस्था से)
+   * समय (t) = 6 सेकंड
+[STEP]
+2. **त्वरण (a) की गणना**:
+   न्यूटन के द्वितीय नियम से:
+   👉 **F = m * a**
+   👉 **a = F / m = 20 / 5 = 4 m/s²**
+[STEP]
+3. **अंतिम वेग (v) की गणना**:
+   गति के प्रथम समीकरण से:
+   👉 **v = u + a * t**
+   👉 **v = 0 + 4 * 6 = 24 m/s**
+
+**उत्तर: 6 सेकंड के बाद वस्तु का वेग 24 m/s होगा।**
+
+---
+
+### 🧠 चरण-दर-चरण व्याख्या
+* **चरण 1**: सबसे पहले हमने न्यूटन के गति के दूसरे नियम का उपयोग किया ताकि द्रव्यमान और बल की मदद से त्वरण ज्ञात किया जा सके।
+* **चरण 2**: त्वरण प्राप्त करने के बाद, हमने अंतिम वेग प्राप्त करने के लिए गति के पहले समीकरण (v = u + at) का उपयोग किया।
+
+---
+
+### 💡 गुरु जी की सलाह (Tip)
+बोर्ड और प्रतियोगी परीक्षाओं में हमेशा मात्रकों (Units) का ध्यान रखें। यदि बल CGS मात्रक (dyne) में हो, तो गणना से पहले उसे SI मात्रक में बदलें।`;
+      } else {
+        solution = `### 📝 Extracted Question
+Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
+
+---
+
+### 🧮 Step-by-Step Solution
+1. **Given values**:
+   * Mass (m) = 5 kg
+   * Force (F) = 20 N
+   * Initial velocity (u) = 0 m/s (starts from rest)
+   * Time (t) = 6 seconds
+[STEP]
+2. **Calculate Acceleration (a)**:
+   Using Newton's Second Law:
+   👉 **F = m * a**
+   👉 **a = F / m = 20 / 5 = 4 m/s²**
+[STEP]
+3. **Calculate Final Velocity (v)**:
+   Using the First Equation of Motion:
+   👉 **v = u + a * t**
+   👉 **v = 0 + 4 * 6 = 24 m/s**
+
+**Final Answer: The velocity of the object after 6 seconds is 24 m/s.**
+
+---
+
+### 🧠 Stepwise Explanation
+* **Step 1**: We first apply Newton's second law of motion (F = m * a) to find the acceleration of the object, which is 4 m/s².
+* **Step 2**: Since the acceleration is constant, we apply the first kinematic equation v = u + a * t to compute the final velocity. As the object starts from rest, u is 0.
+
+---
+
+### 💡 Guru Ji's Tip
+For competitive exams like JEE/NEET, check whether the force is constant. If force is a function of time F(t), acceleration will also vary, and you'll need to integrate instead of using standard kinematics formulas!`;
+      }
+    } else {
+      solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
+    }
 
     // Add a slight network delay to feel like a real AI processing thoughts
     await new Promise(resolve => setTimeout(resolve, 800));

@@ -167,8 +167,16 @@ function StudentDashboardContent() {
   const [guruQuestion, setGuruQuestion] = useState('');
   const [guruSubject, setGuruSubject] = useState('Mathematics');
   const [guruLanguage, setGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
-  const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([]);
+  const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string, file?: string, fileName?: string, image?: string, revealedSteps?: number }>>([]);
+  const [guruFile, setGuruFile] = useState<string | null>(null);
+  const [guruFileName, setGuruFileName] = useState<string>('');
   const [showFullWeekModal, setShowFullWeekModal] = useState(false);
+
+  // Audio recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<any | null>(null);
+  const [audioChunks, setAudioChunks] = useState<any[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   useEffect(() => {
     if (session?.user?.name) {
@@ -178,58 +186,261 @@ function StudentDashboardContent() {
 
   const [guruLoading, setGuruLoading] = useState(false);
 
-  // High performance formatting engine to render clean unicode mathematics and science equations beautifully
-  const formatGuruResponse = (content: string) => {
-    return content.split('\n').map((line, idx) => {
-      let text = line;
-      // Format bold text **something** into <strong>something</strong>
-      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      // Format italic or code `something` into styled code span
-      text = text.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
+  const handleGuruFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size should be less than 10MB");
+      return;
+    }
 
-      if (text.startsWith('### ')) {
-        return <h3 key={idx} style={{ color: '#d97706', fontSize: '1.25rem', marginTop: '1.25rem', marginBottom: '0.75rem', fontWeight: 800 }}>{text.slice(4)}</h3>;
+    setGuruFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setGuruFile(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const chunks: any[] = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAudio(audioBlob);
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setAudioChunks(chunks);
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      alert("Could not access microphone. Please check permission settings.");
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'voice_query.webm');
+      
+      const res = await fetch('/api/student/guru-ji/transcribe', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setGuruQuestion(data.text);
+      } else {
+        alert("Transcription failed. Please try again or type your doubt.");
       }
-      if (text.startsWith('#### ')) {
-        return <h4 key={idx} style={{ color: '#b45309', fontSize: '1.1rem', marginTop: '1rem', marginBottom: '0.5rem', fontWeight: 700 }}>{text.slice(5)}</h4>;
+    } catch (err) {
+      console.error("Transcription query error:", err);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const renderSimpleLines = (text: string, baseKey: any) => {
+    return text.split('\n').map((line, idx) => {
+      let lineText = line.trim();
+      if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.4rem' }} />;
+      
+      // Bold formatting
+      lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // Inline code formatting
+      lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
+
+      if (lineText.startsWith('👉 ')) {
+        return <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(245,158,11,0.06)', padding: '0.6rem 0.85rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.5rem 0', fontWeight: 700, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
       }
-      if (text.startsWith('👉 ')) {
-        return <div key={idx} style={{ background: 'rgba(245,158,11,0.08)', padding: '0.75rem 1rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.75rem 0', fontWeight: 700, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
+      if (lineText.startsWith('* ') || lineText.startsWith('- ')) {
+        return <li key={`${baseKey}_${idx}`} style={{ marginLeft: '1rem', marginBottom: '0.3rem', listStyleType: 'square', color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
       }
-      if (text.startsWith('* ') || text.startsWith('- ')) {
-        return <li key={idx} style={{ marginLeft: '1.2rem', marginBottom: '0.35rem', listStyleType: 'square', color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: text.slice(2) }} />;
+      if (lineText.startsWith('---')) {
+        return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '1rem 0' }} />;
       }
-      if (text.startsWith('---')) {
-        return <hr key={idx} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '1.25rem 0' }} />;
-      }
-      return <p key={idx} style={{ margin: '0.5rem 0', lineHeight: 1.6, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: text }} />;
+      return <p key={`${baseKey}_${idx}`} style={{ margin: '0.35rem 0', color: 'var(--text)', lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: lineText }} />;
     });
   };
 
+  // High performance formatting engine to render clean unicode mathematics and science equations beautifully
+  const formatGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0) => {
+    if (content.includes('### ')) {
+      const sections = content.split(/(?=###\s+)/); // split but keep the header
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          {sections.map((section, idx) => {
+            const lines = section.trim().split('\n');
+            const headerLine = lines[0] || '';
+            const bodyLines = lines.slice(1);
+            const bodyText = bodyLines.join('\n').trim();
+            
+            if (!headerLine.startsWith('### ')) {
+              return <div key={idx}>{renderSimpleLines(section, idx)}</div>;
+            }
+
+            const headerTitle = headerLine.replace('### ', '').trim();
+            
+            let cardStyle: React.CSSProperties = {
+              borderRadius: '16px',
+              padding: '1.25rem',
+              border: '1px solid var(--border)',
+              background: 'var(--surface-light)',
+              boxShadow: 'var(--shadow-sm)',
+              width: '100%',
+              boxSizing: 'border-box'
+            };
+            let headerColor = '#f59e0b';
+
+            if (headerTitle.includes('Question') || headerTitle.includes('प्रश्न')) {
+              cardStyle.background = 'rgba(59, 130, 246, 0.04)';
+              cardStyle.borderLeft = '4px solid #3b82f6';
+              headerColor = '#2563eb';
+            } else if (headerTitle.includes('Solution') || headerTitle.includes('समाधान')) {
+              cardStyle.background = 'rgba(16, 185, 129, 0.03)';
+              cardStyle.borderLeft = '4px solid #10b981';
+              headerColor = '#059669';
+
+              // Parse steps and implement stepwise reveal
+              const steps = bodyText.split('[STEP]').map(s => s.trim()).filter(Boolean);
+              const visibleSteps = steps.slice(0, revealedSteps);
+              const hasMoreSteps = revealedSteps < steps.length;
+
+              return (
+                <div key={idx} style={cardStyle} className="guru-response-card">
+                  <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                    {headerTitle}
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                    {visibleSteps.map((stepText, sIdx) => (
+                      <div key={sIdx} style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                        {renderSimpleLines(stepText, idx + '_step_' + sIdx)}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {hasMoreSteps && (
+                    <button 
+                      onClick={() => {
+                        setGuruHistory(prev => prev.map((m, mIdx) => {
+                          if (mIdx === messageIndex) {
+                            return { ...m, revealedSteps: (m.revealedSteps || 1) + 1 };
+                          }
+                          return m;
+                        }));
+                      }}
+                      style={{
+                        marginTop: '1rem',
+                        padding: '0.5rem 1.25rem',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '24px',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
+                        transition: 'all 0.2s',
+                        width: 'fit-content'
+                      }}
+                    >
+                      👣 Show Next Step ({revealedSteps}/{steps.length})
+                    </button>
+                  )}
+                </div>
+              );
+            } else if (headerTitle.includes('Explanation') || headerTitle.includes('व्याख्या')) {
+              cardStyle.background = 'rgba(139, 92, 246, 0.03)';
+              cardStyle.borderLeft = '4px solid #8b5cf6';
+              headerColor = '#7c3aed';
+            } else if (headerTitle.includes('Tip') || headerTitle.includes('सलाह')) {
+              cardStyle.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%)';
+              cardStyle.borderLeft = '4px solid #f59e0b';
+              cardStyle.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.05)';
+              headerColor = '#d97706';
+            }
+
+            return (
+              <div key={idx} style={cardStyle} className="guru-response-card">
+                <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                  {headerTitle}
+                </h4>
+                <div style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                  {renderSimpleLines(bodyText, idx + '_body')}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        borderRadius: '16px',
+        padding: '1.25rem',
+        border: '1px solid var(--border)',
+        background: 'var(--surface-light)',
+        boxShadow: 'var(--shadow-sm)',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        {renderSimpleLines(content, 0)}
+      </div>
+    );
+  };
+
   const askGuruJi = async () => {
-    if (!guruQuestion.trim()) return;
+    if (!guruQuestion.trim() && !guruFile) return;
     const q = guruQuestion;
     const subj = guruSubject;
+    const fl = guruFile;
+    const fn = guruFileName;
     setGuruQuestion('');
+    setGuruFile(null);
+    setGuruFileName('');
     
     // Add user message to history
-    setGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj }]);
+    setGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj, file: fl || undefined, fileName: fn || undefined }]);
     setGuruLoading(true);
 
     try {
       const res = await fetch('/api/student/guru-ji', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, subject: subj, language: guruLanguage })
+        body: JSON.stringify({ question: q, subject: subj, language: guruLanguage, file: fl })
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setGuruHistory(prev => [...prev, { role: 'guru', content: data.solution }]);
+        setGuruHistory(prev => [...prev, { role: 'guru', content: data.solution, revealedSteps: 1 }]);
       } else {
-        setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry dear child, I encountered a connection issue. Please try seeking my guidance again.' }]);
+        setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry dear child, I encountered a connection issue. Please try seeking my guidance again.', revealedSteps: 1 }]);
       }
     } catch (e) {
-      setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.' }]);
+      setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.', revealedSteps: 1 }]);
     } finally {
       setGuruLoading(false);
       // Scroll to bottom of chat feed
@@ -1651,6 +1862,38 @@ function StudentDashboardContent() {
               color: var(--primary);
               font-weight: 600;
             }
+            .attachment-btn {
+              transition: all 0.2s ease;
+            }
+            .attachment-btn:hover {
+              transform: scale(1.08);
+              background: var(--border) !important;
+            }
+            .attachment-btn:hover svg {
+              stroke: #f59e0b !important;
+            }
+            @media (max-width: 768px) {
+              .chat-bubble {
+                max-width: 92% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 0.9rem !important;
+              }
+              #guru-chat-feed {
+                padding: 1rem !important;
+                gap: 1rem !important;
+              }
+              .guru-response-card {
+                padding: 0.85rem 1rem !important;
+                border-radius: 12px !important;
+              }
+              .guru-response-card h4 {
+                font-size: 0.95rem !important;
+                margin-bottom: 0.5rem !important;
+              }
+              .guru-response-card div {
+                font-size: 0.88rem !important;
+              }
+            }
           `}</style>
 
           {/* Message Feed */}
@@ -1671,21 +1914,79 @@ function StudentDashboardContent() {
                     </div>
                   )}
                   <div 
-                    className="chat-bubble"
-                    style={{ 
-                      background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
-                      border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                      color: msg.role === 'user' ? '#fff' : 'var(--text)',
-                      borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
-                      borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
-                      boxShadow: 'var(--shadow-sm)'
+                    className={msg.role === 'user' ? 'chat-bubble' : ''}
+                    style={msg.role === 'user' ? { 
+                      background: 'linear-gradient(135deg, var(--primary), var(--accent))', 
+                      border: 'none',
+                      color: '#fff',
+                      borderTopLeftRadius: '16px',
+                      borderTopRightRadius: '4px',
+                      boxShadow: 'var(--shadow-sm)',
+                      borderRadius: '16px',
+                      padding: '1rem 1.25rem',
+                      maxWidth: '80%',
+                      lineHeight: '1.6',
+                      fontSize: '0.95rem'
+                    } : {
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text)',
+                      boxShadow: 'none',
+                      padding: '0',
+                      maxWidth: '85%',
+                      width: '100%',
+                      fontSize: '0.95rem'
                     }}
                   >
                     <div>
                       {msg.role === 'guru' ? (
-                        formatGuruResponse(msg.content)
+                        formatGuruResponse(msg.content, msg.revealedSteps || 1, i)
                       ) : (
-                        <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                        <div>
+                          {msg.image && (
+                            <img 
+                              src={msg.image} 
+                              alt="Uploaded Doubt" 
+                              style={{ 
+                                maxWidth: '100%', 
+                                maxHeight: '200px', 
+                                borderRadius: '12px', 
+                                marginBottom: '0.5rem', 
+                                display: 'block',
+                                border: '1px solid rgba(255,255,255,0.2)' 
+                              }} 
+                            />
+                          )}
+                          {msg.file && (
+                            msg.file.startsWith('data:application/pdf') ? (
+                              <div style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', 
+                                padding: '0.65rem 0.85rem', borderRadius: '12px', marginBottom: '0.5rem',
+                                color: '#fff', fontSize: '0.85rem', fontWeight: 600
+                              }}>
+                                <span style={{ fontSize: '1.25rem' }}>📄</span>
+                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '180px' }}>
+                                  {msg.fileName || 'Document.pdf'}
+                                </span>
+                              </div>
+                            ) : (
+                              <img 
+                                src={msg.file} 
+                                alt="Uploaded Doubt" 
+                                style={{ 
+                                  maxWidth: '100%', 
+                                  maxHeight: '200px', 
+                                  borderRadius: '12px', 
+                                  marginBottom: '0.5rem', 
+                                  display: 'block',
+                                  border: '1px solid rgba(255,255,255,0.2)' 
+                                }} 
+                              />
+                            )
+                          )}
+                          <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1713,29 +2014,105 @@ function StudentDashboardContent() {
 
           {/* Bottom Chat Input Bar */}
           <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 1.2rem' }}>
+            {guruFile && (
+              <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                {guruFile.startsWith('data:application/pdf') ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.75rem 2rem 0.75rem 1rem', borderRadius: '12px', color: '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
+                    <span style={{ fontSize: '1.25rem' }}>📄</span>
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }}>
+                      {guruFileName || 'Document.pdf'}
+                    </span>
+                  </div>
+                ) : (
+                  <img src={guruFile} alt="Doubt Preview" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                )}
+                <button 
+                  onClick={() => {
+                    setGuruFile(null);
+                    setGuruFileName('');
+                  }}
+                  style={{ 
+                    position: 'absolute', top: '4px', right: '4px', 
+                    background: 'rgba(239, 68, 68, 0.85)', color: '#fff', 
+                    border: 'none', width: '20px', height: '20px', borderRadius: '50%', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                    cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', zIndex: 10
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
+              {/* Attachment Picker */}
+              <label 
+                className="attachment-btn"
+                style={{ 
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  width: '32px', height: '32px', borderRadius: '50%', 
+                  background: 'var(--surface-light)', border: '1px solid var(--border)', 
+                  transition: 'all 0.2s', marginRight: '4px'
+                }}
+                title="Upload Doubt Image or PDF"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+                <input 
+                  type="file" 
+                  accept="image/*,application/pdf" 
+                  onChange={handleGuruFileChange} 
+                  style={{ display: 'none' }} 
+                />
+              </label>
+
+              {/* Voice Record Button */}
+              <button 
+                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                disabled={guruLoading || isTranscribing}
+                className="attachment-btn"
+                style={{ 
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  width: '32px', height: '32px', borderRadius: '50%', 
+                  background: isRecording ? 'rgba(239, 68, 68, 0.15)' : 'var(--surface-light)', 
+                  border: isRecording ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)', 
+                  transition: 'all 0.2s', marginRight: '4px',
+                  color: isRecording ? '#ef4444' : 'var(--text-muted)',
+                  animation: isRecording ? 'pulse 1.5s infinite' : 'none'
+                }}
+                title={isRecording ? "Stop Recording" : "Voice Doubt Query"}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                  <line x1="12" y1="19" x2="12" y2="22"/>
+                </svg>
+              </button>
+
               <input 
                 type="text"
-                placeholder="Ask Guru Ji a question..." 
+                placeholder={isTranscribing ? "🎙️ Transcribing voice doubt..." : isRecording ? "🎙️ Recording... speak your doubt clearly, click Mic to stop" : "Ask Guru Ji a question, upload a PDF/Photo..."}
                 value={guruQuestion}
                 onChange={(e) => setGuruQuestion(e.target.value)}
+                disabled={isTranscribing || isRecording}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !guruLoading && guruQuestion.trim()) {
+                  if (e.key === 'Enter' && !guruLoading && (guruQuestion.trim() || guruFile)) {
                     askGuruJi();
                   }
                 }}
-                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0' }}
+                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: isRecording ? '#ef4444' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: isRecording || isTranscribing ? 'italic' : 'normal' }}
               />
+              
               <button 
                 onClick={askGuruJi}
-                disabled={guruLoading || !guruQuestion.trim()}
+                disabled={guruLoading || (!guruQuestion.trim() && !guruFile) || isRecording || isTranscribing}
                 style={{ 
                   width: '36px', height: '36px', borderRadius: '50%', 
-                  background: guruQuestion.trim() ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--border)', 
+                  background: (guruQuestion.trim() || guruFile) ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--border)', 
                   border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  cursor: guruLoading || !guruQuestion.trim() ? 'not-allowed' : 'pointer',
+                  cursor: (guruLoading || (!guruQuestion.trim() && !guruFile) || isRecording || isTranscribing) ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
-                  boxShadow: guruQuestion.trim() ? '0 2px 8px rgba(245,158,11,0.3)' : 'none'
+                  boxShadow: (guruQuestion.trim() || guruFile) ? '0 2px 8px rgba(245,158,11,0.3)' : 'none'
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
