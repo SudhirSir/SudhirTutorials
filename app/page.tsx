@@ -576,7 +576,7 @@ export default function Home() {
 
             <div style={{ marginTop: '1rem' }}>
               <a 
-                href="https://drive.google.com/file/d/1661utbNNrIRLm6gwaEBo12XWgQIpoM_j/view?usp=sharing" 
+                href="https://drive.google.com/drive/folders/1q1hIGvl-ilAepbElMnR3y96IRqnh32Gw?usp=sharing" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="btn-primary"
