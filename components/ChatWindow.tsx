@@ -111,6 +111,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
+  const [forwardingContent, setForwardingContent] = useState<string | null>(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardSearchQuery, setForwardSearchQuery] = useState('');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -650,6 +653,76 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     } catch { alert('Network error.'); }
   }, [messages]);
 
+  // ── Forward message ───────────────────────────────────────────────────────
+  const openForwardModal = useCallback(async (content: string) => {
+    setForwardingContent(content);
+    setShowForwardModal(true);
+    if (preloadedUsers.length === 0) {
+      try {
+        const res = await fetch('/api/messages/directory?q=');
+        if (res.ok) {
+          const data = await res.json();
+          setPreloadedUsers(data.users || []);
+        }
+      } catch {}
+    }
+  }, [preloadedUsers]);
+
+  const handleForwardMessage = useCallback(async (content: string, target: ChatUser) => {
+    const isGrp = target.role === 'GROUP';
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const tempMsg: ChatMessage = {
+      id: tempId,
+      senderId: currentUserId,
+      receiverId: isGrp ? '' : target.id,
+      groupId: isGrp ? target.id : undefined,
+      content,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+    } as any;
+
+    if (selectedUser && selectedUser.id === target.id) {
+      setMessages(prev => [tempMsg, ...prev]);
+    }
+
+    try {
+      const payload = isGrp ? { groupId: target.id, content } : { receiverId: target.id, content };
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const realMsg: ChatMessage = data.message;
+        if (selectedUser && selectedUser.id === target.id) {
+          setMessages(prev => {
+            if (prev.some(m => m.id === realMsg.id)) {
+              return prev.filter(m => m.id !== tempId);
+            }
+            return prev.map(m => m.id === tempId ? realMsg : m);
+          });
+        }
+        setContacts(prev => {
+          const filtered = prev.filter(c => c.id !== target.id);
+          return [target, ...filtered];
+        });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(`⚠️ Forward failed: ${d.error || 'Unknown error'}`);
+        if (selectedUser && selectedUser.id === target.id) {
+          setMessages(prev => prev.filter(m => m.id !== tempId));
+        }
+      }
+    } catch {
+      alert('⚠️ Network error forwarding message.');
+      if (selectedUser && selectedUser.id === target.id) {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+      }
+    }
+  }, [currentUserId, selectedUser]);
+
   // ── Block / unblock ───────────────────────────────────────────────────────
   const handleToggleBlock = useCallback((userId: string) => {
     setBlockedUsers(prev => {
@@ -1178,6 +1251,26 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                   style={menuItemStyle}>
                                   ☑️ Select
                                 </button>
+                                {isMe && !(m.content.startsWith('{') && m.content.endsWith('}')) && (Date.now() - new Date(m.createdAt).getTime() <= 240000) && (
+                                  <button onClick={() => {
+                                    handleEditMessage(m.id, m.content);
+                                    setActiveMenuMessageId(null);
+                                  }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    style={menuItemStyle}>
+                                    ✏️ Edit
+                                  </button>
+                                )}
+                                <button onClick={() => {
+                                  openForwardModal(m.content);
+                                  setActiveMenuMessageId(null);
+                                }}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  style={menuItemStyle}>
+                                  ➡️ Forward
+                                </button>
                                 {(isMe || selectedUser.role === 'GROUP') && (
                                   <button onClick={() => {
                                     handleDeleteMessage(m.id);
@@ -1414,6 +1507,84 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                 Create Group
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── FORWARD MESSAGE MODAL ── */}
+      {showForwardModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: 400, padding: '2rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, position: 'relative', boxShadow: 'var(--shadow-lg)', margin: 'auto' }}>
+            <button onClick={() => { setShowForwardModal(false); setForwardingContent(null); setForwardSearchQuery(''); }}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: 34, height: 34, borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.25rem', textAlign: 'center' }}>➡️ Forward Message</h3>
+            
+            <input type="text" placeholder="Search chats or users..." value={forwardSearchQuery} onChange={e => setForwardSearchQuery(e.target.value)}
+              style={{ width: '100%', padding: '0.68rem 1.1rem', borderRadius: 12, background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', marginBottom: '1rem', boxSizing: 'border-box' }} />
+
+            <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {(() => {
+                const query = forwardSearchQuery.toLowerCase().trim();
+                const uniqueTargetsMap = new Map<string, ChatUser>();
+                
+                contacts.forEach(c => {
+                  if (c.id !== currentUserId) {
+                    uniqueTargetsMap.set(c.id, c);
+                  }
+                });
+                
+                preloadedUsers.forEach(u => {
+                  if (u.id !== currentUserId && !uniqueTargetsMap.has(u.id)) {
+                    uniqueTargetsMap.set(u.id, u);
+                  }
+                });
+                
+                const allTargets = Array.from(uniqueTargetsMap.values());
+                const filtered = allTargets.filter(t => 
+                  t.name.toLowerCase().includes(query) || 
+                  (t.username && t.username.toLowerCase().includes(query)) ||
+                  (t.role && t.role.toLowerCase().includes(query))
+                );
+
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      No chats or users found.
+                    </div>
+                  );
+                }
+
+                return filtered.map(target => {
+                  const isGrp = target.role === 'GROUP';
+                  return (
+                    <div key={target.id}
+                      onClick={async () => {
+                        if (forwardingContent) {
+                          await handleForwardMessage(forwardingContent, target);
+                          setShowForwardModal(false);
+                          setForwardingContent(null);
+                          setForwardSearchQuery('');
+                          alert(`Forwarded to ${target.name}`);
+                        }
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '10px 12px', borderRadius: 12, cursor: 'pointer', transition: 'background 0.15s', border: '1px solid transparent' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: isGrp ? 'linear-gradient(135deg,#60a5fa,#2563eb)' : 'linear-gradient(135deg,var(--primary),var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.95rem', color: 'white', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0 }}>
+                        {target.photoUrl ? <img src={target.photoUrl} alt={target.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (isGrp ? '👥' : (target.name?.[0] ?? '?'))}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{target.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isGrp ? 'Group Chat' : target.role}</div>
+                      </div>
+                      <button style={{ padding: '6px 12px', borderRadius: 16, background: 'var(--primary)', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Send
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
         </div>
       )}
