@@ -8,6 +8,11 @@ export const revalidate = 0;
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     let rawGeminiKey = process.env.GEMINI_API_KEY || '';
     let rawOpenAIKey = process.env.OPENAI_API_KEY || '';
     let rawDatabaseUrl = process.env.DATABASE_URL || '';
