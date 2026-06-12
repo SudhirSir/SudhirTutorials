@@ -549,14 +549,15 @@ function AdminDashboardContent() {
     if (isNative) {
       try {
         const { Filesystem } = await import('@capacitor/filesystem');
-        const { Share } = await import('@capacitor/share');
+        const { FileOpener } = await import('@capacitor-community/file-opener');
         const parts = mat.url.split(',');
         const base64Data = parts[1];
         let ext = 'pdf';
-        if (mat.type === 'PDF') ext = 'pdf';
-        else if (mat.type === 'VIDEO') ext = 'mp4';
-        else if (mat.type === 'WORD') ext = 'docx';
-        else if (mat.type === 'IMAGE') ext = 'png';
+        let mime = 'application/pdf';
+        if (mat.type === 'PDF') { ext = 'pdf'; mime = 'application/pdf'; }
+        else if (mat.type === 'VIDEO') { ext = 'mp4'; mime = 'video/mp4'; }
+        else if (mat.type === 'WORD') { ext = 'docx'; mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; }
+        else if (mat.type === 'IMAGE') { ext = 'png'; mime = 'image/png'; }
         const cleanTitle = mat.title.replace(/[^a-zA-Z0-9]/g, '_');
         const filename = `${cleanTitle}.${ext}`;
         const writeResult = await Filesystem.writeFile({
@@ -564,12 +565,21 @@ function AdminDashboardContent() {
           data: base64Data,
           directory: 'CACHE' as any
         });
-        await Share.share({
-          title: mat.title,
-          text: `Study Material: ${mat.title}`,
-          files: [writeResult.uri],
-          dialogTitle: `Open ${mat.title}`
-        });
+        try {
+          await FileOpener.open({
+            filePath: writeResult.uri,
+            contentType: mime
+          });
+        } catch (openErr) {
+          console.warn("FileOpener failed, falling back to Share:", openErr);
+          const { Share } = await import('@capacitor/share');
+          await Share.share({
+            title: mat.title,
+            text: `Study Material: ${mat.title}`,
+            files: [writeResult.uri],
+            dialogTitle: `Open ${mat.title}`
+          });
+        }
       } catch (err) {
         console.error("Failed to open material natively:", err);
         alert("Could not open material natively.");

@@ -12,6 +12,7 @@
     "mobile:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor-community/file-opener": "^8.0.1",
     "@capacitor/app": "^8.1.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/filesystem": "^8.1.2",
