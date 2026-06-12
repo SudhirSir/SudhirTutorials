@@ -1057,3 +1057,20 @@ textarea:focus {
 .no-scrollbar::-webkit-scrollbar {
   display: none !important; /* Chrome, Safari and Opera */
 }
+
+/* Disable user text selection globally on UI elements to prevent copying menus, buttons, and headers */
+html, body, button, a, nav, aside, header, footer, [role="button"], .sidebar-glass, .sidebar-glass *, .chat-sidebar, .chat-sidebar *, .header, .header *, button *, input[type="button"], input[type="submit"] {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Enable text selection specifically for content areas, messages, and input elements */
+input[type="text"], input[type="password"], input[type="number"], input[type="email"], input[type="search"], textarea, [contenteditable="true"], .chat-messages-list, .chat-messages-list *, .selectable-text, .selectable-text * {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}

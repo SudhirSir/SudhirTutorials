@@ -89,7 +89,7 @@ export async function POST(req: Request) {
     // Emit socket/SSE update events for each created message
     messages.forEach((msg) => {
       const senderPhoto = msg.sender.photoUrl || null;
-      const receiverPhoto = msg.receiver.photoUrl || null;
+      const receiverPhoto = msg.receiver?.photoUrl || null;
 
       const formattedMessage = {
         ...msg,
@@ -97,10 +97,10 @@ export async function POST(req: Request) {
           ...msg.sender,
           photoUrl: senderPhoto
         },
-        receiver: {
+        receiver: msg.receiver ? {
           ...msg.receiver,
           photoUrl: receiverPhoto
-        }
+        } : null
       };
 
       messageEmitter.emit('message', {

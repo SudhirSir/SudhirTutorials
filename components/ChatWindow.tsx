@@ -37,12 +37,18 @@ interface ChatUser {
 interface ChatMessage {
   id: string;
   senderId: string;
-  receiverId: string;
+  receiverId?: string;
+  groupId?: string;
   content: string;
   createdAt: string;
   isRead: boolean;
   sender?: ChatUser;
   receiver?: ChatUser;
+  group?: {
+    id: string;
+    name: string;
+    photoUrl?: string | null;
+  } | null;
 }
 
 interface ChatWindowProps {
@@ -97,6 +103,15 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [isSending, setIsSending] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
 
+  // New States for loading, group, and message actions
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [activeMenuMessageId, setActiveMenuMessageId] = useState<string | null>(null);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedUserRef = useRef<ChatUser | null>(null);
@@ -137,21 +152,38 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       const data = await res.json();
       const msgs: ChatMessage[] = data.messages || [];
 
-      setMessages(msgs);
+      // Merge and preserve temporary messages
+      setMessages(prev => {
+        const temps = prev.filter(m => m.id.startsWith('temp-'));
+        const activeTemps = temps.filter(t => !msgs.some(m => m.content === t.content && (t.groupId ? m.groupId === t.groupId : m.receiverId === t.receiverId)));
+        return [...activeTemps, ...msgs];
+      });
 
-      // Derive contacts from messages, merging with existing
+      // Derive contacts (including groups) from messages, merging with existing
       setContacts(prev => {
         const map = new Map<string, ChatUser>(prev.map(u => [u.id, u]));
         msgs.forEach(m => {
-          const other = m.senderId === currentUserId ? m.receiver : m.sender;
-          if (other?.id && !map.has(other.id)) map.set(other.id, other);
+          if (m.groupId && m.group) {
+            const gid = m.groupId;
+            if (!map.has(gid)) {
+              map.set(gid, {
+                id: gid,
+                name: m.group.name,
+                photoUrl: m.group.photoUrl,
+                role: 'GROUP',
+              });
+            }
+          } else {
+            const other = m.senderId === currentUserId ? m.receiver : m.sender;
+            if (other?.id && !map.has(other.id)) map.set(other.id, other);
+          }
         });
         return Array.from(map.values());
       });
 
-      // Auto mark as read for current open chat
+      // Auto mark as read for current open chat (skip for groups)
       const su = selectedUserRef.current;
-      if (su) {
+      if (su && su.role !== 'GROUP') {
         const hasUnread = msgs.some(m => m.senderId === su.id && m.receiverId === currentUserId && !m.isRead);
         if (hasUnread) markAsRead(su.id, false);
       }
@@ -159,11 +191,16 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       console.warn('[Chat] fetchMessages error:', e);
     } finally {
       isFetchingRef.current = false;
+      setInitialLoading(false);
     }
   }, [currentUserId]);
 
   // ── Mark messages as read (silent - no re-fetch) ──────────────────────────
   const markAsRead = useCallback(async (senderId: string, updateState = true) => {
+    // Check if the recipient is a group. If so, return early (read receipts not supported for groups)
+    const su = contacts.find(c => c.id === senderId);
+    if (su?.role === 'GROUP') return;
+
     try {
       await fetch('/api/messages/read', {
         method: 'PATCH',
@@ -177,7 +214,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       }
       onMessagesRead?.();
     } catch {}
-  }, [currentUserId, onMessagesRead]);
+  }, [currentUserId, onMessagesRead, contacts]);
 
   // ── SSE real-time connection ───────────────────────────────────────────────
   const connectSSE = useCallback(() => {
@@ -200,21 +237,32 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         if (data.type === 'create') {
           const newMsg: ChatMessage = data.message;
           setMessages(prev => {
-            // Deduplicate: remove temp placeholder with same content+receiver
             const deduped = prev.filter(m =>
-              !(m.id.startsWith('temp-') && m.content === newMsg.content && m.receiverId === newMsg.receiverId)
+              !(m.id.startsWith('temp-') && m.content === newMsg.content && 
+                (newMsg.groupId ? m.groupId === newMsg.groupId : m.receiverId === newMsg.receiverId)
+              )
               && m.id !== newMsg.id
             );
             return [newMsg, ...deduped];
           });
           // Add to contacts if new
-          const other = newMsg.senderId === currentUserId ? newMsg.receiver : newMsg.sender;
-          if (other?.id) {
-            setContacts(prev => prev.some(c => c.id === other.id) ? prev : [other, ...prev]);
+          if (newMsg.groupId && newMsg.group) {
+            const gid = newMsg.groupId;
+            setContacts(prev => prev.some(c => c.id === gid) ? prev : [{
+              id: gid,
+              name: newMsg.group!.name,
+              photoUrl: newMsg.group!.photoUrl,
+              role: 'GROUP',
+            }, ...prev]);
+          } else {
+            const other = newMsg.senderId === currentUserId ? newMsg.receiver : newMsg.sender;
+            if (other?.id) {
+              setContacts(prev => prev.some(c => c.id === other.id) ? prev : [other, ...prev]);
+            }
           }
-          // Auto-read if chat is open
+          // Auto-read if chat is open (skip group)
           const su = selectedUserRef.current;
-          if (su && newMsg.senderId === su.id && newMsg.receiverId === currentUserId) {
+          if (su && su.role !== 'GROUP' && newMsg.senderId === su.id && newMsg.receiverId === currentUserId) {
             markAsRead(su.id, true);
           }
         }
@@ -226,17 +274,16 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           onMessagesRead?.();
         }
         else if (data.type === 'delete') {
-          if (data.deletedByUserId === currentUserId && data.messageId) {
+          if (data.messageId) {
             setMessages(prev => prev.filter(m => m.id !== data.messageId));
           }
         }
         else if (data.type === 'deleteChat') {
           if (data.deletedByUserId === currentUserId) {
-            setMessages(prev => prev.filter(m =>
-              m.senderId !== data.chatUserId && m.receiverId !== data.chatUserId
-            ));
-            setContacts(prev => prev.filter(c => c.id !== data.chatUserId));
-            if (selectedUserRef.current?.id === data.chatUserId) setSelectedUser(null);
+            const id = data.chatGroupId || data.chatUserId;
+            setMessages(prev => prev.filter(m => m.groupId !== id && m.senderId !== id && m.receiverId !== id));
+            setContacts(prev => prev.filter(c => c.id !== id));
+            if (selectedUserRef.current?.id === id) setSelectedUser(null);
           }
         }
         else if (data.type === 'update') {
@@ -345,6 +392,15 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     })();
   }, [initialSelectedUserId]);
 
+  // Click outside menu listener to close three-dots dropdowns
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveMenuMessageId(null);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
+
   // ── Preload user directory when New Chat opens ────────────────────────────
   const openNewChat = useCallback(async () => {
     setShowUserSearch(v => !v);
@@ -392,24 +448,27 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
     setIsSending(true);
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const isGrp = selectedUser.role === 'GROUP';
     const tempMsg: ChatMessage = {
       id: tempId,
       senderId: currentUserId,
-      receiverId: selectedUser.id,
+      receiverId: isGrp ? '' : selectedUser.id,
+      groupId: isGrp ? selectedUser.id : undefined,
       content,
       createdAt: new Date().toISOString(),
       isRead: false,
-    };
+    } as any;
 
     // Instant optimistic render
     setMessages(prev => [tempMsg, ...prev]);
     if (!customContent) setNewMsg('');
 
     try {
+      const payload = isGrp ? { groupId: selectedUser.id, content } : { receiverId: selectedUser.id, content };
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiverId: selectedUser.id, content }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -437,6 +496,51 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       setIsSending(false);
     }
   }, [newMsg, selectedUser, currentUserId, isSending]);
+
+  // ── Open group modal & load users ──────────────────────────────────────────
+  const openNewGroupModal = useCallback(async () => {
+    setShowGroupModal(true);
+    if (preloadedUsers.length > 0) return;
+    try {
+      const res = await fetch('/api/messages/directory?q=');
+      if (res.ok) {
+        const data = await res.json();
+        setPreloadedUsers(data.users || []);
+      }
+    } catch {}
+  }, [preloadedUsers]);
+
+  // ── Create Group Chat handler ──────────────────────────────────────────────
+  const handleCreateGroup = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupName.trim() || selectedGroupMembers.length === 0) {
+      alert('Please enter group name and select members.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/messages/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: groupName.trim(), memberIds: selectedGroupMembers }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const newGrp: ChatUser = {
+          id: data.group.id,
+          name: data.group.name,
+          role: 'GROUP',
+        };
+        setContacts(prev => [newGrp, ...prev]);
+        setSelectedUser(newGrp);
+        setGroupName('');
+        setSelectedGroupMembers([]);
+        setShowGroupModal(false);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(`Failed: ${d.error || 'Unknown error'}`);
+      }
+    } catch { alert('Network error.'); }
+  }, [groupName, selectedGroupMembers]);
 
   // ── Attach file / image ───────────────────────────────────────────────────
   const handleAttachFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -479,16 +583,44 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     } catch { fetchMessages(); }
   }, [fetchMessages]);
 
-  // ── Delete entire chat ────────────────────────────────────────────────────
-  const handleDeleteChat = useCallback(async (userId: string) => {
-    if (!confirm('Delete this entire chat? This cannot be undone.')) return;
-    setMessages(prev => prev.filter(m => m.senderId !== userId && m.receiverId !== userId));
-    setContacts(prev => prev.filter(c => c.id !== userId));
-    setSelectedUser(null);
+  // ── Bulk delete messages ──────────────────────────────────────────────────
+  const handleBulkDeleteMessages = useCallback(async () => {
+    if (selectedMessageIds.length === 0) return;
+    if (!confirm(`Delete all ${selectedMessageIds.length} selected messages?`)) return;
+    setMessages(prev => prev.filter(m => !selectedMessageIds.includes(m.id)));
+    const ids = selectedMessageIds.join(',');
+    setSelectedMessageIds([]);
+    setMultiSelectMode(false);
     try {
-      await fetch(`/api/messages?chatUserId=${userId}`, { method: 'DELETE' });
-    } catch {}
-  }, []);
+      const res = await fetch(`/api/messages?messageIds=${ids}`, { method: 'DELETE' });
+      if (!res.ok) fetchMessages();
+    } catch { fetchMessages(); }
+  }, [selectedMessageIds, fetchMessages]);
+
+  // ── Delete entire chat / Leave group ──────────────────────────────────────
+  const handleDeleteChat = useCallback(async (userId: string) => {
+    const isGrp = selectedUser?.role === 'GROUP';
+    const confirmMsg = isGrp 
+      ? 'Leave and delete this entire group chat? This cannot be undone.' 
+      : 'Delete this entire chat? This cannot be undone.';
+    if (!confirm(confirmMsg)) return;
+
+    if (isGrp) {
+      setMessages(prev => prev.filter(m => m.groupId !== userId));
+      setContacts(prev => prev.filter(c => c.id !== userId));
+      setSelectedUser(null);
+      try {
+        await fetch(`/api/messages?chatGroupId=${userId}`, { method: 'DELETE' });
+      } catch {}
+    } else {
+      setMessages(prev => prev.filter(m => m.senderId !== userId && m.receiverId !== userId));
+      setContacts(prev => prev.filter(c => c.id !== userId));
+      setSelectedUser(null);
+      try {
+        await fetch(`/api/messages?chatUserId=${userId}`, { method: 'DELETE' });
+      } catch {}
+    }
+  }, [selectedUser]);
 
   // ── Edit message ──────────────────────────────────────────────────────────
   const handleEditMessage = useCallback(async (messageId: string, currentContent: string) => {
@@ -532,10 +664,16 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const sortedMessages = useMemo(() => {
     if (!selectedUser) return [];
     return messages
-      .filter(m =>
-        (m.senderId === selectedUser.id && m.receiverId === currentUserId) ||
-        (m.senderId === currentUserId && m.receiverId === selectedUser.id)
-      )
+      .filter(m => {
+        if (selectedUser.role === 'GROUP') {
+          return m.groupId === selectedUser.id;
+        }
+        return (
+          ((m.senderId === selectedUser.id && m.receiverId === currentUserId) ||
+           (m.senderId === currentUserId && m.receiverId === selectedUser.id)) &&
+          !m.groupId
+        );
+      })
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [messages, selectedUser, currentUserId]);
 
@@ -543,9 +681,13 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     // Build a map: contactId → most recent message timestamp
     const latestTime = new Map<string, number>();
     messages.forEach(m => {
-      const otherId = m.senderId === currentUserId ? m.receiverId : m.senderId;
-      const t = new Date(m.createdAt).getTime();
-      if (!latestTime.has(otherId) || latestTime.get(otherId)! < t) latestTime.set(otherId, t);
+      const contactId = m.groupId ? m.groupId : (m.senderId === currentUserId ? m.receiverId : m.senderId);
+      if (contactId) {
+        const t = new Date(m.createdAt).getTime();
+        if (!latestTime.has(contactId) || latestTime.get(contactId)! < t) {
+          latestTime.set(contactId, t);
+        }
+      }
     });
     return [...contacts]
       .filter(u => u?.id)
@@ -680,10 +822,16 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>Chats</span>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: sseConnected ? '#10b981' : '#f59e0b', display: 'inline-block', flexShrink: 0 }} title={sseConnected ? 'Live' : 'Polling'} />
           </div>
-          <button onClick={openNewChat}
-            style={{ padding: '5px 12px', borderRadius: 20, background: 'var(--primary)', border: 'none', color: 'white', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 3px 8px rgba(99,102,241,0.3)', transition: '0.18s' }}>
-            {showUserSearch ? 'Cancel' : '✏️ New'}
-          </button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={openNewGroupModal}
+              style={{ padding: '5px 10px', borderRadius: 20, background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: '0.18s' }}>
+              👥 Group
+            </button>
+            <button onClick={openNewChat}
+              style={{ padding: '5px 10px', borderRadius: 20, background: 'var(--primary)', border: 'none', color: 'white', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 3px 8px rgba(99,102,241,0.3)', transition: '0.18s' }}>
+              {showUserSearch ? 'Cancel' : '✏️ New'}
+            </button>
+          </div>
         </div>
 
         {showUserSearch ? (
@@ -713,65 +861,101 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           </div>
         ) : (
           <div className="chat-contacts-list">
-            {sortedContacts.map((u, idx) => {
-              const unread = messages.filter(m => m.senderId === u.id && m.receiverId === currentUserId && !m.isRead).length;
-              const chatMsgs = messages.filter(m =>
-                (m.senderId === u.id && m.receiverId === currentUserId) ||
-                (m.senderId === currentUserId && m.receiverId === u.id)
-              );
-              const latest = chatMsgs.length > 0 ? chatMsgs[0] : null;
-              let preview = u.role ?? '';
-              if (latest) {
-                const pfx = latest.senderId === currentUserId ? 'You: ' : '';
-                if (latest.content.startsWith('{') && latest.content.endsWith('}')) {
-                  try {
-                    const m = JSON.parse(latest.content);
-                    preview = pfx + (m.fileType?.startsWith('image/') ? '🖼️ Photo' : `📄 ${m.fileName}`);
-                  } catch { preview = pfx + latest.content; }
-                } else { preview = pfx + latest.content; }
-              }
-              const isActive = selectedUser?.id === u.id;
-              return (
-                <div key={u.id || idx}
-                  onClick={() => { setSelectedUser(u); markAsRead(u.id); }}
-                  style={{
-                    padding: '0.85rem 1.25rem', cursor: 'pointer',
-                    background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent',
-                    borderLeft: `3px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
-                    borderBottom: '1px solid var(--border)',
-                    display: 'flex', alignItems: 'center', gap: '0.85rem',
-                    transition: 'background 0.15s, border-color 0.15s',
-                  }}>
-                  <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg,var(--surface-light),var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: '1.1rem', overflow: 'hidden', border: '2px solid var(--primary)' }}>
-                    {u.photoUrl ? <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (u.name?.[0] ?? '?')}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
-                      <span style={{ fontWeight: unread > 0 ? 800 : 600, fontSize: '0.95rem', color: isActive ? 'var(--primary)' : 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name || 'Unknown'}</span>
-                      {latest && (
-                        <span style={{ fontSize: '0.68rem', color: unread > 0 ? '#10b981' : 'var(--text-muted)', flexShrink: 0 }}>
-                          {new Date(latest.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '82%' }}>{preview}</span>
-                      {unread > 0 && (
-                        <div style={{ background: '#10b981', color: 'white', fontSize: '0.62rem', fontWeight: 900, minWidth: 18, height: 18, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', boxShadow: '0 0 8px rgba(16,185,129,0.4)', flexShrink: 0 }}>
-                          {unread}
-                        </div>
-                      )}
+            {initialLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem' }}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} style={{ padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem', borderBottom: '1px solid var(--border)', opacity: 0.6 }}>
+                    <div style={{
+                      width: 42, height: 42, borderRadius: '50%',
+                      background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 1.5s infinite linear',
+                      flexShrink: 0
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        width: '60%', height: 12, borderRadius: 4,
+                        background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.5s infinite linear',
+                        marginBottom: 6
+                      }} />
+                      <div style={{
+                        width: '40%', height: 8, borderRadius: 4,
+                        background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.5s infinite linear'
+                      }} />
                     </div>
                   </div>
-                </div>
-              );
-            })}
-            {contacts.length === 0 && (
-              <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.4 }}>📭</div>
-                <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No conversations yet</div>
-                <div style={{ fontSize: '0.82rem' }}>Tap ✏️ New to start a chat.</div>
+                ))}
               </div>
+            ) : (
+              <>
+                {sortedContacts.map((u, idx) => {
+                  const unread = u.role === 'GROUP' ? 0 : messages.filter(m => m.senderId === u.id && m.receiverId === currentUserId && !m.isRead).length;
+                  const chatMsgs = messages.filter(m =>
+                    u.role === 'GROUP' ? m.groupId === u.id : (
+                      (m.senderId === u.id && m.receiverId === currentUserId && !m.groupId) ||
+                      (m.senderId === currentUserId && m.receiverId === u.id && !m.groupId)
+                    )
+                  );
+                  const latest = chatMsgs.length > 0 ? chatMsgs[0] : null;
+                  let preview = u.role === 'GROUP' ? 'Group Chat' : (u.role ?? '');
+                  if (latest) {
+                    const pfx = latest.senderId === currentUserId ? 'You: ' : (u.role === 'GROUP' ? `${latest.sender?.name || 'Someone'}: ` : '');
+                    if (latest.content.startsWith('{') && latest.content.endsWith('}')) {
+                      try {
+                        const m = JSON.parse(latest.content);
+                        preview = pfx + (m.fileType?.startsWith('image/') ? '🖼️ Photo' : `📄 ${m.fileName}`);
+                      } catch { preview = pfx + latest.content; }
+                    } else { preview = pfx + latest.content; }
+                  }
+                  const isActive = selectedUser?.id === u.id;
+                  const isGrp = u.role === 'GROUP';
+                  return (
+                    <div key={u.id || idx}
+                      onClick={() => { setSelectedUser(u); markAsRead(u.id); }}
+                      style={{
+                        padding: '0.85rem 1.25rem', cursor: 'pointer',
+                        background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent',
+                        borderLeft: `3px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
+                        borderBottom: '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', gap: '0.85rem',
+                        transition: 'background 0.15s, border-color 0.15s',
+                      }}>
+                      <div style={{ width: 42, height: 42, borderRadius: '50%', background: isGrp ? 'linear-gradient(135deg,#60a5fa,#2563eb)' : 'linear-gradient(135deg,var(--surface-light),var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: '1.1rem', overflow: 'hidden', border: isGrp ? '2px solid #2563eb' : '2px solid var(--primary)' }}>
+                        {u.photoUrl ? <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (isGrp ? '👥' : (u.name?.[0] ?? '?'))}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                          <span style={{ fontWeight: unread > 0 ? 800 : 600, fontSize: '0.95rem', color: isActive ? 'var(--primary)' : 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name || 'Unknown'}</span>
+                          {latest && (
+                            <span style={{ fontSize: '0.68rem', color: unread > 0 ? '#10b981' : 'var(--text-muted)', flexShrink: 0 }}>
+                              {new Date(latest.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '82%' }}>{preview}</span>
+                          {unread > 0 && (
+                            <div style={{ background: '#10b981', color: 'white', fontSize: '0.62rem', fontWeight: 900, minWidth: 18, height: 18, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', boxShadow: '0 0 8px rgba(16,185,129,0.4)', flexShrink: 0 }}>
+                              {unread}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {contacts.length === 0 && (
+                  <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.4 }}>📭</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No conversations yet</div>
+                    <div style={{ fontSize: '0.82rem' }}>Tap ✏️ New to start a chat.</div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -821,166 +1005,360 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
             {/* Message list */}
             <div ref={scrollRef} className="chat-messages-list"
-              style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.08))' }}>
-              {sortedMessages.map((m, i) => {
-                const isMe = m.senderId === currentUserId;
-                const prev = sortedMessages[i - 1];
-                const isConsecutive = !!prev && prev.senderId === m.senderId &&
-                  new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() < 5 * 60000;
-                const showDate = !prev || new Date(m.createdAt).toDateString() !== new Date(prev.createdAt).toDateString();
-                const isTemp = m.id.startsWith('temp-');
-
-                return (
-                  <React.Fragment key={m.id}>
-                    {showDate && (
-                      <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0 0.4rem' }}>
-                        <span style={{ background: 'rgba(255,255,255,0.07)', color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.5px', border: '1px solid rgba(255,255,255,0.04)' }}>
-                          {dateSeparatorText(m.createdAt)}
-                        </span>
-                      </div>
-                    )}
-                    <div
-                      onMouseEnter={() => setHoveredMessageId(m.id)}
-                      onMouseLeave={() => setHoveredMessageId(null)}
-                      style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%', marginTop: isConsecutive ? 2 : 8, display: 'flex', alignItems: 'center', gap: '0.4rem', flexDirection: isMe ? 'row-reverse' : 'row', opacity: isTemp ? 0.7 : 1 }}>
-                      {hoveredMessageId === m.id && !isTemp && (
-                        <div style={{ display: 'flex', gap: 2 }}>
-                          {isMe && Date.now() - new Date(m.createdAt).getTime() <= 240000 && (
-                            <button onClick={() => handleEditMessage(m.id, m.content)} title="Edit"
-                              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '0.82rem', padding: 4, opacity: 0.65, transition: 'opacity 0.15s' }}
-                              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                              onMouseLeave={e => (e.currentTarget.style.opacity = '0.65')}>✏️</button>
-                          )}
-                          <button onClick={() => handleDeleteMessage(m.id)} title="Delete"
-                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.82rem', padding: 4, opacity: 0.65, transition: 'opacity 0.15s' }}
-                            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                            onMouseLeave={e => (e.currentTarget.style.opacity = '0.65')}>🗑️</button>
-                        </div>
-                      )}
-                      <div style={{
-                        padding: '0.55rem 0.9rem',
-                        borderRadius: isMe
-                          ? (isConsecutive ? '16px 4px 16px 16px' : '16px 16px 4px 16px')
-                          : (isConsecutive ? '4px 16px 16px 16px' : '16px 16px 16px 4px'),
-                        background: isMe ? '#10b981' : '#27272a',
-                        color: isMe ? '#fff' : '#e4e4e7',
-                        fontSize: '0.9rem',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
-                        lineHeight: 1.45,
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word',
-                        border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)',
-                        transition: 'opacity 0.2s',
-                      }}>
-                        {renderMessageContent(m.content)}
-                        <span style={{ fontSize: '0.63rem', color: isMe ? 'rgba(255,255,255,0.72)' : 'var(--text-muted)', float: 'right', marginTop: 8, marginLeft: 12, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                          {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {isMe && !isTemp && <Ticks isRead={m.isRead} />}
-                          {isTemp && <span style={{ marginLeft: 4, fontSize: '0.6rem', opacity: 0.6 }}>⏳</span>}
-                        </span>
-                      </div>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-
-            {/* Input */}
-            <form onSubmit={handleSendMessage} className="chat-input-form">
-              <input type="file" ref={fileInputRef} onChange={handleAttachFile} style={{ display: 'none' }} />
-              <button type="button" className="chat-action-btn"
-                disabled={blockedUsers.includes(selectedUser.id) || isUploading || isSending}
-                onClick={() => fileInputRef.current?.click()} title="Attach file"
-                style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s', flexShrink: 0 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-              </button>
-
-              {isUploading ? (
-                <div style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: 24, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>{uploadProgress}</span>
+              style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.08))', position: 'relative' }}>
+              {initialLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem 1rem' }}>
+                  {[1, 2, 3, 4].map(i => {
+                    const isLeft = i % 2 !== 0;
+                    return (
+                      <div key={i} style={{
+                        alignSelf: isLeft ? 'flex-start' : 'flex-end',
+                        width: '50%',
+                        padding: '0.8rem 1.1rem',
+                        borderRadius: 16,
+                        background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.5s infinite linear',
+                        border: '1px solid var(--border)',
+                        height: 50,
+                      }} />
+                    );
+                  })}
                 </div>
               ) : (
-                <input type="text"
-                  placeholder={blockedUsers.includes(selectedUser.id) ? '🚫 Blocked — unblock to message' : 'Type a message...'}
-                  value={newMsg}
-                  disabled={blockedUsers.includes(selectedUser.id) || isSending}
-                  onChange={e => setNewMsg(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                  style={{
-                    flex: 1, padding: '0.68rem 1.1rem', borderRadius: 24,
-                    background: blockedUsers.includes(selectedUser.id) ? 'rgba(239,68,68,0.05)' : 'var(--input-bg)',
-                    border: `1px solid ${blockedUsers.includes(selectedUser.id) ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`,
-                    color: 'var(--text)', fontSize: '0.92rem', outline: 'none',
-                    cursor: blockedUsers.includes(selectedUser.id) ? 'not-allowed' : 'text',
-                    transition: 'border-color 0.15s',
-                  }} />
-              )}
+                sortedMessages.map((m, i) => {
+                  const isMe = m.senderId === currentUserId;
+                  const prev = sortedMessages[i - 1];
+                  const isConsecutive = !!prev && prev.senderId === m.senderId &&
+                    new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() < 5 * 60000;
+                  const showDate = !prev || new Date(m.createdAt).toDateString() !== new Date(prev.createdAt).toDateString();
+                  const isTemp = m.id.startsWith('temp-');
+                  const isSelected = selectedMessageIds.includes(m.id);
 
-              <button type="submit" className="chat-action-btn"
-                disabled={(!newMsg.trim() && !isUploading) || blockedUsers.includes(selectedUser.id) || isSending}
-                style={{
-                  width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                  background: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'var(--primary)' : 'var(--card-bg-alt)',
-                  color: newMsg.trim() && !blockedUsers.includes(selectedUser.id) && !isSending ? 'white' : 'var(--text-muted)',
-                  border: newMsg.trim() ? 'none' : '1px solid var(--border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: newMsg.trim() && !blockedUsers.includes(selectedUser.id) ? 'pointer' : 'default',
-                  transition: 'background 0.15s, color 0.15s',
-                }}>
-                {isSending
-                  ? <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.2)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                  : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-                }
-              </button>
-            </form>
+                  const hasLinkOrMedia = (content: string) => {
+                    if (content.startsWith('{') && content.endsWith('}')) {
+                      try {
+                        const media = JSON.parse(content);
+                        return media.type === 'media' && media.mediaUrl;
+                      } catch {}
+                    }
+                    return /https?:\/\/[^\s]+/i.test(content);
+                  };
+
+                  const handleOpenMessageContent = (content: string) => {
+                    if (content.startsWith('{') && content.endsWith('}')) {
+                      try {
+                        const media = JSON.parse(content);
+                        if (media.type === 'media') {
+                          const isImg = media.fileType?.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(media.fileName);
+                          if (isImg) {
+                            setLightboxUrl(media.mediaUrl);
+                          } else {
+                            window.open(media.mediaUrl, '_blank');
+                          }
+                          return;
+                        }
+                      } catch {}
+                    }
+                    const match = content.match(/(https?:\/\/[^\s]+)/i);
+                    if (match) {
+                      window.open(match[1], '_blank');
+                    }
+                  };
+
+                  const menuItemStyle = {
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text)',
+                    padding: '8px 12px',
+                    textAlign: 'left' as const,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    borderRadius: 8,
+                    width: '100%',
+                    transition: 'background 0.15s',
+                  };
+
+                  return (
+                    <React.Fragment key={m.id}>
+                      {showDate && (
+                        <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0 0.4rem' }}>
+                          <span style={{ background: 'rgba(255,255,255,0.07)', color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.5px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            {dateSeparatorText(m.createdAt)}
+                          </span>
+                        </div>
+                      )}
+                      <div
+                        onMouseEnter={() => setHoveredMessageId(m.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
+                        onClick={() => {
+                          if (multiSelectMode) {
+                            setSelectedMessageIds(prev =>
+                              prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
+                            );
+                          }
+                        }}
+                        style={{
+                          alignSelf: isMe ? 'flex-end' : 'flex-start',
+                          maxWidth: '78%',
+                          marginTop: isConsecutive ? 2 : 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.6rem',
+                          flexDirection: isMe ? 'row-reverse' : 'row',
+                          opacity: isTemp ? 0.7 : 1,
+                          cursor: multiSelectMode ? 'pointer' : 'default',
+                        }}>
+                        {multiSelectMode && (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // handled by click on outer container
+                            style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }}
+                          />
+                        )}
+                        {!isTemp && !multiSelectMode && hoveredMessageId === m.id && (
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuMessageId(prev => prev === m.id ? null : m.id);
+                            }}
+                              style={{
+                                background: 'none', border: 'none', color: 'var(--text-muted)',
+                                cursor: 'pointer', fontSize: '1rem', padding: '4px 6px',
+                                opacity: 0.7, outline: 'none'
+                              }}>
+                              ⋮
+                            </button>
+                            {activeMenuMessageId === m.id && (
+                              <div className="message-dropdown-menu" style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                [isMe ? 'right' : 'left']: 0,
+                                background: 'var(--surface-light)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 12,
+                                boxShadow: 'var(--shadow-lg)',
+                                zIndex: 100,
+                                minWidth: 120,
+                                padding: '4px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                                marginBottom: 4
+                              }}>
+                                <button onClick={() => {
+                                  navigator.clipboard.writeText(m.content);
+                                  setActiveMenuMessageId(null);
+                                  alert('Message text copied!');
+                                }}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  style={menuItemStyle}>
+                                  📋 Copy
+                                </button>
+                                {hasLinkOrMedia(m.content) && (
+                                  <button onClick={() => {
+                                    handleOpenMessageContent(m.content);
+                                    setActiveMenuMessageId(null);
+                                  }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    style={menuItemStyle}>
+                                    🌐 Open
+                                  </button>
+                                )}
+                                <button onClick={() => {
+                                  setMultiSelectMode(true);
+                                  setSelectedMessageIds([m.id]);
+                                  setActiveMenuMessageId(null);
+                                }}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  style={menuItemStyle}>
+                                  ☑️ Select
+                                </button>
+                                {(isMe || selectedUser.role === 'GROUP') && (
+                                  <button onClick={() => {
+                                    handleDeleteMessage(m.id);
+                                    setActiveMenuMessageId(null);
+                                  }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    style={{ ...menuItemStyle, color: '#f87171' }}>
+                                    🗑️ Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div style={{
+                          padding: '0.55rem 0.9rem',
+                          borderRadius: isMe
+                            ? (isConsecutive ? '16px 4px 16px 16px' : '16px 16px 4px 16px')
+                            : (isConsecutive ? '4px 16px 16px 16px' : '16px 16px 16px 4px'),
+                          background: isMe ? '#10b981' : '#27272a',
+                          color: isMe ? '#fff' : '#e4e4e7',
+                          fontSize: '0.9rem',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                          lineHeight: 1.45,
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                          transition: 'opacity 0.2s',
+                        }}>
+                          {selectedUser.role === 'GROUP' && !isMe && m.sender && (
+                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', marginBottom: 2 }}>
+                              {m.sender.name}
+                            </div>
+                          )}
+                          {renderMessageContent(m.content)}
+                          <span style={{ fontSize: '0.63rem', color: isMe ? 'rgba(255,255,255,0.72)' : 'var(--text-muted)', float: 'right', marginTop: 8, marginLeft: 12, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                            {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {isMe && !isTemp && !m.groupId && <Ticks isRead={m.isRead} />}
+                            {isTemp && <span style={{ marginLeft: 4, fontSize: '0.6rem', opacity: 0.6 }}>⏳</span>}
+                          </span>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Input Form or Multi-Select Action Bar */}
+            {multiSelectMode ? (
+              <div style={{ padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text)' }}>
+                  Selected: {selectedMessageIds.length} messages
+                </span>
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  <button onClick={() => { setMultiSelectMode(false); setSelectedMessageIds([]); }}
+                    style={{ padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                  <button onClick={handleBulkDeleteMessages} disabled={selectedMessageIds.length === 0}
+                    style={{ padding: '6px 14px', borderRadius: 20, background: '#ef4444', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 700, cursor: selectedMessageIds.length > 0 ? 'pointer' : 'not-allowed', opacity: selectedMessageIds.length > 0 ? 1 : 0.5 }}>
+                    Delete Selected
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSendMessage} className="chat-input-form">
+                <input type="file" ref={fileInputRef} onChange={handleAttachFile} style={{ display: 'none' }} />
+                <button type="button" className="chat-action-btn"
+                  disabled={(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) || isUploading || isSending}
+                  onClick={() => fileInputRef.current?.click()} title="Attach file"
+                  style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s', flexShrink: 0 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                  </svg>
+                </button>
+
+                {isUploading ? (
+                  <div style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: 24, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>{uploadProgress}</span>
+                  </div>
+                ) : (
+                  <input type="text"
+                    placeholder={(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) ? '🚫 Blocked — unblock to message' : 'Type a message...'}
+                    value={newMsg}
+                    disabled={(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) || isSending}
+                    onChange={e => setNewMsg(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                    style={{
+                      flex: 1, padding: '0.68rem 1.1rem', borderRadius: 24,
+                      background: (selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) ? 'rgba(239,68,68,0.05)' : 'var(--input-bg)',
+                      border: `1px solid ${(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`,
+                      color: 'var(--text)', fontSize: '0.92rem', outline: 'none',
+                      cursor: (selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) ? 'not-allowed' : 'text',
+                      transition: 'border-color 0.15s',
+                    }} />
+                )}
+
+                <button type="submit" className="chat-action-btn"
+                  disabled={(!newMsg.trim() && !isUploading) || (selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) || isSending}
+                  style={{
+                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                    background: newMsg.trim() && !(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) && !isSending ? 'var(--primary)' : 'var(--card-bg-alt)',
+                    color: newMsg.trim() && !(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) && !isSending ? 'white' : 'var(--text-muted)',
+                    border: newMsg.trim() ? 'none' : '1px solid var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: newMsg.trim() && !(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) ? 'pointer' : 'default',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}>
+                  {isSending
+                    ? <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.2)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                  }
+                </button>
+              </form>
+            )}
           </>
         )}
       </div>
 
-      {/* ── PROFILE MODAL ── */}
+      {/* ── PROFILE / GROUP DETAIL MODAL ── */}
       {showProfileModal && selectedUser && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: 380, padding: '2.25rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, position: 'relative', textAlign: 'center', boxShadow: 'var(--shadow-lg)', margin: 'auto' }}>
             <button onClick={() => setShowProfileModal(false)}
               style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: 34, height: 34, borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-            <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'linear-gradient(135deg,var(--primary),var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '3px solid var(--primary)', margin: '0 auto 1.25rem' }}>
-              {selectedUser.photoUrl ? <img src={selectedUser.photoUrl} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (selectedUser.name?.[0] ?? '?')}
+            <div style={{ width: 84, height: 84, borderRadius: '50%', background: selectedUser.role === 'GROUP' ? 'linear-gradient(135deg,#60a5fa,#2563eb)' : 'linear-gradient(135deg,var(--primary),var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 800, color: 'white', overflow: 'hidden', border: '3px solid var(--primary)', margin: '0 auto 1.25rem' }}>
+              {selectedUser.photoUrl ? <img src={selectedUser.photoUrl} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (selectedUser.role === 'GROUP' ? '👥' : (selectedUser.name?.[0] ?? '?'))}
             </div>
             <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 0.35rem' }}>{selectedUser.name}</h3>
-            <div style={{ fontSize: '0.82rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: '1.25rem' }}>● {selectedUser.role}</div>
-            <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.9rem 1.1rem', textAlign: 'left', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', border: '1px solid var(--border)' }}>
-              {[['Username', selectedUser.username || 'N/A'], ['Email', selectedUser.email || 'Not disclosed'], ['Status', `● Active ${selectedUser.role}`]].map(([label, val]) => (
-                <div key={label}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
-                  <span style={{ fontSize: '0.92rem', color: label === 'Status' ? '#10b981' : 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{val}</span>
-                </div>
-              ))}
-            </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: '1.25rem' }}>● {selectedUser.role === 'GROUP' ? 'Group Chat' : selectedUser.role}</div>
+            
+            {selectedUser.role === 'GROUP' ? (
+              <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.9rem 1.1rem', textAlign: 'left', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Group ID</span>
+                <span style={{ fontSize: '0.88rem', color: 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{selectedUser.id}</span>
+              </div>
+            ) : (
+              <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.9rem 1.1rem', textAlign: 'left', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', border: '1px solid var(--border)' }}>
+                {[['Username', selectedUser.username || 'N/A'], ['Email', selectedUser.email || 'Not disclosed'], ['Status', `● Active ${selectedUser.role}`]].map(([label, val]) => (
+                  <div key={label}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+                    <span style={{ fontSize: '0.92rem', color: label === 'Status' ? '#10b981' : 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{val}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <button onClick={() => handleToggleBlock(selectedUser.id)}
-                style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'transparent', border: `1px solid ${blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171'}`, color: blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
-                {blockedUsers.includes(selectedUser.id) ? '🔓 Unblock User' : '🚫 Block User'}
-              </button>
-              <button onClick={() => { if (confirm('Delete entire chat? Cannot be undone.')) { handleDeleteChat(selectedUser.id); setShowProfileModal(false); } }}
-                style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
-                🗑️ Delete Chat
-              </button>
-              <button onClick={async () => {
-                const reason = window.prompt(`Report reason for ${selectedUser.name}:`);
-                if (!reason?.trim()) return;
-                try {
-                  await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'User Report', message: reason.trim(), reportedUserId: selectedUser.id, isBugReport: false }) });
-                  alert('Report submitted.');
-                } catch { alert('Failed. Try again.'); }
-              }}
-                style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}>
-                ⚠️ Report User
-              </button>
+              {selectedUser.role === 'GROUP' ? (
+                <button onClick={() => { if (confirm('Leave and delete this entire group chat? Cannot be undone.')) { handleDeleteChat(selectedUser.id); setShowProfileModal(false); } }}
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                  🗑️ Leave Group
+                </button>
+              ) : (
+                <>
+                  <button onClick={() => handleToggleBlock(selectedUser.id)}
+                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'transparent', border: `1px solid ${blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171'}`, color: blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {blockedUsers.includes(selectedUser.id) ? '🔓 Unblock User' : '🚫 Block User'}
+                  </button>
+                  <button onClick={() => { if (confirm('Delete entire chat? Cannot be undone.')) { handleDeleteChat(selectedUser.id); setShowProfileModal(false); } }}
+                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                    🗑️ Delete Chat
+                  </button>
+                  <button onClick={async () => {
+                    const reason = window.prompt(`Report reason for ${selectedUser.name}:`);
+                    if (!reason?.trim()) return;
+                    try {
+                      await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'User Report', message: reason.trim(), reportedUserId: selectedUser.id, isBugReport: false }) });
+                      alert('Report submitted.');
+                    } catch { alert('Failed. Try again.'); }
+                  }}
+                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}>
+                    ⚠️ Report User
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -994,6 +1372,49 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '50%', width: 38, height: 38, fontSize: '1.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
           <img src={lightboxUrl} alt="Full image" onClick={e => e.stopPropagation()}
             style={{ maxWidth: '95%', maxHeight: '92vh', objectFit: 'contain', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', cursor: 'default' }} />
+        </div>
+      )}
+
+      {/* ── CREATE GROUP MODAL ── */}
+      {showGroupModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: 400, padding: '2rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, position: 'relative', boxShadow: 'var(--shadow-lg)', margin: 'auto' }}>
+            <button onClick={() => { setShowGroupModal(false); setGroupName(''); setSelectedGroupMembers([]); }}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', width: 34, height: 34, borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1.25rem', textAlign: 'center' }}>👥 Create Group Chat</h3>
+            <form onSubmit={handleCreateGroup} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Group Name</label>
+                <input type="text" placeholder="Enter group name..." value={groupName} onChange={e => setGroupName(e.target.value)}
+                  style={{ width: '100%', padding: '0.68rem 1.1rem', borderRadius: 12, background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} required />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Select Members ({selectedGroupMembers.length} selected)</label>
+                <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg-alt)', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {preloadedUsers.filter(u => u.id !== currentUserId).map(u => {
+                    const isChecked = selectedGroupMembers.includes(u.id);
+                    return (
+                      <div key={u.id} onClick={() => setSelectedGroupMembers(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id])}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '6px 8px', borderRadius: 8, cursor: 'pointer', background: isChecked ? 'rgba(99,102,241,0.08)' : 'transparent', transition: 'background 0.15s' }}>
+                        <input type="checkbox" checked={isChecked} onChange={() => {}} style={{ accentColor: 'var(--primary)' }} />
+                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', overflow: 'hidden', border: '1px solid var(--primary)', flexShrink: 0 }}>
+                          {u.photoUrl ? <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (u.name?.[0] ?? '?')}
+                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name} ({u.role})</span>
+                      </div>
+                    );
+                  })}
+                  {preloadedUsers.filter(u => u.id !== currentUserId).length === 0 && (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Loading contacts...</div>
+                  )}
+                </div>
+              </div>
+              <button type="submit" disabled={!groupName.trim() || selectedGroupMembers.length === 0}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'var(--primary)', border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem', opacity: (groupName.trim() && selectedGroupMembers.length > 0) ? 1 : 0.5, transition: 'opacity 0.15s' }}>
+                Create Group
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

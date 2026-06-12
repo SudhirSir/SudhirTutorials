@@ -38,7 +38,12 @@ export async function GET(req: NextRequest) {
 
         const onMessage = (data: any) => {
           // Only send events relevant to this user
-          if (data.senderId === userId || data.receiverId === userId || data.deletedByUserId === userId) {
+          if (
+            data.senderId === userId || 
+            data.receiverId === userId || 
+            data.deletedByUserId === userId ||
+            (data.groupId && data.memberIds?.includes(userId))
+          ) {
             enqueue(JSON.stringify(data));
           }
         };

@@ -33,6 +33,8 @@ model User {
   payments           Payment[]
   sentMessages       Message[] @relation("SentMessages")
   receivedMessages   Message[] @relation("ReceivedMessages")
+  createdGroups      ChatGroup[] @relation("CreatedGroups")
+  groupMemberships   GroupMember[] @relation("GroupMemberships")
 
   // LMS Expansion Relations
   teacherBatches     Batch[]        @relation("TeacherBatches")
@@ -48,23 +50,50 @@ model User {
 }
 
 model Message {
-  id                String   @id @default(cuid())
+  id                String     @id @default(cuid())
   content           String
   senderId          String
-  sender            User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId        String
-  receiver          User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
-  createdAt         DateTime @default(now())
-  isRead            Boolean  @default(false)
-  deletedBySender   Boolean  @default(false)
-  deletedByReceiver Boolean  @default(false)
+  sender            User       @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId        String?
+  receiver          User?      @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  groupId           String?
+  group             ChatGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt         DateTime   @default(now())
+  isRead            Boolean    @default(false)
+  deletedBySender   Boolean    @default(false)
+  deletedByReceiver Boolean    @default(false)
 
   @@index([senderId])
   @@index([receiverId])
+  @@index([groupId])
   @@index([createdAt])
   @@index([senderId, createdAt])
   @@index([receiverId, createdAt])
   @@index([receiverId, isRead])
+}
+
+model ChatGroup {
+  id          String        @id @default(cuid())
+  name        String
+  photoUrl    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdById String
+  createdBy   User          @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  messages    Message[]
+}
+
+model GroupMember {
+  id        String    @id @default(cuid())
+  groupId   String
+  group     ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  isAdmin   Boolean   @default(false)
+  joinedAt  DateTime  @default(now())
+
+  @@unique([groupId, userId])
 }
 
 model StudentProfile {
