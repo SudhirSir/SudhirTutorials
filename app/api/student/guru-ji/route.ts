@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 // @ts-ignore
-import pdf from 'pdf-parse';
+const pdf = require('pdf-parse');
 
 export async function POST(req: Request) {
   try {

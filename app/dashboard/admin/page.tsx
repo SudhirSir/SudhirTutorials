@@ -374,8 +374,16 @@ function AdminDashboardContent() {
   const [adminGuruQuestion, setAdminGuruQuestion] = useState('');
   const [adminGuruSubject, setAdminGuruSubject] = useState('Mathematics');
   const [adminGuruLanguage, setAdminGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
-  const [adminGuruHistory, setAdminGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([]);
+  const [adminGuruHistory, setAdminGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string, file?: string, fileName?: string, image?: string, revealedSteps?: number }>>([]);
   const [adminGuruLoading, setAdminGuruLoading] = useState(false);
+  const [adminGuruFile, setAdminGuruFile] = useState<string | null>(null);
+  const [adminGuruFileName, setAdminGuruFileName] = useState<string>('');
+
+  // Audio recording states
+  const [adminIsRecording, setAdminIsRecording] = useState(false);
+  const [adminMediaRecorder, setAdminMediaRecorder] = useState<any | null>(null);
+  const [adminAudioChunks, setAdminAudioChunks] = useState<any[]>([]);
+  const [adminIsTranscribing, setAdminIsTranscribing] = useState(false);
 
   // Lesson PPT/Notes Generator States
   const [pptTopic, setPptTopic] = useState('');
@@ -385,6 +393,237 @@ function AdminDashboardContent() {
   const [pptGenerating, setPptGenerating] = useState(false);
   const [generatedPpt, setGeneratedPpt] = useState<any>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [pptViewMode, setPptViewMode] = useState<'SLIDES' | 'NOTES'>('SLIDES');
+
+  // Slide inline editing states
+  const [isEditingSlide, setIsEditingSlide] = useState(false);
+  const [editedSlideTitle, setEditedSlideTitle] = useState('');
+  const [editedSlideSubtitle, setEditedSlideSubtitle] = useState('');
+  const [editedSlideContent, setEditedSlideContent] = useState('');
+
+  const handleAdminGuruFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size should be less than 10MB");
+      return;
+    }
+
+    setAdminGuruFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAdminGuruFile(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const startAdminVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const chunks: any[] = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAdminAudio(audioBlob);
+      };
+
+      recorder.start();
+      setAdminMediaRecorder(recorder);
+      setAdminAudioChunks(chunks);
+      setAdminIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      alert("Could not access microphone. Please check permission settings.");
+    }
+  };
+
+  const stopAdminVoiceRecording = () => {
+    if (adminMediaRecorder && adminIsRecording) {
+      adminMediaRecorder.stop();
+      setAdminIsRecording(false);
+    }
+  };
+
+  const transcribeAdminAudio = async (audioBlob: Blob) => {
+    setAdminIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'voice_query.webm');
+      
+      const res = await fetch('/api/student/guru-ji/transcribe', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAdminGuruQuestion(data.text);
+      } else {
+        alert("Transcription failed. Please try again or type your doubt.");
+      }
+    } catch (err) {
+      console.error("Transcription query error:", err);
+    } finally {
+      setAdminIsTranscribing(false);
+    }
+  };
+
+  const renderAdminSimpleLines = (text: string, baseKey: any) => {
+    return text.split('\n').map((line, idx) => {
+      let lineText = line.trim();
+      if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.4rem' }} />;
+      
+      // Bold formatting
+      lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // Inline code formatting
+      lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:#ef4444;font-weight:600;">$1</code>');
+
+      if (lineText.startsWith('👉 ')) {
+        return <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(239,68,68,0.06)', padding: '0.6rem 0.85rem', borderRadius: '8px', borderLeft: '3px solid #ef4444', margin: '0.5rem 0', fontWeight: 700, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+      }
+      if (lineText.startsWith('* ') || lineText.startsWith('- ')) {
+        return <li key={`${baseKey}_${idx}`} style={{ marginLeft: '1rem', marginBottom: '0.3rem', listStyleType: 'square', color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+      }
+      if (lineText.startsWith('---')) {
+        return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '1rem 0' }} />;
+      }
+      return <p key={`${baseKey}_${idx}`} style={{ margin: '0.35rem 0', color: 'var(--text)', lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: lineText }} />;
+    });
+  };
+
+  const formatAdminGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0) => {
+    if (content.includes('### ')) {
+      const sections = content.split(/(?=### )/);
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          {sections.map((section, idx) => {
+            const lines = section.trim().split('\n');
+            const headerLine = lines[0];
+            const bodyText = lines.slice(1).join('\n').trim();
+            if (!headerLine.startsWith('### ')) {
+              return <div key={idx}>{renderAdminSimpleLines(section, idx)}</div>;
+            }
+
+            const headerTitle = headerLine.replace('### ', '').trim();
+            
+            let cardStyle: React.CSSProperties = {
+              borderRadius: '16px',
+              padding: '1.25rem',
+              border: '1px solid var(--border)',
+              background: 'var(--surface-light)',
+              boxShadow: 'var(--shadow-sm)',
+              width: '100%',
+              boxSizing: 'border-box'
+            };
+            let headerColor = '#f59e0b';
+
+            if (headerTitle.includes('Question') || headerTitle.includes('प्रश्न')) {
+              cardStyle.background = 'rgba(239, 68, 68, 0.04)';
+              cardStyle.borderLeft = '4px solid #ef4444';
+              headerColor = '#ef4444';
+            } else if (headerTitle.includes('Solution') || headerTitle.includes('समाधान')) {
+              cardStyle.background = 'rgba(16, 185, 129, 0.03)';
+              cardStyle.borderLeft = '4px solid #10b981';
+              headerColor = '#059669';
+
+              // Parse steps and implement stepwise reveal
+              const steps = bodyText.split('[STEP]').map(s => s.trim()).filter(Boolean);
+              const visibleSteps = steps.slice(0, revealedSteps);
+              const hasMoreSteps = revealedSteps < steps.length;
+
+              return (
+                <div key={idx} style={cardStyle} className="guru-response-card">
+                  <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                    {headerTitle}
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                    {visibleSteps.map((stepText, sIdx) => (
+                      <div key={sIdx} style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                        {renderAdminSimpleLines(stepText, idx + '_step_' + sIdx)}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {hasMoreSteps && (
+                    <button 
+                      onClick={() => {
+                        setAdminGuruHistory(prev => prev.map((m, mIdx) => {
+                          if (mIdx === messageIndex) {
+                            return { ...m, revealedSteps: (m.revealedSteps || 1) + 1 };
+                          }
+                          return m;
+                        }));
+                      }}
+                      style={{
+                        marginTop: '1rem',
+                        padding: '0.5rem 1.25rem',
+                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '24px',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(239,68,68,0.25)',
+                        transition: 'all 0.2s',
+                        width: 'fit-content'
+                      }}
+                    >
+                      👣 Show Next Step ({revealedSteps}/{steps.length})
+                    </button>
+                  )}
+                </div>
+              );
+            } else if (headerTitle.includes('Explanation') || headerTitle.includes('व्याख्या')) {
+              cardStyle.background = 'rgba(139, 92, 246, 0.03)';
+              cardStyle.borderLeft = '4px solid #8b5cf6';
+              headerColor = '#7c3aed';
+            } else if (headerTitle.includes('Tip') || headerTitle.includes('सलाह')) {
+              cardStyle.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%)';
+              cardStyle.borderLeft = '4px solid #f59e0b';
+              cardStyle.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.05)';
+              headerColor = '#d97706';
+            }
+
+            return (
+              <div key={idx} style={cardStyle} className="guru-response-card">
+                <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                  {headerTitle}
+                </h4>
+                <div style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                  {renderAdminSimpleLines(bodyText, idx + '_body')}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        borderRadius: '16px',
+        padding: '1.25rem',
+        border: '1px solid var(--border)',
+        background: 'var(--surface-light)',
+        boxShadow: 'var(--shadow-sm)',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        {renderAdminSimpleLines(content, 0)}
+      </div>
+    );
+  };
 
   // Custom prompt slide content generator
   const generateLessonPPT = async () => {
@@ -462,29 +701,38 @@ function AdminDashboardContent() {
   };
 
   const askAdminGuru = async () => {
-    if (!adminGuruQuestion.trim()) return;
+    if (!adminGuruQuestion.trim() && !adminGuruFile) return;
     const q = adminGuruQuestion;
     const subj = adminGuruSubject;
+    const fl = adminGuruFile;
+    const fn = adminGuruFileName;
     setAdminGuruQuestion('');
-    setAdminGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj }]);
+    setAdminGuruFile(null);
+    setAdminGuruFileName('');
+    
+    setAdminGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj, file: fl || undefined, fileName: fn || undefined }]);
     setAdminGuruLoading(true);
 
     try {
       const res = await fetch('/api/student/guru-ji', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, subject: subj, language: adminGuruLanguage })
+        body: JSON.stringify({ question: q, subject: subj, language: adminGuruLanguage, file: fl })
       });
-      if (res.ok) {
-        const data = await res.json();
-        setAdminGuruHistory(prev => [...prev, { role: 'guru', content: data.solution }]);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAdminGuruHistory(prev => [...prev, { role: 'guru', content: data.solution, revealedSteps: 1 }]);
       } else {
-        setAdminGuruHistory(prev => [...prev, { role: 'guru', content: 'Sorry, I encountered a connection issue. Please try seeking my guidance again.' }]);
+        setAdminGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry, I encountered a connection issue. Please try seeking my guidance again.', revealedSteps: 1 }]);
       }
     } catch (e) {
-      setAdminGuruHistory(prev => [...prev, { role: 'guru', content: 'Network connection error occurred.' }]);
+      setAdminGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.', revealedSteps: 1 }]);
     } finally {
       setAdminGuruLoading(false);
+      setTimeout(() => {
+        const feed = document.getElementById('admin-guru-chat-feed');
+        if (feed) feed.scrollTop = feed.scrollHeight;
+      }, 100);
     }
   };
 
@@ -5871,7 +6119,7 @@ function AdminDashboardContent() {
             display: 'flex', 
             flexDirection: 'column', 
             height: 'calc(100vh - 180px)', 
-            minHeight: '360px', 
+            minHeight: '480px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 
             borderRadius: '24px',
@@ -5882,7 +6130,7 @@ function AdminDashboardContent() {
             overflow: 'hidden' 
           }}
         >
-          {/* Academic Assistant Header */}
+          {/* Academic Assistant Header with Tab Switcher */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)', animation: 'pulse 2s infinite' }}>
@@ -5890,17 +6138,64 @@ function AdminDashboardContent() {
                   <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg>
               </div>
-              <div>
+              <div className="mobile-hide">
                 <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444', margin: 0, whiteSpace: 'nowrap' }}>Guru Ji</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
               </div>
             </div>
-            <button 
-              onClick={() => setAdminGuruHistory([])}
-              style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              🧹 Clear Chat
-            </button>
+
+            {/* Mode Switcher */}
+            <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--input-bg)', padding: '3px', borderRadius: '20px', border: '1px solid var(--border)' }}>
+              <button 
+                onClick={() => setAiMode('GURU')}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: aiMode === 'GURU' ? '#ef4444' : 'transparent',
+                  color: aiMode === 'GURU' ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                💬 Solver
+              </button>
+              <button 
+                onClick={() => setAiMode('PREPARE')}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: aiMode === 'PREPARE' ? '#ef4444' : 'transparent',
+                  color: aiMode === 'PREPARE' ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                📚 Notes/PPT
+              </button>
+            </div>
+
+            {aiMode === 'GURU' ? (
+              <button 
+                onClick={() => setAdminGuruHistory([])}
+                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                🧹 Clear
+              </button>
+            ) : (
+              <div style={{ width: '40px' }} />
+            )}
           </div>
 
           <style>{`
@@ -5914,7 +6209,7 @@ function AdminDashboardContent() {
               padding: 1rem 1.25rem;
               max-width: 80%;
               line-height: 1.6;
-              font-size: 0.95rem;
+              fontSize: 0.95rem;
             }
             .chat-bubble pre {
               background: var(--surface-light);
@@ -5929,99 +6224,741 @@ function AdminDashboardContent() {
               background: var(--surface-light);
               padding: 2px 6px;
               border-radius: 4px;
-              color: var(--primary);
+              color: #ef4444;
               font-weight: 600;
+            }
+            .slide-btn {
+              padding: 0.5rem 1rem;
+              border-radius: 8px;
+              border: 1px solid var(--border);
+              background: var(--surface-light);
+              color: var(--text);
+              font-size: 0.8rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s;
+              display: flex;
+              alignItems: center;
+              gap: 6px;
+            }
+            .slide-btn:hover {
+              background: var(--input-bg);
+              border-color: #ef4444;
+            }
+            .slide-tab-btn {
+              padding: 6px 16px;
+              border-radius: 20px;
+              border: none;
+              font-size: 0.8rem;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.2s;
+            }
+            .slide-indicator-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: var(--border);
+              transition: all 0.2s;
+              cursor: pointer;
+            }
+            .slide-indicator-dot.active {
+              background: #ef4444;
+              transform: scale(1.3);
+            }
+            .diff-card-input {
+              display: none;
+            }
+            .diff-card-label {
+              flex: 1;
+              padding: 0.85rem;
+              border-radius: 12px;
+              border: 1px solid var(--border);
+              background: var(--surface-light);
+              text-align: center;
+              cursor: pointer;
+              transition: all 0.2s;
+              font-weight: 600;
+              font-size: 0.85rem;
+              color: var(--text-muted);
+            }
+            .diff-card-input:checked + .diff-card-label {
+              border-color: #ef4444;
+              background: rgba(239, 68, 68, 0.05);
+              color: #ef4444;
+              box-shadow: 0 0 10px rgba(239,68,68,0.1);
             }
           `}</style>
 
-          {/* Message Feed */}
-          <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
-            {adminGuruHistory.length === 0 ? (
-              <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ask me anything</span>
-              </div>
-            ) : (
-              adminGuruHistory.map((msg, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
-                  {msg.role !== 'user' && (
+          {/* 1. SOLVER MODE */}
+          {aiMode === 'GURU' && (
+            <>
+              {/* Message Feed */}
+              <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="admin-guru-chat-feed">
+                {adminGuruHistory.length === 0 ? (
+                  <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Seek administrative/academic doubt guidance</span>
+                  </div>
+                ) : (
+                  adminGuruHistory.map((msg, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
+                      {msg.role !== 'user' && (
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                        </div>
+                      )}
+                      <div 
+                        style={msg.role === 'user' ? { 
+                          background: 'linear-gradient(135deg, #ef4444, #f59e0b)', 
+                          border: 'none',
+                          color: '#fff',
+                          borderTopLeftRadius: '16px',
+                          borderTopRightRadius: '4px',
+                          boxShadow: 'var(--shadow-sm)',
+                          borderRadius: '16px',
+                          padding: '1rem 1.25rem',
+                          maxWidth: '80%',
+                          lineHeight: '1.6',
+                          fontSize: '0.95rem'
+                        } : {
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text)',
+                          boxShadow: 'none',
+                          padding: '0',
+                          maxWidth: '85%',
+                          width: '100%',
+                          fontSize: '0.95rem'
+                        }}
+                      >
+                        <div>
+                          {msg.role === 'guru' ? (
+                            formatAdminGuruResponse(msg.content, msg.revealedSteps || 1, i)
+                          ) : (
+                            <div>
+                              {msg.file && (
+                                msg.file.startsWith('data:application/pdf') ? (
+                                  <div style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                    background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', 
+                                    padding: '0.65rem 0.85rem', borderRadius: '12px', marginBottom: '0.5rem',
+                                    color: '#fff', fontSize: '0.85rem', fontWeight: 600
+                                  }}>
+                                    <span style={{ fontSize: '1.25rem' }}>📄</span>
+                                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '180px' }}>
+                                      {msg.fileName || 'Document.pdf'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <img 
+                                    src={msg.file} 
+                                    alt="Uploaded Doubt" 
+                                    style={{ 
+                                      maxWidth: '100%', 
+                                      maxHeight: '200px', 
+                                      borderRadius: '12px', 
+                                      marginBottom: '0.5rem', 
+                                      display: 'block',
+                                      border: '1px solid rgba(255,255,255,0.2)' 
+                                    }} 
+                                  />
+                                )
+                              )}
+                              <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {msg.role === 'user' && (
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                          A
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                
+                {adminGuruLoading && (
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.8rem' }}>🤖</span>
                     </div>
-                  )}
-                  <div 
-                    className="chat-bubble"
-                    style={{ 
-                      background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
-                      border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                      color: msg.role === 'user' ? '#fff' : 'var(--text)',
-                      borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
-                      borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
-                      boxShadow: 'var(--shadow-sm)'
-                    }}
-                  >
-                    <div>
-                      <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                    <div className="chat-bubble" style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div className="spinner" style={{ width: '12px', height: '12px', border: '2px solid #f3f3f3', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thinking...</span>
                     </div>
                   </div>
-                  {msg.role === 'user' && (
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
-                      A
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-            
-            {adminGuruLoading && (
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: '0.8rem' }}>🤖</span>
-                </div>
-                <div className="chat-bubble" style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div className="spinner" style={{ width: '12px', height: '12px', border: '2px solid #f3f3f3', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thinking...</span>
+                )}
+              </div>
+
+              {/* Bottom Chat Input Bar */}
+              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+                {adminGuruFile && (
+                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                    {adminGuruFile.startsWith('data:application/pdf') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.75rem 2rem 0.75rem 1rem', borderRadius: '12px', color: '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
+                        <span style={{ fontSize: '1.25rem' }}>📄</span>
+                        <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }}>
+                          {adminGuruFileName || 'Document.pdf'}
+                        </span>
+                      </div>
+                    ) : (
+                      <img src={adminGuruFile} alt="Doubt Preview" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                    )}
+                    <button 
+                      onClick={() => {
+                        setAdminGuruFile(null);
+                        setAdminGuruFileName('');
+                      }}
+                      style={{ 
+                        position: 'absolute', top: '4px', right: '4px', 
+                        background: 'rgba(239, 68, 68, 0.85)', color: '#fff', 
+                        border: 'none', width: '20px', height: '20px', borderRadius: '50%', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', zIndex: 10
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
+                  
+                  {/* Attachment Picker */}
+                  <label 
+                    style={{ 
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      width: '32px', height: '32px', borderRadius: '50%', 
+                      background: 'var(--surface-light)', border: '1px solid var(--border)', 
+                      transition: 'all 0.2s', marginRight: '4px'
+                    }}
+                    title="Upload Doubt Image or PDF"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                    <input 
+                      type="file" 
+                      accept="image/*,application/pdf" 
+                      onChange={handleAdminGuruFileChange} 
+                      style={{ display: 'none' }} 
+                    />
+                  </label>
+
+                  {/* Voice Record Button */}
+                  <button 
+                    onClick={adminIsRecording ? stopAdminVoiceRecording : startAdminVoiceRecording}
+                    disabled={adminGuruLoading || adminIsTranscribing}
+                    style={{ 
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      width: '32px', height: '32px', borderRadius: '50%', 
+                      background: adminIsRecording ? 'rgba(239, 68, 68, 0.15)' : 'var(--surface-light)', 
+                      border: adminIsRecording ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)', 
+                      transition: 'all 0.2s', marginRight: '4px',
+                      color: adminIsRecording ? '#ef4444' : 'var(--text-muted)',
+                      animation: adminIsRecording ? 'pulse 1.5s infinite' : 'none'
+                    }}
+                    title={adminIsRecording ? "Stop Recording" : "Voice Doubt Query"}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                      <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                      <line x1="12" y1="19" x2="12" y2="22"/>
+                    </svg>
+                  </button>
+
+                  <input 
+                    type="text"
+                    placeholder={adminIsTranscribing ? "🎙️ Transcribing voice query..." : adminIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask Guru Ji a question, upload a PDF/Photo..."} 
+                    value={adminGuruQuestion}
+                    onChange={(e) => setAdminGuruQuestion(e.target.value)}
+                    disabled={adminIsTranscribing || adminIsRecording}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !adminGuruLoading && (adminGuruQuestion.trim() || adminGuruFile)) {
+                        askAdminGuru();
+                      }
+                    }}
+                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: adminIsRecording ? '#ef4444' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: adminIsRecording || adminIsTranscribing ? 'italic' : 'normal' }}
+                  />
+                  <button 
+                    onClick={askAdminGuru}
+                    disabled={adminGuruLoading || (!adminGuruQuestion.trim() && !adminGuruFile) || adminIsRecording || adminIsTranscribing}
+                    style={{ 
+                      width: '36px', height: '36px', borderRadius: '50%', 
+                      background: (adminGuruQuestion.trim() || adminGuruFile) ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--border)', 
+                      border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      cursor: adminGuruLoading || (!adminGuruQuestion.trim() && !adminGuruFile) ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: (adminGuruQuestion.trim() || adminGuruFile) ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
+            </>
+          )}
 
-          {/* Bottom Chat Input Bar */}
-          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 1.2rem' }}>
-              <input 
-                type="text"
-                placeholder="Ask Guru Ji a question or planning query..." 
-                value={adminGuruQuestion}
-                onChange={(e) => setAdminGuruQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !adminGuruLoading && adminGuruQuestion.trim()) {
-                    askAdminGuru();
-                  }
-                }}
-                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0' }}
-              />
-              <button 
-                onClick={askAdminGuru}
-                disabled={adminGuruLoading || !adminGuruQuestion.trim()}
-                style={{ 
-                  width: '36px', height: '36px', borderRadius: '50%', 
-                  background: adminGuruQuestion.trim() ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--border)', 
-                  border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  cursor: adminGuruLoading || !adminGuruQuestion.trim() ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: adminGuruQuestion.trim() ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-              </button>
+          {/* 2. PREPARE / PPT MODE */}
+          {aiMode === 'PREPARE' && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-dark)' }}>
+              
+              {/* Not Generated Form */}
+              {!generatedPpt && !pptGenerating && (
+                <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', maxWidth: '800px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <span style={{ fontSize: '2.5rem' }}>📚</span>
+                    <h3 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.4rem', fontWeight: 800, color: '#ef4444' }}>Lesson Notes & Slides Generator</h3>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Create highly structured, professional slide presentations and exam worksheets in seconds.</p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'var(--surface-light)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border)' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>LECTURE TOPIC</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Laws of Motion, Quadratic Equations, Photosynthesis..."
+                        value={pptTopic}
+                        onChange={(e) => setPptTopic(e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>TARGET GRADE</label>
+                        <select 
+                          value={pptGrade}
+                          onChange={(e) => setPptGrade(e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.88rem' }}
+                        >
+                          <option value="Class 6">Class 6</option>
+                          <option value="Class 7">Class 7</option>
+                          <option value="Class 8">Class 8</option>
+                          <option value="Class 9">Class 9</option>
+                          <option value="Class 10">Class 10</option>
+                          <option value="Class 11">Class 11</option>
+                          <option value="Class 12">Class 12</option>
+                          <option value="JEE / NEET Prep">JEE / NEET Prep</option>
+                        </select>
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>LECTURE DURATION</label>
+                        <select 
+                          value={pptDuration}
+                          onChange={(e) => setPptDuration(e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.88rem' }}
+                        >
+                          <option value="30">30 Minutes (Short revision)</option>
+                          <option value="45">45 Minutes (Standard class)</option>
+                          <option value="60">60 Minutes (Deep study)</option>
+                          <option value="90">90 Minutes (Marathon/Worksheet)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text)' }}>DIFFICULTY LEVEL</label>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ flex: 1, display: 'flex' }}>
+                          <input 
+                            type="radio" 
+                            id="diff-easy" 
+                            name="difficulty" 
+                            value="Beginner" 
+                            className="diff-card-input" 
+                            checked={pptDifficulty === 'Beginner'}
+                            onChange={() => setPptDifficulty('Beginner')}
+                          />
+                          <label htmlFor="diff-easy" className="diff-card-label">Beginner</label>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex' }}>
+                          <input 
+                            type="radio" 
+                            id="diff-med" 
+                            name="difficulty" 
+                            value="Intermediate" 
+                            className="diff-card-input"
+                            checked={pptDifficulty === 'Intermediate'}
+                            onChange={() => setPptDifficulty('Intermediate')}
+                          />
+                          <label htmlFor="diff-med" className="diff-card-label">Intermediate</label>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex' }}>
+                          <input 
+                            type="radio" 
+                            id="diff-hard" 
+                            name="difficulty" 
+                            value="Advanced" 
+                            className="diff-card-input"
+                            checked={pptDifficulty === 'Advanced'}
+                            onChange={() => setPptDifficulty('Advanced')}
+                          />
+                          <label htmlFor="diff-hard" className="diff-card-label">Advanced</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>ADDITIONAL SLIDES FOCUS & STRUCTURE</label>
+                      <textarea 
+                        rows={3}
+                        value={pptFocus}
+                        onChange={(e) => setPptFocus(e.target.value)}
+                        placeholder="Specify special requirements, equations, derivations, or target exams..."
+                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.88rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <button 
+                      onClick={generateLessonPPT}
+                      disabled={!pptTopic.trim()}
+                      style={{
+                        padding: '0.9rem',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: pptTopic.trim() ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : 'var(--border)',
+                        color: '#fff',
+                        fontWeight: '800',
+                        fontSize: '0.95rem',
+                        cursor: pptTopic.trim() ? 'pointer' : 'not-allowed',
+                        transition: 'all 0.2s',
+                        boxShadow: pptTopic.trim() ? '0 4px 15px rgba(239, 68, 68, 0.3)' : 'none',
+                        marginTop: '0.5rem'
+                      }}
+                    >
+                      ✨ Generate Premium Lesson PPT & Notes
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Generating Loading State */}
+              {pptGenerating && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', color: '#fff', padding: '2rem' }}>
+                  <div style={{ position: 'relative', width: '80px', height: '80px' }}>
+                    <div style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', border: '4px solid rgba(239,68,68,0.1)', borderTopColor: '#ef4444', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '1.5rem' }}>🧙‍♂️</span>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 800 }}>Generating Presentation Slides...</h4>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '300px', lineHeight: 1.5 }}>
+                      Guru Ji is parsing topic curriculum and structuring premium slide layouts. Please wait.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Generated PPT Workspace */}
+              {generatedPpt && !pptGenerating && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  
+                  {/* Toolbar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+                    {/* View Selector */}
+                    <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--input-bg)', padding: '2px', borderRadius: '20px', border: '1px solid var(--border)' }}>
+                      <button 
+                        onClick={() => { setPptViewMode('SLIDES'); setIsEditingSlide(false); }}
+                        className="slide-tab-btn"
+                        style={{
+                          background: pptViewMode === 'SLIDES' ? '#ef4444' : 'transparent',
+                          color: pptViewMode === 'SLIDES' ? '#fff' : 'var(--text-muted)'
+                        }}
+                      >
+                        👁️ Slide Deck
+                      </button>
+                      <button 
+                        onClick={() => { setPptViewMode('NOTES'); setIsEditingSlide(false); }}
+                        className="slide-tab-btn"
+                        style={{
+                          background: pptViewMode === 'NOTES' ? '#ef4444' : 'transparent',
+                          color: pptViewMode === 'NOTES' ? '#fff' : 'var(--text-muted)'
+                        }}
+                      >
+                        📝 Study Notes
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {pptViewMode === 'SLIDES' && (
+                        <button 
+                          onClick={() => {
+                            if (isEditingSlide) {
+                              // Save edits
+                              const updatedSlides = [...generatedPpt.slides];
+                              updatedSlides[activeSlideIndex] = {
+                                ...updatedSlides[activeSlideIndex],
+                                title: editedSlideTitle,
+                                subtitle: editedSlideSubtitle,
+                                content: editedSlideContent
+                              };
+                              setGeneratedPpt({ ...generatedPpt, slides: updatedSlides });
+                              setIsEditingSlide(false);
+                            } else {
+                              // Open editor
+                              const s = generatedPpt.slides[activeSlideIndex];
+                              setEditedSlideTitle(s.title || '');
+                              setEditedSlideSubtitle(s.subtitle || '');
+                              setEditedSlideContent(s.content || '');
+                              setIsEditingSlide(true);
+                            }
+                          }}
+                          className="slide-btn"
+                          style={{ borderColor: isEditingSlide ? '#10b981' : 'var(--border)' }}
+                        >
+                          {isEditingSlide ? '💾 Save Slide' : '✏️ Edit Slide'}
+                        </button>
+                      )}
+                      
+                      <button onClick={printAdminPpt} className="slide-btn">
+                        🖨️ Print / PDF
+                      </button>
+                      
+                      <button 
+                        onClick={() => { setGeneratedPpt(null); setPptTopic(''); }}
+                        className="slide-btn"
+                        style={{ color: '#ef4444' }}
+                      >
+                        🔄 Start Over
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Slides Presentation Mode */}
+                  {pptViewMode === 'SLIDES' && (
+                    <div style={{ flex: 1, display: 'flex', padding: '1.5rem', gap: '1.5rem', overflow: 'hidden', position: 'relative' }}>
+                      
+                      {/* Left Sidebar Slide Deck Thumbnails (Desktop-only) */}
+                      <div className="mobile-hide" style={{ width: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRight: '1px solid var(--border)', paddingRight: '1rem', flexShrink: 0 }}>
+                        {generatedPpt.slides.map((slide: any, idx: number) => (
+                          <div 
+                            key={idx}
+                            onClick={() => { setActiveSlideIndex(idx); setIsEditingSlide(false); }}
+                            style={{ 
+                              padding: '0.5rem 0.75rem', 
+                              borderRadius: '8px', 
+                              border: activeSlideIndex === idx ? '2px solid #ef4444' : '1px solid var(--border)',
+                              background: activeSlideIndex === idx ? 'rgba(239, 68, 68, 0.05)' : 'var(--surface-light)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#ef4444' }}>SLIDE {idx + 1}</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>
+                              {slide.title || 'Untitled'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Main Slide Canvas */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+                        
+                        {/* Slide Display aspect ratio box */}
+                        <div style={{ 
+                          flex: 1, 
+                          background: 'linear-gradient(135deg, #1e1e24 0%, #121214 100%)', 
+                          border: '1px solid rgba(255,255,255,0.05)', 
+                          borderRadius: '16px', 
+                          padding: '2.5rem', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          justifyContent: 'space-between',
+                          boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)',
+                          overflowY: 'auto',
+                          position: 'relative'
+                        }}>
+                          {isEditingSlide ? (
+                            /* Slide Editor View */
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', boxSizing: 'border-box' }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#ef4444', marginBottom: '4px' }}>SLIDE TITLE</label>
+                                <input 
+                                  type="text" 
+                                  value={editedSlideTitle}
+                                  onChange={(e) => setEditedSlideTitle(e.target.value)}
+                                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#252529', color: '#fff', outline: 'none' }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#ef4444', marginBottom: '4px' }}>SLIDE SUBTITLE / META</label>
+                                <input 
+                                  type="text" 
+                                  value={editedSlideSubtitle}
+                                  onChange={(e) => setEditedSlideSubtitle(e.target.value)}
+                                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#252529', color: '#fff', outline: 'none' }}
+                                />
+                              </div>
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#ef4444', marginBottom: '4px' }}>SLIDE BODY CONTENT</label>
+                                <textarea 
+                                  value={editedSlideContent}
+                                  onChange={(e) => setEditedSlideContent(e.target.value)}
+                                  style={{ flex: 1, width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#252529', color: '#fff', outline: 'none', fontFamily: 'monospace', fontSize: '0.85rem', resize: 'none' }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            /* Render Active Slide */
+                            (() => {
+                              const s = generatedPpt.slides[activeSlideIndex];
+                              if (!s) return null;
+
+                              return (
+                                <>
+                                  <div>
+                                    {/* Top Metadata Header */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+                                      <div>
+                                        <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{s.title}</h4>
+                                        <span style={{ fontSize: '0.75rem', color: '#a0a0a5', marginTop: '2px', display: 'block' }}>{s.subtitle || ''}</span>
+                                      </div>
+                                      <span style={{ background: '#ef4444', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.5px' }}>
+                                        {s.badge || 'SUDHIR TUTORIALS'}
+                                      </span>
+                                    </div>
+
+                                    {/* Slide Main Content */}
+                                    <div style={{ fontSize: '0.9rem', lineHeight: '1.65', color: '#dcdce2', paddingBottom: '1.5rem', whiteSpace: 'pre-line' }}>
+                                      {renderAdminSimpleLines(s.content, activeSlideIndex + '_slide')}
+                                    </div>
+                                  </div>
+
+                                  {/* Slide Footer */}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem', fontSize: '0.7rem', color: '#707075', fontWeight: 700 }}>
+                                    <span>SUDHIR TUTORIALS • PREMIUM LECTURE NOTE</span>
+                                    <span>SLIDE {activeSlideIndex + 1} OF {generatedPpt.slides.length}</span>
+                                  </div>
+                                </>
+                              );
+                            })()
+                          )}
+                        </div>
+
+                        {/* Slide Pagination Toolbar */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0.5rem' }}>
+                          <button 
+                            onClick={() => { setActiveSlideIndex(prev => Math.max(0, prev - 1)); setIsEditingSlide(false); }}
+                            disabled={activeSlideIndex === 0}
+                            style={{ 
+                              padding: '0.5rem 1rem', 
+                              borderRadius: '20px', 
+                              border: '1px solid var(--border)', 
+                              background: 'var(--surface-light)', 
+                              color: activeSlideIndex === 0 ? 'var(--text-muted)' : 'var(--text)', 
+                              cursor: activeSlideIndex === 0 ? 'not-allowed' : 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            ◀ Previous
+                          </button>
+
+                          {/* Pagination Indicator Dots */}
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {generatedPpt.slides.map((_: any, idx: number) => (
+                              <div 
+                                key={idx} 
+                                onClick={() => { setActiveSlideIndex(idx); setIsEditingSlide(false); }}
+                                className={`slide-indicator-dot ${activeSlideIndex === idx ? 'active' : ''}`} 
+                              />
+                            ))}
+                          </div>
+
+                          <button 
+                            onClick={() => { setActiveSlideIndex(prev => Math.min(generatedPpt.slides.length - 1, prev + 1)); setIsEditingSlide(false); }}
+                            disabled={activeSlideIndex === generatedPpt.slides.length - 1}
+                            style={{ 
+                              padding: '0.5rem 1rem', 
+                              borderRadius: '20px', 
+                              border: '1px solid var(--border)', 
+                              background: 'var(--surface-light)', 
+                              color: activeSlideIndex === generatedPpt.slides.length - 1 ? 'var(--text-muted)' : 'var(--text)', 
+                              cursor: activeSlideIndex === generatedPpt.slides.length - 1 ? 'not-allowed' : 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            Next ▶
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Study Notes/Handout Mode */}
+                  {pptViewMode === 'NOTES' && (
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#f8f9fa' }}>
+                      <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', padding: '3rem', color: '#1e293b' }}>
+                        
+                        {/* Title Header */}
+                        <div style={{ borderBottom: '3px solid #ef4444', paddingBottom: '1.5rem', marginBottom: '2rem', textAlign: 'center' }}>
+                          <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.8rem', fontWeight: 900, color: '#ef4444', letterSpacing: '-0.5px' }}>
+                            {generatedPpt.topic.toUpperCase()}
+                          </h1>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>
+                            <span>CURRICULUM: {generatedPpt.grade}</span>
+                            <span>•</span>
+                            <span>CLASS DURATION: {pptDuration} MINUTES</span>
+                            <span>•</span>
+                            <span>DIFFICULTY: {pptDifficulty}</span>
+                          </div>
+                        </div>
+
+                        {/* Slide items printed as notes */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                          {generatedPpt.slides.map((slide: any, idx: number) => (
+                            <div key={idx} style={{ borderBottom: idx === generatedPpt.slides.length - 1 ? 'none' : '1px solid #e2e8f0', paddingBottom: '2.5rem' }}>
+                              
+                              {/* Section Title */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <span style={{ color: '#ef4444', fontStyle: 'italic', fontSize: '0.9rem' }}>#{idx + 1}</span> 
+                                  {slide.title}
+                                </h3>
+                                <span style={{ background: '#f1f5f9', color: '#64748b', padding: '3px 10px', borderRadius: '12px', fontSize: '0.65rem', fontWeight: 800 }}>
+                                  {slide.type || 'CONCEPT'}
+                                </span>
+                              </div>
+
+                              <span style={{ display: 'block', fontSize: '0.8rem', fontStyle: 'italic', color: '#64748b', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+                                {slide.subtitle || ''}
+                              </span>
+
+                              {/* Content */}
+                              <div style={{ fontSize: '0.92rem', lineHeight: '1.65', color: '#334155', whiteSpace: 'pre-line' }}>
+                                {renderAdminSimpleLines(slide.content, idx + '_note')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '1.5rem', marginTop: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
+                          <span>SUDHIR TUTORIALS • PREMIUM NOTES SUITE</span>
+                          <span>© {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
             </div>
-          </div>
+          )}
+
         </div>
       )}
 

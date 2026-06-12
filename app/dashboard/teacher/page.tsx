@@ -252,13 +252,22 @@ function TeacherDashboardContent() {
   const [teacherGuruQuestion, setTeacherGuruQuestion] = useState('');
   const [teacherGuruSubject, setTeacherGuruSubject] = useState('Mathematics');
   const [teacherGuruLanguage, setTeacherGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
-  const [teacherGuruHistory, setTeacherGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string }>>([]);
+  const [teacherGuruHistory, setTeacherGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string, file?: string, fileName?: string, image?: string, revealedSteps?: number }>>([]);
   const [teacherGuruLoading, setTeacherGuruLoading] = useState(false);
   const [showFullWeekModal, setShowFullWeekModal] = useState(false);
   const [selectedBatchDetails, setSelectedBatchDetails] = useState<any | null>(null);
   const [batchMsgTarget, setBatchMsgTarget] = useState<{ id: string; name: string } | null>(null);
   const [batchMsgContent, setBatchMsgContent] = useState('');
   const [isSendingBatchMsg, setIsSendingBatchMsg] = useState(false);
+
+  const [teacherGuruFile, setTeacherGuruFile] = useState<string | null>(null);
+  const [teacherGuruFileName, setTeacherGuruFileName] = useState<string>('');
+
+  // Audio recording states
+  const [teacherIsRecording, setTeacherIsRecording] = useState(false);
+  const [teacherMediaRecorder, setTeacherMediaRecorder] = useState<any | null>(null);
+  const [teacherAudioChunks, setTeacherAudioChunks] = useState<any[]>([]);
+  const [teacherIsTranscribing, setTeacherIsTranscribing] = useState(false);
 
   // Lesson PPT/Notes Generator States
   const [pptTopic, setPptTopic] = useState('');
@@ -268,126 +277,264 @@ function TeacherDashboardContent() {
   const [pptGenerating, setPptGenerating] = useState(false);
   const [generatedPpt, setGeneratedPpt] = useState<any>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [pptViewMode, setPptViewMode] = useState<'SLIDES' | 'NOTES'>('SLIDES');
+  const [pptDifficulty, setPptDifficulty] = useState('Intermediate');
+  const [pptDuration, setPptDuration] = useState('45');
 
-  // Custom prompt slide content generator
+  // Slide inline editing states
+  const [isEditingSlide, setIsEditingSlide] = useState(false);
+  const [editedSlideTitle, setEditedSlideTitle] = useState('');
+  const [editedSlideSubtitle, setEditedSlideSubtitle] = useState('');
+  const [editedSlideContent, setEditedSlideContent] = useState('');
+
+  const handleTeacherGuruFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size should be less than 10MB");
+      return;
+    }
+
+    setTeacherGuruFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setTeacherGuruFile(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const startTeacherVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const chunks: any[] = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeTeacherAudio(audioBlob);
+      };
+
+      recorder.start();
+      setTeacherMediaRecorder(recorder);
+      setTeacherAudioChunks(chunks);
+      setTeacherIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      alert("Could not access microphone. Please check permission settings.");
+    }
+  };
+
+  const stopTeacherVoiceRecording = () => {
+    if (teacherMediaRecorder && teacherIsRecording) {
+      teacherMediaRecorder.stop();
+      setTeacherIsRecording(false);
+    }
+  };
+
+  const transcribeTeacherAudio = async (audioBlob: Blob) => {
+    setTeacherIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'voice_query.webm');
+      
+      const res = await fetch('/api/student/guru-ji/transcribe', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTeacherGuruQuestion(data.text);
+      } else {
+        alert("Transcription failed. Please try again or type your doubt.");
+      }
+    } catch (err) {
+      console.error("Transcription query error:", err);
+    } finally {
+      setTeacherIsTranscribing(false);
+    }
+  };
+
+  const renderTeacherSimpleLines = (text: string, baseKey: any) => {
+    return text.split('\n').map((line, idx) => {
+      let lineText = line.trim();
+      if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.4rem' }} />;
+      
+      // Bold formatting
+      lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // Inline code formatting
+      lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:#10b981;font-weight:600;">$1</code>');
+
+      if (lineText.startsWith('👉 ')) {
+        return <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(16,185,129,0.06)', padding: '0.6rem 0.85rem', borderRadius: '8px', borderLeft: '3px solid #10b981', margin: '0.5rem 0', fontWeight: 700, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+      }
+      if (lineText.startsWith('* ') || lineText.startsWith('- ')) {
+        return <li key={`${baseKey}_${idx}`} style={{ marginLeft: '1rem', marginBottom: '0.3rem', listStyleType: 'square', color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />;
+      }
+      if (lineText.startsWith('---')) {
+        return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '1rem 0' }} />;
+      }
+      return <p key={`${baseKey}_${idx}`} style={{ margin: '0.35rem 0', color: 'var(--text)', lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: lineText }} />;
+    });
+  };
+
+  const formatTeacherGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0) => {
+    if (content.includes('### ')) {
+      const sections = content.split(/(?=### )/);
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          {sections.map((section, idx) => {
+            const lines = section.trim().split('\n');
+            const headerLine = lines[0];
+            const bodyText = lines.slice(1).join('\n').trim();
+            if (!headerLine.startsWith('### ')) {
+              return <div key={idx}>{renderTeacherSimpleLines(section, idx)}</div>;
+            }
+
+            const headerTitle = headerLine.replace('### ', '').trim();
+            
+            let cardStyle: React.CSSProperties = {
+              borderRadius: '16px',
+              padding: '1.25rem',
+              border: '1px solid var(--border)',
+              background: 'var(--surface-light)',
+              boxShadow: 'var(--shadow-sm)',
+              width: '100%',
+              boxSizing: 'border-box'
+            };
+            let headerColor = '#f59e0b';
+
+            if (headerTitle.includes('Question') || headerTitle.includes('प्रश्न')) {
+              cardStyle.background = 'rgba(16, 185, 129, 0.04)';
+              cardStyle.borderLeft = '4px solid #10b981';
+              headerColor = '#10b981';
+            } else if (headerTitle.includes('Solution') || headerTitle.includes('समाधान')) {
+              cardStyle.background = 'rgba(16, 185, 129, 0.03)';
+              cardStyle.borderLeft = '4px solid #10b981';
+              headerColor = '#059669';
+
+              // Parse steps and implement stepwise reveal
+              const steps = bodyText.split('[STEP]').map(s => s.trim()).filter(Boolean);
+              const visibleSteps = steps.slice(0, revealedSteps);
+              const hasMoreSteps = revealedSteps < steps.length;
+
+              return (
+                <div key={idx} style={cardStyle} className="guru-response-card">
+                  <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                    {headerTitle}
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                    {visibleSteps.map((stepText, sIdx) => (
+                      <div key={sIdx} style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                        {renderTeacherSimpleLines(stepText, idx + '_step_' + sIdx)}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {hasMoreSteps && (
+                    <button 
+                      onClick={() => {
+                        setTeacherGuruHistory(prev => prev.map((m, mIdx) => {
+                          if (mIdx === messageIndex) {
+                            return { ...m, revealedSteps: (m.revealedSteps || 1) + 1 };
+                          }
+                          return m;
+                        }));
+                      }}
+                      style={{
+                        marginTop: '1rem',
+                        padding: '0.5rem 1.25rem',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '24px',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
+                        transition: 'all 0.2s',
+                        width: 'fit-content'
+                      }}
+                    >
+                      👣 Show Next Step ({revealedSteps}/{steps.length})
+                    </button>
+                  )}
+                </div>
+              );
+            } else if (headerTitle.includes('Explanation') || headerTitle.includes('व्याख्या')) {
+              cardStyle.background = 'rgba(139, 92, 246, 0.03)';
+              cardStyle.borderLeft = '4px solid #8b5cf6';
+              headerColor = '#7c3aed';
+            } else if (headerTitle.includes('Tip') || headerTitle.includes('सलाह')) {
+              cardStyle.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%)';
+              cardStyle.borderLeft = '4px solid #f59e0b';
+              cardStyle.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.05)';
+              headerColor = '#d97706';
+            }
+
+            return (
+              <div key={idx} style={cardStyle} className="guru-response-card">
+                <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                  {headerTitle}
+                </h4>
+                <div style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
+                  {renderTeacherSimpleLines(bodyText, idx + '_body')}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        borderRadius: '16px',
+        padding: '1.25rem',
+        border: '1px solid var(--border)',
+        background: 'var(--surface-light)',
+        boxShadow: 'var(--shadow-sm)',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        {renderTeacherSimpleLines(content, 0)}
+      </div>
+    );
+  };
+
+  // Custom prompt slide content generator from AI backend
   const generateLessonPPT = async () => {
     if (!pptTopic.trim()) return;
     setPptGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const topic = pptTopic.trim();
-    const grade = pptGrade;
-    const focus = pptFocus;
-
-    const slides = [
-      {
-        type: 'TITLE',
-        title: `📖 LESSON PLAN & LECTURE OUTLINE`,
-        subtitle: `${topic.toUpperCase()}`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Curriculum: ${grade} | Designed for Premium Academic Excellence`,
-        content: `Welcome to the official premium lecture presentation. This slide deck has been custom-prepared for ${grade} scholars. Let's delve into the core concepts, analytical frameworks, and practical problem-solving methods of this topic.`
-      },
-      {
-        type: 'CONCEPT',
-        title: `⚡ Core Concepts & Definitions`,
-        subtitle: `Understanding the Foundations`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Topic Focus: ${topic}`,
-        content: `What is ${topic}? Let's break down the scientific/mathematical definition of this topic.
-
-👉 **Definition & Core Philosophy:**
-This topic forms the fundamental bedrock of academic science/mathematics. It explains the core interactions, equations, and principles that govern physical systems or mathematical relations.
-
-👉 **Key Principles to Remember:**
-1. **Precision & Consistency**: Every definition must match scientific standards.
-2. **Interconnected Nature**: This relates closely to higher-level analytical mechanics and logical deductions.
-3. **Application in Exams**: Conceptual clarity is highly tested in competitive papers like IIT-JEE, NEET, and Board Exams.`
-      },
-      {
-        type: 'FORMULA',
-        title: `🧮 Mathematical Formulas & Derivations`,
-        subtitle: `The Quantitative Framework`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Formulas for ${topic}`,
-        content: `Let's analyze the governing mathematical framework of ${topic}:
-
-👉 **Primary Governing Equation:**
-Depending on your specific focus, this represents the vital equation model for this topic:
-*   **Formula**: Balanced Conservation Equation or Governing Algebraic Matrix of variables.
-*   **Variables Invoiced**:
-    *   **Independent Parameters**: Measured constants and boundary values.
-    *   **Dependent Variables**: Calculated dynamic outputs.
-
-👉 **Derivation & Step-by-Step Proof:**
-1. Set up initial boundary conditions of the system.
-2. Integrate across the boundary constraints.
-3. Establish the final balanced conservation equation.`
-      },
-      {
-        type: 'PRACTICAL',
-        title: `🌍 Real-World Applications & Examples`,
-        subtitle: `Connecting Theory to Reality`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Industry & Real-Life Use Cases`,
-        content: `Why do we study ${topic}? Let's check where this is applied in modern technology:
-
-👉 **Practical Real-world Scenarios:**
-*   **Engineering & Design**: Designing robust structures, electronic circuits, or thermal power grids.
-*   **Daily Life Phenomenon**: Explaining natural occurrences, biological metabolic pathways, or standard kinematic motions.
-*   **Technology Integration**: Utilized in space research, software algorithms, or dynamic industrial automation.
-
-👉 **Classroom Activity / Discussion:**
-"How would changing the input constraint parameter affect the net output efficiency of this system?" Discuss in groups of 3.`
-      },
-      {
-        type: 'QUIZ',
-        title: `📝 Lecture Self-Assessment (5 MCQs)`,
-        subtitle: `Test Your Conceptual Understanding`,
-        badge: `SUDHIR TUTORIALS`,
-        meta: `Quiz Session | Grade: ${grade}`,
-        content: `Let's solve these hand-picked conceptual multiple-choice questions:
-
-**Q1. What is the primary governing factor of ${topic}?**
-*   [A] Ambient atmospheric conditions
-*   [B] Intrinsic system parameters (Correct ✓)
-*   [C] Random quantum perturbations
-*   [D] None of the above
-
-**Q2. Which constant plays the most vital role here?**
-*   [A] Planck's Constant
-*   [B] Ideal Gas Constant
-*   [C] Proportionality Coefficient (Correct ✓)
-*   [D] Gravitational Parameter
-
-**Q3. If we double the active system variable, the resulting net output will:**
-*   [A] Increase by 2x (Correct ✓)
-*   [B] Reduce by half
-*   [C] Remain absolutely unchanged
-*   [D] Exponentially decay
-
-**Q4. Under what boundary state does this model fail?**
-*   [A] High temperatures
-*   [B] Outside normal operating limits (Correct ✓)
-*   [C] Absolute zero temperature
-*   [D] All of the above
-
-**Q5. The ultimate goal of studying this topic is to enable:**
-*   [A] Rote memorization of derivations
-*   [B] Dynamic industrial predictions & calculations (Correct ✓)
-*   [C] Pure historical analysis
-*   [D] None of the above`
+    try {
+      const finalFocus = `Difficulty Level: ${pptDifficulty}. Target Duration: ${pptDuration} minutes. Core concepts, detailed explanations, formulas, derivations, real-world examples, and 5 multiple choice questions with solutions.`;
+      const res = await fetch('/api/admin/ai/ppt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: pptTopic.trim(), grade: pptGrade, focus: finalFocus })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedPpt(data);
+        setActiveSlideIndex(0);
+      } else {
+        alert('Failed to generate slides. Please try again.');
       }
-    ];
-
-    setGeneratedPpt({
-      topic,
-      grade,
-      focus,
-      slides
-    });
-    setActiveSlideIndex(0);
-    setPptGenerating(false);
+    } catch (err) {
+      console.error(err);
+      alert('Connection error occurred.');
+    } finally {
+      setPptGenerating(false);
+    }
   };
 
   const printTeacherPpt = () => {
@@ -400,36 +547,36 @@ Depending on your specific focus, this represents the vital equation model for t
           <title>Sudhir Tutorials - Premium Lesson Slides: ${generatedPpt.topic}</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
-            .slide-page { page-break-after: always; border: 2px solid #4f46e5; border-radius: 12px; padding: 30px; margin-bottom: 40px; background: #fff; min-height: 500px; display: flex; flexDirection: column; justify-content: space-between; }
+            .slide-page { page-break-after: always; border: 2px solid #10b981; border-radius: 12px; padding: 30px; margin-bottom: 40px; background: #fff; min-height: 500px; display: flex; flexDirection: column; justify-content: space-between; }
             .header { border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-            .header h1 { margin: 0; font-size: 20px; color: #4f46e5; font-weight: 800; }
-            .badge { background: #4f46e5; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+            .header h1 { margin: 0; font-size: 20px; color: #10b981; font-weight: 800; }
+            .badge { background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
             .meta { font-size: 13px; color: #6b7280; margin-top: 5px; }
             .content { font-size: 16px; line-height: 1.6; color: #374151; flex: 1; whiteSpace: pre-line; }
             .footer { border-top: 1px dashed #d1d5db; padding-top: 15px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; font-weight: bold; }
-            .logo-text { font-size: 16px; font-weight: 900; color: #4f46e5; letter-spacing: 0.5px; }
+            .logo-text { font-size: 16px; font-weight: 900; color: #10b981; letter-spacing: 0.5px; }
           </style>
         </head>
         <body>
-          ${generatedPpt.slides.map((s: any, idx: number) => `
+          \${generatedPpt.slides.map((s: any, idx: number) => \`
             <div class="slide-page">
               <div>
                 <div class="header">
                   <div>
-                    <h1>${s.title}</h1>
-                    <div class="meta">${s.subtitle || ''}</div>
+                    <h1>\${s.title}</h1>
+                    <div class="meta">\${s.subtitle || ''}</div>
                   </div>
-                  <div class="badge">${s.badge}</div>
+                  <div class="badge">\${s.badge}</div>
                 </div>
-                <div style="font-size:12px; color:#6b7280; margin-bottom: 15px; font-weight: bold;">${s.meta}</div>
-                <div class="content">${s.content.replace(/\n/g, '<br/>')}</div>
+                <div style="font-size:12px; color:#6b7280; margin-bottom: 15px; font-weight: bold;">\${s.meta}</div>
+                <div class="content">\${s.content.replace(/\\n/g, '<br/>')}</div>
               </div>
               <div class="footer">
                 <span class="logo-text">SUDHIR TUTORIALS</span>
-                <span>Slide ${idx + 1} of ${generatedPpt.slides.length}</span>
+                <span>Slide \${idx + 1} of \${generatedPpt.slides.length}</span>
               </div>
             </div>
-          `).join('')}
+          \`).join('')}
           <script>
             window.onload = function() { window.print(); };
           </script>
@@ -440,29 +587,38 @@ Depending on your specific focus, this represents the vital equation model for t
   };
 
   const askTeacherGuru = async () => {
-    if (!teacherGuruQuestion.trim()) return;
+    if (!teacherGuruQuestion.trim() && !teacherGuruFile) return;
     const q = teacherGuruQuestion;
     const subj = teacherGuruSubject;
+    const fl = teacherGuruFile;
+    const fn = teacherGuruFileName;
     setTeacherGuruQuestion('');
-    setTeacherGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj }]);
+    setTeacherGuruFile(null);
+    setTeacherGuruFileName('');
+
+    setTeacherGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj, file: fl || undefined, fileName: fn || undefined }]);
     setTeacherGuruLoading(true);
 
     try {
       const res = await fetch('/api/student/guru-ji', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, subject: subj, language: teacherGuruLanguage })
+        body: JSON.stringify({ question: q, subject: subj, language: teacherGuruLanguage, file: fl })
       });
-      if (res.ok) {
-        const data = await res.json();
-        setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: data.solution }]);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: data.solution, revealedSteps: 1 }]);
       } else {
-        setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: 'Sorry, I encountered a connection issue. Please try seeking my guidance again.' }]);
+        setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry, I encountered a connection issue. Please try seeking my guidance again.', revealedSteps: 1 }]);
       }
     } catch (e) {
-      setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: 'Network connection error occurred.' }]);
+      setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.', revealedSteps: 1 }]);
     } finally {
       setTeacherGuruLoading(false);
+      setTimeout(() => {
+        const feed = document.getElementById('teacher-guru-chat-feed');
+        if (feed) feed.scrollTop = feed.scrollHeight;
+      }, 100);
     }
   };
 
@@ -1731,7 +1887,7 @@ Depending on your specific focus, this represents the vital equation model for t
             display: 'flex', 
             flexDirection: 'column', 
             height: 'calc(100vh - 180px)', 
-            minHeight: '450px', 
+            minHeight: '480px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 
             borderRadius: '24px',
@@ -1742,25 +1898,72 @@ Depending on your specific focus, this represents the vital equation model for t
             overflow: 'hidden' 
           }}
         >
-          {/* Guru Ji Header */}
+          {/* Academic Assistant Header with Tab Switcher */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)', animation: 'pulse 2s infinite' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg>
               </div>
-              <div>
+              <div className="mobile-hide">
                 <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981', margin: 0, whiteSpace: 'nowrap' }}>Guru Ji</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
               </div>
             </div>
-            <button 
-              onClick={() => setTeacherGuruHistory([])}
-              style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              🧹 Clear Chat
-            </button>
+
+            {/* Mode Switcher */}
+            <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--input-bg)', padding: '3px', borderRadius: '20px', border: '1px solid var(--border)' }}>
+              <button 
+                onClick={() => setAiMode('GURU')}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: aiMode === 'GURU' ? '#10b981' : 'transparent',
+                  color: aiMode === 'GURU' ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                💬 Solver
+              </button>
+              <button 
+                onClick={() => setAiMode('PREPARE')}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: aiMode === 'PREPARE' ? '#10b981' : 'transparent',
+                  color: aiMode === 'PREPARE' ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                📚 Notes/PPT
+              </button>
+            </div>
+
+            {aiMode === 'GURU' ? (
+              <button 
+                onClick={() => setTeacherGuruHistory([])}
+                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                🧹 Clear
+              </button>
+            ) : (
+              <div style={{ width: '40px' }} />
+            )}
           </div>
 
           <style>{`
@@ -1774,7 +1977,7 @@ Depending on your specific focus, this represents the vital equation model for t
               padding: 1rem 1.25rem;
               max-width: 80%;
               line-height: 1.6;
-              font-size: 0.95rem;
+              fontSize: 0.95rem;
             }
             .chat-bubble pre {
               background: var(--surface-light);
@@ -1789,108 +1992,741 @@ Depending on your specific focus, this represents the vital equation model for t
               background: var(--surface-light);
               padding: 2px 6px;
               border-radius: 4px;
-              color: var(--primary);
+              color: #10b981;
               font-weight: 600;
             }
-            .batch-hover-card {
-              transition: all 0.3s ease !important;
+            .slide-btn {
+              padding: 0.5rem 1rem;
+              border-radius: 8px;
+              border: 1px solid var(--border);
+              background: var(--surface-light);
+              color: var(--text);
+              font-size: 0.8rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s;
+              display: flex;
+              alignItems: center;
+              gap: 6px;
             }
-            .batch-hover-card:hover {
-              transform: translateY(-4px);
-              border-color: var(--primary) !important;
-              background: rgba(255,255,255,0.05) !important;
-              box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
+            .slide-btn:hover {
+              background: var(--input-bg);
+              border-color: #10b981;
+            }
+            .slide-tab-btn {
+              padding: 6px 16px;
+              border-radius: 20px;
+              border: none;
+              font-size: 0.8rem;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.2s;
+            }
+            .slide-indicator-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: var(--border);
+              transition: all 0.2s;
+              cursor: pointer;
+            }
+            .slide-indicator-dot.active {
+              background: #10b981;
+              transform: scale(1.3);
+            }
+            .diff-card-input {
+              display: none;
+            }
+            .diff-card-label {
+              flex: 1;
+              padding: 0.85rem;
+              border-radius: 12px;
+              border: 1px solid var(--border);
+              background: var(--surface-light);
+              text-align: center;
+              cursor: pointer;
+              transition: all 0.2s;
+              font-weight: 600;
+              font-size: 0.85rem;
+              color: var(--text-muted);
+            }
+            .diff-card-input:checked + .diff-card-label {
+              border-color: #10b981;
+              background: rgba(16, 185, 129, 0.05);
+              color: #10b981;
+              box-shadow: 0 0 10px rgba(16,185,129,0.1);
             }
           `}</style>
 
-          {/* Message Feed */}
-          <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="guru-chat-feed">
-            {teacherGuruHistory.length === 0 ? (
-              <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ask me anything</span>
-              </div>
-            ) : (
-              teacherGuruHistory.map((msg, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
-                  {msg.role !== 'user' && (
+          {/* 1. SOLVER MODE */}
+          {aiMode === 'GURU' && (
+            <>
+              {/* Message Feed */}
+              <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="teacher-guru-chat-feed">
+                {teacherGuruHistory.length === 0 ? (
+                  <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Seek academic or lesson guidance</span>
+                  </div>
+                ) : (
+                  teacherGuruHistory.map((msg, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
+                      {msg.role !== 'user' && (
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                        </div>
+                      )}
+                      <div 
+                        style={msg.role === 'user' ? { 
+                          background: 'linear-gradient(135deg, #10b981, #3b82f6)', 
+                          border: 'none',
+                          color: '#fff',
+                          borderTopLeftRadius: '16px',
+                          borderTopRightRadius: '4px',
+                          boxShadow: 'var(--shadow-sm)',
+                          borderRadius: '16px',
+                          padding: '1rem 1.25rem',
+                          maxWidth: '80%',
+                          lineHeight: '1.6',
+                          fontSize: '0.95rem'
+                        } : {
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text)',
+                          boxShadow: 'none',
+                          padding: '0',
+                          maxWidth: '85%',
+                          width: '100%',
+                          fontSize: '0.95rem'
+                        }}
+                      >
+                        <div>
+                          {msg.role === 'guru' ? (
+                            formatTeacherGuruResponse(msg.content, msg.revealedSteps || 1, i)
+                          ) : (
+                            <div>
+                              {msg.file && (
+                                msg.file.startsWith('data:application/pdf') ? (
+                                  <div style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                    background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', 
+                                    padding: '0.65rem 0.85rem', borderRadius: '12px', marginBottom: '0.5rem',
+                                    color: '#fff', fontSize: '0.85rem', fontWeight: 600
+                                  }}>
+                                    <span style={{ fontSize: '1.25rem' }}>📄</span>
+                                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '180px' }}>
+                                      {msg.fileName || 'Document.pdf'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <img 
+                                    src={msg.file} 
+                                    alt="Uploaded Doubt" 
+                                    style={{ 
+                                      maxWidth: '100%', 
+                                      maxHeight: '200px', 
+                                      borderRadius: '12px', 
+                                      marginBottom: '0.5rem', 
+                                      display: 'block',
+                                      border: '1px solid rgba(255,255,255,0.2)' 
+                                    }} 
+                                  />
+                                )
+                              )}
+                              <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {msg.role === 'user' && (
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                          T
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                
+                {teacherGuruLoading && (
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.8rem' }}>🤖</span>
                     </div>
-                  )}
-                  <div 
-                    className="chat-bubble"
-                    style={{ 
-                      background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'var(--surface-light)', 
-                      border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                      color: msg.role === 'user' ? '#fff' : 'var(--text)',
-                      borderTopLeftRadius: msg.role === 'user' ? '16px' : '4px',
-                      borderTopRightRadius: msg.role === 'user' ? '4px' : '16px',
-                      boxShadow: 'var(--shadow-sm)'
-                    }}
-                  >
-                    <div>
-                      <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                    <div className="chat-bubble" style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div className="spinner" style={{ width: '12px', height: '12px', border: '2px solid #f3f3f3', borderTop: '2px solid #10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thinking...</span>
                     </div>
                   </div>
-                  {msg.role === 'user' && (
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
-                      {profile?.name?.charAt(0).toUpperCase() || 'T'}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-            
-            {teacherGuruLoading && (
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: '0.8rem' }}>🤖</span>
-                </div>
-                <div className="chat-bubble" style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div className="spinner" style={{ width: '12px', height: '12px', border: '2px solid #f3f3f3', borderTop: '2px solid #10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thinking...</span>
+                )}
+              </div>
+
+              {/* Bottom Chat Input Bar */}
+              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+                {teacherGuruFile && (
+                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                    {teacherGuruFile.startsWith('data:application/pdf') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.75rem 2rem 0.75rem 1rem', borderRadius: '12px', color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>
+                        <span style={{ fontSize: '1.25rem' }}>📄</span>
+                        <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }}>
+                          {teacherGuruFileName || 'Document.pdf'}
+                        </span>
+                      </div>
+                    ) : (
+                      <img src={teacherGuruFile} alt="Doubt Preview" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                    )}
+                    <button 
+                      onClick={() => {
+                        setTeacherGuruFile(null);
+                        setTeacherGuruFileName('');
+                      }}
+                      style={{ 
+                        position: 'absolute', top: '4px', right: '4px', 
+                        background: 'rgba(239, 68, 68, 0.85)', color: '#fff', 
+                        border: 'none', width: '20px', height: '20px', borderRadius: '50%', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', zIndex: 10
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
+                  
+                  {/* Attachment Picker */}
+                  <label 
+                    style={{ 
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      width: '32px', height: '32px', borderRadius: '50%', 
+                      background: 'var(--surface-light)', border: '1px solid var(--border)', 
+                      transition: 'all 0.2s', marginRight: '4px'
+                    }}
+                    title="Upload Doubt Image or PDF"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                    <input 
+                      type="file" 
+                      accept="image/*,application/pdf" 
+                      onChange={handleTeacherGuruFileChange} 
+                      style={{ display: 'none' }} 
+                    />
+                  </label>
+
+                  {/* Voice Record Button */}
+                  <button 
+                    onClick={teacherIsRecording ? stopTeacherVoiceRecording : startTeacherVoiceRecording}
+                    disabled={teacherGuruLoading || teacherIsTranscribing}
+                    style={{ 
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      width: '32px', height: '32px', borderRadius: '50%', 
+                      background: teacherIsRecording ? 'rgba(16, 185, 129, 0.15)' : 'var(--surface-light)', 
+                      border: teacherIsRecording ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border)', 
+                      transition: 'all 0.2s', marginRight: '4px',
+                      color: teacherIsRecording ? '#10b981' : 'var(--text-muted)',
+                      animation: teacherIsRecording ? 'pulse 1.5s infinite' : 'none'
+                    }}
+                    title={teacherIsRecording ? "Stop Recording" : "Voice Doubt Query"}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                      <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                      <line x1="12" y1="19" x2="12" y2="22"/>
+                    </svg>
+                  </button>
+
+                  <input 
+                    type="text"
+                    placeholder={teacherIsTranscribing ? "🎙️ Transcribing voice query..." : teacherIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask Guru Ji a question, upload a PDF/Photo..."} 
+                    value={teacherGuruQuestion}
+                    onChange={(e) => setTeacherGuruQuestion(e.target.value)}
+                    disabled={teacherIsTranscribing || teacherIsRecording}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !teacherGuruLoading && (teacherGuruQuestion.trim() || teacherGuruFile)) {
+                        askTeacherGuru();
+                      }
+                    }}
+                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: teacherIsRecording ? '#10b981' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: teacherIsRecording || teacherIsTranscribing ? 'italic' : 'normal' }}
+                  />
+                  <button 
+                    onClick={askTeacherGuru}
+                    disabled={teacherGuruLoading || (!teacherGuruQuestion.trim() && !teacherGuruFile) || teacherIsRecording || teacherIsTranscribing}
+                    style={{ 
+                      width: '36px', height: '36px', borderRadius: '50%', 
+                      background: (teacherGuruQuestion.trim() || teacherGuruFile) ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--border)', 
+                      border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      cursor: teacherGuruLoading || (!teacherGuruQuestion.trim() && !teacherGuruFile) ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: (teacherGuruQuestion.trim() || teacherGuruFile) ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
+            </>
+          )}
 
-          {/* Bottom Chat Input Bar */}
-          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 1.2rem' }}>
-              <input 
-                type="text"
-                placeholder="Ask Guru Ji a question or lesson planning query..." 
-                value={teacherGuruQuestion}
-                onChange={(e) => setTeacherGuruQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !teacherGuruLoading && teacherGuruQuestion.trim()) {
-                    askTeacherGuru();
-                  }
-                }}
-                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0' }}
-              />
-              <button 
-                onClick={askTeacherGuru}
-                disabled={teacherGuruLoading || !teacherGuruQuestion.trim()}
-                style={{ 
-                  width: '36px', height: '36px', borderRadius: '50%', 
-                  background: teacherGuruQuestion.trim() ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--border)', 
-                  border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  cursor: teacherGuruLoading || !teacherGuruQuestion.trim() ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: teacherGuruQuestion.trim() ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-              </button>
+          {/* 2. PREPARE / PPT MODE */}
+          {aiMode === 'PREPARE' && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-dark)' }}>
+              
+              {/* Not Generated Form */}
+              {!generatedPpt && !pptGenerating && (
+                <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', maxWidth: '800px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <span style={{ fontSize: '2.5rem' }}>📚</span>
+                    <h3 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.4rem', fontWeight: 800, color: '#10b981' }}>Lesson Notes & Slides Generator</h3>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Create highly structured, professional slide presentations and study notes in seconds.</p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'var(--surface-light)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border)' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>LECTURE TOPIC</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Laws of Motion, Quadratic Equations, Photosynthesis..."
+                        value={pptTopic}
+                        onChange={(e) => setPptTopic(e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>TARGET GRADE</label>
+                        <select 
+                          value={pptGrade}
+                          onChange={(e) => setPptGrade(e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.88rem' }}
+                        >
+                          <option value="Class 6">Class 6</option>
+                          <option value="Class 7">Class 7</option>
+                          <option value="Class 8">Class 8</option>
+                          <option value="Class 9">Class 9</option>
+                          <option value="Class 10">Class 10</option>
+                          <option value="Class 11">Class 11</option>
+                          <option value="Class 12">Class 12</option>
+                          <option value="JEE / NEET Prep">JEE / NEET Prep</option>
+                        </select>
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>LECTURE DURATION</label>
+                        <select 
+                          value={pptDuration}
+                          onChange={(e) => setPptDuration(e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.88rem' }}
+                        >
+                          <option value="30">30 Minutes (Short revision)</option>
+                          <option value="45">45 Minutes (Standard class)</option>
+                          <option value="60">60 Minutes (Deep study)</option>
+                          <option value="90">90 Minutes (Marathon/Worksheet)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text)' }}>DIFFICULTY LEVEL</label>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ flex: 1, display: 'flex' }}>
+                          <input 
+                            type="radio" 
+                            id="diff-easy" 
+                            name="difficulty" 
+                            value="Beginner" 
+                            className="diff-card-input" 
+                            checked={pptDifficulty === 'Beginner'}
+                            onChange={() => setPptDifficulty('Beginner')}
+                          />
+                          <label htmlFor="diff-easy" className="diff-card-label">Beginner</label>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex' }}>
+                          <input 
+                            type="radio" 
+                            id="diff-med" 
+                            name="difficulty" 
+                            value="Intermediate" 
+                            className="diff-card-input"
+                            checked={pptDifficulty === 'Intermediate'}
+                            onChange={() => setPptDifficulty('Intermediate')}
+                          />
+                          <label htmlFor="diff-med" className="diff-card-label">Intermediate</label>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex' }}>
+                          <input 
+                            type="radio" 
+                            id="diff-hard" 
+                            name="difficulty" 
+                            value="Advanced" 
+                            className="diff-card-input"
+                            checked={pptDifficulty === 'Advanced'}
+                            onChange={() => setPptDifficulty('Advanced')}
+                          />
+                          <label htmlFor="diff-hard" className="diff-card-label">Advanced</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text)' }}>ADDITIONAL SLIDES FOCUS & STRUCTURE</label>
+                      <textarea 
+                        rows={3}
+                        value={pptFocus}
+                        onChange={(e) => setPptFocus(e.target.value)}
+                        placeholder="Specify special requirements, equations, derivations, or target exams..."
+                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', outline: 'none', fontSize: '0.88rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <button 
+                      onClick={generateLessonPPT}
+                      disabled={!pptTopic.trim()}
+                      style={{
+                        padding: '0.9rem',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: pptTopic.trim() ? 'linear-gradient(135deg, #10b981, #3b82f6)' : 'var(--border)',
+                        color: '#fff',
+                        fontWeight: '800',
+                        fontSize: '0.95rem',
+                        cursor: pptTopic.trim() ? 'pointer' : 'not-allowed',
+                        transition: 'all 0.2s',
+                        boxShadow: pptTopic.trim() ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
+                        marginTop: '0.5rem'
+                      }}
+                    >
+                      ✨ Generate Premium Lesson PPT & Notes
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Generating Loading State */}
+              {pptGenerating && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', color: '#fff', padding: '2rem' }}>
+                  <div style={{ position: 'relative', width: '80px', height: '80px' }}>
+                    <div style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', border: '4px solid rgba(16,185,129,0.1)', borderTopColor: '#10b981', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '1.5rem' }}>🧙‍♂️</span>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 800 }}>Generating Presentation Slides...</h4>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '300px', lineHeight: 1.5 }}>
+                      Guru Ji is parsing topic curriculum and structuring premium slide layouts. Please wait.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Generated PPT Workspace */}
+              {generatedPpt && !pptGenerating && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  
+                  {/* Toolbar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+                    {/* View Selector */}
+                    <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--input-bg)', padding: '2px', borderRadius: '20px', border: '1px solid var(--border)' }}>
+                      <button 
+                        onClick={() => { setPptViewMode('SLIDES'); setIsEditingSlide(false); }}
+                        className="slide-tab-btn"
+                        style={{
+                          background: pptViewMode === 'SLIDES' ? '#10b981' : 'transparent',
+                          color: pptViewMode === 'SLIDES' ? '#fff' : 'var(--text-muted)'
+                        }}
+                      >
+                        👁️ Slide Deck
+                      </button>
+                      <button 
+                        onClick={() => { setPptViewMode('NOTES'); setIsEditingSlide(false); }}
+                        className="slide-tab-btn"
+                        style={{
+                          background: pptViewMode === 'NOTES' ? '#10b981' : 'transparent',
+                          color: pptViewMode === 'NOTES' ? '#fff' : 'var(--text-muted)'
+                        }}
+                      >
+                        📝 Study Notes
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {pptViewMode === 'SLIDES' && (
+                        <button 
+                          onClick={() => {
+                            if (isEditingSlide) {
+                              // Save edits
+                              const updatedSlides = [...generatedPpt.slides];
+                              updatedSlides[activeSlideIndex] = {
+                                ...updatedSlides[activeSlideIndex],
+                                title: editedSlideTitle,
+                                subtitle: editedSlideSubtitle,
+                                content: editedSlideContent
+                              };
+                              setGeneratedPpt({ ...generatedPpt, slides: updatedSlides });
+                              setIsEditingSlide(false);
+                            } else {
+                              // Open editor
+                              const s = generatedPpt.slides[activeSlideIndex];
+                              setEditedSlideTitle(s.title || '');
+                              setEditedSlideSubtitle(s.subtitle || '');
+                              setEditedSlideContent(s.content || '');
+                              setIsEditingSlide(true);
+                            }
+                          }}
+                          className="slide-btn"
+                          style={{ borderColor: isEditingSlide ? '#10b981' : 'var(--border)' }}
+                        >
+                          {isEditingSlide ? '💾 Save Slide' : '✏️ Edit Slide'}
+                        </button>
+                      )}
+                      
+                      <button onClick={printTeacherPpt} className="slide-btn">
+                        🖨️ Print / PDF
+                      </button>
+                      
+                      <button 
+                        onClick={() => { setGeneratedPpt(null); setPptTopic(''); }}
+                        className="slide-btn"
+                        style={{ color: '#ef4444' }}
+                      >
+                        🔄 Start Over
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Slides Presentation Mode */}
+                  {pptViewMode === 'SLIDES' && (
+                    <div style={{ flex: 1, display: 'flex', padding: '1.5rem', gap: '1.5rem', overflow: 'hidden', position: 'relative' }}>
+                      
+                      {/* Left Sidebar Slide Deck Thumbnails (Desktop-only) */}
+                      <div className="mobile-hide" style={{ width: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRight: '1px solid var(--border)', paddingRight: '1rem', flexShrink: 0 }}>
+                        {generatedPpt.slides.map((slide: any, idx: number) => (
+                          <div 
+                            key={idx}
+                            onClick={() => { setActiveSlideIndex(idx); setIsEditingSlide(false); }}
+                            style={{ 
+                              padding: '0.5rem 0.75rem', 
+                              borderRadius: '8px', 
+                              border: activeSlideIndex === idx ? '2px solid #10b981' : '1px solid var(--border)',
+                              background: activeSlideIndex === idx ? 'rgba(16, 185, 129, 0.05)' : 'var(--surface-light)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981' }}>SLIDE {idx + 1}</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>
+                              {slide.title || 'Untitled'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Main Slide Canvas */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+                        
+                        {/* Slide Display aspect ratio box */}
+                        <div style={{ 
+                          flex: 1, 
+                          background: 'linear-gradient(135deg, #1e1e24 0%, #121214 100%)', 
+                          border: '1px solid rgba(255,255,255,0.05)', 
+                          borderRadius: '16px', 
+                          padding: '2.5rem', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          justifyContent: 'space-between',
+                          boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)',
+                          overflowY: 'auto',
+                          position: 'relative'
+                        }}>
+                          {isEditingSlide ? (
+                            /* Slide Editor View */
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', boxSizing: 'border-box' }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#10b981', marginBottom: '4px' }}>SLIDE TITLE</label>
+                                <input 
+                                  type="text" 
+                                  value={editedSlideTitle}
+                                  onChange={(e) => setEditedSlideTitle(e.target.value)}
+                                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#252529', color: '#fff', outline: 'none' }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#10b981', marginBottom: '4px' }}>SLIDE SUBTITLE / META</label>
+                                <input 
+                                  type="text" 
+                                  value={editedSlideSubtitle}
+                                  onChange={(e) => setEditedSlideSubtitle(e.target.value)}
+                                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#252529', color: '#fff', outline: 'none' }}
+                                />
+                              </div>
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#10b981', marginBottom: '4px' }}>SLIDE BODY CONTENT</label>
+                                <textarea 
+                                  value={editedSlideContent}
+                                  onChange={(e) => setEditedSlideContent(e.target.value)}
+                                  style={{ flex: 1, width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#252529', color: '#fff', outline: 'none', fontFamily: 'monospace', fontSize: '0.85rem', resize: 'none' }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            /* Render Active Slide */
+                            (() => {
+                              const s = generatedPpt.slides[activeSlideIndex];
+                              if (!s) return null;
+
+                              return (
+                                <>
+                                  <div>
+                                    {/* Top Metadata Header */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+                                      <div>
+                                        <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{s.title}</h4>
+                                        <span style={{ fontSize: '0.75rem', color: '#a0a0a5', marginTop: '2px', display: 'block' }}>{s.subtitle || ''}</span>
+                                      </div>
+                                      <span style={{ background: '#10b981', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.5px' }}>
+                                        {s.badge || 'SUDHIR TUTORIALS'}
+                                      </span>
+                                    </div>
+
+                                    {/* Slide Main Content */}
+                                    <div style={{ fontSize: '0.9rem', lineHeight: '1.65', color: '#dcdce2', paddingBottom: '1.5rem', whiteSpace: 'pre-line' }}>
+                                      {renderTeacherSimpleLines(s.content, activeSlideIndex + '_slide')}
+                                    </div>
+                                  </div>
+
+                                  {/* Slide Footer */}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem', fontSize: '0.7rem', color: '#707075', fontWeight: 700 }}>
+                                    <span>SUDHIR TUTORIALS • PREMIUM LECTURE NOTE</span>
+                                    <span>SLIDE {activeSlideIndex + 1} OF {generatedPpt.slides.length}</span>
+                                  </div>
+                                </>
+                              );
+                            })()
+                          )}
+                        </div>
+
+                        {/* Slide Pagination Toolbar */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0.5rem' }}>
+                          <button 
+                            onClick={() => { setActiveSlideIndex(prev => Math.max(0, prev - 1)); setIsEditingSlide(false); }}
+                            disabled={activeSlideIndex === 0}
+                            style={{ 
+                              padding: '0.5rem 1rem', 
+                              borderRadius: '20px', 
+                              border: '1px solid var(--border)', 
+                              background: 'var(--surface-light)', 
+                              color: activeSlideIndex === 0 ? 'var(--text-muted)' : 'var(--text)', 
+                              cursor: activeSlideIndex === 0 ? 'not-allowed' : 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            ◀ Previous
+                          </button>
+
+                          {/* Pagination Indicator Dots */}
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {generatedPpt.slides.map((_: any, idx: number) => (
+                              <div 
+                                key={idx} 
+                                onClick={() => { setActiveSlideIndex(idx); setIsEditingSlide(false); }}
+                                className={`slide-indicator-dot ${activeSlideIndex === idx ? 'active' : ''}`} 
+                              />
+                            ))}
+                          </div>
+
+                          <button 
+                            onClick={() => { setActiveSlideIndex(prev => Math.min(generatedPpt.slides.length - 1, prev + 1)); setIsEditingSlide(false); }}
+                            disabled={activeSlideIndex === generatedPpt.slides.length - 1}
+                            style={{ 
+                              padding: '0.5rem 1rem', 
+                              borderRadius: '20px', 
+                              border: '1px solid var(--border)', 
+                              background: 'var(--surface-light)', 
+                              color: activeSlideIndex === generatedPpt.slides.length - 1 ? 'var(--text-muted)' : 'var(--text)', 
+                              cursor: activeSlideIndex === generatedPpt.slides.length - 1 ? 'not-allowed' : 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            Next ▶
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Study Notes/Handout Mode */}
+                  {pptViewMode === 'NOTES' && (
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#f8f9fa' }}>
+                      <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', padding: '3rem', color: '#1e293b' }}>
+                        
+                        {/* Title Header */}
+                        <div style={{ borderBottom: '3px solid #10b981', paddingBottom: '1.5rem', marginBottom: '2rem', textAlign: 'center' }}>
+                          <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.8rem', fontWeight: 900, color: '#10b981', letterSpacing: '-0.5px' }}>
+                            {generatedPpt.topic.toUpperCase()}
+                          </h1>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>
+                            <span>CURRICULUM: {generatedPpt.grade}</span>
+                            <span>•</span>
+                            <span>CLASS DURATION: {pptDuration} MINUTES</span>
+                            <span>•</span>
+                            <span>DIFFICULTY: {pptDifficulty}</span>
+                          </div>
+                        </div>
+
+                        {/* Slide items printed as notes */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                          {generatedPpt.slides.map((slide: any, idx: number) => (
+                            <div key={idx} style={{ borderBottom: idx === generatedPpt.slides.length - 1 ? 'none' : '1px solid #e2e8f0', paddingBottom: '2.5rem' }}>
+                              
+                              {/* Section Title */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <span style={{ color: '#10b981', fontStyle: 'italic', fontSize: '0.9rem' }}>#{idx + 1}</span> 
+                                  {slide.title}
+                                </h3>
+                                <span style={{ background: '#f1f5f9', color: '#64748b', padding: '3px 10px', borderRadius: '12px', fontSize: '0.65rem', fontWeight: 800 }}>
+                                  {slide.type || 'CONCEPT'}
+                                </span>
+                              </div>
+
+                              <span style={{ display: 'block', fontSize: '0.8rem', fontStyle: 'italic', color: '#64748b', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+                                {slide.subtitle || ''}
+                              </span>
+
+                              {/* Content */}
+                              <div style={{ fontSize: '0.92rem', lineHeight: '1.65', color: '#334155', whiteSpace: 'pre-line' }}>
+                                {renderTeacherSimpleLines(slide.content, idx + '_note')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '1.5rem', marginTop: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
+                          <span>SUDHIR TUTORIALS • PREMIUM NOTES SUITE</span>
+                          <span>© {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
             </div>
-          </div>
+          )}
+
         </div>
       )}
 
