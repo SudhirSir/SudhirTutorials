@@ -733,6 +733,38 @@ function TeacherDashboardContent() {
     }
   };
 
+  const fetchTeacherGuruHistory = async () => {
+    try {
+      const res = await fetch('/api/student/guru-ji/history');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.doubts) {
+          const formatted: any[] = [];
+          for (const d of data.doubts) {
+            formatted.push({
+              role: 'user',
+              content: d.question,
+              subject: d.subject || undefined,
+              file: d.imageUrl || undefined
+            });
+            formatted.push({
+              role: 'guru',
+              content: d.answer,
+              revealedSteps: 99
+            });
+          }
+          setTeacherGuruHistory(formatted);
+          setTimeout(() => {
+            const feed = document.getElementById('teacher-guru-chat-feed');
+            if (feed) feed.scrollTop = feed.scrollHeight;
+          }, 150);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch teacher guru-ji history:', e);
+    }
+  };
+
   useEffect(() => {
     if (profile?.name) {
       setTeacherGuruHistory([]);
@@ -774,6 +806,9 @@ function TeacherDashboardContent() {
     }
     if (activeTab === 'profile') {
       fetchProfile();
+    }
+    if (activeTab === 'guru-ai') {
+      fetchTeacherGuruHistory();
     }
   }, [activeTab, session]);
 

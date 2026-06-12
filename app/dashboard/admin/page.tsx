@@ -848,6 +848,38 @@ function AdminDashboardContent() {
     }
   };
 
+  const fetchAdminGuruHistory = async () => {
+    try {
+      const res = await fetch('/api/student/guru-ji/history');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.doubts) {
+          const formatted: any[] = [];
+          for (const d of data.doubts) {
+            formatted.push({
+              role: 'user',
+              content: d.question,
+              subject: d.subject || undefined,
+              file: d.imageUrl || undefined
+            });
+            formatted.push({
+              role: 'guru',
+              content: d.answer,
+              revealedSteps: 99
+            });
+          }
+          setAdminGuruHistory(formatted);
+          setTimeout(() => {
+            const feed = document.getElementById('admin-guru-chat-feed');
+            if (feed) feed.scrollTop = feed.scrollHeight;
+          }, 150);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch admin guru-ji history:', e);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -2600,6 +2632,9 @@ function AdminDashboardContent() {
     if (activeTab === 'salary') {
       fetchTeachers();
       fetchAdminSalaries();
+    }
+    if (activeTab === 'guru-ai') {
+      fetchAdminGuruHistory();
     }
   }, [activeTab, academicSubTab, session]);
 

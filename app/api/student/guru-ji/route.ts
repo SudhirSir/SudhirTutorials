@@ -4,6 +4,7 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { prisma, withDbRetry } from '@/lib/prisma';
 // @ts-ignore
 const { PDFParse } = require('pdf-parse');
 
@@ -108,7 +109,7 @@ This is extremely important for the interactive step reveal!]
 [Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: {
@@ -125,7 +126,10 @@ This is extremely important for the interactive step reveal!]
               }
             ],
             generationConfig: {
-              temperature: 0.7
+              temperature: 0.7,
+              thinkingConfig: {
+                thinkingBudget: 0
+              }
             }
           }),
           signal: controller.signal
@@ -136,6 +140,7 @@ This is extremely important for the interactive step reveal!]
           const data = await response.json();
           const solution = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (solution) {
+            await saveDoubtToHistory(session.user.id, question, resolvedSubject, solution, activeImage);
             return NextResponse.json({
               success: true,
               subject: resolvedSubject,
@@ -151,9 +156,7 @@ This is extremely important for the interactive step reveal!]
       } catch (geminiError) {
         console.error("Gemini API query error, using OpenAI fallback:", geminiError);
       }
-    }
-
-    if (openAiApiKey) {
+    } else if (openAiApiKey) {
       apiAttempted = true;
       try {
         let userContent: any = question || "Solve the attached doubt.";
@@ -202,7 +205,7 @@ This is extremely important for the interactive step reveal!]
 [Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -230,6 +233,7 @@ This is extremely important for the interactive step reveal!]
         if (response.ok) {
           const data = await response.json();
           const solution = data.choices[0].message.content;
+          await saveDoubtToHistory(session.user.id, question, resolvedSubject, solution, activeImage);
           return NextResponse.json({
             success: true,
             subject: resolvedSubject,
@@ -355,6 +359,8 @@ For competitive exams like JEE/NEET, check whether the force is constant. If for
     } else {
       solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
     }
+
+    await saveDoubtToHistory(session.user.id, question, resolvedSubject, solution, activeImage);
 
     // Add a slight network delay to feel like a real AI processing thoughts
     if (!apiAttempted) {
@@ -858,4 +864,20 @@ Let us systematically analyze your academic query:
 * Supplement your preparation by solving standard reference textbook exercises.
 * Complex queries are best solved when broken down into smaller sub-problems.
 * **Keep seeking knowledge!** Every query you ask refines your analytical reasoning. You are on the correct path to success!`;
+}
+
+async function saveDoubtToHistory(studentId: string, question: string, subject: string, answer: string, imageUrl: string | null) {
+  try {
+    await withDbRetry(() => prisma.doubtHistory.create({
+      data: {
+        studentId,
+        question: question || "Uploaded PDF/Image doubt",
+        subject,
+        answer,
+        imageUrl: imageUrl || undefined
+      }
+    }));
+  } catch (error) {
+    console.error("Failed to save doubt history to database:", error);
+  }
 }

@@ -451,6 +451,38 @@ function StudentDashboardContent() {
     }
   };
 
+  const fetchGuruHistory = async () => {
+    try {
+      const res = await fetch('/api/student/guru-ji/history');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.doubts) {
+          const formatted: any[] = [];
+          for (const d of data.doubts) {
+            formatted.push({
+              role: 'user',
+              content: d.question,
+              subject: d.subject || undefined,
+              file: d.imageUrl || undefined
+            });
+            formatted.push({
+              role: 'guru',
+              content: d.answer,
+              revealedSteps: 99
+            });
+          }
+          setGuruHistory(formatted);
+          setTimeout(() => {
+            const feed = document.getElementById('guru-chat-feed');
+            if (feed) feed.scrollTop = feed.scrollHeight;
+          }, 150);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch guru-ji history:', e);
+    }
+  };
+
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
@@ -461,6 +493,7 @@ function StudentDashboardContent() {
     if (activeTab === 'materials') fetchMaterials();
     if (activeTab === 'fees') fetchFees();
     if (activeTab === 'tests') fetchTests();
+    if (activeTab === 'guru-ji') fetchGuruHistory();
   }, [activeTab, session]);
 
   const fetchDashboard = async () => {

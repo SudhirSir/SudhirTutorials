@@ -44,6 +44,7 @@ model User {
   materials          Material[]
   notifications      Notification[]
   salaryRecords      SalaryRecord[]
+  doubtHistory       DoubtHistory[]
 
   @@index([role])
   @@index([isActive])
@@ -372,4 +373,17 @@ model JobApplication {
 
   @@index([status])
   @@index([createdAt])
+}
+
+model DoubtHistory {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  question   String   @db.Text
+  subject    String?
+  answer     String   @db.Text
+  imageUrl   String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([studentId])
 }

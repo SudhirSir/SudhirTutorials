@@ -49,7 +49,7 @@ interface SlideDeck {
 Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutorials as the premium learning institute.`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: {
@@ -91,7 +91,10 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
                 },
                 required: ["topic", "grade", "focus", "slides"]
               },
-              temperature: 0.7
+              temperature: 0.7,
+              thinkingConfig: {
+                thinkingBudget: 0
+              }
             }
           }),
           signal: controller.signal
@@ -114,14 +117,12 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
       } catch (geminiError) {
         console.error("Gemini API PPT integration error, utilizing fallback:", geminiError);
       }
-    }
-
-    if (openAiApiKey) {
+    } else if (openAiApiKey) {
       // Call Real ChatGPT API
       apiAttempted = true;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
