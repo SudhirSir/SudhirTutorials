@@ -5,6 +5,7 @@ import { ThemeProvider } from "./ThemeProvider";
 import { SessionGuard } from "./SessionGuard";
 import { PushNotificationManager } from "./PushNotificationManager";
 import { CapacitorBackButtonManager } from "./CapacitorBackButtonManager";
+import { AppUpdateChecker } from "./AppUpdateChecker";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <SessionGuard />
         <PushNotificationManager />
         <CapacitorBackButtonManager />
+        <AppUpdateChecker />
         {children}
       </SessionProvider>
     </ThemeProvider>

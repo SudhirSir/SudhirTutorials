@@ -52,6 +52,7 @@ export async function GET() {
     return NextResponse.json({
       perDayFine: parseFloat(perDayFine),
       flatFineAfter10Days: parseFloat(flatFineAfter10Days),
+      minAppVersion: settingsMap.minAppVersion || "1.0.0",
       classFees,
     });
   } catch (error) {
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { perDayFine, flatFineAfter10Days, classFees } = await req.json();
+    const { perDayFine, flatFineAfter10Days, minAppVersion, classFees } = await req.json();
 
     await ensureSystemSettingTable();
 
@@ -84,6 +85,14 @@ export async function POST(req: Request) {
         where: { key: 'flatFineAfter10Days' },
         update: { value: String(flatFineAfter10Days) },
         create: { key: 'flatFineAfter10Days', value: String(flatFineAfter10Days) }
+      }));
+    }
+
+    if (minAppVersion !== undefined) {
+      await withDbRetry(() => prisma.systemSetting.upsert({
+        where: { key: 'minAppVersion' },
+        update: { value: String(minAppVersion) },
+        create: { key: 'minAppVersion', value: String(minAppVersion) }
       }));
     }
 
@@ -115,7 +124,7 @@ export async function POST(req: Request) {
     await logActivity(
       session.user.id,
       'UPDATE_SETTINGS',
-      `Updated late fines: per day = ₹${perDayFine}, flat after 10 days = ₹${flatFineAfter10Days}, and updated class default fees.`
+      `Updated settings: fines, class fees, minAppVersion = ${minAppVersion || 'not changed'}`
     );
 
     // Invalidate the late fine settings cache

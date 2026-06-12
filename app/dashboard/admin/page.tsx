@@ -206,6 +206,8 @@ function AdminDashboardContent() {
   const [showSettingsCareers, setShowSettingsCareers] = useState(false);
   const [showSettingsPromote, setShowSettingsPromote] = useState(false);
   const [isPromotingStudents, setIsPromotingStudents] = useState(false);
+  const [minAppVersion, setMinAppVersion] = useState('1.0.0');
+  const [showSettingsAppVersion, setShowSettingsAppVersion] = useState(false);
 
   // Staff Salary States
   const [adminSalaries, setAdminSalaries] = useState<any[]>([]);
@@ -1714,6 +1716,7 @@ function AdminDashboardContent() {
         const data = await res.json();
         setPerDayFine(data.perDayFine ?? 10);
         setFlatFineAfter10Days(data.flatFineAfter10Days ?? 100);
+        setMinAppVersion(data.minAppVersion || "1.0.0");
         setClassFees(data.classFees || {});
       }
     } catch (e) {
@@ -1730,7 +1733,7 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ perDayFine, flatFineAfter10Days, classFees })
+        body: JSON.stringify({ perDayFine, flatFineAfter10Days, minAppVersion, classFees })
       });
       if (res.ok) {
         alert('System settings updated successfully!');
@@ -7697,6 +7700,86 @@ function AdminDashboardContent() {
                 >
                   {isPromotingStudents ? 'Promoting Students...' : 'Promote All Students Now'}
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* Collapsible Accordion 5: App Version & Updates */}
+          <div className="glass-card" style={{ padding: '0', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+            <button 
+              type="button"
+              onClick={() => setShowSettingsAppVersion(prev => !prev)}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1.25rem',
+                background: showSettingsAppVersion ? 'rgba(99, 102, 241, 0.05)' : 'transparent',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease',
+                color: 'var(--text)'
+              }}
+            >
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--primary)' }}>
+                  App Version & Updates
+                </h3>
+              </div>
+              <span style={{ fontSize: '1rem', color: 'var(--text-muted)', transition: 'transform 0.3s', transform: showSettingsAppVersion ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                ▼
+              </span>
+            </button>
+
+            {showSettingsAppVersion && (
+              <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '500px', width: '100%' }}>
+                  {isLoadingSettings ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem' }}>
+                      <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Minimum Required App Version</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. 1.0.0"
+                          value={minAppVersion} 
+                          onChange={e => setMinAppVersion(e.target.value)} 
+                          style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                        />
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                          If a native mobile app version is older than this, users will be prompted to update.
+                        </p>
+                      </div>
+
+                      <button 
+                        type="submit" 
+                        disabled={isSavingSettings}
+                        className="btn-primary"
+                        style={{ 
+                          padding: '0.65rem 1.25rem', 
+                          background: 'var(--primary)', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '10px', 
+                          fontWeight: 700, 
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          marginTop: '0.75rem',
+                          alignSelf: 'flex-start',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        {isSavingSettings ? 'Saving Settings...' : 'Save App Version'}
+                      </button>
+                    </>
+                  )}
+                </form>
               </div>
             )}
           </div>
