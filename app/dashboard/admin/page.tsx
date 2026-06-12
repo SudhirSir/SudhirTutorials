@@ -609,6 +609,32 @@ function AdminDashboardContent() {
     }
   };
 
+  const handleSendBatchMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!batchMsgTarget || !batchMsgContent.trim() || isSendingBatchMsg) return;
+    setIsSendingBatchMsg(true);
+    try {
+      const res = await fetch('/api/messages/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchId: batchMsgTarget.id, content: batchMsgContent }),
+      });
+      if (res.ok) {
+        alert(`Message successfully broadcast to all students in batch: ${batchMsgTarget.name}!`);
+        setBatchMsgTarget(null);
+        setBatchMsgContent('');
+      } else {
+        const d = await res.json();
+        alert(`Error: ${d.error || 'Failed to send message'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error. Failed to send message.');
+    } finally {
+      setIsSendingBatchMsg(false);
+    }
+  };
+
   const handleUploadMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!matTitle || !matUrl || !matCourseId) {
@@ -952,6 +978,9 @@ function AdminDashboardContent() {
 
   // Courses & Batches State
   const [courses, setCourses] = useState<any[]>([]);
+  const [batchMsgTarget, setBatchMsgTarget] = useState<{ id: string; name: string } | null>(null);
+  const [batchMsgContent, setBatchMsgContent] = useState('');
+  const [isSendingBatchMsg, setIsSendingBatchMsg] = useState(false);
   const [batches, setBatches] = useState<any[]>([]);
   const [newCourseName, setNewCourseName] = useState('');
   const [newCourseDesc, setNewCourseDesc] = useState('');
@@ -5157,13 +5186,22 @@ function AdminDashboardContent() {
                           </div>
                         )}
                       </div>
-                      <button 
-                        onClick={() => { setEditingBatch(batch); setShowBatchEditModal(true); }}
-                        className="btn-secondary"
-                        style={{ padding: '0.55rem 1rem', borderRadius: '12px' }}
-                      >
-                        Manage & Timings
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <button 
+                          onClick={() => setBatchMsgTarget({ id: batch.id, name: batch.name })}
+                          className="btn-primary"
+                          style={{ padding: '0.55rem 1rem', borderRadius: '12px', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', border: 'none', color: 'white', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          💬 Message Batch
+                        </button>
+                        <button 
+                          onClick={() => { setEditingBatch(batch); setShowBatchEditModal(true); }}
+                          className="btn-secondary"
+                          style={{ padding: '0.55rem 1rem', borderRadius: '12px' }}
+                        >
+                          Manage & Timings
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -8506,6 +8544,48 @@ function AdminDashboardContent() {
             handleTabChange('messages');
           }}
         />
+      )}
+
+      {/* ── Batch Messaging Broadcast Modal ─────────────────── */}
+      {batchMsgTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, padding: '1rem' }} className="no-print">
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2rem', border: '1px solid var(--border)', background: 'var(--card-bg)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary)', margin: 0, marginBottom: '0.5rem' }}>💬 Message Students in {batchMsgTarget.name}</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.4 }}>This message will be broadcast directly as a separate chat message to every student enrolled in this batch.</p>
+            
+            <form onSubmit={handleSendBatchMessage} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Write Message</label>
+                <textarea 
+                  required
+                  rows={4}
+                  placeholder="Type announcement or message for students..."
+                  value={batchMsgContent}
+                  onChange={e => setBatchMsgContent(e.target.value)}
+                  style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '0.95rem', resize: 'vertical' }}
+                  autoFocus
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setBatchMsgTarget(null); setBatchMsgContent(''); }}
+                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSendingBatchMsg || !batchMsgContent.trim()}
+                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), var(--accent))', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  {isSendingBatchMsg ? 'Sending...' : 'Send Message ➔'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
