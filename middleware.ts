@@ -50,8 +50,8 @@ export default withAuth(
     }
 
     
-    // Protect Student API routes
-    if (path.startsWith("/api/student") && token?.role !== "STUDENT" && token?.role !== "ADMIN") {
+    // Protect Student API routes (except Guru Ji AI routes which are also accessible by Teachers)
+    if (path.startsWith("/api/student") && !path.startsWith("/api/student/guru-ji") && token?.role !== "STUDENT" && token?.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden: Students only" }, { status: 403 });
     }
 
