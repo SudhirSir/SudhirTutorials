@@ -1,6 +1,11 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Polyfill DOMMatrix for Node/Vercel serverless environment to prevent pdfjs/pdf-parse module load crash
+if (typeof global !== 'undefined' && !(global as any).DOMMatrix) {
+  (global as any).DOMMatrix = class {};
+}
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
