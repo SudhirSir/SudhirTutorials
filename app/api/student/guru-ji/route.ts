@@ -69,8 +69,6 @@ export async function POST(req: Request) {
 
     const resolvedSubject = subject || (question ? detectSubject(question) : 'General Academics');
     
-    let apiAttempted = false;
-
     // Check for API Keys
     let geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
     let openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
@@ -81,38 +79,11 @@ export async function POST(req: Request) {
 
     console.log("[Guru Ji AI Route] API Keys present - Gemini:", !!geminiApiKey, "OpenAI:", !!openAiApiKey);
 
-    if (geminiApiKey) {
-      apiAttempted = true;
-      try {
-        const parts: any[] = [];
-        if (isPdf) {
-          const base64Data = file.split(';base64,').pop() || '';
-          parts.push({
-            inlineData: {
-              mimeType: "application/pdf",
-              data: base64Data
-            }
-          });
-          parts.push({
-            text: question || "Solve the academic problem in the attached PDF document step-by-step."
-          });
-        } else if (activeImage) {
-          const mimeType = activeImage.match(/^data:([^;]+);base64,/)?.[1] || 'image/png';
-          const base64Data = activeImage.split(';base64,').pop() || '';
-          parts.push({
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Data
-            }
-          });
-          parts.push({
-            text: question || "Solve the attached academic question from the image."
-          });
-        } else {
-          parts.push({
-            text: question
-          });
-        }
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        let success = false;
+        let fullResponse = "";
 
         const systemPrompt = `You are 'Digital Guru Ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
 A student has submitted an academic doubt (as text, image, or PDF document).
@@ -123,7 +94,7 @@ You MUST follow these critical instruction rules:
 2. DIAGRAMS & CHARTS: Whenever visual diagrams, charts, flowcharts, or comparisons would help explain the concept (especially in Physics, Chemistry, Biology, Mathematics, or comparative topics), you MUST include them:
    - Use clean Markdown Tables for comparative data.
    - Use beautiful Unicode/ASCII art drawings for simple geometric shapes, circuits, or structures.
-   - Alternatively, you can include direct, self-contained raw HTML/SVG graphics (e.g. colored boxes, vectors, shapes, flowcharts). CRITICAL: Write the entire HTML/SVG block on a single line without any newlines (\n) inside it, so it renders as a single unified element.
+   - Alternatively, you can include direct, self-contained raw HTML/SVG graphics (e.g. colored boxes, vectors, shapes, flowcharts). CRITICAL: Write the entire HTML/SVG block on a single line without any newlines (\\n) inside it, so it renders as a single unified element.
 
 You MUST structure your response EXACTLY with the following headers so it displays beautifully:
 
@@ -147,157 +118,225 @@ This is extremely important for the interactive step reveal!]
 ### 💡 Guru Ji ka Tip
 [Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            system_instruction: {
-              parts: [{ text: systemPrompt }]
-            },
-            contents: [
-              {
-                role: 'user',
-                parts: parts
-              }
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              thinkingConfig: {
-                thinkingBudget: 0
-              }
+        // Attempt 1: Gemini Streaming
+        if (geminiApiKey) {
+          try {
+            const parts: any[] = [];
+            if (isPdf) {
+              const base64Data = file.split(';base64,').pop() || '';
+              parts.push({
+                inlineData: {
+                  mimeType: "application/pdf",
+                  data: base64Data
+                }
+              });
+              parts.push({
+                text: question || "Solve the academic problem in the attached PDF document step-by-step."
+              });
+            } else if (activeImage) {
+              const mimeType = activeImage.match(/^data:([^;]+);base64,/)?.[1] || 'image/png';
+              const base64Data = activeImage.split(';base64,').pop() || '';
+              parts.push({
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64Data
+                }
+              });
+              parts.push({
+                text: question || "Solve the attached academic question from the image."
+              });
+            } else {
+              parts.push({
+                text: question
+              });
             }
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
 
-        if (response.ok) {
-          const data = await response.json();
-          const solution = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (solution) {
-            await saveDoubtToHistory(session.user.id, question, resolvedSubject, solution, activeImage);
-            return NextResponse.json({
-              success: true,
-              subject: resolvedSubject,
-              solution
-            });
-          } else {
-            console.error("Gemini API empty response candidates:", JSON.stringify(data));
-          }
-        } else {
-          const errText = await response.text();
-          console.error("Gemini API error response:", errText);
-        }
-      } catch (geminiError) {
-        console.error("Gemini API query error, using OpenAI fallback:", geminiError);
-      }
-    } else if (openAiApiKey) {
-      apiAttempted = true;
-      try {
-        let userContent: any = question || "Solve the attached doubt.";
-        
-        if (isPdf) {
-          userContent = `[Calculated context extracted from PDF upload]:\n${extractedPdfText}\n\nStudent's instruction: ${question || "Solve the problem described in this text context step-by-step."}`;
-        } else if (activeImage) {
-          userContent = [
-            {
-              type: "text",
-              text: question || "Solve the attached academic question from the image."
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: activeImage
-              }
-            }
-          ];
-        }
-
-        const systemPrompt = `You are 'Digital Guru Ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
-A student has submitted an academic doubt (as text, image, or PDF document).
-Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').${studentContext}
-
-You MUST follow these critical instruction rules:
-1. SPECIFIC & PRECISE: Make your answer extremely specific to the exact doubt asked. Do not include verbose, generic introductory or concluding remarks.
-2. DIAGRAMS & CHARTS: Whenever visual diagrams, charts, flowcharts, or comparisons would help explain the concept (especially in Physics, Chemistry, Biology, Mathematics, or comparative topics), you MUST include them:
-   - Use clean Markdown Tables for comparative data.
-   - Use beautiful Unicode/ASCII art drawings for simple geometric shapes, circuits, or structures.
-   - Alternatively, you can include direct, self-contained raw HTML/SVG graphics (e.g. colored boxes, vectors, shapes, flowcharts). CRITICAL: Write the entire HTML/SVG block on a single line without any newlines (\n) inside it, so it renders as a single unified element.
-
-You MUST structure your response EXACTLY with the following headers so it displays beautifully:
-
-### 📝 Extracted Question
-[Clearly transcribe the question or problem from the uploaded file/text. If there is no file, state the question that was asked. If the user typed any extra question/request, include/address it here.]
-
-### 🧮 Step-by-Step Solution
-[Provide the complete step-by-step mathematical or scientific derivation/solution. 
-CRITICAL RULE: You MUST separate each logical step of your solution with a line containing exactly '[STEP]' and nothing else.
-Example:
-Step 1: Write down the given values: m = 5 kg, F = 20 N.
-[STEP]
-Step 2: Apply Newton's Second Law: a = F/m = 20/5 = 4 m/s².
-[STEP]
-Step 3: Apply the first equation of motion: v = u + at = 0 + 4*6 = 24 m/s.
-This is extremely important for the interactive step reveal!]
-
-### 🧠 Stepwise Explanation
-[Explain the concepts, theories, and logical reasoning behind the solution. Break it down so a student can easily understand *why* we took each step.]
-
-### 💡 Guru Ji ka Tip
-[Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openAiApiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: systemPrompt
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
               },
-              {
-                role: 'user',
-                content: userContent
+              body: JSON.stringify({
+                system_instruction: {
+                  parts: [{ text: systemPrompt }]
+                },
+                contents: [
+                  {
+                    role: 'user',
+                    parts: parts
+                  }
+                ],
+                generationConfig: {
+                  temperature: 0.7,
+                  thinkingConfig: {
+                    thinkingBudget: 0
+                  }
+                }
+              })
+            });
+
+            if (response.ok && response.body) {
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              let buffer = "";
+
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                  const cleanLine = line.trim();
+                  if (cleanLine.startsWith("data: ")) {
+                    const jsonStr = cleanLine.substring(6).trim();
+                    try {
+                      const parsed = JSON.parse(jsonStr);
+                      const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                      if (textChunk) {
+                        controller.enqueue(encoder.encode(textChunk));
+                        fullResponse += textChunk;
+                      }
+                    } catch (e) {
+                      // skip incomplete JSON
+                    }
+                  }
+                }
               }
-            ],
-            temperature: 0.7
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
 
-        if (response.ok) {
-          const data = await response.json();
-          const solution = data.choices[0].message.content;
-          await saveDoubtToHistory(session.user.id, question, resolvedSubject, solution, activeImage);
-          return NextResponse.json({
-            success: true,
-            subject: resolvedSubject,
-            solution
-          });
-        } else {
-          const errData = await response.json();
-          console.error("OpenAI API response error:", errData);
+              if (buffer.trim()) {
+                const cleanLine = buffer.trim();
+                if (cleanLine.startsWith("data: ")) {
+                  const jsonStr = cleanLine.substring(6).trim();
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (textChunk) {
+                      controller.enqueue(encoder.encode(textChunk));
+                      fullResponse += textChunk;
+                    }
+                  } catch (e) {}
+                }
+              }
+
+              if (fullResponse.trim()) {
+                success = true;
+              }
+            } else {
+              const errText = await response.text();
+              console.error("Gemini API streaming error response:", errText);
+            }
+          } catch (geminiError) {
+            console.error("Gemini API streaming error, trying OpenAI fallback:", geminiError);
+          }
         }
-      } catch (openAiError) {
-        console.error("OpenAI API query error, using local fallback:", openAiError);
-      }
-    }
 
-    let solution = '';
-    if (isPdf || activeImage) {
-      if (language.toUpperCase() === 'HINGLISH') {
-        solution = `### 📝 Extracted Question
+        // Attempt 2: OpenAI Streaming (if Gemini was skipped or failed)
+        if (!success && openAiApiKey) {
+          try {
+            let userContent: any = question || "Solve the attached doubt.";
+            
+            if (isPdf) {
+              userContent = `[Calculated context extracted from PDF upload]:\n${extractedPdfText}\n\nStudent's instruction: ${question || "Solve the problem described in this text context step-by-step."}`;
+            } else if (activeImage) {
+              userContent = [
+                {
+                  type: "text",
+                  text: question || "Solve the attached academic question from the image."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: activeImage
+                  }
+                }
+              ];
+            }
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openAiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: userContent }
+                ],
+                temperature: 0.7,
+                stream: true
+              })
+            });
+
+            if (response.ok && response.body) {
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              let buffer = "";
+
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                  const cleanLine = line.trim();
+                  if (cleanLine === "data: [DONE]") continue;
+                  if (cleanLine.startsWith("data: ")) {
+                    const jsonStr = cleanLine.substring(6).trim();
+                    try {
+                      const parsed = JSON.parse(jsonStr);
+                      const textChunk = parsed.choices?.[0]?.delta?.content;
+                      if (textChunk) {
+                        controller.enqueue(encoder.encode(textChunk));
+                        fullResponse += textChunk;
+                      }
+                    } catch (e) {
+                      // skip incomplete JSON
+                    }
+                  }
+                }
+              }
+
+              if (buffer.trim() && buffer.trim() !== "data: [DONE]") {
+                const cleanLine = buffer.trim();
+                if (cleanLine.startsWith("data: ")) {
+                  const jsonStr = cleanLine.substring(6).trim();
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    const textChunk = parsed.choices?.[0]?.delta?.content;
+                    if (textChunk) {
+                      controller.enqueue(encoder.encode(textChunk));
+                      fullResponse += textChunk;
+                    }
+                  } catch (e) {}
+                }
+              }
+
+              if (fullResponse.trim()) {
+                success = true;
+              }
+            } else {
+              const errText = await response.text();
+              console.error("OpenAI API streaming error response:", errText);
+            }
+          } catch (openAiError) {
+            console.error("OpenAI API streaming error, trying local fallback:", openAiError);
+          }
+        }
+
+        // Attempt 3: Local Fallback Streaming (if API keys failed or were missing)
+        if (!success) {
+          let solution = '';
+          if (isPdf || activeImage) {
+            if (language.toUpperCase() === 'HINGLISH') {
+              solution = `### 📝 Extracted Question
 Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
 
 ---
@@ -331,8 +370,8 @@ Solve the following physics problem: An object of mass 5 kg is accelerated from 
 
 ### 💡 Guru Ji ka Tip
 JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use kg me convert karna na bhulein!`;
-      } else if (language.toUpperCase() === 'HINDI') {
-        solution = `### 📝 निकाला गया प्रश्न
+            } else if (language.toUpperCase() === 'HINDI') {
+              solution = `### 📝 निकाला गया प्रश्न
 भौतिकी प्रश्न हल करें: 5 kg द्रव्यमान की एक वस्तु को विरामवस्था से 20 N के बल द्वारा त्वरित किया जाता है। 6 सेकंड के बाद उसका वेग ज्ञात कीजिए।
 
 ---
@@ -366,8 +405,8 @@ JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use 
 
 ### 💡 गुरु जी की सलाह (Tip)
 बोर्ड और प्रतियोगी परीक्षाओं में हमेशा मात्रकों (Units) का ध्यान रखें। यदि बल CGS मात्रक (dyne) में हो, तो गणना से पहले उसे SI मात्रक में बदलें।`;
-      } else {
-        solution = `### 📝 Extracted Question
+            } else {
+              solution = `### 📝 Extracted Question
 Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
 
 ---
@@ -401,26 +440,40 @@ Solve the following physics problem: An object of mass 5 kg is accelerated from 
 
 ### 💡 Guru Ji's Tip
 For competitive exams like JEE/NEET, check whether the force is constant. If force is a function of time F(t), acceleration will also vary, and you'll need to integrate instead of using standard kinematics formulas!`;
+            }
+          } else {
+            solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
+          }
+
+          const chunkSize = 4;
+          for (let i = 0; i < solution.length; i += chunkSize) {
+            const chunk = solution.substring(i, i + chunkSize);
+            controller.enqueue(encoder.encode(chunk));
+            fullResponse += chunk;
+            await new Promise(r => setTimeout(r, 15));
+          }
+        }
+
+        // Save accumulated response to database
+        if (fullResponse.trim()) {
+          await saveDoubtToHistory(session.user.id, question, resolvedSubject, fullResponse, activeImage);
+        }
+
+        controller.close();
       }
-    } else {
-      solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
-    }
+    });
 
-    await saveDoubtToHistory(session.user.id, question, resolvedSubject, solution, activeImage);
-
-    // Add a slight network delay to feel like a real AI processing thoughts
-    if (!apiAttempted) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-    }
-
-    return NextResponse.json({
-      success: true,
-      subject: resolvedSubject,
-      solution
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      }
     });
   } catch (error: any) {
     console.error('Guru Ji AI error:', error);
-    return NextResponse.json({ error: 'Failed to seek guidance from Guru Ji' }, { status: 500 });
+    return new Response(new TextEncoder().encode("❌ Failed to seek guidance from Guru Ji: " + error.message), { status: 500 });
   }
 }
 

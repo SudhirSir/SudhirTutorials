@@ -501,21 +501,47 @@ function StudentDashboardContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, subject: subj, language: guruLanguage, file: fl })
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setGuruHistory(prev => [...prev, { role: 'guru', content: data.solution, revealedSteps: 1, isNew: true }]);
-      } else {
+
+      if (!res.ok) {
         setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry dear child, I encountered a connection issue. Please try seeking my guidance again.', revealedSteps: 1, isNew: true }]);
+        setGuruLoading(false);
+        return;
+      }
+
+      setGuruLoading(false);
+      setGuruHistory(prev => [...prev, { role: 'guru', content: '', revealedSteps: 1, isNew: false }]);
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          accumulatedText += chunk;
+
+          setGuruHistory(prev => {
+            const updated = [...prev];
+            if (updated.length > 0) {
+              updated[updated.length - 1] = {
+                ...updated[updated.length - 1],
+                content: accumulatedText
+              };
+            }
+            return updated;
+          });
+
+          // Scroll chat feed
+          const feed = document.getElementById('guru-chat-feed');
+          if (feed) feed.scrollTop = feed.scrollHeight;
+        }
       }
     } catch (e) {
       setGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.', revealedSteps: 1, isNew: true }]);
-    } finally {
       setGuruLoading(false);
-      // Scroll to bottom of chat feed
-      setTimeout(() => {
-        const feed = document.getElementById('guru-chat-feed');
-        if (feed) feed.scrollTop = feed.scrollHeight;
-      }, 100);
     }
   };
 

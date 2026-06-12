@@ -784,20 +784,47 @@ function TeacherDashboardContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, subject: subj, language: teacherGuruLanguage, file: fl })
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: data.solution, revealedSteps: 1, isNew: true }]);
-      } else {
+
+      if (!res.ok) {
         setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Sorry, I encountered a connection issue. Please try seeking my guidance again.', revealedSteps: 1, isNew: true }]);
+        setTeacherGuruLoading(false);
+        return;
+      }
+
+      setTeacherGuruLoading(false);
+      setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: '', revealedSteps: 1, isNew: false }]);
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          accumulatedText += chunk;
+
+          setTeacherGuruHistory(prev => {
+            const updated = [...prev];
+            if (updated.length > 0) {
+              updated[updated.length - 1] = {
+                ...updated[updated.length - 1],
+                content: accumulatedText
+              };
+            }
+            return updated;
+          });
+
+          // Scroll chat feed
+          const feed = document.getElementById('teacher-guru-chat-feed');
+          if (feed) feed.scrollTop = feed.scrollHeight;
+        }
       }
     } catch (e) {
       setTeacherGuruHistory(prev => [...prev, { role: 'guru', content: '❌ Network connection error occurred. Make sure you are connected to the Internet.', revealedSteps: 1, isNew: true }]);
-    } finally {
       setTeacherGuruLoading(false);
-      setTimeout(() => {
-        const feed = document.getElementById('teacher-guru-chat-feed');
-        if (feed) feed.scrollTop = feed.scrollHeight;
-      }, 100);
     }
   };
 
