@@ -23,8 +23,14 @@ export async function POST(req: Request) {
     }
 
     let apiAttempted = false;
-    const geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
-    const openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
+    let geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
+    let openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
+
+    // Clean surrounding quotes if they exist
+    if (geminiApiKey) geminiApiKey = geminiApiKey.trim().replace(/^["']|["']$/g, '');
+    if (openAiApiKey) openAiApiKey = openAiApiKey.trim().replace(/^["']|["']$/g, '');
+
+    console.log("[PPT Route] API Keys present - Gemini:", !!geminiApiKey, "OpenAI:", !!openAiApiKey);
 
     if (geminiApiKey) {
       apiAttempted = true;
