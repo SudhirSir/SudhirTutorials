@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 // @ts-ignore
-const pdf = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 
 export async function POST(req: Request) {
   try {
@@ -29,8 +29,8 @@ export async function POST(req: Request) {
         try {
           const base64Data = file.split(';base64,').pop() || '';
           const buffer = Buffer.from(base64Data, 'base64');
-          // @ts-ignore
-          const pdfData = await pdf(buffer);
+          const parser = new PDFParse(new Uint8Array(buffer));
+          const pdfData = await parser.getText();
           extractedPdfText = pdfData.text || '';
         } catch (pdfError) {
           console.error("Failed to parse PDF file on backend:", pdfError);
