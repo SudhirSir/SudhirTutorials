@@ -94,7 +94,19 @@ function StudentDashboardContent() {
     if (tab) setActiveTab(tab);
   }, [searchParams, session]);
 
-  const [dashboard, setDashboard] = useState<{ name: string, batches: any[], feeHighlight: any } | null>(null);
+  const [dashboard, setDashboard] = useState<{
+    name: string;
+    batches: any[];
+    feeHighlight: any;
+    attendance?: { percentage: number; present: number; total: number; history: any[] };
+    testStats?: { averageScore: number | null; results: any[] };
+  }>({
+    name: 'Student',
+    batches: [],
+    feeHighlight: { totalAmount: 0, amount: 0, status: 'NO_PENDING', dueDate: '' },
+    attendance: { percentage: 0, present: 0, total: 0, history: [] },
+    testStats: { averageScore: 0, results: [] }
+  });
   const [materials, setMaterials] = useState<any[]>([]);
   const [fees, setFees] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
@@ -255,6 +267,68 @@ function StudentDashboardContent() {
         setMaterials(data.materials || []);
       }
     } catch (e) { console.error(e); }
+  };
+
+  const handleOpenMaterial = async (mat: any) => {
+    if (!mat.url) return;
+    const isBase64 = mat.url.startsWith('data:');
+    if (!isBase64) {
+      window.open(mat.url, '_blank');
+      return;
+    }
+    const cap = (window as any).Capacitor;
+    const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+    if (isNative) {
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const parts = mat.url.split(',');
+        const base64Data = parts[1];
+        let ext = 'pdf';
+        if (mat.type === 'PDF') ext = 'pdf';
+        else if (mat.type === 'VIDEO') ext = 'mp4';
+        else if (mat.type === 'WORD') ext = 'docx';
+        else if (mat.type === 'IMAGE') ext = 'png';
+        const cleanTitle = mat.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `${cleanTitle}.${ext}`;
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE' as any
+        });
+        await Share.share({
+          title: mat.title,
+          text: `Study Material: ${mat.title}`,
+          files: [writeResult.uri],
+          dialogTitle: `Open ${mat.title}`
+        });
+      } catch (err) {
+        console.error("Failed to open material natively:", err);
+        alert("Could not open material natively.");
+      }
+    } else {
+      try {
+        const parts = mat.url.split(',');
+        const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (err) {
+        console.error("Failed to open base64 blob:", err);
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`<iframe src="${mat.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        } else {
+          alert("Pop-up blocked. Please allow pop-ups for this site.");
+        }
+      }
+    }
   };
 
   const fetchFees = async () => {
@@ -839,7 +913,7 @@ function StudentDashboardContent() {
                       </span>
                     </div>
                   </div>
-                  <a href={mat.url} target="_blank" rel="noreferrer" className="btn-secondary">Open Material →</a>
+                  <button onClick={() => handleOpenMaterial(mat)} className="btn-secondary">Open Material →</button>
                 </div>
               ))
             )}

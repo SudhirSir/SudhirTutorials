@@ -225,7 +225,7 @@ function TeacherDashboardContent() {
   };
   
   // Profile State
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<any>({ name: '' });
 
   useEffect(() => {
     const handleBackButton = (e: Event) => {
@@ -562,6 +562,68 @@ Depending on your specific focus, this represents the vital equation model for t
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleOpenMaterial = async (mat: any) => {
+    if (!mat.url) return;
+    const isBase64 = mat.url.startsWith('data:');
+    if (!isBase64) {
+      window.open(mat.url, '_blank');
+      return;
+    }
+    const cap = (window as any).Capacitor;
+    const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+    if (isNative) {
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const parts = mat.url.split(',');
+        const base64Data = parts[1];
+        let ext = 'pdf';
+        if (mat.type === 'PDF') ext = 'pdf';
+        else if (mat.type === 'VIDEO') ext = 'mp4';
+        else if (mat.type === 'WORD') ext = 'docx';
+        else if (mat.type === 'IMAGE') ext = 'png';
+        const cleanTitle = mat.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `${cleanTitle}.${ext}`;
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE' as any
+        });
+        await Share.share({
+          title: mat.title,
+          text: `Study Material: ${mat.title}`,
+          files: [writeResult.uri],
+          dialogTitle: `Open ${mat.title}`
+        });
+      } catch (err) {
+        console.error("Failed to open material natively:", err);
+        alert("Could not open material natively.");
+      }
+    } else {
+      try {
+        const parts = mat.url.split(',');
+        const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (err) {
+        console.error("Failed to open base64 blob:", err);
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`<iframe src="${mat.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        } else {
+          alert("Pop-up blocked. Please allow pop-ups for this site.");
+        }
+      }
     }
   };
 
@@ -1032,7 +1094,7 @@ Depending on your specific focus, this represents the vital equation model for t
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Course: {mat.course?.name}</div>
                     </div>
-                    <a href={mat.url} target="_blank" rel="noreferrer" style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Open Link</a>
+                    <button onClick={() => handleOpenMaterial(mat)} style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Open Link</button>
                   </div>
                 ))
               )}
@@ -1052,11 +1114,11 @@ Depending on your specific focus, this represents the vital equation model for t
               <div className="input-group">
                 <label>Type</label>
                 <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                  <option value="PDF">📄 PDF Document</option>
-                  <option value="VIDEO">🎥 Video File / Clip</option>
-                  <option value="WORD">📝 Word Document (DOCX)</option>
-                  <option value="IMAGE">🖼️ Reference Image / Diagram</option>
-                  <option value="LINK">🔗 External Link</option>
+                  <option value="PDF">PDF Document</option>
+                  <option value="VIDEO">Video File / Clip</option>
+                  <option value="WORD">Word Document (DOCX)</option>
+                  <option value="IMAGE">Reference Image / Diagram</option>
+                  <option value="LINK">External Link</option>
                 </select>
               </div>
 

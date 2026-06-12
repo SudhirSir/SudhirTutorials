@@ -159,8 +159,16 @@ function AdminDashboardContent() {
     totalCourses: number;
     revenueThisMonth: number;
     pendingDues: number;
-    classStats?: Array<{ className: string; count: number }>;
-  } | null>(null);
+    classStats: Array<{ className: string; count: number }>;
+  }>({
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalBatches: 0,
+    totalCourses: 0,
+    revenueThisMonth: 0,
+    pendingDues: 0,
+    classStats: []
+  });
   const [isLoadingOverview, setIsLoadingOverview] = useState(false);
   const [overviewStatsError, setOverviewStatsError] = useState(false);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
@@ -529,6 +537,68 @@ function AdminDashboardContent() {
     } catch (e) { console.error(e); }
   };
 
+  const handleOpenMaterial = async (mat: any) => {
+    if (!mat.url) return;
+    const isBase64 = mat.url.startsWith('data:');
+    if (!isBase64) {
+      window.open(mat.url, '_blank');
+      return;
+    }
+    const cap = (window as any).Capacitor;
+    const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+    if (isNative) {
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const parts = mat.url.split(',');
+        const base64Data = parts[1];
+        let ext = 'pdf';
+        if (mat.type === 'PDF') ext = 'pdf';
+        else if (mat.type === 'VIDEO') ext = 'mp4';
+        else if (mat.type === 'WORD') ext = 'docx';
+        else if (mat.type === 'IMAGE') ext = 'png';
+        const cleanTitle = mat.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `${cleanTitle}.${ext}`;
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE' as any
+        });
+        await Share.share({
+          title: mat.title,
+          text: `Study Material: ${mat.title}`,
+          files: [writeResult.uri],
+          dialogTitle: `Open ${mat.title}`
+        });
+      } catch (err) {
+        console.error("Failed to open material natively:", err);
+        alert("Could not open material natively.");
+      }
+    } else {
+      try {
+        const parts = mat.url.split(',');
+        const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (err) {
+        console.error("Failed to open base64 blob:", err);
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`<iframe src="${mat.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        } else {
+          alert("Pop-up blocked. Please allow pop-ups for this site.");
+        }
+      }
+    }
+  };
+
   const handleUploadMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!matTitle || !matUrl || !matCourseId) {
@@ -845,7 +915,20 @@ function AdminDashboardContent() {
       }
     }
   }, [fees]);
-  const [finSummary, setFinSummary] = useState<{ totalRevenue: number, totalExpenses: number, totalPending: number, netProfit: number, monthlyData: any[] } | null>(null);
+
+  const [finSummary, setFinSummary] = useState<{
+    totalRevenue: number;
+    totalExpenses: number;
+    totalPending: number;
+    netProfit: number;
+    monthlyData: any[];
+  }>({
+    totalRevenue: 0,
+    totalExpenses: 0,
+    totalPending: 0,
+    netProfit: 0,
+    monthlyData: []
+  });
   const [isLoadingFinSummary, setIsLoadingFinSummary] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [isLoadingFees, setIsLoadingFees] = useState(false);
@@ -2647,35 +2730,21 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <QuickServicesWidget role="ADMIN" setActiveTab={setActiveTab} />
           
-          {overviewStatsError && (
-            <div className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #ef4444', background: 'rgba(239, 68, 68, 0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>⚠️</span>
-              <div>
-                <div style={{ fontWeight: 800, color: 'var(--text)', fontSize: '0.9rem' }}>Database Retrieval Congested</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Could not load overview statistics from the database. Please try again later.</div>
-              </div>
-            </div>
-          )}
-
           {/* Key Metrics Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {[
-              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : (isLoadingOverview ? '...' : '—'), icon: '👥', color: '#ef4444' },
-              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : (isLoadingOverview ? '...' : '—'), icon: '👨‍🏫', color: '#10b981' },
-              { label: 'Revenue This Month', value: overviewStats ? `₹${overviewStats.revenueThisMonth.toLocaleString()}` : (isLoadingOverview ? '...' : '—'), icon: '💰', color: '#3b82f6' },
-              { label: 'Pending Dues', value: overviewStats ? `₹${overviewStats.pendingDues.toLocaleString()}` : (isLoadingOverview ? '...' : '—'), icon: '⚠️', color: '#ef4444' }
+              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : 0, icon: '👥', color: '#ef4444' },
+              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : 0, icon: '👨‍🏫', color: '#10b981' },
+              { label: 'Revenue This Month', value: overviewStats ? `₹${overviewStats.revenueThisMonth.toLocaleString()}` : '₹0', icon: '💰', color: '#3b82f6' },
+              { label: 'Pending Dues', value: overviewStats ? `₹${overviewStats.pendingDues.toLocaleString()}` : '₹0', icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
               <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '0.85rem', right: '0.85rem', fontSize: '1.6rem', opacity: 0.12 }}>{stat.icon}</div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.35rem', fontWeight: 700 }}>{stat.label}</div>
-                {overviewStats === null ? (
-                  <div style={{ height: '1.8rem', width: '60%', borderRadius: '8px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-                ) : (
-                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {stat.value}
-                    {isLoadingOverview && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
-                  </div>
-                )}
+                <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {stat.value}
+                  {isLoadingOverview && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
+                </div>
               </div>
             ))}
           </div>
@@ -2694,19 +2763,11 @@ function AdminDashboardContent() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
-                  {overviewStats === null ? (
-                    <div style={{ height: '1.8rem', width: '40px', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', margin: '4px 0' }} />
-                  ) : (
-                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalBatches}</div>
-                  )}
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalBatches}</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
-                  {overviewStats === null ? (
-                    <div style={{ height: '1.8rem', width: '40px', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', margin: '4px 0' }} />
-                  ) : (
-                    <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalCourses}</div>
-                  )}
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalCourses}</div>
                 </div>
               </div>
 
@@ -3555,14 +3616,10 @@ function AdminDashboardContent() {
                    <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ width: '100%' }}>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
-                        {isLoadingFinSummary && finSummary === null ? (
-                          <div style={{ height: '1.75rem', width: '70%', borderRadius: '8px', marginTop: '0.5rem', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-                        ) : (
-                          <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {s.value}
-                            {isLoadingFinSummary && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: s.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
-                          </div>
-                        )}
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {s.value}
+                          {isLoadingFinSummary && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: s.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
+                        </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{s.desc}</div>
                       </div>
                    </div>
@@ -3609,19 +3666,11 @@ function AdminDashboardContent() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div style={{ padding: '0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.2)' }}>
                       <div style={{ fontSize: '0.7rem', color: 'var(--secondary)', fontWeight: 600 }}>Collected</div>
-                      {isLoadingFinSummary && finSummary === null ? (
-                        <div style={{ height: '1.15rem', width: '80px', borderRadius: '6px', marginTop: '4px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-                      ) : (
-                        <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
-                      )}
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
                     </div>
                     <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.05)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
                       <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Uncollected Dues</div>
-                      {isLoadingFinSummary && finSummary === null ? (
-                        <div style={{ height: '1.15rem', width: '80px', borderRadius: '6px', marginTop: '4px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-                      ) : (
-                        <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
-                      )}
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
                     </div>
                   </div>
                 </div>
@@ -5381,7 +5430,7 @@ function AdminDashboardContent() {
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Course: {mat.course?.name} • Published by: {mat.teacher?.name || 'Admin'}</div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <a href={mat.url} target="_blank" rel="noreferrer" style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Open File</a>
+                        <button onClick={() => handleOpenMaterial(mat)} style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: 'none', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Open File</button>
                         <button onClick={() => handleDeleteMaterial(mat.id)} style={{ padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
                       </div>
                     </div>
@@ -5404,11 +5453,11 @@ function AdminDashboardContent() {
                 <div className="input-group">
                   <label style={{ fontWeight: 600 }}>Material Type</label>
                   <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                    <option value="PDF">📄 PDF Document</option>
-                    <option value="VIDEO">🎥 Video File / Clip</option>
-                    <option value="WORD">📝 Word Document (DOCX)</option>
-                    <option value="IMAGE">🖼️ Reference Image / Diagram</option>
-                    <option value="LINK">🔗 External Web Link</option>
+                    <option value="PDF">PDF Document</option>
+                    <option value="VIDEO">Video File / Clip</option>
+                    <option value="WORD">Word Document (DOCX)</option>
+                    <option value="IMAGE">Reference Image / Diagram</option>
+                    <option value="LINK">External Web Link</option>
                   </select>
                 </div>
 

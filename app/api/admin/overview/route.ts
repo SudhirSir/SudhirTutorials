@@ -16,22 +16,45 @@ export async function GET() {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     const statsResult = await withDbRetry(async () => {
-      const results = await prisma.$queryRaw<any[]>`
-        SELECT 
-          (SELECT COUNT(*)::int FROM "User" WHERE role = 'STUDENT') as "totalStudents",
-          (SELECT COUNT(*)::int FROM "User" WHERE role = 'TEACHER') as "totalTeachers",
-          (SELECT COUNT(*)::int FROM "Batch") as "totalBatches",
-          (SELECT COUNT(*)::int FROM "Course") as "totalCourses",
-          (SELECT COALESCE(SUM("paidAmount"), 0)::float FROM "Payment" WHERE status IN ('PAID', 'VERIFIED', 'PAID_ONLINE') AND "paidAt" >= ${startOfMonth}) as "revenueThisMonth",
-          (SELECT COALESCE(SUM("amount"), 0)::float FROM "Payment" WHERE status = 'PENDING') as "pendingDues",
-          (SELECT COALESCE(json_agg(t), '[]'::json) FROM (
-             SELECT "className", COUNT("userId")::int as "count"
-             FROM "StudentProfile"
-             WHERE "className" IS NOT NULL
-             GROUP BY "className"
-           ) t) as "classStats"
-      `;
-      return results[0];
+      const totalStudents = await prisma.user.count({ where: { role: 'STUDENT' } });
+      const totalTeachers = await prisma.user.count({ where: { role: 'TEACHER' } });
+      const totalBatches = await prisma.batch.count();
+      const totalCourses = await prisma.course.count();
+      
+      const paymentsThisMonth = await prisma.payment.aggregate({
+        _sum: { paidAmount: true },
+        where: {
+          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
+          paidAt: { gte: startOfMonth }
+        }
+      });
+      const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
+
+      const pendingPayments = await prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: 'PENDING' }
+      });
+      const pendingDues = pendingPayments._sum.amount || 0;
+
+      const classGroups = await prisma.studentProfile.groupBy({
+        by: ['className'],
+        _count: { userId: true },
+        where: { className: { not: null } }
+      });
+      const classStats = classGroups.map(g => ({
+        className: g.className || 'Unknown',
+        count: g._count.userId || 0
+      }));
+
+      return {
+        totalStudents,
+        totalTeachers,
+        totalBatches,
+        totalCourses,
+        revenueThisMonth,
+        pendingDues,
+        classStats
+      };
     });
 
     const totalStudents = statsResult?.totalStudents || 0;
@@ -40,12 +63,7 @@ export async function GET() {
     const totalCourses = statsResult?.totalCourses || 0;
     const revenueThisMonth = statsResult?.revenueThisMonth || 0;
     const pendingDues = statsResult?.pendingDues || 0;
-    const classStatsRaw = statsResult?.classStats || [];
-
-    const classStats = classStatsRaw.map((g: any) => ({
-      className: g.className || 'Unknown',
-      count: g.count || 0,
-    }));
+    const classStats = statsResult?.classStats || [];
 
     const activityLogs: any[] = [];
 
