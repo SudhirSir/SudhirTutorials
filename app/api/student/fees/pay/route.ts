@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Valid custom amount is required' }, { status: 400 });
     }
 
-    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+    const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
     const txId = transactionId || `pay_${Math.random().toString(36).substr(2, 9)}`;
 
     let updatedFees = [];
@@ -56,7 +56,9 @@ export async function POST(req: Request) {
       const outstandingPayments = allPayments.filter(fee => {
         if (fee.status === 'PAID_ONLINE') return false; // Already submitted online awaiting verification
         const storedFine = fee.lateFine || 0;
-        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+        const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
+        const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
         const effectiveDiscount = Math.max(fee.discount, scholarship);
@@ -72,7 +74,9 @@ export async function POST(req: Request) {
         if (remainingPaidPool <= 0) break;
 
         const storedFine = fee.lateFine || 0;
-        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+        const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
+        const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
         const effectiveDiscount = Math.max(fee.discount, scholarship);
@@ -112,7 +116,9 @@ export async function POST(req: Request) {
 
       const leftOutstanding = outstandingPayments.reduce((sum, fee) => {
         const storedFine = fee.lateFine || 0;
-        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+        const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
+        const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+        const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
         const effectiveDiscount = Math.max(fee.discount, scholarship);
@@ -148,7 +154,9 @@ export async function POST(req: Request) {
       }
 
       const storedFine = fee.lateFine || 0;
-      const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
+      const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
+      const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+      const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
       const activeFine = Math.max(storedFine, realTimeFine);
       const scholarship = fee.student?.studentProfile?.scholarship || 0;
       const effectiveDiscount = Math.max(fee.discount, scholarship);

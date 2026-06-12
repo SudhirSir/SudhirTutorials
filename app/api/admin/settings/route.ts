@@ -40,6 +40,7 @@ export async function GET() {
     // Ensure defaults are present
     const perDayFine = settingsMap.perDayFine || "10";
     const flatFineAfter10Days = settingsMap.flatFineAfter10Days || "100";
+    const feeDueDay = settingsMap.feeDueDay || "12";
 
     const classFees: Record<string, number> = {};
     for (const key of Object.keys(settingsMap)) {
@@ -52,6 +53,7 @@ export async function GET() {
     return NextResponse.json({
       perDayFine: parseFloat(perDayFine),
       flatFineAfter10Days: parseFloat(flatFineAfter10Days),
+      feeDueDay: parseInt(feeDueDay, 10),
       minAppVersion: settingsMap.minAppVersion || "1.0.0",
       classFees,
     });
@@ -68,7 +70,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { perDayFine, flatFineAfter10Days, minAppVersion, classFees } = await req.json();
+    const { perDayFine, flatFineAfter10Days, feeDueDay, minAppVersion, classFees } = await req.json();
 
     await ensureSystemSettingTable();
 
@@ -85,6 +87,14 @@ export async function POST(req: Request) {
         where: { key: 'flatFineAfter10Days' },
         update: { value: String(flatFineAfter10Days) },
         create: { key: 'flatFineAfter10Days', value: String(flatFineAfter10Days) }
+      }));
+    }
+
+    if (feeDueDay !== undefined) {
+      await withDbRetry(() => prisma.systemSetting.upsert({
+        where: { key: 'feeDueDay' },
+        update: { value: String(feeDueDay) },
+        create: { key: 'feeDueDay', value: String(feeDueDay) }
       }));
     }
 

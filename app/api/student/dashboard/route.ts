@@ -71,6 +71,7 @@ export async function GET() {
               status: true,
               paidAmount: true,
               lateFine: true,
+              billingMonth: true,
             }
           }
         }
@@ -111,8 +112,10 @@ export async function GET() {
     let feeHighlight = null;
     if (user.payments.length > 0) {
       const pendingPayment = user.payments[0];
-      const { perDayFine, flatFineAfter10Days } = feeSettings;
-      const lateFine = calculateLateFine(pendingPayment.dueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
+      const { perDayFine, flatFineAfter10Days, feeDueDay } = feeSettings;
+      const parsed = new Date(`${pendingPayment.billingMonth} ${feeDueDay || 12}`);
+      const effectiveDueDate = isNaN(parsed.getTime()) ? pendingPayment.dueDate : parsed;
+      const lateFine = calculateLateFine(effectiveDueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
       const scholarship = user.studentProfile?.scholarship || 0;
       const effectiveDiscount = Math.max(pendingPayment.discount ?? 0, scholarship);
       feeHighlight = {

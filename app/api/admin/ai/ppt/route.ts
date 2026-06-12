@@ -22,10 +22,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
     }
 
+    let apiAttempted = false;
     const geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
     const openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
 
     if (geminiApiKey) {
+      apiAttempted = true;
       try {
         const systemPrompt = `You are Digital Sahayak, a premium AI learning assistant for the prestigious institute 'Sudhir Tutorials'. 
 You generate highly detailed, educational slide decks. 
@@ -46,6 +48,8 @@ interface SlideDeck {
 }
 Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutorials as the premium learning institute.`;
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: {
@@ -89,8 +93,10 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
               },
               temperature: 0.7
             }
-          })
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -112,7 +118,10 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
 
     if (openAiApiKey) {
       // Call Real ChatGPT API
+      apiAttempted = true;
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -150,8 +159,10 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
               }
             ],
             temperature: 0.7
-          })
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();

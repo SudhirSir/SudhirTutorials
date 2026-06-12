@@ -44,17 +44,20 @@ export async function GET() {
       orderBy: { dueDate: 'desc' }
     }));
 
-    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+    const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
     const fees = rawFees.map((fee: any) => {
+      const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
+      const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+
       const now = new Date();
-      const due = new Date(fee.dueDate);
+      const due = effectiveDueDate;
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
       const daysLate = Math.floor((today.getTime() - dueDay.getTime()) / (1000 * 60 * 60 * 24));
 
       const currentFine = fee.status === 'PENDING'
-        ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days)
+        ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days)
         : fee.lateFine;
 
       const scholarship = fee.student?.studentProfile?.scholarship || 0;

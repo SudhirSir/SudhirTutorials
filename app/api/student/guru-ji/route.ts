@@ -42,11 +42,14 @@ export async function POST(req: Request) {
 
     const resolvedSubject = subject || (question ? detectSubject(question) : 'General Academics');
     
+    let apiAttempted = false;
+
     // Check for API Keys
     const geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
     const openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
 
     if (geminiApiKey) {
+      apiAttempted = true;
       try {
         const parts: any[] = [];
         if (isPdf) {
@@ -104,6 +107,8 @@ This is extremely important for the interactive step reveal!]
 ### 💡 Guru Ji ka Tip
 [Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: {
@@ -122,8 +127,10 @@ This is extremely important for the interactive step reveal!]
             generationConfig: {
               temperature: 0.7
             }
-          })
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -147,6 +154,7 @@ This is extremely important for the interactive step reveal!]
     }
 
     if (openAiApiKey) {
+      apiAttempted = true;
       try {
         let userContent: any = question || "Solve the attached doubt.";
         
@@ -193,6 +201,8 @@ This is extremely important for the interactive step reveal!]
 ### 💡 Guru Ji ka Tip
 [Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -212,8 +222,10 @@ This is extremely important for the interactive step reveal!]
               }
             ],
             temperature: 0.7
-          })
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -345,7 +357,9 @@ For competitive exams like JEE/NEET, check whether the force is constant. If for
     }
 
     // Add a slight network delay to feel like a real AI processing thoughts
-    await new Promise(resolve => setTimeout(resolve, 800));
+    if (!apiAttempted) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
 
     return NextResponse.json({
       success: true,

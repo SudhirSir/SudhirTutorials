@@ -85,17 +85,20 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     }));
 
-    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+    const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
     const enrichedFees = fees.map((fee: any) => {
+      const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
+      const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+
       // For pending fees, show real-time calculated fine
       // For paid/verified fees, show the fine that was locked in at time of payment
       const currentFine = fee.status === 'PENDING' 
-        ? calculateLateFine(fee.dueDate, fee.status, perDayFine, flatFineAfter10Days)
+        ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days)
         : fee.lateFine;
 
       const now = new Date();
-      const due = new Date(fee.dueDate);
+      const due = effectiveDueDate;
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
       // Fast fallback receipt format, full sequential serial computed only when requesting/downloading receipt
@@ -298,8 +301,7 @@ export async function PATCH(req: Request) {
     }));
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
-    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
-
+    const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
     let paymentDateForFine = new Date();
     if (paidAt) {
       const parts = paidAt.split('-');
@@ -317,7 +319,9 @@ export async function PATCH(req: Request) {
     // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED/PAID_ONLINE
     let lateFine = currentFee.lateFine;
     if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
-      lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
+      const parsed = new Date(`${currentFee.billingMonth} ${feeDueDay || 12}`);
+      const effectiveDueDate = isNaN(parsed.getTime()) ? currentFee.dueDate : parsed;
+      lateFine = calculateLateFine(effectiveDueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
     }
 
     const scholarship = currentFee.student?.studentProfile?.scholarship || 0;

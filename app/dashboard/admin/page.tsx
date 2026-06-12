@@ -196,6 +196,7 @@ function AdminDashboardContent() {
   // System Settings States
   const [perDayFine, setPerDayFine] = useState(10);
   const [flatFineAfter10Days, setFlatFineAfter10Days] = useState(100);
+  const [feeDueDay, setFeeDueDay] = useState(12);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [classFees, setClassFees] = useState<Record<string, number>>({});
@@ -502,7 +503,7 @@ function AdminDashboardContent() {
     if (content.includes('### ')) {
       const sections = content.split(/(?=### )/);
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
           {sections.map((section, idx) => {
             const lines = section.trim().split('\n');
             const headerLine = lines[0];
@@ -514,8 +515,8 @@ function AdminDashboardContent() {
             const headerTitle = headerLine.replace('### ', '').trim();
             
             let cardStyle: React.CSSProperties = {
-              borderRadius: '16px',
-              padding: '1.25rem',
+              borderRadius: '12px',
+              padding: '0.5rem 0.75rem',
               border: '1px solid var(--border)',
               background: 'var(--surface-light)',
               boxShadow: 'var(--shadow-sm)',
@@ -540,10 +541,10 @@ function AdminDashboardContent() {
 
               return (
                 <div key={idx} style={cardStyle} className="guru-response-card">
-                  <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                  <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
                     {headerTitle}
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {visibleSteps.map((stepText, sIdx) => (
                       <div key={sIdx} style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
                         {renderAdminSimpleLines(stepText, idx + '_step_' + sIdx)}
@@ -562,8 +563,8 @@ function AdminDashboardContent() {
                         }));
                       }}
                       style={{
-                        marginTop: '1rem',
-                        padding: '0.5rem 1.25rem',
+                        marginTop: '0.5rem',
+                        padding: '0.4rem 1rem',
                         background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                         color: '#fff',
                         border: 'none',
@@ -597,7 +598,7 @@ function AdminDashboardContent() {
 
             return (
               <div key={idx} style={cardStyle} className="guru-response-card">
-                <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
                   {headerTitle}
                 </h4>
                 <div style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
@@ -612,8 +613,8 @@ function AdminDashboardContent() {
 
     return (
       <div style={{
-        borderRadius: '16px',
-        padding: '1.25rem',
+        borderRadius: '12px',
+        padding: '0.5rem 0.75rem',
         border: '1px solid var(--border)',
         background: 'var(--surface-light)',
         boxShadow: 'var(--shadow-sm)',
@@ -1266,9 +1267,15 @@ function AdminDashboardContent() {
     return options;
   })();
 
-  const calculateLiveLateFine = (dueDateStr: string, paidAtStr: string) => {
+  const calculateLiveLateFine = (dueDateStr: string, paidAtStr: string, billingMonth?: string) => {
     if (!dueDateStr) return 0;
-    const due = new Date(dueDateStr);
+    let due = new Date(dueDateStr);
+    if (billingMonth) {
+      const parsed = new Date(`${billingMonth} ${feeDueDay || 12}`);
+      if (!isNaN(parsed.getTime())) {
+        due = parsed;
+      }
+    }
     let now = new Date();
     if (paidAtStr) {
       const parts = paidAtStr.split('-');
@@ -2075,6 +2082,7 @@ function AdminDashboardContent() {
         const data = await res.json();
         setPerDayFine(data.perDayFine ?? 10);
         setFlatFineAfter10Days(data.flatFineAfter10Days ?? 100);
+        setFeeDueDay(data.feeDueDay ?? 12);
         setMinAppVersion(data.minAppVersion || "1.0.0");
         setClassFees(data.classFees || {});
       }
@@ -2092,7 +2100,7 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ perDayFine, flatFineAfter10Days, minAppVersion, classFees })
+        body: JSON.stringify({ perDayFine, flatFineAfter10Days, feeDueDay, minAppVersion, classFees })
       });
       if (res.ok) {
         alert('System settings updated successfully!');
@@ -6663,7 +6671,7 @@ function AdminDashboardContent() {
                         askAdminGuru();
                       }
                     }}
-                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: adminIsRecording ? '#ef4444' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: adminIsRecording || adminIsTranscribing ? 'italic' : 'normal' }}
+                    style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: adminIsRecording ? '#ef4444' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: adminIsRecording || adminIsTranscribing ? 'italic' : 'normal' }}
                   />
                   <button 
                     onClick={askAdminGuru}
@@ -6748,7 +6756,7 @@ function AdminDashboardContent() {
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text)' }}>DIFFICULTY LEVEL</label>
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, display: 'flex' }}>
                           <input 
                             type="radio" 
@@ -8168,7 +8176,7 @@ function AdminDashboardContent() {
                   <span>₹{payingFee.amount}</span>
                </div>
                {(() => {
-                 const liveFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt);
+                 const liveFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
                  return liveFine > 0 && (
                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
                       <span>Late Fine:</span>
@@ -8189,7 +8197,7 @@ function AdminDashboardContent() {
                     value={paymentDetails.discount} 
                     onChange={e => {
                       const newDiscount = parseFloat(e.target.value || '0');
-                      const currentFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt);
+                      const currentFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
                       const newTotal = Math.max(0, payingFee.amount + currentFine - newDiscount - (payingFee.paidAmount || 0));
                       setPaymentDetails({
                         ...paymentDetails,
@@ -8202,7 +8210,7 @@ function AdminDashboardContent() {
                </div>
                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
                   <span>Total Payable:</span>
-                  <span>₹{Math.max(0, payingFee.amount + calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
+                  <span>₹{Math.max(0, payingFee.amount + calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
                </div>
             </div>
 
@@ -8459,6 +8467,19 @@ function AdminDashboardContent() {
                             required 
                             value={flatFineAfter10Days} 
                             onChange={e => setFlatFineAfter10Days(parseFloat(e.target.value) || 0)} 
+                            style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
+                          />
+                        </div>
+
+                        <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: 0 }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Last Day of Fee Payment in Month (to avoid fine)</label>
+                          <input 
+                            type="number" 
+                            min="1"
+                            max="31"
+                            required 
+                            value={feeDueDay} 
+                            onChange={e => setFeeDueDay(parseInt(e.target.value, 10) || 12)} 
                             style={{ padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text)', outline: 'none', fontSize: '0.9rem' }}
                           />
                         </div>

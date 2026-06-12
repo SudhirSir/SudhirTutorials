@@ -126,6 +126,12 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // Keep selectedUserRef in sync
   useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
 
+  // Clear selection when switching chats
+  useEffect(() => {
+    setSelectedMessageIds([]);
+    setMultiSelectMode(false);
+  }, [selectedUser]);
+
   // ── Load blocked list from localStorage ────────────────────────────────────
   useEffect(() => {
     try {
@@ -1232,7 +1238,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                   style={menuItemStyle}>
-                                  📋 Copy
+                                  Copy
                                 </button>
                                 {hasLinkOrMedia(m.content) && (
                                   <button onClick={() => {
@@ -1242,7 +1248,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     style={menuItemStyle}>
-                                    🌐 Open
+                                    Open
                                   </button>
                                 )}
                                 <button onClick={() => {
@@ -1253,7 +1259,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                   style={menuItemStyle}>
-                                  ☑️ Select
+                                  Select
                                 </button>
                                 {isMe && !(m.content.startsWith('{') && m.content.endsWith('}')) && (Date.now() - new Date(m.createdAt).getTime() <= 240000) && (
                                   <button onClick={() => {
@@ -1263,7 +1269,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     style={menuItemStyle}>
-                                    ✏️ Edit
+                                    Edit
                                   </button>
                                 )}
                                 <button onClick={() => {
@@ -1273,7 +1279,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                   style={menuItemStyle}>
-                                  ➡️ Forward
+                                  Forward
                                 </button>
                                 {true && (
                                   <button onClick={() => {
@@ -1283,7 +1289,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     style={{ ...menuItemStyle, color: '#f87171' }}>
-                                    🗑️ Delete
+                                    Delete
                                   </button>
                                 )}
                               </div>

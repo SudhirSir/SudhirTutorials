@@ -388,7 +388,7 @@ function TeacherDashboardContent() {
     if (content.includes('### ')) {
       const sections = content.split(/(?=### )/);
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
           {sections.map((section, idx) => {
             const lines = section.trim().split('\n');
             const headerLine = lines[0];
@@ -400,8 +400,8 @@ function TeacherDashboardContent() {
             const headerTitle = headerLine.replace('### ', '').trim();
             
             let cardStyle: React.CSSProperties = {
-              borderRadius: '16px',
-              padding: '1.25rem',
+              borderRadius: '12px',
+              padding: '0.5rem 0.75rem',
               border: '1px solid var(--border)',
               background: 'var(--surface-light)',
               boxShadow: 'var(--shadow-sm)',
@@ -426,10 +426,10 @@ function TeacherDashboardContent() {
 
               return (
                 <div key={idx} style={cardStyle} className="guru-response-card">
-                  <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                  <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
                     {headerTitle}
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {visibleSteps.map((stepText, sIdx) => (
                       <div key={sIdx} style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
                         {renderTeacherSimpleLines(stepText, idx + '_step_' + sIdx)}
@@ -448,8 +448,8 @@ function TeacherDashboardContent() {
                         }));
                       }}
                       style={{
-                        marginTop: '1rem',
-                        padding: '0.5rem 1.25rem',
+                        marginTop: '0.5rem',
+                        padding: '0.4rem 1rem',
                         background: 'linear-gradient(135deg, #10b981, #059669)',
                         color: '#fff',
                         border: 'none',
@@ -483,7 +483,7 @@ function TeacherDashboardContent() {
 
             return (
               <div key={idx} style={cardStyle} className="guru-response-card">
-                <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '1.05rem', fontWeight: 800 }}>
+                <h4 style={{ margin: '0 0 0.2rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.95rem', fontWeight: 800 }}>
                   {headerTitle}
                 </h4>
                 <div style={{ fontSize: '0.92rem', lineHeight: '1.6', color: 'var(--text)' }}>
@@ -498,8 +498,8 @@ function TeacherDashboardContent() {
 
     return (
       <div style={{
-        borderRadius: '16px',
-        padding: '1.25rem',
+        borderRadius: '12px',
+        padding: '0.5rem 0.75rem',
         border: '1px solid var(--border)',
         background: 'var(--surface-light)',
         boxShadow: 'var(--shadow-sm)',
@@ -2431,7 +2431,7 @@ function TeacherDashboardContent() {
                         askTeacherGuru();
                       }
                     }}
-                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: teacherIsRecording ? '#10b981' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: teacherIsRecording || teacherIsTranscribing ? 'italic' : 'normal' }}
+                    style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: teacherIsRecording ? '#10b981' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: teacherIsRecording || teacherIsTranscribing ? 'italic' : 'normal' }}
                   />
                   <button 
                     onClick={askTeacherGuru}
@@ -2516,7 +2516,7 @@ function TeacherDashboardContent() {
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text)' }}>DIFFICULTY LEVEL</label>
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, display: 'flex' }}>
                           <input 
                             type="radio" 
