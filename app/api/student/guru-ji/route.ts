@@ -46,6 +46,27 @@ export async function POST(req: Request) {
       }
     }
 
+    // Fetch student's profile context (class & board) if the user is a student
+    let studentContext = "";
+    if (session.user.role === 'STUDENT') {
+      try {
+        const studentProfile = await prisma.studentProfile.findUnique({
+          where: { userId: session.user.id },
+          select: { className: true, board: true }
+        });
+        if (studentProfile) {
+          const parts = [];
+          if (studentProfile.className) parts.push(`Class/Grade: ${studentProfile.className}`);
+          if (studentProfile.board) parts.push(`Board: ${studentProfile.board}`);
+          if (parts.length > 0) {
+            studentContext = `\nSTUDENT PROFILE CONTEXT: The student asking this doubt is in ${parts.join(" and studying under ") || "general class"}. You MUST customize your explanation level, mathematical depth, syllabus context, and response terminology to match exactly this student's grade/class and board.`;
+          }
+        }
+      } catch (profileError) {
+        console.error("Failed to fetch student profile for AI context:", profileError);
+      }
+    }
+
     const resolvedSubject = subject || (question ? detectSubject(question) : 'General Academics');
     
     let apiAttempted = false;
@@ -95,7 +116,7 @@ export async function POST(req: Request) {
 
         const systemPrompt = `You are 'Digital Guru Ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
 A student has submitted an academic doubt (as text, image, or PDF document).
-Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').
+Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').${studentContext}
 
 You MUST follow these critical instruction rules:
 1. SPECIFIC & PRECISE: Make your answer extremely specific to the exact doubt asked. Do not include verbose, generic introductory or concluding remarks.
@@ -198,7 +219,7 @@ This is extremely important for the interactive step reveal!]
 
         const systemPrompt = `You are 'Digital Guru Ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
 A student has submitted an academic doubt (as text, image, or PDF document).
-Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').
+Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').${studentContext}
 
 You MUST follow these critical instruction rules:
 1. SPECIFIC & PRECISE: Make your answer extremely specific to the exact doubt asked. Do not include verbose, generic introductory or concluding remarks.
