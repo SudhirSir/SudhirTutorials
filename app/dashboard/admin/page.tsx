@@ -668,7 +668,7 @@ function AdminDashboardContent() {
       '.footer { border-top: 1px dashed #d1d5db; padding-top: 15px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; font-weight: bold; }' +
       '.logo-text { font-size: 16px; font-weight: 900; color: #ef4444; letter-spacing: 0.5px; }' +
       '</style></head><body>' +
-      generatedPpt.slides.map(function(s, idx) {
+      generatedPpt.slides.map(function(s: any, idx: number) {
         return '<div class="slide-page"><div><div class="header"><div><h1>' + s.title + '</h1>' +
           '<div class="meta">' + (s.subtitle || '') + '</div></div>' +
           '<div class="badge">' + s.badge + '</div></div>' +
@@ -686,7 +686,7 @@ function AdminDashboardContent() {
     if (!generatedPpt) return;
     try {
       const loadHtml2Pdf = () => {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           if ((window as any).html2pdf) {
             resolve();
             return;
@@ -709,7 +709,7 @@ function AdminDashboardContent() {
       tempDiv.style.width = '1120px';
       
       tempDiv.innerHTML = '<div style="font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f8f9fa; box-sizing: border-box;">' +
-        generatedPpt.slides.map(function(s, idx) {
+        generatedPpt.slides.map(function(s: any, idx: number) {
           return '<div style="page-break-after: always; border: 2px solid #ef4444; border-radius: 12px; padding: 30px; margin-bottom: 25px; background: #fff; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">' +
             '<div>' +
               '<div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">' +
@@ -758,12 +758,14 @@ function AdminDashboardContent() {
 
       const cap = (window as any).Capacitor;
       const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
-      let Filesystem = null;
-      let Share = null;
+      let Filesystem: any = null;
+      let Directory: any = null;
+      let Share: any = null;
       if (isNative) {
         try {
           const fs = await import('@capacitor/filesystem');
           Filesystem = fs.Filesystem;
+          Directory = fs.Directory;
           const sh = await import('@capacitor/share');
           Share = sh.Share;
         } catch (e) {
@@ -780,7 +782,7 @@ function AdminDashboardContent() {
           await Filesystem.writeFile({
             path: filename,
             data: base64Data,
-            directory: 'DOCUMENTS'
+            directory: Directory.Documents
           });
           alert('Slides PDF downloaded successfully! Saved in your Documents/Downloads folder as ' + filename);
         } catch (err) {
@@ -788,7 +790,7 @@ function AdminDashboardContent() {
           const writeResult = await Filesystem.writeFile({
             path: filename,
             data: base64Data,
-            directory: 'CACHE'
+            directory: Directory.Cache
           });
           if (Share) {
             await Share.share({
