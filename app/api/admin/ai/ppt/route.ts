@@ -39,6 +39,11 @@ export async function POST(req: Request) {
 You generate highly detailed, educational slide decks. 
 Every slide must have extremely detailed content (avoid short lists, provide extensive definitions, explanations, formulas, derivations, and examples). 
 Do NOT include any promotional or template slogans, quotes, or phrases like 'Guru ji ki tips', 'Maha-Tip', or useless placeholders. Every slide must contain only valuable, rigorous, and high-quality educational content.
+
+CRITICAL FORMATTING RULES:
+1. MATHEMATICAL FORMULAS: Always write mathematical expressions and equations using standard LaTeX math delimiters: use '$$...$$' for block equations on their own lines, and '$...$' for inline equations.
+2. DIAGRAMS & VISUALS: Whenever a diagram, flowchart, comparison chart, circuit, chemical structure, or graph can help explain the concept on a slide, you MUST embed a self-contained, beautiful SVG element inside standard <svg>...</svg> tags. Ensure the SVG has responsive properties (sensible width, height, viewBox) and high contrast/colors that render beautifully on both light and dark backgrounds. Write only plain readable text inside SVG <text> elements (never write dollar signs or LaTeX in SVGs).
+
 The output MUST be a valid JSON object matching the following TypeScript interface:
 interface SlideDeck {
   topic: string;
@@ -50,7 +55,7 @@ interface SlideDeck {
     subtitle: string;
     badge: string; // MUST always be 'SUDHIR TUTORIALS'
     meta: string;
-    content: string; // Long, comprehensive, robust scientific text with markdown headers, bold terms, equations and deep concepts
+    content: string; // Long, comprehensive text with markdown formatting, LaTeX formulas ($...$ or $$...$$), and embedded SVG elements (<svg>...</svg>) where visuals are helpful
   }[];
 }
 Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutorials as the premium learning institute.`;
@@ -143,6 +148,11 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
 You generate highly detailed, educational slide decks. 
 Every slide must have extremely detailed content (avoid short lists, provide extensive definitions, explanations, formulas, derivations, and examples). 
 Do NOT include any promotional or template slogans, quotes, or phrases like 'Guru ji ki tips', 'Maha-Tip', or useless placeholders. Every slide must contain only valuable, rigorous, and high-quality educational content.
+
+CRITICAL FORMATTING RULES:
+1. MATHEMATICAL FORMULAS: Always write mathematical expressions and equations using standard LaTeX math delimiters: use '$$...$$' for block equations on their own lines, and '$...$' for inline equations.
+2. DIAGRAMS & VISUALS: Whenever a diagram, flowchart, comparison chart, circuit, chemical structure, or graph can help explain the concept on a slide, you MUST embed a self-contained, beautiful SVG element inside standard <svg>...</svg> tags. Ensure the SVG has responsive properties (sensible width, height, viewBox) and high contrast/colors that render beautifully on both light and dark backgrounds. Write only plain readable text inside SVG <text> elements (never write dollar signs or LaTeX in SVGs).
+
 The output MUST be a valid JSON object matching the following TypeScript interface:
 interface SlideDeck {
   topic: string;
@@ -154,7 +164,7 @@ interface SlideDeck {
     subtitle: string;
     badge: string; // MUST always be 'SUDHIR TUTORIALS'
     meta: string;
-    content: string; // Long, comprehensive, robust scientific text with markdown headers, bold terms, equations and deep concepts
+    content: string; // Long, comprehensive text with markdown formatting, LaTeX formulas ($...$ or $$...$$), and embedded SVG elements (<svg>...</svg>) where visuals are helpful
   }[];
 }
 Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutorials as the premium learning institute.`

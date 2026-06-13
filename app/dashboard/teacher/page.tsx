@@ -412,6 +412,35 @@ function TeacherDashboardContent() {
     }
   };
 
+  const renderMath = (text: string) => {
+    if (typeof window === 'undefined') return text;
+    const katex = (window as any).katex;
+    if (!katex) return text;
+    try {
+      let parsed = text;
+      // Replace $$formula$$ with display math
+      parsed = parsed.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+        try {
+          return katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false });
+        } catch (e) {
+          return match;
+        }
+      });
+      // Replace $formula$ with inline math
+      parsed = parsed.replace(/\$(?!\$)([\s\S]*?)\$/g, (match, formula) => {
+        try {
+          return katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false });
+        } catch (e) {
+          return match;
+        }
+      });
+      return parsed;
+    } catch (err) {
+      console.error("Math rendering error:", err);
+      return text;
+    }
+  };
+
   const renderTeacherSimpleLines = (text: string, baseKey: any, animate: boolean = false) => {
     return text.split('\n').map((line, idx) => {
       let lineText = line.trim();
@@ -428,9 +457,10 @@ function TeacherDashboardContent() {
       if (lineText.startsWith('#')) {
         const cleanHeading = lineText.replace(/^#+\s*/, '');
         const finalHeading = cleanHeading.replace(/#(?![0-9a-fA-F]{3}\b|[0-9a-fA-F]{6}\b)/g, '');
+        const mathHeading = renderMath(finalHeading);
         return (
-          <div key={`${baseKey}_${idx}`} style={{ fontWeight: 800, fontSize: '1.02rem', color: '#f59e0b', margin: '0.6rem 0 0.3rem 0' }}>
-            {animate ? <TypewriterText text={finalHeading} /> : <span dangerouslySetInnerHTML={{ __html: finalHeading }} />}
+          <div key={`${baseKey}_${idx}`} style={{ fontWeight: 800, fontSize: '1.02rem', color: '#10b981', margin: '0.6rem 0 0.3rem 0' }}>
+            {animate ? <TypewriterText text={mathHeading} /> : <span dangerouslySetInnerHTML={{ __html: mathHeading }} />}
           </div>
         );
       }
@@ -439,26 +469,63 @@ function TeacherDashboardContent() {
       lineText = lineText.replace(/#(?![0-9a-fA-F]{3}\b|[0-9a-fA-F]{6}\b)/g, '');
 
       if (lineText.startsWith('👉 ')) {
+        const mathTextLine = renderMath(lineText.slice(2));
         return (
-          <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(245,158,11,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit' }}>
-            {animate ? <TypewriterText text={lineText.slice(2)} /> : <span dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />}
+          <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(16,185,129,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #10b981', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit' }}>
+            {animate ? <TypewriterText text={mathTextLine} /> : <span dangerouslySetInnerHTML={{ __html: mathTextLine }} />}
           </div>
         );
       }
       if (lineText.startsWith('* ') || lineText.startsWith('- ')) {
+        const mathTextLine = renderMath(lineText.slice(2));
         return (
           <li key={`${baseKey}_${idx}`} style={{ marginLeft: '0.75rem', marginBottom: '0.2rem', listStyleType: 'square', color: 'var(--text)', fontSize: 'inherit' }}>
-            {animate ? <TypewriterText text={lineText.slice(2)} /> : <span dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />}
+            {animate ? <TypewriterText text={mathTextLine} /> : <span dangerouslySetInnerHTML={{ __html: mathTextLine }} />}
           </li>
         );
       }
       if (lineText.startsWith('---')) {
         return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }} />;
       }
+      const mathTextLineFinal = renderMath(lineText);
       return (
         <p key={`${baseKey}_${idx}`} style={{ margin: '0.2rem 0', color: 'var(--text)', lineHeight: 1.45, fontSize: 'inherit' }}>
-          {animate ? <TypewriterText text={lineText} /> : <span dangerouslySetInnerHTML={{ __html: lineText }} />}
+          {animate ? <TypewriterText text={mathTextLineFinal} /> : <span dangerouslySetInnerHTML={{ __html: mathTextLineFinal }} />}
         </p>
+      );
+    });
+  };
+
+  const renderTeacherSlideContent = (content: string, baseKey: string) => {
+    if (!content) return null;
+    const parts = content.split(/(<svg[\s\S]*?<\/svg>)/gi);
+    return parts.map((part, idx) => {
+      const isSvg = part.trim().toLowerCase().startsWith('<svg') && part.trim().toLowerCase().endsWith('</svg>');
+      if (isSvg) {
+        return (
+          <div 
+            key={`${baseKey}_svg_${idx}`}
+            className="guru-svg-container"
+            style={{ 
+              margin: '0.75rem auto', 
+              background: 'rgba(255,255,255,0.03)', 
+              padding: '1rem', 
+              borderRadius: '12px', 
+              border: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              overflowX: 'auto',
+              maxWidth: '100%'
+            }} 
+            dangerouslySetInnerHTML={{ __html: part.trim() }} 
+          />
+        );
+      }
+      return (
+        <div key={`${baseKey}_text_${idx}`}>
+          {renderTeacherSimpleLines(part, `${baseKey}_lines_${idx}`)}
+        </div>
       );
     });
   };
@@ -538,12 +605,27 @@ function TeacherDashboardContent() {
     }
   };
 
+  const formatContentForPrint = (content: string) => {
+    if (!content) return '';
+    const mathRendered = renderMath(content);
+    const parts = mathRendered.split(/(<svg[\s\S]*?<\/svg>)/gi);
+    return parts.map(part => {
+      const isSvg = part.trim().toLowerCase().startsWith('<svg') && part.trim().toLowerCase().endsWith('</svg>');
+      if (isSvg) {
+        return '<div class="print-svg-container" style="display:flex; justify-content:center; margin:15px auto; max-width:100%; overflow:hidden;">' + part.trim() + '</div>';
+      } else {
+        return part.replace(/\n/g, '<br/>');
+      }
+    }).join('');
+  };
+
   const printTeacherPpt = () => {
     if (!generatedPpt) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     printWindow.document.write(
       '<html><head><title>Sudhir Tutorials - Premium Lesson Slides: ' + generatedPpt.topic + '</title>' +
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" />' +
       '<style>' +
       'body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }' +
       '.slide-page { page-break-after: always; border: 2px solid #10b981; border-radius: 12px; padding: 30px; margin-bottom: 40px; background: #fff; min-height: 500px; display: flex; flex-direction: column; justify-content: space-between; }' +
@@ -551,7 +633,7 @@ function TeacherDashboardContent() {
       '.header h1 { margin: 0; font-size: 20px; color: #10b981; font-weight: 800; }' +
       '.badge { background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }' +
       '.meta { font-size: 13px; color: #6b7280; margin-top: 5px; }' +
-      '.content { font-size: 16px; line-height: 1.6; color: #374151; flex: 1; white-space: pre-line; }' +
+      '.content { font-size: 16px; line-height: 1.6; color: #374151; flex: 1; }' +
       '.footer { border-top: 1px dashed #d1d5db; padding-top: 15px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; font-weight: bold; }' +
       '.logo-text { font-size: 16px; font-weight: 900; color: #10b981; letter-spacing: 0.5px; }' +
       '</style></head><body>' +
@@ -560,7 +642,7 @@ function TeacherDashboardContent() {
           '<div class="meta">' + (s.subtitle || '') + '</div></div>' +
           '<div class="badge">' + s.badge + '</div></div>' +
           '<div style="font-size:12px; color:#6b7280; margin-bottom: 15px; font-weight: bold;">' + s.meta + '</div>' +
-          '<div class="content">' + s.content.replace(/\n/g, '<br/>') + '</div></div>' +
+          '<div class="content">' + formatContentForPrint(s.content) + '</div></div>' +
           '<div class="footer"><span class="logo-text">SUDHIR TUTORIALS</span>' +
           '<span>Slide ' + (idx + 1) + ' of ' + generatedPpt.slides.length + '</span></div></div>';
       }).join('') +
@@ -591,15 +673,18 @@ function TeacherDashboardContent() {
       
       const tempDiv = document.createElement('div');
       tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '-9999px';
+      tempDiv.style.left = '0px';
+      tempDiv.style.top = '0px';
+      tempDiv.style.zIndex = '-9999';
+      tempDiv.style.opacity = '0.01';
+      tempDiv.style.pointerEvents = 'none';
       tempDiv.style.width = '1120px';
       
       tempDiv.innerHTML = '<div style="font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f8f9fa; box-sizing: border-box;">' +
         generatedPpt.slides.map(function(s: any, idx: number) {
           return '<div style="page-break-after: always; border: 2px solid #10b981; border-radius: 12px; padding: 30px; margin-bottom: 25px; background: #fff; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">' +
             '<div>' +
-              '<div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">' +
+               '<div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">' +
                 '<div style="display: flex; align-items: center; gap: 10px;">' +
                   '<img src="/logo.png" alt="Sudhir Tutorials" style="width: 38px; height: 38px; object-fit: contain; border-radius: 8px;" />' +
                   '<div>' +
@@ -612,8 +697,8 @@ function TeacherDashboardContent() {
                 '</div>' +
               '</div>' +
               '<div style="font-size: 12px; color: #6b7280; margin-bottom: 15px; font-weight: bold;">' + s.meta + '</div>' +
-              '<div style="font-size: 16px; line-height: 1.6; color: #374151; white-space: pre-line; flex: 1;">' +
-                s.content +
+              '<div style="font-size: 16px; line-height: 1.6; color: #374151; flex: 1;">' +
+                formatContentForPrint(s.content) +
               '</div>' +
             '</div>' +
             '<div style="border-top: 1px dashed #d1d5db; padding-top: 15px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; font-weight: bold; align-items: center;">' +
@@ -3017,7 +3102,7 @@ function TeacherDashboardContent() {
 
                                     {/* Slide Main Content */}
                                     <div style={{ fontSize: '0.9rem', lineHeight: '1.65', color: '#dcdce2', paddingBottom: '1.5rem', whiteSpace: 'pre-line' }}>
-                                      {renderTeacherSimpleLines(s.content, activeSlideIndex + '_slide')}
+                                      {renderTeacherSlideContent(s.content, activeSlideIndex + '_slide')}
                                     </div>
                                   </div>
 
@@ -3129,7 +3214,7 @@ function TeacherDashboardContent() {
 
                               {/* Content */}
                               <div style={{ fontSize: '0.92rem', lineHeight: '1.65', color: '#334155', whiteSpace: 'pre-line' }}>
-                                {renderTeacherSimpleLines(slide.content, idx + '_note')}
+                                {renderTeacherSlideContent(slide.content, idx + '_note')}
                               </div>
                             </div>
                           ))}
