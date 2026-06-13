@@ -34,7 +34,7 @@ const SERVICE_OPTIONS: Record<string, ServiceOption[]> = {
     { id: 'fees', label: 'Pay / View Fees', icon: '💰', tab: 'fees' },
     { id: 'tests', label: 'Tests & Marks', icon: '📝', tab: 'tests' },
     { id: 'lectures', label: 'Lectures/Classes', icon: '🎥', tab: 'lectures' },
-    { id: 'guru-ji', label: 'Guru Ji', icon: '🤖', tab: 'guru-ji' },
+    { id: 'guru-ji', label: 'ST Guru ji', icon: '🤖', tab: 'guru-ji' },
     { id: 'attendance', label: 'My Attendance', icon: '📅', tab: 'attendance' }
   ]
 };

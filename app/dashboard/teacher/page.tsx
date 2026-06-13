@@ -415,14 +415,16 @@ function TeacherDashboardContent() {
       let lineText = line.trim();
       if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.2rem' }} />;
       
+      // Markdown Links: [label](url)
+      lineText = lineText.replace(/\[(.*?)\]\((.*?)\)/gi, '<a href="$2" target="_blank" rel="noreferrer" style="color:var(--primary);text-decoration:underline;font-weight:600;">$1</a>');
       // Bold formatting
       lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       // Inline code formatting
-      lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:1px 4px;border-radius:4px;font-family:monospace;color:#10b981;font-weight:600;font-size:0.9em;">$1</code>');
+      lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
 
       if (lineText.startsWith('👉 ')) {
         return (
-          <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(16,185,129,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #10b981', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit' }}>
+          <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(245,158,11,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit' }}>
             {animate ? <TypewriterText text={lineText.slice(2)} /> : <span dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />}
           </div>
         );
@@ -446,135 +448,50 @@ function TeacherDashboardContent() {
   };
 
   const formatTeacherGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0, isNew: boolean = false) => {
-    if (content.includes('### ')) {
-      const sections = content.split(/(?=###\s+)/); // split but keep the header
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', width: '100%', alignItems: 'flex-start' }}>
-          {sections.map((section, idx) => {
-            const lines = section.trim().split('\n');
-            const headerLine = lines[0] || '';
-            const bodyText = lines.slice(1).join('\n').trim();
-            if (!headerLine.startsWith('### ')) {
-              return <div key={idx}>{renderTeacherSimpleLines(section, idx, isNew)}</div>;
-            }
+    if (!content) return null;
 
-            const headerTitle = headerLine.replace('### ', '').trim();
-            
-            let cardStyle: React.CSSProperties = {
-              borderRadius: '12px',
-              padding: '0.4rem 0.65rem',
-              border: '1px solid var(--border)',
-              background: 'var(--surface-light)',
-              boxShadow: 'var(--shadow-sm)',
-              width: 'fit-content',
-              maxWidth: '100%',
-              boxSizing: 'border-box'
-            };
-            let headerColor = '#f59e0b';
-
-            if (headerTitle.includes('Question') || headerTitle.includes('प्रश्न')) {
-              cardStyle.background = 'rgba(16, 185, 129, 0.04)';
-              cardStyle.borderLeft = '4px solid #10b981';
-              headerColor = '#10b981';
-            } else if (headerTitle.includes('Solution') || headerTitle.includes('समाधान')) {
-              cardStyle.background = 'rgba(16, 185, 129, 0.03)';
-              cardStyle.borderLeft = '4px solid #10b981';
-              headerColor = '#059669';
-
-              // Parse steps and implement stepwise reveal
-              const steps = bodyText.split('[STEP]').map(s => s.trim()).filter(Boolean);
-              const visibleSteps = steps.slice(0, revealedSteps);
-              const hasMoreSteps = revealedSteps < steps.length;
-
-              return (
-                <div key={idx} style={cardStyle} className="guru-response-card">
-                  <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
-                    {headerTitle}
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    {visibleSteps.map((stepText, sIdx) => {
-                      const shouldAnimateStep = isNew && (sIdx === revealedSteps - 1);
-                      return (
-                        <div key={sIdx} className="guru-card-text">
-                          {renderTeacherSimpleLines(stepText, idx + '_step_' + sIdx, shouldAnimateStep)}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {hasMoreSteps && (
-                    <button 
-                      onClick={() => {
-                        setTeacherGuruHistory(prev => prev.map((m, mIdx) => {
-                          if (mIdx === messageIndex) {
-                            return { ...m, revealedSteps: (m.revealedSteps || 1) + 1 };
-                          }
-                          return m;
-                        }));
-                      }}
-                      style={{
-                        marginTop: '0.4rem',
-                        padding: '0.3rem 0.8rem',
-                        background: 'linear-gradient(135deg, #10b981, #059669)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '24px',
-                        cursor: 'pointer',
-                        fontSize: '0.78rem',
-                        fontWeight: '700',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
-                        transition: 'all 0.2s',
-                        width: 'fit-content'
-                      }}
-                    >
-                      👣 Show Next Step ({revealedSteps}/{steps.length})
-                    </button>
-                  )}
-                </div>
-              );
-            } else if (headerTitle.includes('Explanation') || headerTitle.includes('व्याख्या')) {
-              cardStyle.background = 'rgba(139, 92, 246, 0.03)';
-              cardStyle.borderLeft = '4px solid #8b5cf6';
-              headerColor = '#7c3aed';
-            } else if (headerTitle.includes('Tip') || headerTitle.includes('सलाह')) {
-              cardStyle.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%)';
-              cardStyle.borderLeft = '4px solid #f59e0b';
-              cardStyle.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.05)';
-              headerColor = '#d97706';
-            }
-
-            return (
-              <div key={idx} style={cardStyle} className="guru-response-card">
-                <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
-                  {headerTitle}
-                </h4>
-                <div className="guru-card-text">
-                  {renderTeacherSimpleLines(bodyText, idx + '_body', isNew)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
+    // Split content into blocks of SVG and normal text
+    const parts = content.split(/(<svg[\s\S]*?<\/svg>)/gi);
 
     return (
       <div style={{
-        borderRadius: '12px',
-        padding: '0.4rem 0.65rem',
+        borderRadius: '16px',
+        padding: '0.75rem 1rem',
         border: '1px solid var(--border)',
         background: 'var(--surface-light)',
         boxShadow: 'var(--shadow-sm)',
-        width: 'fit-content',
-        maxWidth: '100%',
+        width: '100%',
         boxSizing: 'border-box'
-      }} className="guru-response-card">
-        <div className="guru-card-text">
-          {renderTeacherSimpleLines(content, 0, isNew)}
-        </div>
+      }} className="guru-response-card animate-fade-in">
+        {parts.map((part, idx) => {
+          const isSvg = part.trim().toLowerCase().startsWith('<svg') && part.trim().toLowerCase().endsWith('</svg>');
+          if (isSvg) {
+            return (
+              <div 
+                key={idx} 
+                className="guru-svg-container"
+                style={{ 
+                  margin: '0.75rem 0', 
+                  background: 'rgba(255,255,255,0.03)', 
+                  padding: '1.25rem', 
+                  borderRadius: '12px', 
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  overflowX: 'auto',
+                  maxWidth: '100%'
+                }} 
+                dangerouslySetInnerHTML={{ __html: part.trim() }} 
+              />
+            );
+          }
+          return (
+            <div key={idx} className="guru-card-text" style={{ fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5 }}>
+              {renderTeacherSimpleLines(part, idx, isNew)}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -1268,7 +1185,7 @@ function TeacherDashboardContent() {
              tab === 'tests' ? 'Tests & Marks' :
              tab === 'salary' ? 'Salary Records' :
              tab === 'lectures' ? 'Lectures/Classes' :
-             tab === 'guru-ai' ? 'Guru Ji' :
+             tab === 'guru-ai' ? 'ST Guru ji' :
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
@@ -2140,16 +2057,16 @@ function TeacherDashboardContent() {
           }}
         >
           {/* Academic Assistant Header with Tab Switcher */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.4rem 1rem', background: 'var(--surface-light)' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)', animation: 'pulse 2s infinite' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)', animation: 'pulse 2s infinite' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg>
               </div>
               <div className="mobile-hide">
-                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981', margin: 0, whiteSpace: 'nowrap' }}>Guru Ji</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
+                <h2 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981', margin: 0, whiteSpace: 'nowrap' }}>ST Guru ji</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.68rem', margin: '1px 0 0 0' }}>Digital Sahayak • Online</p>
               </div>
             </div>
 
@@ -2603,7 +2520,7 @@ function TeacherDashboardContent() {
                   <input 
                     type="text"
                     className="guru-input-field"
-                    placeholder={teacherIsTranscribing ? "🎙️ Transcribing voice query..." : teacherIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask Guru Ji a question, upload a PDF/Photo..."} 
+                    placeholder={teacherIsTranscribing ? "🎙️ Transcribing voice query..." : teacherIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask ST Guru ji a question, upload a PDF/Photo..."} 
                     value={teacherGuruQuestion}
                     onChange={(e) => setTeacherGuruQuestion(e.target.value)}
                     disabled={teacherIsTranscribing || teacherIsRecording}
@@ -2782,7 +2699,7 @@ function TeacherDashboardContent() {
                   <div style={{ textAlign: 'center' }}>
                     <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 800 }}>Generating Presentation Slides...</h4>
                     <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '300px', lineHeight: 1.5 }}>
-                      Guru Ji is parsing topic curriculum and structuring premium slide layouts. Please wait.
+                      ST Guru ji is parsing topic curriculum and structuring premium slide layouts. Please wait.
                     </p>
                   </div>
                 </div>

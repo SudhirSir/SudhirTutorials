@@ -38,7 +38,7 @@ export async function GET(req: Request) {
         teacherProfile: { select: { photoUrl: true } }
       },
       orderBy: { name: 'asc' },
-      take: 30,
+      take: 1000,
     }));
 
     const mappedUsers = users.map((u: any) => {

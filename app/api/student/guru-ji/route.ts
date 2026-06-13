@@ -85,38 +85,17 @@ export async function POST(req: Request) {
         let success = false;
         let fullResponse = "";
 
-        const systemPrompt = `You are 'Digital Guru Ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
+        const systemPrompt = `You are 'Digital ST Guru ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
 A student has submitted an academic doubt (as text, image, or PDF document).
-Your job is to systematically solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').${studentContext}
+Your job is to solve this doubt in the language: ${language.toUpperCase()}. (Note: HINGLISH means Hindi written in English/Latin script, e.g. 'Aap niche diye gaye steps ko padhein').${studentContext}
 
 You MUST follow these critical instruction rules:
-1. SPECIFIC & PRECISE: Make your answer extremely specific to the exact doubt asked. Do not include verbose, generic introductory or concluding remarks.
-2. DIAGRAMS & CHARTS: Whenever visual diagrams, charts, flowcharts, or comparisons would help explain the concept (especially in Physics, Chemistry, Biology, Mathematics, or comparative topics), you MUST include them:
+1. DIRECT, IN-DEPTH & EXACT: Provide a comprehensive, high-quality, exact, and detailed academic explanation. Do not include verbose, generic introductory or concluding remarks. Go straight to the explanation.
+2. DIAGRAMS & ILLUSTRATIONS: Whenever a diagram, flowchart, comparison, math formula, circuit, or chemical structure helps explain the concept (especially in Physics, Chemistry, Biology, Mathematics, or comparative topics), you MUST include it:
    - Use clean Markdown Tables for comparative data.
-   - Use beautiful Unicode/ASCII art drawings for simple geometric shapes, circuits, or structures.
-   - Alternatively, you can include direct, self-contained raw HTML/SVG graphics (e.g. colored boxes, vectors, shapes, flowcharts). CRITICAL: Write the entire HTML/SVG block on a single line without any newlines (\\n) inside it, so it renders as a single unified element.
-
-You MUST structure your response EXACTLY with the following headers so it displays beautifully:
-
-### 📝 Extracted Question
-[Clearly transcribe the question or problem from the uploaded file/text. If there is no file, state the question that was asked. If the user typed any extra question/request, include/address it here.]
-
-### 🧮 Step-by-Step Solution
-[Provide the complete step-by-step mathematical or scientific derivation/solution. 
-CRITICAL RULE: You MUST separate each logical step of your solution with a line containing exactly '[STEP]' and nothing else.
-Example:
-Step 1: Write down the given values: m = 5 kg, F = 20 N.
-[STEP]
-Step 2: Apply Newton's Second Law: a = F/m = 20/5 = 4 m/s².
-[STEP]
-Step 3: Apply the first equation of motion: v = u + at = 0 + 4*6 = 24 m/s.
-This is extremely important for the interactive step reveal!]
-
-### 🧠 Stepwise Explanation
-[Explain the concepts, theories, and logical reasoning behind the solution. Break it down so a student can easily understand *why* we took each step.]
-
-### 💡 Guru Ji ka Tip
-[Provide an academic tip, JEE/NEET/Board exam advice, a shortcut trick, or a common mistake to avoid related to this type of problem.]`;
+   - Use standard LaTeX notation (enclosed in $$ for block math or $ or \\( \\) for inline math) for mathematics and equations.
+   - For diagrams, flowcharts, or drawings, generate beautiful, self-contained SVG elements inside standard <svg>...</svg> tags. Ensure the SVG has sensible dimensions, viewBox, responsive styling, and colors so it renders nicely on both light and dark themes. Write valid, clean SVG code.
+3. FORMATTING: Use clean GitHub Flavored Markdown (headings, lists, bold text, code blocks) to structure your response. Do NOT use any artificial card-splitting headers (like '### 📝 Extracted Question', '### 🧮 Step-by-Step Solution', etc.) and do NOT use '[STEP]' delimiters. Just write a continuous, cohesive, and premium academic answer.`;
 
         // Attempt 1: Gemini Streaming
         if (geminiApiKey) {
@@ -336,23 +315,23 @@ This is extremely important for the interactive step reveal!]
           let solution = '';
           if (isPdf || activeImage) {
             if (language.toUpperCase() === 'HINGLISH') {
-              solution = `### 📝 Extracted Question
+              solution = `### Extracted Question
 Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
 
 ---
 
-### 🧮 Step-by-Step Solution
+### Solution & Explanation
 1. **Given values**:
    * Mass (m) = 5 kg
    * Force (F) = 20 N
    * Initial velocity (u) = 0 m/s (from rest)
    * Time (t) = 6 seconds
-[STEP]
+
 2. **Acceleration (a) nikalna**:
    Newton's Second Law se:
    👉 **F = m * a**
    👉 **a = F / m = 20 / 5 = 4 m/s²**
-[STEP]
+
 3. **Final Velocity (v) nikalna**:
    First Equation of Motion se:
    👉 **v = u + a * t**
@@ -362,32 +341,32 @@ Solve the following physics problem: An object of mass 5 kg is accelerated from 
 
 ---
 
-### 🧠 Stepwise Explanation
+### Stepwise Explanation
 * **Step 1**: Sabse pehle humne Newton ka dusra niyam use kiya jisse force aur mass ki help se acceleration (acceleration = force / mass) nikala.
 * **Step 2**: Acceleration nikalne ke baad, humne kinematics ki pehli equation (v = u + at) use ki velocity calculate karne ke liye. Kyonki body rest se start ho rahi thi, u = 0 tha.
 
 ---
 
-### 💡 Guru Ji ka Tip
+### ST Guru ji's Tip
 JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use kg me convert karna na bhulein!`;
             } else if (language.toUpperCase() === 'HINDI') {
-              solution = `### 📝 निकाला गया प्रश्न
+              solution = `### निकाला गया प्रश्न
 भौतिकी प्रश्न हल करें: 5 kg द्रव्यमान की एक वस्तु को विरामवस्था से 20 N के बल द्वारा त्वरित किया जाता है। 6 सेकंड के बाद उसका वेग ज्ञात कीजिए।
 
 ---
 
-### 🧮 चरण-दर-चरण समाधान
+### समाधान और व्याख्या
 1. **दिए गए मान**:
    * द्रव्यमान (m) = 5 kg
    * बल (F) = 20 N
    * प्रारंभिक वेग (u) = 0 m/s (विरामवस्था से)
    * समय (t) = 6 सेकंड
-[STEP]
+
 2. **त्वरण (a) की गणना**:
    न्यूटन के द्वितीय नियम से:
    👉 **F = m * a**
    👉 **a = F / m = 20 / 5 = 4 m/s²**
-[STEP]
+
 3. **अंतिम वेग (v) की गणना**:
    गति के प्रथम समीकरण से:
    👉 **v = u + a * t**
@@ -397,32 +376,32 @@ JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use 
 
 ---
 
-### 🧠 चरण-दर-चरण व्याख्या
+### चरण-दर-चरण व्याख्या
 * **चरण 1**: सबसे पहले हमने न्यूटन के गति के दूसरे नियम का उपयोग किया ताकि द्रव्यमान और बल की मदद से त्वरण ज्ञात किया जा सके।
 * **चरण 2**: त्वरण प्राप्त करने के बाद, हमने अंतिम वेग प्राप्त करने के लिए गति के पहले समीकरण (v = u + at) का उपयोग किया।
 
 ---
 
-### 💡 गुरु जी की सलाह (Tip)
+### ST Guru ji की सलाह (Tip)
 बोर्ड और प्रतियोगी परीक्षाओं में हमेशा मात्रकों (Units) का ध्यान रखें। यदि बल CGS मात्रक (dyne) में हो, तो गणना से पहले उसे SI मात्रक में बदलें।`;
             } else {
-              solution = `### 📝 Extracted Question
+              solution = `### Extracted Question
 Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
 
 ---
 
-### 🧮 Step-by-Step Solution
+### Solution & Explanation
 1. **Given values**:
    * Mass (m) = 5 kg
    * Force (F) = 20 N
    * Initial velocity (u) = 0 m/s (starts from rest)
    * Time (t) = 6 seconds
-[STEP]
+
 2. **Calculate Acceleration (a)**:
    Using Newton's Second Law:
    👉 **F = m * a**
    👉 **a = F / m = 20 / 5 = 4 m/s²**
-[STEP]
+
 3. **Calculate Final Velocity (v)**:
    Using the First Equation of Motion:
    👉 **v = u + a * t**
@@ -432,13 +411,13 @@ Solve the following physics problem: An object of mass 5 kg is accelerated from 
 
 ---
 
-### 🧠 Stepwise Explanation
+### Stepwise Explanation
 * **Step 1**: We first apply Newton's second law of motion (F = m * a) to find the acceleration of the object, which is 4 m/s².
 * **Step 2**: Since the acceleration is constant, we apply the first kinematic equation v = u + a * t to compute the final velocity. As the object starts from rest, u is 0.
 
 ---
 
-### 💡 Guru Ji's Tip
+### ST Guru ji's Tip
 For competitive exams like JEE/NEET, check whether the force is constant. If force is a function of time F(t), acceleration will also vary, and you'll need to integrate instead of using standard kinematics formulas!`;
             }
           } else {
@@ -472,8 +451,8 @@ For competitive exams like JEE/NEET, check whether the force is constant. If for
       }
     });
   } catch (error: any) {
-    console.error('Guru Ji AI error:', error);
-    return new Response(new TextEncoder().encode("❌ Failed to seek guidance from Guru Ji: " + error.message), { status: 500 });
+    console.error('ST Guru ji AI error:', error);
+    return new Response(new TextEncoder().encode("❌ Failed to seek guidance from ST Guru ji: " + error.message), { status: 500 });
   }
 }
 
@@ -537,7 +516,7 @@ Chalo ek quadratic equation solve karte hain: **x² - 5x + 6 = 0**
 
 ---
 
-**💡 Guru Ji ka Maha-Tip:**
+**💡 ST Guru ji ka Maha-Tip:**
 Apne answers ko verify karne ke liye humesha ye trick check karo:
 * **Roots ka Sum (x₁ + x₂)** = -b/a  ➡  (2 + 3 = 5, jo ki -(-5)/1 ke barabar hai!)
 * **Roots ka Product (x₁ × x₂)** = c/a  ➡  (2 × 3 = 6, jo ki 6/1 ke barabar hai!)`;
@@ -623,7 +602,7 @@ Let us solve the quadratic equation: **x² - 5x + 6 = 0**
 
 ---
 
-**💡 Guru Ji's Academic Tip:**
+**💡 ST Guru ji's Academic Tip:**
 Always double check using root coefficients relations:
 * **Sum of roots (x₁ + x₂)** = -b/a = 5
 * **Product of roots (x₁ × x₂)** = c/a = 6`;
@@ -654,7 +633,7 @@ Photosynthesis **Chloroplast** ke andar hota hai aur iske do main stages hote ha
 
 ---
 
-**💡 Guru Ji ka Tip:**
+**💡 ST Guru ji ka Tip:**
 Yaad rakhna, **Light Reaction** energy-generating phase hai (isne ATP aur NADPH banaya) aur **Dark Reaction** sugar-manufacturing phase hai. Plants glucose ko Starch ke roop me store karte hain!`;
     }
 
@@ -708,7 +687,7 @@ It occurs inside the **Chloroplasts** in two distinct stages:
 
 ---
 
-**💡 Guru Ji's Tip:**
+**💡 ST Guru ji's Tip:**
 Think of the **Light Reaction** as the *energy factory* (charges up ATP/NADPH batteries) and the **Dark Reaction** as the *assembly line* (uses the batteries to manufacture sugar)!`;
   }
 
@@ -741,7 +720,7 @@ Sir Isaac Newton ne classical mechanics ke base par 3 sabse important laws diye 
 
 ---
 
-**💡 Guru Ji ka IIT-JEE/NEET Tip:**
+**💡 ST Guru ji ka IIT-JEE/NEET Tip:**
 Jab bhi newton's second law ke sums solve karo, sabse pehle **FBD (Free Body Diagram)** banao! Object ko point mass mano aur saare forces (Gravity, Tension, Normal, Friction) draw karo, phir equation F_net = m·a use karo!`;
     }
 
@@ -802,7 +781,7 @@ Formulated by Sir Isaac Newton, these three laws describe the relationship betwe
 
 ---
 
-**💡 Guru Ji's Tip:**
+**💡 ST Guru ji's Tip:**
 When solving mechanics problems for competitive examinations, **ALWAYS draw a Free Body Diagram (FBD)**. Isolate the mass, trace all active forces (gravity, normal support, tension, friction), and set up the F = m·a balance.`;
   }
 
@@ -830,7 +809,7 @@ Modern Periodic Table elements ko unke atomic numbers ke basis par organize kart
 
 ---
 
-**💡 Guru Ji ka Chemical Tip:**
+**💡 ST Guru ji ka Chemical Tip:**
 Exam me humesha pucha jane wala trick question: **Chlorine (Cl) ki Electron Gain Enthalpy Fluorine (F) se jyada negative hoti hai!** Fluorine ka size chota hone ke karan usme high electron repulsion hota hai, isliye Chlorine easily electron accept kar leta hai.`;
     }
 
@@ -883,13 +862,13 @@ The modern periodic table organizes chemical elements by atomic number, displayi
 
 ---
 
-**💡 Guru Ji's Chemistry Tip:**
+**💡 ST Guru ji's Chemistry Tip:**
 Watch out for exceptions! **Chlorine (Cl) has a higher electron affinity than Fluorine (F)**, because F's extremely small size creates high electron-electron repulsion, making incoming electron acceptance slightly less favorable than Cl.`;
   }
 
   // 5. FALLBACK / GENERAL DYNAMIC SOLVER
   if (lang === 'HINGLISH') {
-    return `### 🧠 Digital Guru Ji Solution & Academic Guidance
+    return `### 🧠 Digital ST Guru ji Solution & Academic Guidance
 
 Aapke is query ko systematically analyze karte hain:
 💬 *"${q}"*
@@ -908,14 +887,14 @@ Aapke is query ko systematically analyze karte hain:
 
 ---
 
-**💡 Guru Ji ka aashirwad aur recommendation:**
+**💡 ST Guru ji ka aashirwad aur recommendation:**
 * NCERT aur key textbooks ke solved examples ko pehle acche se lagayein.
 * Apni doubts ko chota mat samjhein. Practice aur daily revisions se physics/maths bohot strong ho jati hai!
 * **Aise hi sawal puchte rahein!** Har ek question aapke basic concept ko aur bhi jyada majboot banata hai. All the best!`;
   }
 
   if (lang === 'HINDI') {
-    return `### 🧠 डिजिटल गुरु जी: अकादमिक समाधान
+    return `### 🧠 डिजिटल ST Guru ji: अकादमिक समाधान
 
 आपके द्वारा पूछे गए प्रश्न का चरण-दर-चरण विश्लेषण निम्नलिखित है:
 💬 *"${q}"*
@@ -934,13 +913,13 @@ Aapke is query ko systematically analyze karte hain:
 
 ---
 
-**💡 गुरु जी का मार्गदर्शन:**
+**💡 ST Guru ji का मार्गदर्शन:**
 * मूलभूत अवधारणाओं को सुदृढ़ करने के लिए मानक पाठ्यपुस्तकों (NCERT, HC Verma आदि) के उदाहरणों को स्वयं हल करें।
 * नियमित अभ्यास और निरंतर शंका समाधान (doubt solving) से हर कठिन विषय भी सरल हो जाता है।
 * **संदेह पूछने में संकोच न करें!** प्रश्न पूछना आपके सीखने की उत्सुकता को दर्शाता है। आपका भविष्य उज्ज्वल हो!`;
   }
 
-  return `### 🧠 Digital Guru Ji: Academic Expert Response
+  return `### 🧠 Digital ST Guru ji: Academic Expert Response
 
 Let us systematically analyze your academic query:
 💬 *"${q}"*
@@ -959,7 +938,7 @@ Let us systematically analyze your academic query:
 
 ---
 
-**💡 Guru Ji's Academic Recommendation:**
+**💡 ST Guru ji's Academic Recommendation:**
 * Supplement your preparation by solving standard reference textbook exercises.
 * Complex queries are best solved when broken down into smaller sub-problems.
 * **Keep seeking knowledge!** Every query you ask refines your analytical reasoning. You are on the correct path to success!`;

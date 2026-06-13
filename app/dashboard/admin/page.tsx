@@ -120,7 +120,7 @@ function AdminDashboardContent() {
   const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions'>('menu');
   const [lectureSubTab, setLectureSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
-  const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES'>('ALL');
+  const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES' | 'PENDING_FEES'>('ALL');
   const [statementMonth, setStatementMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
   const [statementYear, setStatementYear] = useState(String(new Date().getFullYear()));
   const [isLedgerListOpen, setIsLedgerListOpen] = useState(true);
@@ -525,15 +525,19 @@ function AdminDashboardContent() {
     }
   };
 
-   const renderAdminSimpleLines = (text: string, baseKey: any, animate: boolean = false) => {
+    const renderAdminSimpleLines = (text: string, baseKey: any, animate: boolean = false) => {
     return text.split('\n').map((line, idx) => {
       let lineText = line.trim();
       if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.3rem' }} />;
       
+      // Markdown Images: ![alt](url)
+      lineText = lineText.replace(/!\[(.*?)\]\((.*?)\)/gi, '<img src="$2" alt="$1" style="max-width:100%; border-radius:8px; margin: 0.5rem 0; display:block; box-shadow:var(--shadow-sm);" />');
+      // Markdown Links: [label](url)
+      lineText = lineText.replace(/\[(.*?)\]\((.*?)\)/gi, '<a href="$2" target="_blank" rel="noreferrer" style="color:var(--primary);text-decoration:underline;font-weight:600;">$1</a>');
       // Bold formatting
       lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       // Inline code formatting
-      lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:#ef4444;font-weight:600;">$1</code>');
+      lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
 
       if (lineText.startsWith('👉 ')) {
         return (
@@ -561,135 +565,50 @@ function AdminDashboardContent() {
   };
 
   const formatAdminGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0, isNew: boolean = false) => {
-    if (content.includes('### ')) {
-      const sections = content.split(/(?=###\s+)/); // split but keep the header
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', width: '100%', alignItems: 'flex-start' }}>
-          {sections.map((section, idx) => {
-            const lines = section.trim().split('\n');
-            const headerLine = lines[0] || '';
-            const bodyText = lines.slice(1).join('\n').trim();
-            if (!headerLine.startsWith('### ')) {
-              return <div key={idx}>{renderAdminSimpleLines(section, idx, isNew)}</div>;
-            }
+    if (!content) return null;
 
-            const headerTitle = headerLine.replace('### ', '').trim();
-            
-            let cardStyle: React.CSSProperties = {
-              borderRadius: '12px',
-              padding: '0.4rem 0.65rem',
-              border: '1px solid var(--border)',
-              background: 'var(--surface-light)',
-              boxShadow: 'var(--shadow-sm)',
-              width: 'fit-content',
-              maxWidth: '100%',
-              boxSizing: 'border-box'
-            };
-            let headerColor = '#f59e0b';
-
-            if (headerTitle.includes('Question') || headerTitle.includes('प्रश्न')) {
-              cardStyle.background = 'rgba(239, 68, 68, 0.04)';
-              cardStyle.borderLeft = '4px solid #ef4444';
-              headerColor = '#ef4444';
-            } else if (headerTitle.includes('Solution') || headerTitle.includes('समाधान')) {
-              cardStyle.background = 'rgba(16, 185, 129, 0.03)';
-              cardStyle.borderLeft = '4px solid #10b981';
-              headerColor = '#059669';
-
-              // Parse steps and implement stepwise reveal
-              const steps = bodyText.split('[STEP]').map(s => s.trim()).filter(Boolean);
-              const visibleSteps = steps.slice(0, revealedSteps);
-              const hasMoreSteps = revealedSteps < steps.length;
-
-              return (
-                <div key={idx} style={cardStyle} className="guru-response-card">
-                  <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
-                    {headerTitle}
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    {visibleSteps.map((stepText, sIdx) => {
-                      const shouldAnimateStep = isNew && (sIdx === revealedSteps - 1);
-                      return (
-                        <div key={sIdx} className="guru-card-text">
-                          {renderAdminSimpleLines(stepText, idx + '_step_' + sIdx, shouldAnimateStep)}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {hasMoreSteps && (
-                    <button 
-                      onClick={() => {
-                        setAdminGuruHistory(prev => prev.map((m, mIdx) => {
-                          if (mIdx === messageIndex) {
-                            return { ...m, revealedSteps: (m.revealedSteps || 1) + 1 };
-                          }
-                          return m;
-                        }));
-                      }}
-                      style={{
-                        marginTop: '0.4rem',
-                        padding: '0.3rem 0.8rem',
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '24px',
-                        cursor: 'pointer',
-                        fontSize: '0.78rem',
-                        fontWeight: '700',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: '0 2px 8px rgba(239,68,68,0.25)',
-                        transition: 'all 0.2s',
-                        width: 'fit-content'
-                      }}
-                    >
-                      👣 Show Next Step ({revealedSteps}/{steps.length})
-                    </button>
-                  )}
-                </div>
-              );
-            } else if (headerTitle.includes('Explanation') || headerTitle.includes('व्याख्या')) {
-              cardStyle.background = 'rgba(139, 92, 246, 0.03)';
-              cardStyle.borderLeft = '4px solid #8b5cf6';
-              headerColor = '#7c3aed';
-            } else if (headerTitle.includes('Tip') || headerTitle.includes('सलाह')) {
-              cardStyle.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%)';
-              cardStyle.borderLeft = '4px solid #f59e0b';
-              cardStyle.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.05)';
-              headerColor = '#d97706';
-            }
-
-            return (
-              <div key={idx} style={cardStyle} className="guru-response-card">
-                <h4 style={{ margin: '0 0 0.15rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: headerColor, fontSize: '0.88rem', fontWeight: 800 }}>
-                  {headerTitle}
-                </h4>
-                <div className="guru-card-text">
-                  {renderAdminSimpleLines(bodyText, idx + '_body', isNew)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
+    // Split content into blocks of SVG and normal text
+    const parts = content.split(/(<svg[\s\S]*?<\/svg>)/gi);
 
     return (
       <div style={{
-        borderRadius: '12px',
-        padding: '0.4rem 0.65rem',
+        borderRadius: '16px',
+        padding: '0.75rem 1rem',
         border: '1px solid var(--border)',
         background: 'var(--surface-light)',
         boxShadow: 'var(--shadow-sm)',
-        width: 'fit-content',
-        maxWidth: '100%',
+        width: '100%',
         boxSizing: 'border-box'
-      }} className="guru-response-card">
-        <div className="guru-card-text">
-          {renderAdminSimpleLines(content, 0, isNew)}
-        </div>
+      }} className="guru-response-card animate-fade-in">
+        {parts.map((part, idx) => {
+          const isSvg = part.trim().toLowerCase().startsWith('<svg') && part.trim().toLowerCase().endsWith('</svg>');
+          if (isSvg) {
+            return (
+              <div 
+                key={idx} 
+                className="guru-svg-container"
+                style={{ 
+                  margin: '0.75rem 0', 
+                  background: 'rgba(255,255,255,0.03)', 
+                  padding: '1.25rem', 
+                  borderRadius: '12px', 
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  overflowX: 'auto',
+                  maxWidth: '100%'
+                }} 
+                dangerouslySetInnerHTML={{ __html: part.trim() }} 
+              />
+            );
+          }
+          return (
+            <div key={idx} className="guru-card-text" style={{ fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5 }}>
+              {renderAdminSimpleLines(part, idx, isNew)}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -3162,7 +3081,7 @@ function AdminDashboardContent() {
              tab === 'finances' ? 'Finances & Fees' :
              tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
-             tab === 'guru-ai' ? 'Guru Ji' :
+             tab === 'guru-ai' ? 'ST Guru ji' :
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
@@ -3219,8 +3138,7 @@ function AdminDashboardContent() {
       {/* Academic Services Menu Dashboard */}
       {activeTab === 'academics' && academicSubTab === 'menu' && (
         <div className="glass-card animate-fade-in" style={{ padding: '2.5rem', border: '1px solid var(--border)', marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.5rem', color: '#ef4444' }}>🎓 Academic Services</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem' }}>Streamline your academy's classes, syllabus uploads, schedules, exams, and performance metrics.</p>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '1.5rem', color: '#ef4444' }}>🎓 Academic Services</h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
             {[
@@ -3739,8 +3657,8 @@ function AdminDashboardContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
+              <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '0.5rem', marginBottom: '2rem', width: '100%', alignItems: 'stretch' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '120px' }}>
                   <input 
                     type="text" 
                     placeholder="Search by Name or ID (e.g. Rahul, STU12345)..." 
@@ -3835,7 +3753,7 @@ function AdminDashboardContent() {
                   onClick={handleSearchDirectory} 
                   disabled={isSearching} 
                   style={{ 
-                    padding: '0.75rem 2rem',
+                    padding: '0.75rem 1.5rem',
                     background: 
                       directoryFilter === 'STUDENT' ? '#2563eb' : 
                       directoryFilter === 'TEACHER' ? '#10b981' : 
@@ -3846,10 +3764,11 @@ function AdminDashboardContent() {
                     borderRadius: '8px',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    flexShrink: 0
                   }}
                 >
-                  {isSearching ? "Searching..." : "Search"}
+                  {isSearching ? "..." : "Search"}
                 </button>
               </div>
 
@@ -4304,56 +4223,20 @@ function AdminDashboardContent() {
                                 setSelectedUserDetail(s);
                               }}
                               style={{
-                                padding: '0.85rem 1.25rem',
-                                borderRadius: '10px',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '6px',
                                 cursor: 'pointer',
-                                transition: 'all 0.2s',
+                                fontSize: '0.85rem',
+                                color: 'var(--text)',
                                 display: 'flex',
-                                alignItems: 'center',
                                 justifyContent: 'space-between',
-                                gap: '1rem',
-                                borderBottom: '1px solid rgba(255,255,255,0.02)'
+                                borderBottom: '1px solid rgba(255,255,255,0.01)'
                               }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                                e.currentTarget.style.transform = 'translateX(5px)';
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.transform = 'translateX(0)';
-                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '1px solid var(--primary)', fontSize: '0.9rem', flexShrink: 0 }}>
-                                  {(s.name || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>{s.name}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                    <span>ID: <strong>{s.username}</strong></span>
-                                    {s.studentProfile?.className && (
-                                      <>
-                                        <span style={{ opacity: 0.5 }}>•</span>
-                                        <span>Class: {s.studentProfile.className}</span>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <button 
-                                className="btn-primary"
-                                style={{
-                                  padding: '6px 14px',
-                                  fontSize: '0.75rem',
-                                  borderRadius: '8px',
-                                  fontWeight: 800,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '3px'
-                                }}
-                              >
-                                📋 View Statement
-                              </button>
+                              <span>{s.name}</span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</span>
                             </div>
                           ));
                         })()}
@@ -4419,11 +4302,27 @@ function AdminDashboardContent() {
                       >
                         Assigned Fees
                       </button>
+                      <button
+                        onClick={() => setLedgerViewMode('PENDING_FEES')}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: ledgerViewMode === 'PENDING_FEES' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                          color: ledgerViewMode === 'PENDING_FEES' ? 'white' : 'var(--text)',
+                          border: ledgerViewMode === 'PENDING_FEES' ? 'none' : '1px solid var(--border)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        Pending Fees
+                      </button>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    {ledgerViewMode === 'ALL' && (
+                    {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (
                       <div style={{ position: 'relative', display: 'flex', gap: '1rem' }}>
                         <input 
                           type="text" 
@@ -4576,8 +4475,8 @@ function AdminDashboardContent() {
                   </div>
                 ) : (
                   <div style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem', width: '100%' }}>
-                    {/* View Mode 1: ALL RECORDS */}
-                    {ledgerViewMode === 'ALL' && (
+                    {/* View Mode 1: ALL RECORDS OR PENDING FEES */}
+                    {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (
                       <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -4607,7 +4506,8 @@ function AdminDashboardContent() {
                                 (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
                                 (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
                                 (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`);
-                              return matchesSearch && matchesMonth;
+                              const matchesStatus = ledgerViewMode === 'ALL' || f.status === 'PENDING';
+                              return matchesSearch && matchesMonth && matchesStatus;
                             });
 
                             if (filteredFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching fee records found.</td></tr>;
@@ -4852,8 +4752,7 @@ function AdminDashboardContent() {
 
           {financeSubTab === 'ASSIGN' && (
             <div className="glass-card" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>Assign New Fee</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Create a custom charge item for an individual student or assign a recurring fee structure to an entire batch.</p>
+              <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 800 }}>Assign New Fee</h3>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
                 <button 
@@ -6380,16 +6279,16 @@ function AdminDashboardContent() {
           }}
         >
           {/* Academic Assistant Header with Tab Switcher */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.6rem 1rem', background: 'var(--surface-light)' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)', animation: 'pulse 2s infinite' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.4rem 1rem', background: 'var(--surface-light)' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)', animation: 'pulse 2s infinite' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg>
               </div>
               <div className="mobile-hide">
-                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444', margin: 0, whiteSpace: 'nowrap' }}>Guru Ji</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '2px 0 0 0' }}>Digital Sahayak • Online</p>
+                <h2 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ef4444', margin: 0, whiteSpace: 'nowrap' }}>ST Guru ji</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.6rem', margin: '1px 0 0 0' }}>Digital Sahayak • Online</p>
               </div>
             </div>
 
@@ -6843,7 +6742,7 @@ function AdminDashboardContent() {
                   <input 
                     type="text"
                     className="guru-input-field"
-                    placeholder={adminIsTranscribing ? "🎙️ Transcribing voice query..." : adminIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask Guru Ji a question, upload a PDF/Photo..."} 
+                    placeholder={adminIsTranscribing ? "🎙️ Transcribing voice query..." : adminIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask ST Guru ji a question, upload a PDF/Photo..."} 
                     value={adminGuruQuestion}
                     onChange={(e) => setAdminGuruQuestion(e.target.value)}
                     disabled={adminIsTranscribing || adminIsRecording}
@@ -7022,7 +6921,7 @@ function AdminDashboardContent() {
                   <div style={{ textAlign: 'center' }}>
                     <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 800 }}>Generating Presentation Slides...</h4>
                     <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '300px', lineHeight: 1.5 }}>
-                      Guru Ji is parsing topic curriculum and structuring premium slide layouts. Please wait.
+                      ST Guru ji is parsing topic curriculum and structuring premium slide layouts. Please wait.
                     </p>
                   </div>
                 </div>
