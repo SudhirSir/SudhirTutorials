@@ -3138,7 +3138,7 @@ function AdminDashboardContent() {
       {/* Academic Services Menu Dashboard */}
       {activeTab === 'academics' && academicSubTab === 'menu' && (
         <div className="glass-card animate-fade-in" style={{ padding: '2.5rem', border: '1px solid var(--border)', marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '1.5rem', color: '#ef4444' }}>🎓 Academic Services</h2>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--text)' }}>🎓 Academic Services</h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
             {[
@@ -3657,119 +3657,96 @@ function AdminDashboardContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '0.5rem', marginBottom: '2rem', width: '100%', alignItems: 'stretch' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: '120px' }}>
-                  <input 
-                    type="text" 
-                    placeholder="Search by Name or ID (e.g. Rahul, STU12345)..." 
-                    value={searchQuery}
-                    onChange={e => {
-                      setSearchQuery(e.target.value);
-                      setShowDirSuggestions(true);
-                    }}
-                    onFocus={() => setShowDirSuggestions(true)}
-                    onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
-                    style={{ 
-                      width: '100%',
-                      padding: '0.75rem 1rem', 
-                      borderRadius: '8px', 
-                      background: 'var(--input-bg)', 
-                      border: `1px solid ${
-                        directoryFilter === 'STUDENT' ? 'rgba(59, 130, 246, 0.4)' : 
-                        directoryFilter === 'TEACHER' ? 'rgba(16, 185, 129, 0.4)' : 
-                        directoryFilter === 'ADMIN' ? 'rgba(239, 68, 68, 0.4)' : 
-                        'var(--border)'
-                      }`, 
-                      color: 'var(--text)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  />
-                  {showDirSuggestions && searchQuery.trim() && (
-                    <>
-                      <div 
-                        onClick={() => setShowDirSuggestions(false)} 
-                        style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        background: 'var(--surface)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '12px',
-                        marginTop: '0.5rem',
-                        maxHeight: '250px',
-                        overflowY: 'auto',
-                        zIndex: 9999,
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                        padding: '0.5rem'
-                      }}>
-                        {(() => {
-                          const matches = directoryUsers
-                            .filter(u => directoryFilter === 'ALL' || u.role === directoryFilter)
-                            .filter(u => 
-                              u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              u.username?.toLowerCase().includes(searchQuery.toLowerCase())
-                            );
-                          if (matches.length === 0) {
-                            return (
-                              <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
-                                No users found
-                              </div>
-                            );
-                          }
-                          return matches.map(s => (
-                            <div 
-                              key={s.id}
-                              onClick={() => {
-                                setSearchQuery(s.username || s.name || '');
-                                setShowDirSuggestions(false);
-                                setSelectedUserDetail(s);
-                              }}
-                              style={{
-                                padding: '0.5rem 0.75rem',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '0.85rem',
-                                color: 'var(--text)',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                borderBottom: '1px solid rgba(255,255,255,0.01)'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
-                              <span>{s.name} ({s.username})</span>
-                              <span className="role-badge" style={{ fontSize: '0.65rem', background: s.role === 'STUDENT' ? 'rgba(59, 130, 246, 0.15)' : s.role === 'TEACHER' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: s.role === 'STUDENT' ? '#3b82f6' : s.role === 'TEACHER' ? '#10b981' : '#ef4444' }}>{s.role}</span>
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <button 
-                  onClick={handleSearchDirectory} 
-                  disabled={isSearching} 
-                  style={{ 
-                    padding: '0.75rem 1.5rem',
-                    background: 
-                      directoryFilter === 'STUDENT' ? '#2563eb' : 
-                      directoryFilter === 'TEACHER' ? '#10b981' : 
-                      directoryFilter === 'ADMIN' ? '#ef4444' : 
-                      'var(--primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    flexShrink: 0
+              <div style={{ position: 'relative', width: '100%', maxWidth: '600px', marginBottom: '2rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Search by Name or ID (e.g. Rahul, STU12345)..." 
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    setShowDirSuggestions(true);
                   }}
-                >
-                  {isSearching ? "..." : "Search"}
-                </button>
+                  onFocus={() => setShowDirSuggestions(true)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearchDirectory()}
+                  style={{ 
+                    width: '100%',
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '8px', 
+                    background: 'var(--input-bg)', 
+                    border: `1px solid ${
+                      directoryFilter === 'STUDENT' ? 'rgba(59, 130, 246, 0.4)' : 
+                      directoryFilter === 'TEACHER' ? 'rgba(16, 185, 129, 0.4)' : 
+                      directoryFilter === 'ADMIN' ? 'rgba(239, 68, 68, 0.4)' : 
+                      'var(--border)'
+                    }`, 
+                    color: 'var(--text)',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+                {showDirSuggestions && searchQuery.trim() && (
+                  <>
+                    <div 
+                      onClick={() => setShowDirSuggestions(false)} 
+                      style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      marginTop: '0.5rem',
+                      maxHeight: '250px',
+                      overflowY: 'auto',
+                      zIndex: 9999,
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                      padding: '0.5rem'
+                    }}>
+                      {(() => {
+                        const matches = directoryUsers
+                          .filter(u => directoryFilter === 'ALL' || u.role === directoryFilter)
+                          .filter(u => 
+                            u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            u.username?.toLowerCase().includes(searchQuery.toLowerCase())
+                          );
+                        if (matches.length === 0) {
+                          return (
+                            <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
+                              No users found
+                            </div>
+                          );
+                        }
+                        return matches.map(s => (
+                          <div 
+                            key={s.id}
+                            onClick={() => {
+                              setSearchQuery(s.name || '');
+                              setShowDirSuggestions(false);
+                              setSelectedUserDetail(s);
+                            }}
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              color: 'var(--text)',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              borderBottom: '1px solid rgba(255,255,255,0.01)'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span>{s.name} <small style={{ color: 'var(--text-muted)', marginLeft: '0.25rem' }}>({s.role})</small></span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
@@ -3861,8 +3838,7 @@ function AdminDashboardContent() {
 
           {userSubTab === 'CREATE' && (
             <div className="glass-card" style={{ padding: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Create New Users</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Generate auto-IDs (FAC* / STU*) for new teachers and students. The system will automatically generate an initial secure password.</p>
+              <h2 style={{ fontSize: '1.5rem', marginBottom: '2.25rem' }}>Create New Users</h2>
               
               {createdUser && (
                 <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
@@ -4230,13 +4206,30 @@ function AdminDashboardContent() {
                                 color: 'var(--text)',
                                 display: 'flex',
                                 justifyContent: 'space-between',
+                                alignItems: 'center',
                                 borderBottom: '1px solid rgba(255,255,255,0.01)'
                               }}
                               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
                               <span>{s.name}</span>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</span>
+                                <button
+                                  style={{
+                                    padding: '2px 6px',
+                                    fontSize: '0.68rem',
+                                    borderRadius: '4px',
+                                    border: '1px solid var(--primary)',
+                                    background: 'rgba(99,102,241,0.1)',
+                                    color: 'var(--primary)',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  View
+                                </button>
+                              </div>
                             </div>
                           ));
                         })()}
@@ -6335,12 +6328,33 @@ function AdminDashboardContent() {
             </div>
 
             {aiMode === 'GURU' ? (
-              <button 
-                onClick={() => setAdminGuruHistory([])}
-                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                🧹 Clear
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <select
+                  value={adminGuruLanguage}
+                  onChange={(e) => setAdminGuruLanguage(e.target.value as any)}
+                  style={{
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    padding: '4px 8px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="ENGLISH">🇬🇧 English</option>
+                  <option value="HINDI">🇮🇳 Hindi</option>
+                  <option value="HINGLISH">🇮🇳 Hinglish</option>
+                </select>
+                <button 
+                  onClick={() => setAdminGuruHistory([])}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  🧹 Clear
+                </button>
+              </div>
             ) : (
               <div style={{ width: '40px' }} />
             )}
@@ -9010,7 +9024,6 @@ function AdminDashboardContent() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>💵 Staff Salary Ledger & Payroll</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>Manage monthly payouts, contract values, and teacher expense logging</p>
             </div>
             <button 
               onClick={() => setShowAssignSalaryForm(!showAssignSalaryForm)}

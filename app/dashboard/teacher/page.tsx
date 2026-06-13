@@ -2113,12 +2113,33 @@ function TeacherDashboardContent() {
             </div>
 
             {aiMode === 'GURU' ? (
-              <button 
-                onClick={() => setTeacherGuruHistory([])}
-                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                🧹 Clear
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <select
+                  value={teacherGuruLanguage}
+                  onChange={(e) => setTeacherGuruLanguage(e.target.value as any)}
+                  style={{
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    padding: '4px 8px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="ENGLISH">🇬🇧 English</option>
+                  <option value="HINDI">🇮🇳 Hindi</option>
+                  <option value="HINGLISH">🇮🇳 Hinglish</option>
+                </select>
+                <button 
+                  onClick={() => setTeacherGuruHistory([])}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  🧹 Clear
+                </button>
+              </div>
             ) : (
               <div style={{ width: '40px' }} />
             )}
