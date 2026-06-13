@@ -22,7 +22,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
     }
 
-    let apiAttempted = false;
     let geminiApiKey = process.env.GEMINI_API_KEY || undefined;
     let groqApiKey = process.env.GROQ_API_KEY || undefined;
 
@@ -33,7 +32,6 @@ export async function POST(req: Request) {
     console.log("[PPT Route] API Keys present - Gemini:", !!geminiApiKey, "Groq:", !!groqApiKey);
 
     if (geminiApiKey) {
-      apiAttempted = true;
       try {
         const systemPrompt = `You are Digital Sahayak, a premium AI learning assistant for the prestigious institute 'Sudhir Tutorials'. 
 You generate highly detailed, educational slide decks. 
@@ -123,9 +121,8 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
       }
     }
     
-    if (!apiAttempted && groqApiKey) {
+    if (groqApiKey) {
       // Call Groq API (as Llama-3.3-70b-versatile or fallback)
-      apiAttempted = true;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000);
