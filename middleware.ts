@@ -40,7 +40,7 @@ export default withAuth(
     }
 
     // Protect Admin API routes
-    if (path.startsWith("/api/admin") && token?.role !== "ADMIN") {
+    if (path.startsWith("/api/admin") && !path.startsWith("/api/admin/ai/ppt") && token?.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
     }
 

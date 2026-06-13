@@ -1216,7 +1216,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                 onClick={(e) => e.stopPropagation()}
                                 style={{
                                 position: 'absolute',
-                                bottom: '100%',
+                                bottom: i < 3 ? 'auto' : '100%',
+                                top: i < 3 ? '100%' : 'auto',
                                 [isMe ? 'right' : 'left']: 0,
                                 background: 'var(--surface-light)',
                                 border: '1px solid var(--border)',
@@ -1228,7 +1229,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '2px',
-                                marginBottom: 4
+                                marginBottom: i < 3 ? 0 : 4,
+                                marginTop: i < 3 ? 4 : 0
                               }}>
                                 <button onClick={() => {
                                   navigator.clipboard.writeText(m.content);

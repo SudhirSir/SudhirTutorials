@@ -6335,7 +6335,7 @@ function AdminDashboardContent() {
                   }}
                   style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
-                  📜 History Menu
+                  📜 History
                 </button>
                 <button 
                   onClick={() => setAdminGuruHistory([])}
@@ -6688,114 +6688,116 @@ function AdminDashboardContent() {
 
                 {/* Bottom Chat Input Bar */}
                 <div className="guru-input-bar" style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
-                  {adminGuruFile && (
-                    <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-                      {adminGuruFile.startsWith('data:application/pdf') ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.75rem 2rem 0.75rem 1rem', borderRadius: '12px', color: '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
-                          <span style={{ fontSize: '1.25rem' }}>📄</span>
-                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }}>
-                            {adminGuruFileName || 'Document.pdf'}
-                          </span>
-                        </div>
-                      ) : (
-                        <img src={adminGuruFile} alt="Doubt Preview" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
-                      )}
-                      <button 
-                        onClick={() => {
-                          setAdminGuruFile(null);
-                          setAdminGuruFileName('');
-                        }}
+                  <div style={{ maxWidth: '680px', margin: '0 auto', width: '100%' }}>
+                    {adminGuruFile && (
+                      <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                        {adminGuruFile.startsWith('data:application/pdf') ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.75rem 2rem 0.75rem 1rem', borderRadius: '12px', color: '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
+                            <span style={{ fontSize: '1.25rem' }}>📄</span>
+                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }}>
+                              {adminGuruFileName || 'Document.pdf'}
+                            </span>
+                          </div>
+                        ) : (
+                          <img src={adminGuruFile} alt="Doubt Preview" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                        )}
+                        <button 
+                          onClick={() => {
+                            setAdminGuruFile(null);
+                            setAdminGuruFileName('');
+                          }}
+                          style={{ 
+                            position: 'absolute', top: '4px', right: '4px', 
+                            background: 'rgba(239, 68, 68, 0.85)', color: '#fff', 
+                            border: 'none', width: '20px', height: '20px', borderRadius: '50%', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', zIndex: 10
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                    <div className="guru-input-container" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '28px', padding: '0.65rem 0.8rem 0.65rem 1.1rem' }}>
+                      
+                      {/* Attachment Picker */}
+                      <label 
+                        className="attachment-btn guru-btn-circle"
                         style={{ 
-                          position: 'absolute', top: '4px', right: '4px', 
-                          background: 'rgba(239, 68, 68, 0.85)', color: '#fff', 
-                          border: 'none', width: '20px', height: '20px', borderRadius: '50%', 
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                          cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', zIndex: 10
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                          width: '36px', height: '36px', borderRadius: '50%', 
+                          background: 'var(--surface-light)', border: '1px solid var(--border)', 
+                          transition: 'all 0.2s', marginRight: '4px'
+                        }}
+                        title="Upload Doubt Image or PDF"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                        <input 
+                          type="file" 
+                          accept="image/*,application/pdf" 
+                          onChange={handleAdminGuruFileChange} 
+                          style={{ display: 'none' }} 
+                        />
+                      </label>
+
+                      {/* Voice Record Button */}
+                      <button 
+                        onClick={adminIsRecording ? stopAdminVoiceRecording : startAdminVoiceRecording}
+                        disabled={adminGuruLoading || adminIsTranscribing}
+                        className="attachment-btn guru-btn-circle"
+                        style={{ 
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                          width: '36px', height: '36px', borderRadius: '50%', 
+                          background: adminIsRecording ? 'rgba(239, 68, 68, 0.15)' : 'var(--surface-light)', 
+                          border: adminIsRecording ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)', 
+                          transition: 'all 0.2s', marginRight: '4px',
+                          color: adminIsRecording ? '#ef4444' : 'var(--text-muted)',
+                          animation: adminIsRecording ? 'pulse 1.5s infinite' : 'none'
+                        }}
+                        title={adminIsRecording ? "Stop Recording" : "Voice Doubt Query"}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                          <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                          <line x1="12" y1="19" x2="12" y2="22"/>
+                        </svg>
+                      </button>
+
+                      <input 
+                        type="text"
+                        className="guru-input-field"
+                        placeholder={adminIsTranscribing ? "🎙️ Transcribing voice query..." : adminIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask ST Guru ji a question, upload a PDF/Photo..."} 
+                        value={adminGuruQuestion}
+                        onChange={(e) => setAdminGuruQuestion(e.target.value)}
+                        disabled={adminIsTranscribing || adminIsRecording}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !adminGuruLoading && (adminGuruQuestion.trim() || adminGuruFile)) {
+                            askAdminGuru();
+                          }
+                        }}
+                        style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: adminIsRecording ? '#ef4444' : 'var(--text)', fontSize: '0.96rem', padding: '0.55rem 0', fontStyle: adminIsRecording || adminIsTranscribing ? 'italic' : 'normal' }}
+                      />
+                      <button 
+                        onClick={askAdminGuru}
+                        disabled={adminGuruLoading || (!adminGuruQuestion.trim() && !adminGuruFile) || adminIsRecording || adminIsTranscribing}
+                        className="guru-send-btn"
+                        style={{ 
+                          width: '40px', height: '40px', borderRadius: '50%', 
+                          background: (adminGuruQuestion.trim() || adminGuruFile) ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--border)', 
+                          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                          cursor: adminGuruLoading || (!adminGuruQuestion.trim() && !adminGuruFile) ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s',
+                          boxShadow: (adminGuruQuestion.trim() || adminGuruFile) ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
                         }}
                       >
-                        ✕
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
                       </button>
                     </div>
-                  )}
-                  <div className="guru-input-container" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '28px', padding: '0.65rem 0.8rem 0.65rem 1.1rem' }}>
-                    
-                    {/* Attachment Picker */}
-                    <label 
-                      className="attachment-btn guru-btn-circle"
-                      style={{ 
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        width: '36px', height: '36px', borderRadius: '50%', 
-                        background: 'var(--surface-light)', border: '1px solid var(--border)', 
-                        transition: 'all 0.2s', marginRight: '4px'
-                      }}
-                      title="Upload Doubt Image or PDF"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                      </svg>
-                      <input 
-                        type="file" 
-                        accept="image/*,application/pdf" 
-                        onChange={handleAdminGuruFileChange} 
-                        style={{ display: 'none' }} 
-                      />
-                    </label>
-
-                    {/* Voice Record Button */}
-                    <button 
-                      onClick={adminIsRecording ? stopAdminVoiceRecording : startAdminVoiceRecording}
-                      disabled={adminGuruLoading || adminIsTranscribing}
-                      className="attachment-btn guru-btn-circle"
-                      style={{ 
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        width: '36px', height: '36px', borderRadius: '50%', 
-                        background: adminIsRecording ? 'rgba(239, 68, 68, 0.15)' : 'var(--surface-light)', 
-                        border: adminIsRecording ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)', 
-                        transition: 'all 0.2s', marginRight: '4px',
-                        color: adminIsRecording ? '#ef4444' : 'var(--text-muted)',
-                        animation: adminIsRecording ? 'pulse 1.5s infinite' : 'none'
-                      }}
-                      title={adminIsRecording ? "Stop Recording" : "Voice Doubt Query"}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                        <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
-                        <line x1="12" y1="19" x2="12" y2="22"/>
-                      </svg>
-                    </button>
-
-                    <input 
-                      type="text"
-                      className="guru-input-field"
-                      placeholder={adminIsTranscribing ? "🎙️ Transcribing voice query..." : adminIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask ST Guru ji a question, upload a PDF/Photo..."} 
-                      value={adminGuruQuestion}
-                      onChange={(e) => setAdminGuruQuestion(e.target.value)}
-                      disabled={adminIsTranscribing || adminIsRecording}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !adminGuruLoading && (adminGuruQuestion.trim() || adminGuruFile)) {
-                          askAdminGuru();
-                        }
-                      }}
-                      style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: adminIsRecording ? '#ef4444' : 'var(--text)', fontSize: '0.96rem', padding: '0.55rem 0', fontStyle: adminIsRecording || adminIsTranscribing ? 'italic' : 'normal' }}
-                    />
-                    <button 
-                      onClick={askAdminGuru}
-                      disabled={adminGuruLoading || (!adminGuruQuestion.trim() && !adminGuruFile) || adminIsRecording || adminIsTranscribing}
-                      className="guru-send-btn"
-                      style={{ 
-                        width: '40px', height: '40px', borderRadius: '50%', 
-                        background: (adminGuruQuestion.trim() || adminGuruFile) ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--border)', 
-                        border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        cursor: adminGuruLoading || (!adminGuruQuestion.trim() && !adminGuruFile) ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: (adminGuruQuestion.trim() || adminGuruFile) ? '0 2px 8px rgba(239,68,68,0.3)' : 'none'
-                      }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                      </svg>
-                    </button>
                   </div>
                 </div>
               </div>
