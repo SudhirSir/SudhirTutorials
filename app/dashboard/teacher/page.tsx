@@ -676,7 +676,7 @@ function TeacherDashboardContent() {
       tempDiv.style.left = '0px';
       tempDiv.style.top = '0px';
       tempDiv.style.zIndex = '-9999';
-      tempDiv.style.opacity = '0.01';
+      tempDiv.style.opacity = '1';
       tempDiv.style.pointerEvents = 'none';
       tempDiv.style.width = '1120px';
       
@@ -2128,7 +2128,7 @@ function TeacherDashboardContent() {
             padding: '0', 
             display: 'flex', 
             flexDirection: 'column', 
-            height: 'calc(100vh - 120px)', 
+            height: 'calc(100vh - 170px)', 
             minHeight: '480px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 

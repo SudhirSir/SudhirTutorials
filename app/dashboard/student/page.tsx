@@ -1855,7 +1855,7 @@ function StudentDashboardContent() {
             padding: '0', 
             display: 'flex', 
             flexDirection: 'column', 
-            height: 'calc(100vh - 120px)', 
+            height: 'calc(100vh - 170px)', 
             minHeight: '450px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 

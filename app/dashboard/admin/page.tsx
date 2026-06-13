@@ -794,7 +794,7 @@ function AdminDashboardContent() {
       tempDiv.style.left = '0px';
       tempDiv.style.top = '0px';
       tempDiv.style.zIndex = '-9999';
-      tempDiv.style.opacity = '0.01';
+      tempDiv.style.opacity = '1';
       tempDiv.style.pointerEvents = 'none';
       tempDiv.style.width = '1120px';
       
@@ -4227,7 +4227,7 @@ function AdminDashboardContent() {
                   </h3>
                 </div>
                 
-                <div style={{ position: 'relative', width: '100%', maxWidth: '850px' }}>
+                <div style={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.25rem 0.5rem' }}>
                     <input 
                       type="text"
@@ -4419,7 +4419,7 @@ function AdminDashboardContent() {
 
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (
-                      <div style={{ position: 'relative', display: 'flex', gap: '1rem', flex: 1, maxWidth: '500px' }}>
+                      <div style={{ position: 'relative', display: 'flex', gap: '1rem' }}>
                         <input 
                           type="text" 
                           placeholder="Search Name or ID..." 
@@ -4429,7 +4429,7 @@ function AdminDashboardContent() {
                             setShowLedgerSuggestions(true);
                           }}
                           onFocus={() => setShowLedgerSuggestions(true)}
-                          style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
+                          style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
                         />
                         {showLedgerSuggestions && (
                           <>
@@ -6362,7 +6362,7 @@ function AdminDashboardContent() {
             padding: '0', 
             display: 'flex', 
             flexDirection: 'column', 
-            height: 'calc(100vh - 120px)', 
+            height: 'calc(100vh - 170px)', 
             minHeight: '480px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 
