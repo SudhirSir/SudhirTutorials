@@ -303,6 +303,8 @@ function TeacherDashboardContent() {
   const [teacherGuruLanguage, setTeacherGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
   const [teacherGuruHistory, setTeacherGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string, file?: string, fileName?: string, image?: string, revealedSteps?: number }>>([]);
   const [teacherGuruLoading, setTeacherGuruLoading] = useState(false);
+  const [dbHistoryList, setDbHistoryList] = useState<any[]>([]);
+  const [showGuruHistoryPanel, setShowGuruHistoryPanel] = useState(false);
   const [showFullWeekModal, setShowFullWeekModal] = useState(false);
   const [selectedBatchDetails, setSelectedBatchDetails] = useState<any | null>(null);
   const [batchMsgTarget, setBatchMsgTarget] = useState<{ id: string; name: string } | null>(null);
@@ -421,6 +423,20 @@ function TeacherDashboardContent() {
       lineText = lineText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       // Inline code formatting
       lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
+
+      // Strip out markdown headings and format as bold header divs
+      if (lineText.startsWith('#')) {
+        const cleanHeading = lineText.replace(/^#+\s*/, '');
+        const finalHeading = cleanHeading.replace(/#(?![0-9a-fA-F]{3}\b|[0-9a-fA-F]{6}\b)/g, '');
+        return (
+          <div key={`${baseKey}_${idx}`} style={{ fontWeight: 800, fontSize: '1.02rem', color: '#f59e0b', margin: '0.6rem 0 0.3rem 0' }}>
+            {animate ? <TypewriterText text={finalHeading} /> : <span dangerouslySetInnerHTML={{ __html: finalHeading }} />}
+          </div>
+        );
+      }
+
+      // Clean other isolated hash symbols
+      lineText = lineText.replace(/#(?![0-9a-fA-F]{3}\b|[0-9a-fA-F]{6}\b)/g, '');
 
       if (lineText.startsWith('👉 ')) {
         return (
@@ -751,25 +767,7 @@ function TeacherDashboardContent() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.doubts) {
-          const formatted: any[] = [];
-          for (const d of data.doubts) {
-            formatted.push({
-              role: 'user',
-              content: d.question,
-              subject: d.subject || undefined,
-              file: d.imageUrl || undefined
-            });
-            formatted.push({
-              role: 'guru',
-              content: d.answer,
-              revealedSteps: 99
-            });
-          }
-          setTeacherGuruHistory(formatted);
-          setTimeout(() => {
-            const feed = document.getElementById('teacher-guru-chat-feed');
-            if (feed) feed.scrollTop = feed.scrollHeight;
-          }, 150);
+          setDbHistoryList(data.doubts);
         }
       }
     } catch (e) {
@@ -821,6 +819,7 @@ function TeacherDashboardContent() {
     }
     if (activeTab === 'guru-ai') {
       fetchTeacherGuruHistory();
+      setTeacherGuruHistory([]);
     }
   }, [activeTab, session]);
 
@@ -2044,7 +2043,7 @@ function TeacherDashboardContent() {
             padding: '0', 
             display: 'flex', 
             flexDirection: 'column', 
-            height: 'calc(100vh - 180px)', 
+            height: 'calc(100vh - 120px)', 
             minHeight: '480px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 
@@ -2114,25 +2113,15 @@ function TeacherDashboardContent() {
 
             {aiMode === 'GURU' ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                <select
-                  value={teacherGuruLanguage}
-                  onChange={(e) => setTeacherGuruLanguage(e.target.value as any)}
-                  style={{
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    borderRadius: '8px',
-                    padding: '4px 8px',
-                    outline: 'none',
-                    cursor: 'pointer'
+                <button 
+                  onClick={() => {
+                    fetchTeacherGuruHistory();
+                    setShowGuruHistoryPanel(prev => !prev);
                   }}
+                  style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
-                  <option value="ENGLISH">🇬🇧 English</option>
-                  <option value="HINDI">🇮🇳 Hindi</option>
-                  <option value="HINGLISH">🇮🇳 Hinglish</option>
-                </select>
+                  📜 History Menu
+                </button>
                 <button 
                   onClick={() => setTeacherGuruHistory([])}
                   style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -2321,6 +2310,33 @@ function TeacherDashboardContent() {
                 padding: 0.5rem !important;
                 gap: 0.5rem !important;
               }
+            .guru-history-sidebar {
+              width: 280px;
+              border-left: 1px solid var(--border);
+              background: var(--surface-light);
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+              flex-shrink: 0;
+            }
+            @media (max-width: 768px) {
+              .notes-container {
+                padding: 0.5rem;
+              }
+              .notes-paper {
+                padding: 1.25rem;
+                border-radius: 12px;
+              }
+              .chat-bubble {
+                max-width: 95% !important;
+                padding: 0.45rem 0.65rem !important;
+                font-size: 0.82rem !important;
+                line-height: 1.4 !important;
+              }
+              #teacher-guru-chat-feed {
+                padding: 0.5rem !important;
+                gap: 0.5rem !important;
+              }
               .guru-response-card {
                 padding: 0.35rem 0.55rem !important;
                 border-radius: 10px !important;
@@ -2352,227 +2368,333 @@ function TeacherDashboardContent() {
                 width: 30px !important;
                 height: 30px !important;
               }
+              .guru-history-sidebar {
+                position: absolute !important;
+                right: 0;
+                top: 48px;
+                bottom: 0;
+                z-index: 10;
+                width: 80% !important;
+                border-left: 1px solid var(--border);
+                box-shadow: var(--shadow-xl);
+              }
             }
           `}</style>
 
           {/* 1. SOLVER MODE */}
           {aiMode === 'GURU' && (
-            <>
-              {/* Message Feed */}
-              <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="teacher-guru-chat-feed">
-                {teacherGuruHistory.length === 0 ? (
-                  <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Seek academic or lesson guidance</span>
-                  </div>
-                ) : (
-                  teacherGuruHistory.map((msg, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
-                      {msg.role !== 'user' && (
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <span style={{ fontSize: '0.8rem' }}>🤖</span>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', flexDirection: 'row' }}>
+              
+              {/* Left Panel: Chat Feed & Input */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {/* Message Feed */}
+                <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} id="teacher-guru-chat-feed">
+                  {teacherGuruHistory.length === 0 ? (
+                    <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ask me your doubts</span>
+                    </div>
+                  ) : (
+                    teacherGuruHistory.map((msg, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '0.75rem', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }}>
+                        {msg.role !== 'user' && (
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                          </div>
+                        )}
+                        <div 
+                          className={msg.role === 'user' ? 'chat-bubble' : ''}
+                          style={msg.role === 'user' ? { 
+                            background: 'linear-gradient(135deg, #10b981, #3b82f6)', 
+                            border: 'none',
+                            color: '#fff',
+                            borderTopLeftRadius: '16px',
+                            borderTopRightRadius: '4px',
+                            boxShadow: 'var(--shadow-sm)',
+                            borderRadius: '16px',
+                            padding: '0.6rem 0.85rem',
+                            maxWidth: '80%',
+                            lineHeight: '1.45',
+                            fontSize: '0.88rem'
+                          } : {
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text)',
+                            boxShadow: 'none',
+                            padding: '0',
+                            maxWidth: '85%',
+                            width: '100%',
+                            fontSize: '0.88rem'
+                          }}
+                        >
+                          <div>
+                            {msg.role === 'guru' ? (
+                              formatTeacherGuruResponse(msg.content, msg.revealedSteps || 1, i, (msg as any).isNew)
+                            ) : (
+                              <div>
+                                {msg.file && (
+                                  msg.file.startsWith('data:application/pdf') ? (
+                                    <div style={{ 
+                                      display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                      background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', 
+                                      padding: '0.65rem 0.85rem', borderRadius: '12px', marginBottom: '0.5rem',
+                                      color: '#fff', fontSize: '0.85rem', fontWeight: 600
+                                    }}>
+                                      <span style={{ fontSize: '1.25rem' }}>📄</span>
+                                      <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '180px' }}>
+                                        {msg.fileName || 'Document.pdf'}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <img 
+                                      src={msg.file} 
+                                      alt="Uploaded Doubt" 
+                                      style={{ 
+                                        maxWidth: '100%', 
+                                        maxHeight: '200px', 
+                                        borderRadius: '12px', 
+                                        marginBottom: '0.5rem', 
+                                        display: 'block',
+                                        border: '1px solid rgba(255,255,255,0.2)' 
+                                      }} 
+                                    />
+                                  )
+                                )}
+                                <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
+                              </div>
+                            )}
+                          </div>
                         </div>
+                        {msg.role === 'user' && (
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                            T
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  
+                  {teacherGuruLoading && (
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: '0.8rem' }}>🤖</span>
+                      </div>
+                      <div className="chat-bubble" style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="spinner" style={{ width: '12px', height: '12px', border: '2px solid #f3f3f3', borderTop: '2px solid #10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thinking...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Chat Input Bar */}
+                <div className="guru-input-bar" style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+                  {teacherGuruFile && (
+                    <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                      {teacherGuruFile.startsWith('data:application/pdf') ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.75rem 2rem 0.75rem 1rem', borderRadius: '12px', color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>
+                          <span style={{ fontSize: '1.25rem' }}>📄</span>
+                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }}>
+                            {teacherGuruFileName || 'Document.pdf'}
+                          </span>
+                        </div>
+                      ) : (
+                        <img src={teacherGuruFile} alt="Doubt Preview" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
                       )}
-                      <div 
-                        className={msg.role === 'user' ? 'chat-bubble' : ''}
-                        style={msg.role === 'user' ? { 
-                          background: 'linear-gradient(135deg, #10b981, #3b82f6)', 
-                          border: 'none',
-                          color: '#fff',
-                          borderTopLeftRadius: '16px',
-                          borderTopRightRadius: '4px',
-                          boxShadow: 'var(--shadow-sm)',
-                          borderRadius: '16px',
-                          padding: '0.6rem 0.85rem',
-                          maxWidth: '80%',
-                          lineHeight: '1.45',
-                          fontSize: '0.88rem'
-                        } : {
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text)',
-                          boxShadow: 'none',
-                          padding: '0',
-                          maxWidth: '85%',
-                          width: '100%',
-                          fontSize: '0.88rem'
+                      <button 
+                        onClick={() => {
+                          setTeacherGuruFile(null);
+                          setTeacherGuruFileName('');
+                        }}
+                        style={{ 
+                          position: 'absolute', top: '4px', right: '4px', 
+                          background: 'rgba(239, 68, 68, 0.85)', color: '#fff', 
+                          border: 'none', width: '20px', height: '20px', borderRadius: '50%', 
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                          cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', zIndex: 10
                         }}
                       >
-                        <div>
-                          {msg.role === 'guru' ? (
-                            formatTeacherGuruResponse(msg.content, msg.revealedSteps || 1, i, (msg as any).isNew)
-                          ) : (
-                            <div>
-                              {msg.file && (
-                                msg.file.startsWith('data:application/pdf') ? (
-                                  <div style={{ 
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                    background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', 
-                                    padding: '0.65rem 0.85rem', borderRadius: '12px', marginBottom: '0.5rem',
-                                    color: '#fff', fontSize: '0.85rem', fontWeight: 600
-                                  }}>
-                                    <span style={{ fontSize: '1.25rem' }}>📄</span>
-                                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '180px' }}>
-                                      {msg.fileName || 'Document.pdf'}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <img 
-                                    src={msg.file} 
-                                    alt="Uploaded Doubt" 
-                                    style={{ 
-                                      maxWidth: '100%', 
-                                      maxHeight: '200px', 
-                                      borderRadius: '12px', 
-                                      marginBottom: '0.5rem', 
-                                      display: 'block',
-                                      border: '1px solid rgba(255,255,255,0.2)' 
-                                    }} 
-                                  />
-                                )
-                              )}
-                              <div style={{ whiteSpace: 'pre-line' }}>{msg.content}</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {msg.role === 'user' && (
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
-                          T
-                        </div>
-                      )}
+                        ✕
+                      </button>
                     </div>
-                  ))
-                )}
-                
-                {teacherGuruLoading && (
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.8rem' }}>🤖</span>
-                    </div>
-                    <div className="chat-bubble" style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div className="spinner" style={{ width: '12px', height: '12px', border: '2px solid #f3f3f3', borderTop: '2px solid #10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thinking...</span>
-                    </div>
+                  )}
+                  <div className="guru-input-container" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '28px', padding: '0.65rem 0.8rem 0.65rem 1.1rem' }}>
+                    
+                    {/* Attachment Picker */}
+                    <label 
+                      className="attachment-btn guru-btn-circle"
+                      style={{ 
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        width: '36px', height: '36px', borderRadius: '50%', 
+                        background: 'var(--surface-light)', border: '1px solid var(--border)', 
+                        transition: 'all 0.2s', marginRight: '4px'
+                      }}
+                      title="Upload Doubt Image or PDF"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                      </svg>
+                      <input 
+                        type="file" 
+                        accept="image/*,application/pdf" 
+                        onChange={handleTeacherGuruFileChange} 
+                        style={{ display: 'none' }} 
+                      />
+                    </label>
+
+                    {/* Voice Record Button */}
+                    <button 
+                      onClick={teacherIsRecording ? stopTeacherVoiceRecording : startTeacherVoiceRecording}
+                      disabled={teacherGuruLoading || teacherIsTranscribing}
+                      className="attachment-btn guru-btn-circle"
+                      style={{ 
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        width: '36px', height: '36px', borderRadius: '50%', 
+                        background: teacherIsRecording ? 'rgba(16, 185, 129, 0.15)' : 'var(--surface-light)', 
+                        border: teacherIsRecording ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border)', 
+                        transition: 'all 0.2s', marginRight: '4px',
+                        color: teacherIsRecording ? '#10b981' : 'var(--text-muted)',
+                        animation: teacherIsRecording ? 'pulse 1.5s infinite' : 'none'
+                      }}
+                      title={teacherIsRecording ? "Stop Recording" : "Voice Doubt Query"}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                        <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                        <line x1="12" y1="19" x2="12" y2="22"/>
+                      </svg>
+                    </button>
+
+                    <input 
+                      type="text"
+                      className="guru-input-field"
+                      placeholder={teacherIsTranscribing ? "🎙️ Transcribing voice query..." : teacherIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask ST Guru ji a question, upload a PDF/Photo..."} 
+                      value={teacherGuruQuestion}
+                      onChange={(e) => setTeacherGuruQuestion(e.target.value)}
+                      disabled={teacherIsTranscribing || teacherIsRecording}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !teacherGuruLoading && (teacherGuruQuestion.trim() || teacherGuruFile)) {
+                          askTeacherGuru();
+                        }
+                      }}
+                      style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: teacherIsRecording ? '#10b981' : 'var(--text)', fontSize: '0.96rem', padding: '0.55rem 0', fontStyle: teacherIsRecording || teacherIsTranscribing ? 'italic' : 'normal' }}
+                    />
+                    <button 
+                      onClick={askTeacherGuru}
+                      disabled={teacherGuruLoading || (!teacherGuruQuestion.trim() && !teacherGuruFile) || teacherIsRecording || teacherIsTranscribing}
+                      className="guru-send-btn"
+                      style={{ 
+                        width: '40px', height: '40px', borderRadius: '50%', 
+                        background: (teacherGuruQuestion.trim() || teacherGuruFile) ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--border)', 
+                        border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        cursor: teacherGuruLoading || (!teacherGuruQuestion.trim() && !teacherGuruFile) ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: (teacherGuruQuestion.trim() || teacherGuruFile) ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      </svg>
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Bottom Chat Input Bar */}
-              <div className="guru-input-bar" style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
-                {teacherGuruFile && (
-                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-                    {teacherGuruFile.startsWith('data:application/pdf') ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.75rem 2rem 0.75rem 1rem', borderRadius: '12px', color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>
-                        <span style={{ fontSize: '1.25rem' }}>📄</span>
-                        <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }}>
-                          {teacherGuruFileName || 'Document.pdf'}
-                        </span>
-                      </div>
-                    ) : (
-                      <img src={teacherGuruFile} alt="Doubt Preview" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
-                    )}
+              {/* History Panel Sidebar */}
+              {showGuruHistoryPanel && (
+                <div className="guru-history-sidebar animate-fade-in">
+                  <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.05)' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text)' }}>📜 Doubt History</span>
                     <button 
-                      onClick={() => {
-                        setTeacherGuruFile(null);
-                        setTeacherGuruFileName('');
-                      }}
-                      style={{ 
-                        position: 'absolute', top: '4px', right: '4px', 
-                        background: 'rgba(239, 68, 68, 0.85)', color: '#fff', 
-                        border: 'none', width: '20px', height: '20px', borderRadius: '50%', 
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', zIndex: 10
-                      }}
+                      onClick={() => setShowGuruHistoryPanel(false)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                       ✕
                     </button>
                   </div>
-                )}
-                <div className="guru-input-container" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.4rem 0.5rem 0.4rem 0.8rem' }}>
-                  
-                  {/* Attachment Picker */}
-                  <label 
-                    className="attachment-btn guru-btn-circle"
-                    style={{ 
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      width: '32px', height: '32px', borderRadius: '50%', 
-                      background: 'var(--surface-light)', border: '1px solid var(--border)', 
-                      transition: 'all 0.2s', marginRight: '4px'
-                    }}
-                    title="Upload Doubt Image or PDF"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                    </svg>
-                    <input 
-                      type="file" 
-                      accept="image/*,application/pdf" 
-                      onChange={handleTeacherGuruFileChange} 
-                      style={{ display: 'none' }} 
-                    />
-                  </label>
-
-                  {/* Voice Record Button */}
-                  <button 
-                    onClick={teacherIsRecording ? stopTeacherVoiceRecording : startTeacherVoiceRecording}
-                    disabled={teacherGuruLoading || teacherIsTranscribing}
-                    className="attachment-btn guru-btn-circle"
-                    style={{ 
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      width: '32px', height: '32px', borderRadius: '50%', 
-                      background: teacherIsRecording ? 'rgba(16, 185, 129, 0.15)' : 'var(--surface-light)', 
-                      border: teacherIsRecording ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border)', 
-                      transition: 'all 0.2s', marginRight: '4px',
-                      color: teacherIsRecording ? '#10b981' : 'var(--text-muted)',
-                      animation: teacherIsRecording ? 'pulse 1.5s infinite' : 'none'
-                    }}
-                    title={teacherIsRecording ? "Stop Recording" : "Voice Doubt Query"}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                      <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
-                      <line x1="12" y1="19" x2="12" y2="22"/>
-                    </svg>
-                  </button>
-
-                  <input 
-                    type="text"
-                    className="guru-input-field"
-                    placeholder={teacherIsTranscribing ? "🎙️ Transcribing voice query..." : teacherIsRecording ? "🎙️ Recording... click Mic to stop" : "Ask ST Guru ji a question, upload a PDF/Photo..."} 
-                    value={teacherGuruQuestion}
-                    onChange={(e) => setTeacherGuruQuestion(e.target.value)}
-                    disabled={teacherIsTranscribing || teacherIsRecording}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !teacherGuruLoading && (teacherGuruQuestion.trim() || teacherGuruFile)) {
-                        askTeacherGuru();
-                      }
-                    }}
-                    style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: teacherIsRecording ? '#10b981' : 'var(--text)', fontSize: '0.95rem', padding: '0.4rem 0', fontStyle: teacherIsRecording || teacherIsTranscribing ? 'italic' : 'normal' }}
-                  />
-                  <button 
-                    onClick={askTeacherGuru}
-                    disabled={teacherGuruLoading || (!teacherGuruQuestion.trim() && !teacherGuruFile) || teacherIsRecording || teacherIsTranscribing}
-                    className="guru-send-btn"
-                    style={{ 
-                      width: '36px', height: '36px', borderRadius: '50%', 
-                      background: (teacherGuruQuestion.trim() || teacherGuruFile) ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--border)', 
-                      border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      cursor: teacherGuruLoading || (!teacherGuruQuestion.trim() && !teacherGuruFile) ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s',
-                      boxShadow: (teacherGuruQuestion.trim() || teacherGuruFile) ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                  </button>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+                    {dbHistoryList.length === 0 ? (
+                      <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                        No solved doubts in history yet.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {dbHistoryList.map((doubt: any) => (
+                          <div 
+                            key={doubt.id}
+                            style={{ 
+                              padding: '0.6rem', 
+                              borderRadius: '10px', 
+                              background: 'var(--input-bg)', 
+                              border: '1px solid var(--border)', 
+                              cursor: 'pointer', 
+                              position: 'relative',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.25rem'
+                            }}
+                            onClick={() => {
+                              setTeacherGuruHistory([
+                                { role: 'user', content: doubt.question, subject: doubt.subject || undefined, image: doubt.imageUrl || undefined },
+                                { role: 'guru', content: doubt.answer }
+                              ]);
+                              if (window.innerWidth <= 768) {
+                                setShowGuruHistoryPanel(false);
+                              }
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase' }}>
+                                {doubt.subject || 'General'}
+                              </span>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Delete this doubt from history?')) {
+                                    try {
+                                      const res = await fetch(`/api/student/guru-ji/history?id=${doubt.id}`, { method: 'DELETE' });
+                                      if (res.ok) {
+                                        fetchTeacherGuruHistory();
+                                      } else {
+                                        alert('Failed to delete history item.');
+                                      }
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  }
+                                }}
+                                style={{ 
+                                  background: 'none', border: 'none', color: 'var(--text-muted)', 
+                                  cursor: 'pointer', padding: '2px', fontSize: '0.75rem', 
+                                  borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                title="Delete history item"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text)', fontWeight: 600, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
+                              {doubt.question}
+                            </p>
+                            <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>
+                              {new Date(doubt.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </>
+              )}
+            </div>
           )}
 
           {/* 2. PREPARE / PPT MODE */}

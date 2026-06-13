@@ -38,6 +38,7 @@ export async function POST(req: Request) {
         const systemPrompt = `You are Digital Sahayak, a premium AI learning assistant for the prestigious institute 'Sudhir Tutorials'. 
 You generate highly detailed, educational slide decks. 
 Every slide must have extremely detailed content (avoid short lists, provide extensive definitions, explanations, formulas, derivations, and examples). 
+Do NOT include any promotional or template slogans, quotes, or phrases like 'Guru ji ki tips', 'Maha-Tip', or useless placeholders. Every slide must contain only valuable, rigorous, and high-quality educational content.
 The output MUST be a valid JSON object matching the following TypeScript interface:
 interface SlideDeck {
   topic: string;
@@ -144,6 +145,7 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
                 content: `You are Digital Sahayak, a premium AI learning assistant for the prestigious institute 'Sudhir Tutorials'. 
 You generate highly detailed, educational slide decks. 
 Every slide must have extremely detailed content (avoid short lists, provide extensive definitions, explanations, formulas, derivations, and examples). 
+Do NOT include any promotional or template slogans, quotes, or phrases like 'Guru ji ki tips', 'Maha-Tip', or useless placeholders. Every slide must contain only valuable, rigorous, and high-quality educational content.
 The output MUST be a valid JSON object matching the following TypeScript interface:
 interface SlideDeck {
   topic: string;
@@ -242,7 +244,7 @@ $$ \\mathbf{\\Phi_x = \\sum_{i=1}^{n} w_i x_i + b_0} $$
 *   **Systemic Resistance Factor ($R_s$)**: Accounts for losses, friction, or limits of stability.
 *   **Time / Space Coordinates ($t, x$)**: The independent variables defining the boundaries.
 
-👉 **Maha-Tip from Sudhir Tutorials:**
+👉 **Important Concept Note:**
 Never memorize formulas without identifying their derivation limits. Most competitive problems test equations under high systemic constraint variables.`
       },
       {

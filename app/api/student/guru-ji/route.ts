@@ -20,10 +20,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { question, subject, language = 'ENGLISH', image, file } = await req.json();
+    const { question, subject, language, image, file } = await req.json();
     if (!question && !image && !file) {
       return NextResponse.json({ error: 'Either question text, image, or PDF file is required' }, { status: 400 });
     }
+
+    const resolvedLanguage = language || detectLanguage(question || "");
 
     let extractedPdfText = '';
     let isPdf = false;
@@ -86,20 +88,17 @@ export async function POST(req: Request) {
         let fullResponse = "";
 
         const systemPrompt = `You are 'Digital ST Guru ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
-A student has submitted an academic doubt (as text, image, or PDF document).
-Your job is to solve this doubt in the language: ${language.toUpperCase()}.
-- ENGLISH: Write the explanation entirely in English.
-- HINDI: Write the explanation entirely in Hindi (Devanagari script, e.g. 'विद्युत अपघटन में...').
-- HINGLISH: Write the explanation entirely in Hinglish (Hindi written in Latin/English script, e.g. 'Molten NaCl me Na+ ions cathode ki taraf move karte hain').
-- Note: If the student's question specifically requests Hindi or Hinglish or is typed in Hindi/Hinglish, you MUST write your response in the requested language even if the default language parameter is English.${studentContext}
+A student has submitted an academic doubt (as text, image, or PDF document).${studentContext}
 
 You MUST follow these critical instruction rules:
-1. DIRECT, IN-DEPTH & EXACT: Provide a comprehensive, high-quality, exact, and detailed academic explanation. Do not include verbose, generic introductory or concluding remarks. Go straight to the explanation.
-2. DIAGRAMS, ILLUSTRATIONS & MATH FORMULAS: Whenever a diagram, flowchart, comparison, math formula, circuit, or chemical structure helps explain the concept (especially in Physics, Chemistry, Biology, Mathematics, or comparative topics), you MUST include it:
+1. ACADEMIC AND DECORUM POLICY: If the student asks anything offensive, inappropriate, abusive, bad, or non-academic (e.g. gaming, movies, entertainment, gossip, politics, personal questions, relationship advice, etc.), you MUST refuse to answer and strictly reply with the following exact message: "Please maintain decorum and focus on your studies. Any inappropriate queries will be reported to the administration."
+2. AUTO LANGUAGE DETECTION: Natively detect the language of the student's query (English, Hindi, or Hinglish) and respond in the same language. For example, if the query is in English, reply in English. If it is in Hindi (Devanagari script), reply in Hindi. If it is in Hinglish (Hindi words in English script), reply in Hinglish.
+3. DIRECT, IN-DEPTH & EXACT: Provide a comprehensive, high-quality, exact, and detailed academic explanation. Do not include verbose, generic introductory or concluding remarks. Go straight to the explanation.
+4. DIAGRAMS, ILLUSTRATIONS & MATH FORMULAS: Whenever a diagram, flowchart, comparison, math formula, circuit, or chemical structure helps explain the concept (especially in Physics, Chemistry, Biology, Mathematics, or comparative topics), you MUST include it:
    - Use clean Markdown Tables for comparative data.
    - NEVER use LaTeX math delimiters (like $$, $, \\(, \\)) or raw LaTeX formulas in the response or inside SVGs. Instead, write equations and chemical symbols using plain text and Unicode superscript/subscript characters (e.g. write e⁻, Na⁺, E°, ΔG = -nFE_cell, Cl₂). This is a critical rule to prevent formatting failures.
    - For diagrams, flowcharts, or drawings, generate beautiful, self-contained SVG elements inside standard <svg>...</svg> tags. Ensure the SVG has sensible dimensions, viewBox, responsive styling, and colors so it renders nicely on both light and dark themes. Write valid, clean SVG code. Inside SVG <text> elements, write standard readable plain text (never write LaTeX formulas or dollar signs).
-3. FORMATTING: Use clean GitHub Flavored Markdown (headings, lists, bold text, code blocks) to structure your response. Do NOT use any artificial card-splitting headers (like '### 📝 Extracted Question', '### 🧮 Step-by-Step Solution', etc.) and do NOT use '[STEP]' delimiters. Just write a continuous, cohesive, and premium academic answer.`;
+5. FORMATTING (NO '#'): Use clean Markdown to structure your response. Do NOT use '#' or '##' symbols for headings, as they render poorly in the chat window. Instead, use bold text (e.g. **Heading**) or list items for structure. Do NOT use any artificial card-splitting headers (like '📝 Extracted Question', '🧮 Step-by-Step Solution', etc.) and do NOT use '[STEP]' delimiters. Just write a continuous, cohesive, and premium academic answer.`;
 
         // Attempt 1: Gemini Streaming
         if (geminiApiKey) {
@@ -318,13 +317,13 @@ You MUST follow these critical instruction rules:
         if (!success) {
           let solution = '';
           if (isPdf || activeImage) {
-            if (language.toUpperCase() === 'HINGLISH') {
-              solution = `### Extracted Question
+            if (resolvedLanguage.toUpperCase() === 'HINGLISH') {
+              solution = `**Extracted Question**
 Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
 
 ---
 
-### Solution & Explanation
+**Solution & Explanation**
 1. **Given values**:
    * Mass (m) = 5 kg
    * Force (F) = 20 N
@@ -345,21 +344,21 @@ Solve the following physics problem: An object of mass 5 kg is accelerated from 
 
 ---
 
-### Stepwise Explanation
+**Stepwise Explanation**
 * **Step 1**: Sabse pehle humne Newton ka dusra niyam use kiya jisse force aur mass ki help se acceleration (acceleration = force / mass) nikala.
 * **Step 2**: Acceleration nikalne ke baad, humne kinematics ki pehli equation (v = u + at) use ki velocity calculate karne ke liye. Kyonki body rest se start ho rahi thi, u = 0 tha.
 
 ---
 
-### ST Guru ji's Tip
+**ST Guru ji's Tip**
 JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use kg me convert karna na bhulein!`;
-            } else if (language.toUpperCase() === 'HINDI') {
-              solution = `### निकाला गया प्रश्न
+            } else if (resolvedLanguage.toUpperCase() === 'HINDI') {
+              solution = `**निकाला गया प्रश्न**
 भौतिकी प्रश्न हल करें: 5 kg द्रव्यमान की एक वस्तु को विरामवस्था से 20 N के बल द्वारा त्वरित किया जाता है। 6 सेकंड के बाद उसका वेग ज्ञात कीजिए।
 
 ---
 
-### समाधान और व्याख्या
+**समाधान और व्याख्या**
 1. **दिए गए मान**:
    * द्रव्यमान (m) = 5 kg
    * बल (F) = 20 N
@@ -380,21 +379,21 @@ JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use 
 
 ---
 
-### चरण-दर-चरण व्याख्या
+**चरण-दर-चरण व्याख्या**
 * **चरण 1**: सबसे पहले हमने न्यूटन के गति के दूसरे नियम का उपयोग किया ताकि द्रव्यमान और बल की मदद से त्वरण ज्ञात किया जा सके।
 * **चरण 2**: त्वरण प्राप्त करने के बाद, हमने अंतिम वेग प्राप्त करने के लिए गति के पहले समीकरण (v = u + at) का उपयोग किया।
 
 ---
 
-### ST Guru ji की सलाह (Tip)
+**ST Guru ji की सलाह (Tip)**
 बोर्ड और प्रतियोगी परीक्षाओं में हमेशा मात्रकों (Units) का ध्यान रखें। यदि बल CGS मात्रक (dyne) में हो, तो गणना से पहले उसे SI मात्रक में बदलें।`;
             } else {
-              solution = `### Extracted Question
+              solution = `**Extracted Question**
 Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
 
 ---
 
-### Solution & Explanation
+**Solution & Explanation**
 1. **Given values**:
    * Mass (m) = 5 kg
    * Force (F) = 20 N
@@ -415,22 +414,23 @@ Solve the following physics problem: An object of mass 5 kg is accelerated from 
 
 ---
 
-### Stepwise Explanation
+**Stepwise Explanation**
 * **Step 1**: We first apply Newton's second law of motion (F = m * a) to find the acceleration of the object, which is 4 m/s².
 * **Step 2**: Since the acceleration is constant, we apply the first kinematic equation v = u + a * t to compute the final velocity. As the object starts from rest, u is 0.
 
 ---
 
-### ST Guru ji's Tip
+**ST Guru ji's Tip**
 For competitive exams like JEE/NEET, check whether the force is constant. If force is a function of time F(t), acceleration will also vary, and you'll need to integrate instead of using standard kinematics formulas!`;
             }
           } else {
-            solution = generateAcademicResponse(question, resolvedSubject, language.toUpperCase());
+            solution = generateAcademicResponse(question, resolvedSubject, resolvedLanguage.toUpperCase());
           }
 
+          const cleanedSolution = cleanAllHashSymbols(solution);
           const chunkSize = 4;
-          for (let i = 0; i < solution.length; i += chunkSize) {
-            const chunk = solution.substring(i, i + chunkSize);
+          for (let i = 0; i < cleanedSolution.length; i += chunkSize) {
+            const chunk = cleanedSolution.substring(i, i + chunkSize);
             controller.enqueue(encoder.encode(chunk));
             fullResponse += chunk;
             await new Promise(r => setTimeout(r, 15));
@@ -439,7 +439,8 @@ For competitive exams like JEE/NEET, check whether the force is constant. If for
 
         // Save accumulated response to database
         if (fullResponse.trim()) {
-          await saveDoubtToHistory(session.user.id, question, resolvedSubject, fullResponse, activeImage);
+          const cleanedAnswer = cleanAllHashSymbols(fullResponse);
+          await saveDoubtToHistory(session.user.id, question, resolvedSubject, cleanedAnswer, activeImage);
         }
 
         controller.close();
@@ -962,4 +963,34 @@ async function saveDoubtToHistory(studentId: string, question: string, subject: 
   } catch (error) {
     console.error("Failed to save doubt history to database:", error);
   }
+}
+
+function detectLanguage(text: string): string {
+  const lower = text.toLowerCase();
+  // Check for Devanagari script (Hindi characters range: \u0900-\u097F)
+  if (/[\u0900-\u097F]/.test(text)) {
+    return 'HINDI';
+  }
+  // Hinglish detection: check for common Hindi words written in Roman script
+  const hinglishWords = ['kya', 'hai', 'kaise', 'aur', 'ko', 'se', 'bol', 'batao', 'samjhao', 'nikalna', 'hoga', 'hogi', 'kyon', 'kyu', 'hota', 'hoti', 'ye', 'wo', 'sabse', 'pehle', 'humne', 'kiya', 'nikala', 'pucha', 'samjh', 'samajh', 'likho', 'likhna'];
+  const words = lower.split(/\s+/);
+  const hasHinglish = words.some(w => hinglishWords.includes(w));
+  if (hasHinglish) {
+    return 'HINGLISH';
+  }
+  return 'ENGLISH';
+}
+
+function cleanAllHashSymbols(text: string): string {
+  if (!text) return '';
+  // 1. Replace lines starting with markdown headers (like "### Header") with bold (like "**Header**")
+  let cleanText = text.replace(/^(#+)\s*(.*?)$/gm, (match, hashes, title) => {
+    return title ? `**${title.trim()}**` : '';
+  });
+  
+  // 2. Remove other occurrences of '#' (e.g. #1, #2 or isolated #) - avoiding breaking CSS/SVG hex colors!
+  // Hex colors inside <svg> look like fill="#f59e0b" or stroke="#fff"
+  cleanText = cleanText.replace(/#(?![0-9a-fA-F]{3}\b|[0-9a-fA-F]{6}\b)/g, '');
+  
+  return cleanText;
 }

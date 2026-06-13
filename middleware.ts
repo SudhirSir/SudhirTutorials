@@ -59,9 +59,7 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token, req }) => {
-        const path = req.nextUrl.pathname;
-        if (path === "/api/student/guru-ji/debug") return true;
+      authorized: ({ token }) => {
         return !!token;
       },
     },
