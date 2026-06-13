@@ -23,14 +23,14 @@ export async function POST(req: Request) {
     }
 
     let apiAttempted = false;
-    let geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
-    let openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
+    let geminiApiKey = process.env.GEMINI_API_KEY || undefined;
+    let groqApiKey = process.env.GROQ_API_KEY || undefined;
 
     // Clean surrounding quotes if they exist
     if (geminiApiKey) geminiApiKey = geminiApiKey.trim().replace(/^["']|["']$/g, '');
-    if (openAiApiKey) openAiApiKey = openAiApiKey.trim().replace(/^["']|["']$/g, '');
+    if (groqApiKey) groqApiKey = groqApiKey.trim().replace(/^["']|["']$/g, '');
 
-    console.log("[PPT Route] API Keys present - Gemini:", !!geminiApiKey, "OpenAI:", !!openAiApiKey);
+    console.log("[PPT Route] API Keys present - Gemini:", !!geminiApiKey, "Groq:", !!groqApiKey);
 
     if (geminiApiKey) {
       apiAttempted = true;
@@ -60,8 +60,6 @@ interface SlideDeck {
 }
 Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutorials as the premium learning institute.`;
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: {
@@ -78,7 +76,7 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
               }
             ],
             generationConfig: {
-              responseMimeType: 'application/json',
+              responseMimeType: "application/json",
               responseSchema: {
                 type: "OBJECT",
                 properties: {
@@ -102,13 +100,10 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
                   }
                 },
                 required: ["topic", "grade", "focus", "slides"]
-              },
-              temperature: 0.7
+              }
             }
-          }),
-          signal: controller.signal
+          })
         });
-        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -121,25 +116,27 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
           }
         } else {
           const errText = await response.text();
-          console.warn("Gemini API PPT call failed, falling back to OpenAI/Local:", errText);
+          console.warn("Gemini API PPT call failed, falling back to Groq/Local:", errText);
         }
       } catch (geminiError) {
         console.error("Gemini API PPT integration error, utilizing fallback:", geminiError);
       }
-    } else if (openAiApiKey) {
-      // Call Real ChatGPT API
+    }
+    
+    if (!apiAttempted && groqApiKey) {
+      // Call Groq API (as Llama-3.3-70b-versatile or fallback)
       apiAttempted = true;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000);
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openAiApiKey}`
+            'Authorization': `Bearer ${groqApiKey}`
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'llama-3.3-70b-versatile',
             response_format: { type: "json_object" },
             messages: [
               {
@@ -186,10 +183,10 @@ Generate exactly 6 detailed slides. The first slide must introduce Sudhir Tutori
           return NextResponse.json({ success: true, ...jsonContent });
         } else {
           const errText = await response.text();
-          console.warn("OpenAI API call failed, falling back to rule engine:", errText);
+          console.warn("Groq API call failed, falling back to rule engine:", errText);
         }
-      } catch (openAiError) {
-        console.error("OpenAI API integration error, utilizing fallback engine:", openAiError);
+      } catch (groqError) {
+        console.error("Groq API integration error, utilizing fallback engine:", groqError);
       }
     }
 

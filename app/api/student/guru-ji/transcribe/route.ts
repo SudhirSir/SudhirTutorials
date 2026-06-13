@@ -18,12 +18,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Audio file is required' }, { status: 400 });
     }
 
-    let geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
-    let openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
+    let geminiApiKey = process.env.GEMINI_API_KEY || undefined;
+    let groqApiKey = process.env.GROQ_API_KEY || undefined;
 
     // Clean surrounding quotes if they exist
     if (geminiApiKey) geminiApiKey = geminiApiKey.trim().replace(/^["']|["']$/g, '');
-    if (openAiApiKey) openAiApiKey = openAiApiKey.trim().replace(/^["']|["']$/g, '');
+    if (groqApiKey) groqApiKey = groqApiKey.trim().replace(/^["']|["']$/g, '');
 
     if (geminiApiKey) {
       try {
@@ -71,25 +71,25 @@ export async function POST(req: Request) {
           console.error("Gemini Transcribe API error response:", errText);
         }
       } catch (geminiError) {
-        console.error("Gemini Transcribe error, using OpenAI fallback:", geminiError);
+        console.error("Gemini Transcribe error, using Groq fallback:", geminiError);
       }
     }
 
-    if (openAiApiKey) {
+    if (groqApiKey) {
       try {
         const buffer = Buffer.from(await file.arrayBuffer());
         const blob = new Blob([buffer], { type: file.type });
         
-        const openAiFormData = new FormData();
-        openAiFormData.append('file', blob, file.name || 'audio.webm');
-        openAiFormData.append('model', 'whisper-1');
+        const groqFormData = new FormData();
+        groqFormData.append('file', blob, file.name || 'audio.webm');
+        groqFormData.append('model', 'whisper-large-v3');
 
-        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openAiApiKey}`
+            'Authorization': `Bearer ${groqApiKey}`
           },
-          body: openAiFormData
+          body: groqFormData
         });
 
         if (response.ok) {
@@ -100,10 +100,10 @@ export async function POST(req: Request) {
           });
         } else {
           const errData = await response.json();
-          console.error("OpenAI Whisper API error response:", errData);
+          console.error("Groq Whisper API error response:", errData);
         }
       } catch (whisperError) {
-        console.error("OpenAI Whisper transcription error, using fallback:", whisperError);
+        console.error("Groq Whisper transcription error, using fallback:", whisperError);
       }
     }
 

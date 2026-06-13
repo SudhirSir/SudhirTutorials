@@ -72,14 +72,14 @@ export async function POST(req: Request) {
     const resolvedSubject = subject || (question ? detectSubject(question) : 'General Academics');
     
     // Check for API Keys
-    let geminiApiKey = process.env.GEMINI_API_KEY || (process.env.OPENAI_API_KEY?.startsWith('AIzaSy') ? process.env.OPENAI_API_KEY : undefined);
-    let openAiApiKey = process.env.OPENAI_API_KEY?.startsWith('sk-') ? process.env.OPENAI_API_KEY : undefined;
+    let geminiApiKey = process.env.GEMINI_API_KEY || undefined;
+    let groqApiKey = process.env.GROQ_API_KEY || undefined;
 
     // Clean surrounding quotes if they exist
     if (geminiApiKey) geminiApiKey = geminiApiKey.trim().replace(/^["']|["']$/g, '');
-    if (openAiApiKey) openAiApiKey = openAiApiKey.trim().replace(/^["']|["']$/g, '');
+    if (groqApiKey) groqApiKey = groqApiKey.trim().replace(/^["']|["']$/g, '');
 
-    console.log("[Guru Ji AI Route] API Keys present - Gemini:", !!geminiApiKey, "OpenAI:", !!openAiApiKey);
+    console.log("[Guru Ji AI Route] API Keys present - Gemini:", !!geminiApiKey, "Groq:", !!groqApiKey);
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -211,14 +211,15 @@ You MUST follow these critical instruction rules:
               console.error("Gemini API streaming error response:", errText);
             }
           } catch (geminiError) {
-            console.error("Gemini API streaming error, trying OpenAI fallback:", geminiError);
+            console.error("Gemini API streaming error, trying Groq fallback:", geminiError);
           }
         }
 
-        // Attempt 2: OpenAI Streaming (if Gemini was skipped or failed)
-        if (!success && openAiApiKey) {
+        // Attempt 2: Groq Streaming (if Gemini was skipped or failed)
+        if (!success && groqApiKey) {
           try {
             let userContent: any = question || "Solve the attached doubt.";
+            const modelToUse = activeImage ? 'llama-3.2-11b-vision-preview' : 'llama-3.3-70b-versatile';
             
             if (isPdf) {
               userContent = `[Calculated context extracted from PDF upload]:\n${extractedPdfText}\n\nStudent's instruction: ${question || "Solve the problem described in this text context step-by-step."}`;
@@ -237,14 +238,14 @@ You MUST follow these critical instruction rules:
               ];
             }
 
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openAiApiKey}`
+                'Authorization': `Bearer ${groqApiKey}`
               },
               body: JSON.stringify({
-                model: 'gpt-4o-mini',
+                model: modelToUse,
                 messages: [
                   { role: 'system', content: systemPrompt },
                   { role: 'user', content: userContent }
@@ -306,10 +307,10 @@ You MUST follow these critical instruction rules:
               }
             } else {
               const errText = await response.text();
-              console.error("OpenAI API streaming error response:", errText);
+              console.error("Groq API streaming error response:", errText);
             }
-          } catch (openAiError) {
-            console.error("OpenAI API streaming error, trying local fallback:", openAiError);
+          } catch (groqError) {
+            console.error("Groq API streaming error, trying local fallback:", groqError);
           }
         }
 

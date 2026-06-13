@@ -14,12 +14,12 @@ export async function GET(req: Request) {
     }
 
     let rawGeminiKey = process.env.GEMINI_API_KEY || '';
-    let rawOpenAIKey = process.env.OPENAI_API_KEY || '';
+    let rawGroqKey = process.env.GROQ_API_KEY || '';
     let rawDatabaseUrl = process.env.DATABASE_URL || '';
     let rawDirectUrl = process.env.DIRECT_URL || '';
 
     const geminiKeyPresent = !!rawGeminiKey;
-    const openaiKeyPresent = !!rawOpenAIKey;
+    const groqKeyPresent = !!rawGroqKey;
     const dbUrlPresent = !!rawDatabaseUrl;
     const directUrlPresent = !!rawDirectUrl;
 
@@ -31,10 +31,10 @@ export async function GET(req: Request) {
     };
 
     const sanitizedGeminiKey = rawGeminiKey.trim().replace(/^["']|["']$/g, '');
-    const sanitizedOpenAIKey = rawOpenAIKey.trim().replace(/^["']|["']$/g, '');
+    const sanitizedGroqKey = rawGroqKey.trim().replace(/^["']|["']$/g, '');
 
     const geminiCleanedQuotes = rawGeminiKey !== sanitizedGeminiKey;
-    const openaiCleanedQuotes = rawOpenAIKey !== sanitizedOpenAIKey;
+    const groqCleanedQuotes = rawGroqKey !== sanitizedGroqKey;
 
     let geminiDiagnostic = {};
     if (sanitizedGeminiKey) {
@@ -65,29 +65,29 @@ export async function GET(req: Request) {
       }
     }
 
-    let openaiDiagnostic = {};
-    if (sanitizedOpenAIKey) {
+    let groqDiagnostic = {};
+    if (sanitizedGroqKey) {
       try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sanitizedOpenAIKey}`
+            'Authorization': `Bearer ${sanitizedGroqKey}`
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'llama-3.3-70b-versatile',
             messages: [{ role: 'user', content: "Hello" }]
           })
         });
         const status = response.status;
         const text = await response.text();
-        openaiDiagnostic = {
+        groqDiagnostic = {
           status,
           success: response.ok,
           response: text.length > 500 ? text.slice(0, 500) + '...' : text
         };
       } catch (err: any) {
-        openaiDiagnostic = { error: err.message || String(err) };
+        groqDiagnostic = { error: err.message || String(err) };
       }
     }
 
@@ -116,10 +116,10 @@ export async function GET(req: Request) {
           masked: maskString(rawGeminiKey),
           hadQuotes: geminiCleanedQuotes
         },
-        openai: {
-          present: openaiKeyPresent,
-          masked: maskString(rawOpenAIKey),
-          hadQuotes: openaiCleanedQuotes
+        groq: {
+          present: groqKeyPresent,
+          masked: maskString(rawGroqKey),
+          hadQuotes: groqCleanedQuotes
         },
         database: {
           urlPresent: dbUrlPresent,
@@ -130,7 +130,7 @@ export async function GET(req: Request) {
       },
       diagnostics: {
         gemini: geminiDiagnostic,
-        openai: openaiDiagnostic,
+        groq: groqDiagnostic,
         database: dbDiagnostic
       }
     });
