@@ -69,6 +69,45 @@ export async function POST(req: Request) {
 
     if (hasSmtpConfig) {
       try {
+        const host = req.headers.get('host') || 'sudhirtutorials.vercel.app';
+        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const logoUrl = `${protocol}://${host}/logo.png`;
+
+        const emailHtml = `<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <!-- Header with Brand Background -->
+          <div style="background-color: #1e3a8a; padding: 25px; text-align: center;">
+            <img src="${logoUrl}" alt="SUDHIR TUTORIALS" style="max-height: 50px; display: inline-block;" />
+          </div>
+          
+          <!-- Content Body -->
+          <div style="padding: 30px; background-color: #ffffff;">
+            <h2 style="color: #111827; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 15px; text-align: center;">Email Verification</h2>
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Dear User,</p>
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+              Welcome to <strong>SUDHIR TUTORIALS</strong>! To secure your account, please verify your email address by using the One-Time Password (OTP) verification code below:
+            </p>
+            
+            <!-- OTP Display Box in Brand Primary Color (Red) -->
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="display: inline-block; font-size: 32px; font-weight: 800; color: #ffffff; background-color: #dc2626; padding: 12px 35px; border-radius: 8px; letter-spacing: 6px; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2);">
+                ${otp}
+              </div>
+              <p style="color: #9ca3af; font-size: 13px; margin-top: 10px; margin-bottom: 0;">This code will expire in 15 minutes.</p>
+            </div>
+            
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+              If you did not request this verification code, please ignore this email or contact support if you have concerns.
+            </p>
+            
+            <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 25px 0;" />
+            
+            <!-- Footer / Greetings -->
+            <p style="color: #4b5563; font-size: 14px; margin-bottom: 5px;">Best regards,</p>
+            <p style="color: #1e3a8a; font-size: 15px; font-weight: 700; margin-top: 0; margin-bottom: 5px;">SUDHIR TUTORIALS</p>
+            <p style="color: #9ca3af; font-size: 12px; margin-top: 0;">Ludhiana, Punjab</p>
+          </div>
+        </div>`;
+
         if (smtpHost?.includes('brevo.com') || smtpPass.startsWith('xkeysib-')) {
           // Send via Brevo direct HTTP API (Highly reliable on Vercel/serverless)
           const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -80,7 +119,7 @@ export async function POST(req: Request) {
             },
             body: JSON.stringify({
               sender: {
-                name: 'Sudhir Tutorials',
+                name: 'SUDHIR TUTORIALS',
                 email: smtpFrom
               },
               to: [
@@ -88,17 +127,9 @@ export async function POST(req: Request) {
                   email: targetEmail
                 }
               ],
-              subject: 'Sudhir Tutorials - OTP Verification Code',
+              subject: 'SUDHIR TUTORIALS - OTP Verification Code',
               textContent: `Your verification code is ${otp}. It is valid for 15 minutes.`,
-              htmlContent: `<div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px;">
-                <h2 style="color: #4f46e5; text-align: center;">Sudhir Tutorials</h2>
-                <p>Hello,</p>
-                <p>Your one-time password (OTP) verification code is:</p>
-                <div style="font-size: 24px; font-weight: bold; text-align: center; padding: 15px; background: #f3f4f6; border-radius: 8px; letter-spacing: 5px; margin: 20px 0;">
-                  ${otp}
-                </div>
-                <p style="color: #6b7280; font-size: 0.85rem;">This OTP is valid for 15 minutes. If you did not request this code, please ignore this email.</p>
-              </div>`
+              htmlContent: emailHtml
             })
           });
 
@@ -120,19 +151,11 @@ export async function POST(req: Request) {
           });
 
           const mailOptions = {
-            from: smtpFrom,
+            from: `"SUDHIR TUTORIALS" <${smtpFrom}>`,
             to: targetEmail,
-            subject: 'Sudhir Tutorials - OTP Verification Code',
+            subject: 'SUDHIR TUTORIALS - OTP Verification Code',
             text: `Your verification code is ${otp}. It is valid for 15 minutes.`,
-            html: `<div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px;">
-              <h2 style="color: #4f46e5; text-align: center;">Sudhir Tutorials</h2>
-              <p>Hello,</p>
-              <p>Your one-time password (OTP) verification code is:</p>
-              <div style="font-size: 24px; font-weight: bold; text-align: center; padding: 15px; background: #f3f4f6; border-radius: 8px; letter-spacing: 5px; margin: 20px 0;">
-                ${otp}
-              </div>
-              <p style="color: #6b7280; font-size: 0.85rem;">This OTP is valid for 15 minutes. If you did not request this code, please ignore this email.</p>
-            </div>`,
+            html: emailHtml,
           };
 
           await transporter.sendMail(mailOptions);
