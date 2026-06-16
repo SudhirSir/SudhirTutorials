@@ -1435,13 +1435,7 @@ function AdminDashboardContent() {
 
   const calculateLiveLateFine = (dueDateStr: string, paidAtStr: string, billingMonth?: string) => {
     if (!dueDateStr) return 0;
-    let due = new Date(dueDateStr);
-    if (billingMonth) {
-      const parsed = new Date(`${billingMonth} ${feeDueDay || 12}`);
-      if (!isNaN(parsed.getTime())) {
-        due = parsed;
-      }
-    }
+    const due = new Date(dueDateStr);
     let now = new Date();
     if (paidAtStr) {
       const parts = paidAtStr.split('-');
