@@ -92,23 +92,25 @@ export async function POST(req: Request) {
     if (user.role === 'STUDENT') {
       await withDbRetry(() => prisma.studentProfile.upsert({
         where: { userId: user.id },
-        update: { email, phone, fatherName: parentName, parentContact },
+        update: { email, phone, fatherName: parentName, parentContact, emailVerified: true },
         create: {
           userId: user.id,
           email,
           phone,
           fatherName: parentName,
-          parentContact
+          parentContact,
+          emailVerified: true
         }
       }));
     } else if (user.role === 'TEACHER') {
       await withDbRetry(() => prisma.teacherProfile.upsert({
         where: { userId: user.id },
-        update: { email, phone },
+        update: { email, phone, emailVerified: true },
         create: {
           userId: user.id,
           email,
-          phone
+          phone,
+          emailVerified: true
         }
       }));
     }

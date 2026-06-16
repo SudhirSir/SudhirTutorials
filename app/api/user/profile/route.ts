@@ -160,10 +160,16 @@ export async function PUT(req: Request) {
 
     if (userRole === 'STUDENT') {
       console.log(`[API PUT /api/user/profile] Upserting StudentProfile for userId: ${session.user.id}`);
+      const currentProfile = await withDbRetry(() => prisma.studentProfile.findUnique({
+        where: { userId: session.user.id }
+      }));
+      const isEmailChanged = email !== undefined && email !== currentProfile?.email;
+
       await withDbRetry(() => prisma.studentProfile.upsert({
         where: { userId: session.user.id },
         update: {
           ...(email !== undefined && { email }),
+          ...(isEmailChanged && { emailVerified: false }),
           ...(phone !== undefined && { phone }),
           ...(address !== undefined && { address }),
           ...(dob !== undefined && { dob }),
@@ -179,6 +185,7 @@ export async function PUT(req: Request) {
         create: {
           userId: session.user.id,
           email: email || null,
+          emailVerified: false,
           phone: phone || null,
           address: address || null,
           dob: dob || null,
@@ -194,10 +201,16 @@ export async function PUT(req: Request) {
       console.log(`[API PUT /api/user/profile] Upserted StudentProfile successfully.`);
     } else if (userRole === 'TEACHER' || userRole === 'ADMIN') {
       console.log(`[API PUT /api/user/profile] Upserting TeacherProfile for userId: ${session.user.id} (Role: ${userRole})`);
+      const currentProfile = await withDbRetry(() => prisma.teacherProfile.findUnique({
+        where: { userId: session.user.id }
+      }));
+      const isEmailChanged = email !== undefined && email !== currentProfile?.email;
+
       await withDbRetry(() => prisma.teacherProfile.upsert({
         where: { userId: session.user.id },
         update: {
           ...(email !== undefined && { email }),
+          ...(isEmailChanged && { emailVerified: false }),
           ...(phone !== undefined && { phone }),
           ...(address !== undefined && { address }),
           ...(dob !== undefined && { dob }),
@@ -209,6 +222,7 @@ export async function PUT(req: Request) {
         create: {
           userId: session.user.id,
           email: email || null,
+          emailVerified: false,
           phone: phone || null,
           address: address || null,
           dob: dob || null,

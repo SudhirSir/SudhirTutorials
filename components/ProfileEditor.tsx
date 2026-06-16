@@ -54,6 +54,13 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
   // Bug Report State
   const [showBugReportModal, setShowBugReportModal] = useState(false);
 
+  // Email Verification State
+  const [sendingEmailOtp, setSendingEmailOtp] = useState(false);
+  const [otpSentForEmail, setOtpSentForEmail] = useState(false);
+  const [emailOtp, setEmailOtp] = useState('');
+  const [emailVerificationError, setEmailVerificationError] = useState('');
+  const [mockOtpMsg, setMockOtpMsg] = useState('');
+
   useEffect(() => { fetchProfile(); }, []);
 
   const fetchProfile = async () => {
@@ -89,6 +96,64 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
     } catch (e: any) {
       console.error(e);
       setError(e.message || 'Failed to connect to the server.');
+    }
+  };
+
+  const sendEmailVerificationOtp = async () => {
+    if (!form.email || !/^\S+@\S+\.\S+$/.test(form.email)) {
+      alert("Please enter a valid email address first.");
+      return;
+    }
+    setSendingEmailOtp(true);
+    setMockOtpMsg("");
+    setEmailVerificationError("");
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, type: "EMAIL_VERIFICATION" })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpSentForEmail(true);
+        if (data.isMock && data.mockOtp) {
+          setMockOtpMsg(`Code: ${data.mockOtp} (shown for testing)`);
+        }
+      } else {
+        alert(data.error || "Failed to send OTP code.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send verification code due to network issues.");
+    } finally {
+      setSendingEmailOtp(false);
+    }
+  };
+
+  const verifyEmailOtp = async () => {
+    if (!emailOtp || emailOtp.length !== 6) {
+      setEmailVerificationError("OTP code must be 6 digits.");
+      return;
+    }
+    setEmailVerificationError("");
+    try {
+      const res = await fetch("/api/user/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, otp: emailOtp })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpSentForEmail(false);
+        setEmailOtp('');
+        alert("✅ Email verified and updated successfully!");
+        fetchProfile();
+      } else {
+        setEmailVerificationError(data.error || "Verification failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      setEmailVerificationError("Verification failed due to network issues.");
     }
   };
 
@@ -417,8 +482,102 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
             <input type="date" style={inputStyle} value={form.dob} onChange={e => setForm((f: any) => ({ ...f, dob: e.target.value }))} />
           </div>
           <div>
-            <label style={labelStyle}>Email Address</label>
-            <input type="email" style={inputStyle} value={form.email} onChange={e => setForm((f: any) => ({ ...f, email: e.target.value }))} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Email Address</label>
+              {profile?.profile?.emailVerified && form.email === (profile?.profile?.email || '') ? (
+                <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>✓ Verified</span>
+              ) : (
+                <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700 }}>⚠ Unverified</span>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input 
+                type="email" 
+                style={{ ...inputStyle, flex: 1 }} 
+                value={form.email} 
+                onChange={e => setForm((f: any) => ({ ...f, email: e.target.value }))} 
+              />
+              {!(profile?.profile?.emailVerified && form.email === (profile?.profile?.email || '')) && form.email && (
+                <button
+                  type="button"
+                  onClick={sendEmailVerificationOtp}
+                  disabled={sendingEmailOtp}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '12px',
+                    background: 'var(--primary)',
+                    border: 'none',
+                    color: '#fff',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {sendingEmailOtp ? 'Sending...' : 'Verify'}
+                </button>
+              )}
+            </div>
+            
+            {otpSentForEmail && (
+              <div style={{ marginTop: '0.75rem', background: 'rgba(255, 255, 255, 0.02)', border: '1px dashed var(--border)', padding: '1rem', borderRadius: '12px' }}>
+                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Enter the 6-digit OTP code sent to <strong>{form.email}</strong>:
+                </p>
+                {mockOtpMsg && (
+                  <div style={{ color: '#10b981', fontSize: '0.8rem', marginBottom: '0.5rem', fontWeight: 600 }}>
+                    {mockOtpMsg}
+                  </div>
+                )}
+                {emailVerificationError && (
+                  <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                    {emailVerificationError}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="Enter OTP"
+                    value={emailOtp}
+                    onChange={e => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+                    style={{ ...inputStyle, width: '120px', padding: '0.5rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={verifyEmailOtp}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '12px',
+                      background: '#10b981',
+                      border: 'none',
+                      color: '#fff',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOtpSentForEmail(false)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '12px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text)',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <label style={labelStyle}>Phone Number</label>

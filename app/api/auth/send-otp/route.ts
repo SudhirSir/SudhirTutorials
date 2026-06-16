@@ -73,18 +73,37 @@ export async function POST(req: Request) {
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const logoUrl = `${protocol}://${host}/logo.png`;
 
+        let otpLabel = "Account Verification";
+        let actionText = "Your OTP for your SUDHIR TUTORIALS Account Verification is:";
+
+        if (type === 'PASSWORD_RESET') {
+          otpLabel = "Password Reset";
+          actionText = "Your OTP for your SUDHIR TUTORIALS Password Reset is:";
+        } else if (type === 'EMAIL_VERIFICATION') {
+          otpLabel = "Email Verification";
+          actionText = "Your OTP for your SUDHIR TUTORIALS Email Verification is:";
+        }
+
         const emailHtml = `<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-          <!-- Header with White Background -->
-          <div style="background-color: #ffffff; padding: 25px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-            <img src="${logoUrl}" alt="SUDHIR TUTORIALS" style="max-height: 60px; display: inline-block;" />
-          </div>
+          <!-- Header with Black Background, Logo on Left, Brand Name styled like Website Homepage -->
+          <table cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a; padding: 20px; width: 100%; border-radius: 12px 12px 0 0;">
+            <tr>
+              <td style="vertical-align: middle; width: 45px;">
+                <img src="${logoUrl}" alt="Logo" style="max-height: 35px; border-radius: 50%; object-fit: cover; display: block;" />
+              </td>
+              <td style="vertical-align: middle; padding-left: 10px;">
+                <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 20px; font-weight: 800; letter-spacing: 0.5px;">
+                  <span style="color: #ef4444;">SUDHIR</span> <span style="color: #2563eb;">TUTORIALS</span>
+                </span>
+              </td>
+            </tr>
+          </table>
           
           <!-- Content Body -->
           <div style="padding: 30px; background-color: #ffffff;">
-            <h2 style="color: #111827; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 15px; text-align: center;">Email Verification</h2>
-            <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Dear User,</p>
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Dear STian,</p>
             <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
-              Welcome to <strong>SUDHIR TUTORIALS</strong>! To secure your account, please verify your email address by using the One-Time Password (OTP) verification code below:
+              ${actionText}
             </p>
             
             <!-- OTP Display Box in Brand Primary Color (Red) -->
@@ -94,10 +113,6 @@ export async function POST(req: Request) {
               </div>
               <p style="color: #9ca3af; font-size: 13px; margin-top: 10px; margin-bottom: 0;">This code will expire in 15 minutes.</p>
             </div>
-            
-            <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
-              If you did not request this verification code, please ignore this email or contact support if you have concerns.
-            </p>
             
             <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 25px 0;" />
             
@@ -127,8 +142,8 @@ export async function POST(req: Request) {
                   email: targetEmail
                 }
               ],
-              subject: 'SUDHIR TUTORIALS - OTP Verification Code',
-              textContent: `Your verification code is ${otp}. It is valid for 15 minutes.`,
+              subject: `SUDHIR TUTORIALS - ${otpLabel} Code`,
+              textContent: `${actionText} ${otp}. It is valid for 15 minutes.`,
               htmlContent: emailHtml
             })
           });
@@ -153,8 +168,8 @@ export async function POST(req: Request) {
           const mailOptions = {
             from: `"SUDHIR TUTORIALS" <${smtpFrom}>`,
             to: targetEmail,
-            subject: 'SUDHIR TUTORIALS - OTP Verification Code',
-            text: `Your verification code is ${otp}. It is valid for 15 minutes.`,
+            subject: `SUDHIR TUTORIALS - ${otpLabel} Code`,
+            text: `${actionText} ${otp}. It is valid for 15 minutes.`,
             html: emailHtml,
           };
 

@@ -110,6 +110,7 @@ model StudentProfile {
   batch             String?
   school            String?
   email             String?
+  emailVerified     Boolean @default(false)
   phone             String?
   fatherName        String?
   parentContact     String?
@@ -133,6 +134,7 @@ model TeacherProfile {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject           String?
   email             String?
+  emailVerified     Boolean @default(false)
   phone             String?
   address           String?
   dob               String?
