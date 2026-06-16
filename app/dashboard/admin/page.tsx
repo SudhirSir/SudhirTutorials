@@ -4800,8 +4800,7 @@ function AdminDashboardContent() {
                                           setFeeStudentId(s.username);
                                           setFeeStudentSearch(`${s.name} (${s.username})`);
                                           const base = s.studentProfile?.baseFee || 0;
-                                          const scholarship = s.studentProfile?.scholarship || 0;
-                                          setFeeAmount(String(Math.max(0, base - scholarship)));
+                                          setFeeAmount(String(base));
                                           setFinanceSubTab('ASSIGN');
                                         }}
                                         style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
@@ -5034,9 +5033,8 @@ function AdminDashboardContent() {
                           if (matched) {
                             setFeeStudentId(matched.username);
                             const base = matched.studentProfile?.baseFee || 0;
-                            const scholarship = matched.studentProfile?.scholarship || 0;
                             if (base > 0) {
-                              setFeeAmount(String(Math.max(0, base - scholarship)));
+                              setFeeAmount(String(base));
                             }
                           } else {
                             setFeeStudentId('');

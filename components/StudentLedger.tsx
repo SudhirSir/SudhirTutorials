@@ -95,7 +95,7 @@ export function StudentLedger({
       postings.push({
         date: new Date(fee.createdAt),
         description: `Tuition Fee – ${fee.billingMonth} (${fee.title})`,
-        reference: fee.receiptNo || '–',
+        reference: '–',
         type: 'DEBIT',
         debit: fee.amount,
         credit: 0,
@@ -107,7 +107,7 @@ export function StudentLedger({
         postings.push({
           date: new Date(fee.createdAt),
           description: `Fee Discount / Concession – ${fee.billingMonth}`,
-          reference: fee.receiptNo || '–',
+          reference: '–',
           type: 'CREDIT',
           debit: 0,
           credit: fee.discount,
@@ -121,7 +121,7 @@ export function StudentLedger({
         postings.push({
           date: new Date(fee.paidAt || fee.dueDate || fee.createdAt),
           description: `Late Payment Fine – ${fee.billingMonth}`,
-          reference: fee.receiptNo || '–',
+          reference: '–',
           type: 'FINE',
           debit: fineVal,
           credit: 0,
@@ -856,8 +856,8 @@ export function StudentLedger({
                     <th>Description</th>
                     <th style={{ textAlign: 'right' }}>Debit (Dr)</th>
                     <th style={{ textAlign: 'right' }}>Credit (Cr)</th>
-                    <th style={{ textAlign: 'right', paddingRight: (isAdmin || !!onViewReceipt) ? '0' : '1.5rem' }}>Balance</th>
-                    {(isAdmin || !!onViewReceipt) && <th style={{ textAlign: 'center', paddingRight: '1.5rem' }}>Actions</th>}
+                    <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Balance</th>
+                    {(isAdmin || !!onViewReceipt) && <th style={{ textAlign: 'center', paddingLeft: '1rem', paddingRight: '1.5rem' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -868,7 +868,7 @@ export function StudentLedger({
                       <td style={{ color: 'var(--text)', fontWeight: 600 }}>{p.description}</td>
                       <td style={{ textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{p.debit > 0 ? `₹${p.debit.toFixed(2)}` : '–'}</td>
                       <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{p.credit > 0 ? `₹${p.credit.toFixed(2)}` : '–'}</td>
-                      <td style={{ textAlign: 'right', paddingRight: (isAdmin || !!onViewReceipt) ? '0' : '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444' }}>
                         {p.balance >= 0 ? `₹${p.balance.toFixed(2)} Cr` : `₹${Math.abs(p.balance).toFixed(2)} Dr`}
                       </td>
                       {(isAdmin || !!onViewReceipt) && (
