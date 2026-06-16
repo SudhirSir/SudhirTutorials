@@ -2095,7 +2095,7 @@ function AdminDashboardContent() {
           <thead>
             <tr>
               <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Date</th>
-              <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Reference No.</th>
+              <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Receipt/Ref No.</th>
               <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Transaction Description</th>
               <th style="background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db;">Type</th>
               <th style="background: #f3f4f6; padding: 10px; text-align: right; font-size: 12px; font-weight: bold; border-bottom: 2px solid #d1d5db; width: 110px;">Inflow (Cr)</th>
@@ -5510,7 +5510,7 @@ function AdminDashboardContent() {
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
                               <th style={{ padding: '1.1rem 1.5rem' }}>Date</th>
-                              <th style={{ padding: '1.1rem 1rem' }}>Ref No.</th>
+                              <th style={{ padding: '1.1rem 1rem' }}>Receipt/Ref No.</th>
                               <th style={{ padding: '1.1rem 1rem' }}>Transaction Description</th>
                               <th style={{ padding: '1.1rem 1rem' }}>Type</th>
                               <th style={{ padding: '1.1rem 1rem', textAlign: 'right' }}>Credit (Cr)</th>

@@ -93,9 +93,9 @@ export function StudentLedger({
     fees.forEach(fee => {
       // 1. Full base fee as DEBIT (never reduced by discount here)
       postings.push({
-        date: new Date(fee.dueDate || fee.createdAt),
+        date: new Date(fee.createdAt),
         description: `Tuition Fee – ${fee.billingMonth} (${fee.title})`,
-        reference: fee.receiptNo || `BILL-${(fee.id || '').slice(-6).toUpperCase()}`,
+        reference: fee.receiptNo || '–',
         type: 'DEBIT',
         debit: fee.amount,
         credit: 0,
@@ -105,9 +105,9 @@ export function StudentLedger({
       // 2. Discount as a separate CREDIT entry (proper accounting)
       if (fee.discount > 0) {
         postings.push({
-          date: new Date(fee.dueDate || fee.createdAt),
+          date: new Date(fee.createdAt),
           description: `Fee Discount / Concession – ${fee.billingMonth}`,
-          reference: `DISC-${(fee.id || '').slice(-6).toUpperCase()}`,
+          reference: fee.receiptNo || '–',
           type: 'CREDIT',
           debit: 0,
           credit: fee.discount,
@@ -119,9 +119,9 @@ export function StudentLedger({
       const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
       if (fineVal > 0) {
         postings.push({
-          date: new Date(fee.dueDate || fee.createdAt),
+          date: new Date(fee.paidAt || fee.dueDate || fee.createdAt),
           description: `Late Payment Fine – ${fee.billingMonth}`,
-          reference: `FINE-${fee.receiptNo ? fee.receiptNo.split('/').pop() : (fee.id || '').slice(-4).toUpperCase()}`,
+          reference: fee.receiptNo || '–',
           type: 'FINE',
           debit: fineVal,
           credit: 0,
@@ -137,7 +137,7 @@ export function StudentLedger({
         postings.push({
           date: new Date(fee.paidAt || fee.createdAt),
           description: `Payment Received – ${fee.paymentMethod || 'Online'}`,
-          reference: fee.transactionId ? `TXN-${(fee.transactionId || '').slice(-8).toUpperCase()}` : `RCPT-${fee.receiptNo}`,
+          reference: fee.receiptNo || '–',
           type: 'CREDIT',
           debit: 0,
           credit: creditAmt,
@@ -346,8 +346,8 @@ export function StudentLedger({
       y += 5;
 
       const cols: { label: string; w: number; align: string }[] = [
-        { label: 'Date',        w: 22, align: 'left'  },
-        { label: 'Ref No.',     w: 28, align: 'left'  },
+        { label: 'Date',        w: 24, align: 'left'  },
+        { label: 'Receipt No.', w: 28, align: 'left'  },
         { label: 'Description', w: 62, align: 'left'  },
         { label: 'Debit (Dr)',  w: 24, align: 'right' },
         { label: 'Credit (Cr)', w: 24, align: 'right' },
@@ -852,7 +852,7 @@ export function StudentLedger({
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
                     <th style={{ padding: '1.1rem 1.5rem' }}>Date</th>
-                    <th>Ref No.</th>
+                    <th>Receipt No.</th>
                     <th>Description</th>
                     <th style={{ textAlign: 'right' }}>Debit (Dr)</th>
                     <th style={{ textAlign: 'right' }}>Credit (Cr)</th>

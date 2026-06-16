@@ -61,6 +61,7 @@ export async function GET() {
 
       const scholarship = fee.student?.studentProfile?.scholarship || 0;
       const effectiveDiscount = Math.max(fee.discount, scholarship);
+      const receiptNo = `REC-${fee.id.slice(-6).toUpperCase()}`;
 
       return {
         ...fee,
@@ -68,7 +69,8 @@ export async function GET() {
         daysLate: daysLate > 0 ? daysLate : 0,
         lateFine: currentFine,
         currentLateFine: currentFine,
-        totalAmount: fee.amount + currentFine - effectiveDiscount
+        totalAmount: fee.amount + currentFine - effectiveDiscount,
+        receiptNo
       };
     });
 
