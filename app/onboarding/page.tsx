@@ -2,11 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { data: session, update } = useSession();
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const allowed = sessionStorage.getItem("onboarding_allowed");
+      if (!allowed) {
+        signOut({ redirect: true, callbackUrl: "/login" });
+      } else {
+        sessionStorage.removeItem("onboarding_allowed");
+      }
+    }
+  }, []);
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

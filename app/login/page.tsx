@@ -133,6 +133,9 @@ export default function LoginPage() {
         applyError(res);
       } else {
         // Navigate directly — no router.refresh() which caused a blank flash
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('onboarding_allowed', 'true');
+        }
         router.push(`/dashboard/${activeTab}`);
       }
     } catch (err) {
