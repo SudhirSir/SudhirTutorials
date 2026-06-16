@@ -74,9 +74,9 @@ export async function POST(req: Request) {
         const logoUrl = `${protocol}://${host}/logo.png`;
 
         const emailHtml = `<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-          <!-- Header with Brand Background -->
-          <div style="background-color: #1e3a8a; padding: 25px; text-align: center;">
-            <img src="${logoUrl}" alt="SUDHIR TUTORIALS" style="max-height: 50px; display: inline-block;" />
+          <!-- Header with White Background -->
+          <div style="background-color: #ffffff; padding: 25px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+            <img src="${logoUrl}" alt="SUDHIR TUTORIALS" style="max-height: 60px; display: inline-block;" />
           </div>
           
           <!-- Content Body -->

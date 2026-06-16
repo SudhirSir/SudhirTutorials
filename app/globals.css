@@ -1074,3 +1074,41 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   -ms-user-select: text !important;
   user-select: text !important;
 }
+
+/* Responsive Grid Layouts for Student Ledger / Statement */
+.statement-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.student-profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+.monthly-fee-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 480px) {
+  .statement-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .student-profile-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .monthly-fee-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .student-ledger-main-card {
+    padding: 1rem !important;
+    margin-top: 1rem !important;
+  }
+  .modal-overlay-container {
+    padding: 0.5rem !important;
+  }
+}

@@ -4149,6 +4149,7 @@ function AdminDashboardContent() {
           <div className="subtab-nav no-scrollbar">
             {[
               { id: 'OVERVIEW', label: 'Finance Hub', desc: 'Overview & Stats' },
+              { id: 'LEDGER', label: 'Fee Ledger', desc: 'Accounts & Dues' },
               { id: 'ASSIGN', label: 'Assign Fee', desc: 'Assign Custom/Batch' },
               { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Outflows & Claims' },
               { id: 'STATEMENT', label: 'Monthly Statement', desc: 'Monthly Transactions' },
@@ -5504,7 +5505,7 @@ function AdminDashboardContent() {
                     {/* Chronological ledger table */}
                     <div className="glass-card" style={{ padding: '2rem' }}>
                       <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text)' }}>Chronological Transaction Postings</h4>
-                      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', border: '1px solid var(--border)', borderRadius: '14px', background: 'rgba(0,0,0,0.1)' }}>
+                      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', border: '1px solid var(--border)', borderRadius: '14px', background: 'rgba(0,0,0,0.1)', width: '100%', maxWidth: '100%' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
@@ -7641,7 +7642,7 @@ function AdminDashboardContent() {
         <NotificationsPanel onUnreadChange={setUnreadNotifications} />
       )}
       {showDelModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100005 }}>
           <div className="glass-card" style={{ width: '400px', padding: '2.5rem', textAlign: 'center' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Delete Fee Record?</h3>
@@ -8627,7 +8628,7 @@ function AdminDashboardContent() {
 
       {/* ── Collect Payment Modal ───────────────────── */}
       {showPaymentModal && payingFee && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100005, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem', margin: 'auto' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Collect Payment</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Student: <strong>{payingFee.student?.name}</strong> • {payingFee.billingMonth}</p>
@@ -8717,7 +8718,7 @@ function AdminDashboardContent() {
 
       {/* ── Edit Fee Record Modal (Admin corrective editing) ───────────────── */}
       {showEditFeeModal && editingFeeRecord && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100005, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', margin: 'auto', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <h2 style={{ fontSize: '1.6rem', margin: '0 0 0.5rem', fontWeight: 800, color: 'var(--text)' }}>✎ Edit Fee Record</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
@@ -9884,7 +9885,7 @@ function AdminDashboardContent() {
       {lightboxUrl && typeof window !== 'undefined' && createPortal(<div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setLightboxUrl(null)}><button onClick={() => setLightboxUrl(null)} style={{ position: 'absolute', top: '20px', right: '30px', background: 'none', border: 'none', color: 'white', fontSize: '2.5rem', cursor: 'pointer' }}>&times;</button><img src={lightboxUrl} style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()} /></div>, document.body)}
 
       {selectedUserDetail && typeof window !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div className="modal-overlay-container" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card user-details-modal-card" style={{ width: '100%', maxWidth: selectedUserDetail.role === 'STUDENT' ? '850px' : '550px', padding: '2.5rem', margin: '2rem auto', position: 'relative', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <button 
               onClick={() => setSelectedUserDetail(null)} 

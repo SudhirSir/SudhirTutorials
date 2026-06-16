@@ -190,7 +190,7 @@ export default function OnboardingPage() {
             
             <div className="input-group" style={{ marginBottom: otpSent ? '1rem' : 0 }}>
               <label>Email Address</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input 
                   type="email" 
                   required 
@@ -198,14 +198,14 @@ export default function OnboardingPage() {
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
                   disabled={otpSent}
-                  style={{ flex: 1, minWidth: 0 }}
+                  style={{ flex: 1, minWidth: 0, padding: '0.85rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
                 {!otpSent ? (
                   <button 
                     type="button" 
                     onClick={sendOtp} 
                     disabled={sendingOtp || !email}
-                    style={{ padding: '0.85rem 1.25rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     {sendingOtp ? 'Sending...' : 'Send OTP'}
                   </button>
@@ -213,7 +213,7 @@ export default function OnboardingPage() {
                   <button 
                     type="button" 
                     onClick={() => { setOtpSent(false); setOtp(''); setMockOtpMessage(''); }} 
-                    style={{ padding: '0.85rem 1.25rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     Change
                   </button>
