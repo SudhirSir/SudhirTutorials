@@ -4823,7 +4823,7 @@ function AdminDashboardContent() {
                       <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            <th style={{ padding: '0.75rem 0' }}>Transaction Ref / Date</th>
+                            <th style={{ padding: '0.75rem 0' }}>Receipt No. / Date</th>
                             <th>Student</th>
                             <th>Category</th>
                             <th>Method</th>
@@ -4841,12 +4841,12 @@ function AdminDashboardContent() {
                             if (paidFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions recorded yet.</td></tr>;
 
                             return paidFees.map(fee => {
-                              const dateObj = new Date(fee.updatedAt || fee.createdAt);
+                              const dateObj = new Date(fee.paidAt || fee.updatedAt || fee.createdAt);
                               const formattedDate = formatDateDisplay(dateObj) + ', ' + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
                               return (
                                 <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                   <td style={{ padding: '0.6rem 0' }}>
-                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>REC-{fee.id.slice(-6).toUpperCase()}</div>
+                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.receiptNo || `REC-${fee.id.slice(-6).toUpperCase()}`}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
                                   </td>
                                   <td>
