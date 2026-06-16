@@ -7641,29 +7641,30 @@ function AdminDashboardContent() {
       {activeTab === 'notifications' && (
         <NotificationsPanel onUnreadChange={setUnreadNotifications} />
       )}
-      {showDelModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100005 }}>
-          <div className="glass-card" style={{ width: '400px', padding: '2.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Delete Fee Record?</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>This action cannot be undone. The student's fee record will be permanently removed.</p>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+      {showDelModal && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100010 }}>
+          <div className="glass-card" style={{ width: '400px', padding: '2rem', textAlign: 'center', borderRadius: '20px' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚠️</div>
+            <h3 style={{ fontSize: '1.35rem', marginBottom: '0.75rem', fontWeight: 800 }}>Delete Fee Record?</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem', lineHeight: 1.5 }}>This action cannot be undone. The student's fee record will be permanently removed.</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
               <button 
                 onClick={() => setShowDelModal(false)} 
-                style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
               >
                 Cancel
               </button>
               <button 
                 onClick={deleteFee} 
                 disabled={isDeleting}
-                style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: isDeleting ? 'not-allowed' : 'pointer', fontSize: '0.9rem' }}
               >
                 {isDeleting ? 'Deleting...' : 'Confirm Delete'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {showProfileModal && editingProfile && typeof window !== 'undefined' && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem', overflow: 'auto' }}>
@@ -8461,7 +8462,7 @@ function AdminDashboardContent() {
       )}
       {/* ── Receipt Modal ───────────────────────────── */}
       {activeReceipt && typeof window !== 'undefined' && createPortal(
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100010, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
             width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', margin: '2rem auto', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px', 
@@ -8627,8 +8628,8 @@ function AdminDashboardContent() {
       )}
 
       {/* ── Collect Payment Modal ───────────────────── */}
-      {showPaymentModal && payingFee && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100005, overflowY: 'auto', padding: '2rem 1rem' }}>
+      {showPaymentModal && payingFee && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100010, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem', margin: 'auto' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Collect Payment</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Student: <strong>{payingFee.student?.name}</strong> • {payingFee.billingMonth}</p>
@@ -8648,10 +8649,10 @@ function AdminDashboardContent() {
                  );
                })()}
                {payingFee.paidAmount > 0 && (
-                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#3b82f6' }}>
-                    <span>Previously Paid:</span>
-                    <span>-₹{payingFee.paidAmount}</span>
-                  </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#3b82f6' }}>
+                      <span>Previously Paid:</span>
+                      <span>-₹{payingFee.paidAmount}</span>
+                   </div>
                )}
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981' }}>
                   <span>Discount:</span>
@@ -8707,18 +8708,19 @@ function AdminDashboardContent() {
                  <label>Remarks</label>
                  <input type="text" placeholder="e.g. Paid by father" value={paymentDetails.remarks} onChange={e => setPaymentDetails({...paymentDetails, remarks: e.target.value})} />
                </div>
-               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                 <button type="button" onClick={() => setShowPaymentModal(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
-                 <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', { ...paymentDetails, paidAmount: parseFloat(paymentDetails.paidAmount || '0') })} className="btn-primary" style={{ flex: 1 }}>Confirm Payment</button>
+               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                 <button type="button" onClick={() => setShowPaymentModal(false)} style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>Cancel</button>
+                 <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', { ...paymentDetails, paidAmount: parseFloat(paymentDetails.paidAmount || '0') })} className="btn-primary" style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }}>Confirm Payment</button>
                </div>
-            </div>
+             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Edit Fee Record Modal (Admin corrective editing) ───────────────── */}
-      {showEditFeeModal && editingFeeRecord && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100005, overflowY: 'auto', padding: '2rem 1rem' }}>
+      {showEditFeeModal && editingFeeRecord && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100010, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', margin: 'auto', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <h2 style={{ fontSize: '1.6rem', margin: '0 0 0.5rem', fontWeight: 800, color: 'var(--text)' }}>✎ Edit Fee Record</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
@@ -8842,11 +8844,11 @@ function AdminDashboardContent() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
                 <button 
                   type="button" 
                   onClick={() => { setShowEditFeeModal(false); setEditingFeeRecord(null); }} 
-                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}
                 >
                   Cancel
                 </button>
@@ -8854,14 +8856,15 @@ function AdminDashboardContent() {
                   type="submit" 
                   disabled={isSavingFeeRecord}
                   className="btn-primary" 
-                  style={{ flex: 1, padding: '0.85rem' }}
+                  style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }}
                 >
                   {isSavingFeeRecord ? 'Saving Changes...' : 'Save Changes'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {activeTab === 'profile' && (
