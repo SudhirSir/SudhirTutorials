@@ -207,11 +207,11 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           : msgs.some(m => m.senderId === su.id && m.receiverId === currentUserId && !m.isRead);
         if (hasUnread) markAsRead(su.id, false);
       }
+      setInitialLoading(false);
     } catch (e) {
       console.warn('[Chat] fetchMessages error:', e);
     } finally {
       isFetchingRef.current = false;
-      setInitialLoading(false);
     }
   }, [currentUserId]);
 

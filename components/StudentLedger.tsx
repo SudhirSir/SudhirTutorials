@@ -7,6 +7,10 @@ interface StudentLedgerProps {
   refreshTrigger?: number;
   onPayOnline?: (fee: any) => void;
   onViewReceipt?: (feeId: string) => void;
+  isAdmin?: boolean;
+  onCollect?: (fee: any) => void;
+  onEdit?: (fee: any) => void;
+  onDelete?: (feeId: string) => void;
 }
 
 const MONTHS_LIST = [
@@ -14,7 +18,16 @@ const MONTHS_LIST = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewReceipt }: StudentLedgerProps) {
+export function StudentLedger({
+  studentId,
+  refreshTrigger,
+  onPayOnline,
+  onViewReceipt,
+  isAdmin = false,
+  onCollect,
+  onEdit,
+  onDelete
+}: StudentLedgerProps) {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>('month');
@@ -36,16 +49,17 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
       if (res.ok) {
         const data = await res.json();
         setFees(data.fees || []);
+        setLoading(false);
       } else if (res.status === 401 && retryCount < 3) {
         // Session may not be ready yet after tab navigation — retry with backoff
         setTimeout(() => fetchLedger(retryCount + 1), 600 * (retryCount + 1));
         return; // keep loading spinner
       } else {
         console.error("Error fetching ledger, status:", res.status);
+        setLoading(false);
       }
     } catch (e) {
       console.error("Error fetching ledger:", e);
-    } finally {
       setLoading(false);
     }
   };
@@ -85,6 +99,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
         type: 'DEBIT',
         debit: fee.amount,
         credit: 0,
+        fee: fee,
       });
 
       // 2. Discount as a separate CREDIT entry (proper accounting)
@@ -96,6 +111,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           type: 'CREDIT',
           debit: 0,
           credit: fee.discount,
+          fee: fee,
         });
       }
 
@@ -109,6 +125,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           type: 'FINE',
           debit: fineVal,
           credit: 0,
+          fee: fee,
         });
       }
 
@@ -124,6 +141,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
           type: 'CREDIT',
           debit: 0,
           credit: creditAmt,
+          fee: fee,
         });
       }
     });
@@ -685,42 +703,68 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
 
                       {hasRecord && (
                         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginTop: '0.875rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <div>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Net Amount Due</span>
-                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text)' }}>
+                              <span style={{ fontSize: '0.7rem', color: status === 'PENDING' ? '#ef4444' : 'var(--text-muted)', display: 'block', fontWeight: status === 'PENDING' ? 700 : 500 }}>Net Amount Due</span>
+                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: status === 'PENDING' ? '#ef4444' : 'var(--text)' }}>
                                 ₹{Math.max(0, record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0))}
                               </span>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.4rem' }}>
-                              {['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (() => {
-                                const blocked = isBlockedByPrevious(record);
-                                return (
-                                  <button type="button" 
-                                    onClick={() => !blocked && onPayOnline(record)}
-                                    disabled={blocked}
-                                    className={blocked ? "" : "btn-primary"} 
-                                    style={{ 
-                                      padding: '6px 12px', 
-                                      fontSize: '0.75rem', 
-                                      fontWeight: 700,
-                                      cursor: blocked ? 'not-allowed' : 'pointer',
-                                      background: blocked ? 'rgba(255,255,255,0.05)' : undefined,
-                                      color: blocked ? 'var(--text-muted)' : undefined,
-                                      border: blocked ? '1px solid var(--border)' : undefined,
-                                      borderRadius: '8px'
-                                    }}
-                                    title={blocked ? "You must pay previous months' pending fees first." : "Pay this invoice"}
-                                  >
-                                    {blocked ? 'Blocked' : 'Pay'}
-                                  </button>
-                                );
-                              })()}
-                              {isPaid && onViewReceipt && (
-                                <button type="button" onClick={() => onViewReceipt(record.id)}
-                                  style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
-                                  Receipt
-                                </button>
+                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              {isAdmin ? (
+                                <>
+                                  {status === 'PENDING' && onCollect && (
+                                    <button type="button" onClick={() => onCollect(record)}
+                                      className="btn-primary"
+                                      style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}>
+                                      💵 Collect
+                                    </button>
+                                  )}
+                                  {onEdit && (
+                                    <button type="button" onClick={() => onEdit(record)}
+                                      style={{ padding: '6px 12px', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                                      ✏️ Edit
+                                    </button>
+                                  )}
+                                  {onDelete && (
+                                    <button type="button" onClick={() => onDelete(record.id)}
+                                      style={{ padding: '6px 12px', background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                                      🗑️ Delete
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (() => {
+                                    const blocked = isBlockedByPrevious(record);
+                                    return (
+                                      <button type="button" 
+                                        onClick={() => !blocked && onPayOnline(record)}
+                                        disabled={blocked}
+                                        className={blocked ? "" : "btn-primary"} 
+                                        style={{ 
+                                          padding: '6px 12px', 
+                                          fontSize: '0.75rem', 
+                                          fontWeight: 700,
+                                          cursor: blocked ? 'not-allowed' : 'pointer',
+                                          background: blocked ? 'rgba(255,255,255,0.05)' : undefined,
+                                          color: blocked ? 'var(--text-muted)' : undefined,
+                                          border: blocked ? '1px solid var(--border)' : undefined,
+                                          borderRadius: '8px'
+                                        }}
+                                        title={blocked ? "You must pay previous months' pending fees first." : "Pay this invoice"}
+                                      >
+                                        {blocked ? 'Blocked' : 'Pay'}
+                                      </button>
+                                    );
+                                  })()}
+                                  {isPaid && onViewReceipt && (
+                                    <button type="button" onClick={() => onViewReceipt(record.id)}
+                                      style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
+                                      Receipt
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
@@ -786,7 +830,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                     : finalBalance < 0 
                       ? `₹${Math.abs(finalBalance).toFixed(2)} Due` 
                       : 'Settled', 
-                  color: finalBalance >= 0 ? 'var(--secondary)' : 'var(--primary)' 
+                  color: finalBalance > 0 ? 'var(--secondary)' : finalBalance < 0 ? '#ef4444' : 'var(--secondary)' 
                 },
               ].map(s => (
                 <div key={s.label} style={{ padding: '1.1rem 1.5rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)' }}>
@@ -795,7 +839,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                 </div>
               ))}
             </div>
-
+ 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>All chronological credit/debit postings</span>
               <button type="button" onClick={handlePrintStatement} disabled={downloadingStatement}
@@ -804,7 +848,7 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                 {downloadingStatement ? 'Generating PDF...' : 'Download Statement PDF'}
               </button>
             </div>
-
+ 
             <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--surface-light)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                 <thead>
@@ -814,7 +858,8 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                     <th>Description</th>
                     <th style={{ textAlign: 'right' }}>Debit (Dr)</th>
                     <th style={{ textAlign: 'right' }}>Credit (Cr)</th>
-                    <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Balance</th>
+                    <th style={{ textAlign: 'right', paddingRight: isAdmin ? '0' : '1.5rem' }}>Balance</th>
+                    {isAdmin && <th style={{ textAlign: 'center', paddingRight: '1.5rem' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -825,13 +870,45 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                       <td style={{ color: 'var(--text)', fontWeight: 600 }}>{p.description}</td>
                       <td style={{ textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{p.debit > 0 ? `₹${p.debit.toFixed(2)}` : '–'}</td>
                       <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{p.credit > 0 ? `₹${p.credit.toFixed(2)}` : '–'}</td>
-                      <td style={{ textAlign: 'right', paddingRight: '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : 'var(--primary)' }}>
+                      <td style={{ textAlign: 'right', paddingRight: isAdmin ? '0' : '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444' }}>
                         {p.balance >= 0 ? `₹${p.balance.toFixed(2)} Cr` : `₹${Math.abs(p.balance).toFixed(2)} Dr`}
                       </td>
+                      {isAdmin && (
+                        <td style={{ textAlign: 'center', paddingRight: '1.5rem' }}>
+                          {p.fee ? (
+                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                              {p.fee.status === 'PENDING' && onCollect && (
+                                <button type="button" onClick={() => onCollect(p.fee)}
+                                  className="btn-primary"
+                                  style={{ padding: '4px 8px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }}
+                                  title="Collect Fee">
+                                  💵 Collect
+                                </button>
+                              )}
+                              {onEdit && (
+                                <button type="button" onClick={() => onEdit(p.fee)}
+                                  style={{ padding: '4px 8px', background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                                  title="Edit Fee">
+                                  ✏️ Edit
+                                </button>
+                              )}
+                              {onDelete && (
+                                <button type="button" onClick={() => onDelete(p.fee.id)}
+                                  style={{ padding: '4px 8px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                                  title="Delete Fee">
+                                  🗑️ Delete
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>–</span>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {postings.length === 0 && (
-                    <tr><td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transactions recorded.</td></tr>
+                    <tr><td colSpan={isAdmin ? 7 : 6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transactions recorded.</td></tr>
                   )}
                 </tbody>
               </table>

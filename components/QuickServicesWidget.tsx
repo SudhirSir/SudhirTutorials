@@ -7,47 +7,73 @@ interface ServiceOption {
   label: string;
   icon: string;
   tab: string;
+  subTab?: string;
 }
 
 const SERVICE_OPTIONS: Record<string, ServiceOption[]> = {
   ADMIN: [
+    { id: 'overview', label: 'Dashboard Home', icon: '🏡', tab: 'overview' },
     { id: 'chats', label: 'My Chats', icon: '💬', tab: 'messages' },
-    { id: 'academics', label: 'Academic Services', icon: '📚', tab: 'academics' },
-    { id: 'finances', label: 'Fee Ledger', icon: '💰', tab: 'finances' },
-    { id: 'salary', label: 'Salary Panel', icon: '💼', tab: 'salary' },
     { id: 'users', label: 'User Directory', icon: '👥', tab: 'users' },
-    { id: 'verifications', label: 'Approvals & Queries', icon: '✅', tab: 'verifications' },
-    { id: 'settings', label: 'System Settings', icon: '⚙️', tab: 'settings' }
+    { id: 'salary', label: 'Salary Panel', icon: '💼', tab: 'salary' },
+    { id: 'settings', label: 'System Settings', icon: '⚙️', tab: 'settings' },
+    { id: 'guru-ai', label: 'ST Guru ji (AI)', icon: '🤖', tab: 'guru-ai' },
+    { id: 'notifications', label: 'Notice Board', icon: '📢', tab: 'notifications' },
+    { id: 'profile', label: 'My Profile', icon: '👤', tab: 'profile' },
+    // Finances submenus
+    { id: 'finance_overview', label: 'Finance Hub Overview', icon: '🏦', tab: 'finances', subTab: 'OVERVIEW' },
+    { id: 'finance_ledger', label: 'Fee Ledger & Collections', icon: '💰', tab: 'finances', subTab: 'LEDGER' },
+    { id: 'finance_assign', label: 'Assign Fee / Charge', icon: '✍️', tab: 'finances', subTab: 'ASSIGN' },
+    { id: 'finance_expenses', label: 'Expense Tracker', icon: '📊', tab: 'finances', subTab: 'EXPENSES' },
+    { id: 'finance_statement', label: 'Monthly Statement', icon: '📅', tab: 'finances', subTab: 'STATEMENT' },
+    { id: 'finance_billing_engine', label: 'Billing Engine', icon: '⚙️', tab: 'finances', subTab: 'BILLING_ENGINE' },
+    // Academics submenus
+    { id: 'academic_courses', label: 'Courses & Batches', icon: '📚', tab: 'academics', subTab: 'courses' },
+    { id: 'academic_attendance', label: 'Attendance Logs', icon: '📅', tab: 'academics', subTab: 'attendance' },
+    { id: 'academic_materials', label: 'Study Materials', icon: '📄', tab: 'academics', subTab: 'materials' },
+    { id: 'academic_tests', label: 'Tests & Exams', icon: '📝', tab: 'academics', subTab: 'tests' },
+    { id: 'academic_analytics', label: 'Performance Analytics', icon: '📈', tab: 'academics', subTab: 'analytics' },
+    { id: 'academic_lectures', label: 'Lectures / Classes', icon: '🎥', tab: 'academics', subTab: 'lectures' },
+    { id: 'academic_admissions', label: 'Admissions Inquiries', icon: '📋', tab: 'academics', subTab: 'admissions' },
+    // Approvals submenus
+    { id: 'verifications_approvals', label: 'Approvals & Queries', icon: '✅', tab: 'verifications', subTab: 'approvals' },
+    { id: 'verifications_admissions', label: 'Admissions Inquiries', icon: '📋', tab: 'verifications', subTab: 'admissions' }
   ],
   TEACHER: [
     { id: 'chats', label: 'My Chats', icon: '💬', tab: 'messages' },
-    { id: 'classes', label: 'Lectures & Classes', icon: '🏫', tab: 'classes' },
+    { id: 'classes', label: 'My Classes', icon: '🏫', tab: 'classes' },
     { id: 'materials', label: 'Study Materials', icon: '📄', tab: 'materials' },
-    { id: 'salary', label: 'Salary Details', icon: '💼', tab: 'salary' },
     { id: 'students', label: 'Student Directory', icon: '👥', tab: 'students' },
     { id: 'attendance', label: 'Record Attendance', icon: '✏️', tab: 'attendance' },
-    { id: 'tests', label: 'Test & Marks', icon: '📝', tab: 'tests' }
+    { id: 'tests', label: 'Tests & Marks', icon: '📝', tab: 'tests' },
+    { id: 'salary', label: 'Salary Details', icon: '💼', tab: 'salary' },
+    { id: 'guru-ai', label: 'ST Guru ji', icon: '🤖', tab: 'guru-ai' },
+    { id: 'profile', label: 'My Profile', icon: '👤', tab: 'profile' },
+    { id: 'notifications', label: 'Notice Board', icon: '📢', tab: 'notifications' }
   ],
   STUDENT: [
     { id: 'chats', label: 'My Chats', icon: '💬', tab: 'messages' },
-    { id: 'academics', label: 'Academic Services', icon: '📚', tab: 'materials' },
+    { id: 'dashboard', label: 'Dashboard Home', icon: '🏡', tab: 'dashboard' },
+    { id: 'attendance', label: 'My Attendance', icon: '📅', tab: 'attendance' },
+    { id: 'materials', label: 'Study Materials', icon: '📄', tab: 'materials' },
     { id: 'fees', label: 'Pay / View Fees', icon: '💰', tab: 'fees' },
+    { id: 'lectures', label: 'Lectures / Classes', icon: '🎥', tab: 'lectures' },
     { id: 'tests', label: 'Tests & Marks', icon: '📝', tab: 'tests' },
-    { id: 'lectures', label: 'Lectures/Classes', icon: '🎥', tab: 'lectures' },
-    { id: 'guru-ji', label: 'ST Guru ji', icon: '🤖', tab: 'guru-ji' },
-    { id: 'attendance', label: 'My Attendance', icon: '📅', tab: 'attendance' }
+    { id: 'guru-ji', label: 'ST Guru ji (AI)', icon: '🤖', tab: 'guru-ji' },
+    { id: 'notifications', label: 'Notice Board', icon: '📢', tab: 'notifications' },
+    { id: 'profile', label: 'My Profile', icon: '👤', tab: 'profile' }
   ]
 };
 
 const DEFAULT_SELECTIONS: Record<string, string[]> = {
-  ADMIN: ['chats', 'academics', 'finances'],
+  ADMIN: ['chats', 'finance_ledger', 'academic_courses'],
   TEACHER: ['chats', 'classes', 'materials'],
-  STUDENT: ['chats', 'academics', 'fees']
+  STUDENT: ['chats', 'fees', 'materials']
 };
 
 interface QuickServicesWidgetProps {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: string, subTab?: string) => void;
 }
 
 export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetProps) {
@@ -94,7 +120,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
             ⚡ Quick Services
           </h3>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
-            Instant shortcuts to your most frequently used panels and workflows.
+            Instant shortcuts to your most frequently used workflows and submenus.
           </p>
         </div>
         <button
@@ -164,7 +190,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
           {activeServices.map(service => (
             <div
               key={service.id}
-              onClick={() => setActiveTab(service.tab)}
+              onClick={() => setActiveTab(service.tab, service.subTab)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -208,7 +234,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
                   {service.label}
                 </span>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Open tab shortcut
+                  {service.subTab ? `${service.tab} / ${service.subTab.toLowerCase()}` : 'Open tab shortcut'}
                 </span>
               </div>
             </div>

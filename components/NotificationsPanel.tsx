@@ -111,16 +111,32 @@ export function NotificationsPanel({
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
-        setTotalCount(data.totalCount || 0);
-        if (panelTab === 'received') {
-          const unread = data.unreadCount ?? 0;
-          setUnreadCount(unread);
-          onUnreadChange?.(unread);
+        const rawNotifications = data.notifications || [];
+        const unread = data.unreadCount ?? 0;
+        
+        if (panelTab === 'received' && unread > 0) {
+          // Mark all read in the background
+          fetch('/api/notifications', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: [] })
+          }).catch(console.error);
+          
+          setNotifications(rawNotifications.map((n: Notification) => ({ ...n, isRead: true })));
+          setTotalCount(data.totalCount || 0);
+          setUnreadCount(0);
+          onUnreadChange?.(0);
+        } else {
+          setNotifications(rawNotifications);
+          setTotalCount(data.totalCount || 0);
+          if (panelTab === 'received') {
+            setUnreadCount(unread);
+            onUnreadChange?.(unread);
+          }
         }
+        setLoading(false);
       }
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
   };
 
   const handleLoadMore = () => {

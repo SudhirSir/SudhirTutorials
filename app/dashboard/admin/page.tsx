@@ -1360,6 +1360,41 @@ function AdminDashboardContent() {
   const [financeStudentSearchQuery, setFinanceStudentSearchQuery] = useState('');
   const [showFinanceSuggestions, setShowFinanceSuggestions] = useState(false);
   const [fees, setFees] = useState<any[]>([]);
+  const [ledgerRefreshTrigger, setLedgerRefreshTrigger] = useState(0);
+
+  const handleQuickServiceClick = (tab: string, subTab?: string) => {
+    if (tab === 'finances' && subTab) {
+      setFinanceSubTab(subTab as any);
+    } else if (tab === 'academics' && subTab) {
+      setAcademicSubTab(subTab as any);
+    }
+    handleTabChange(tab);
+  };
+
+  const currentMonthFees = useMemo(() => {
+    const currentMonthYear = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    return fees.filter(f => f.billingMonth === currentMonthYear);
+  }, [fees]);
+
+  const currentMonthCollected = useMemo(() => {
+    return currentMonthFees.reduce((acc, f) => {
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
+        const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+        return acc + (f.paidAmount || (f.amount + fineVal - f.discount));
+      }
+      return acc + (f.paidAmount || 0);
+    }, 0);
+  }, [currentMonthFees]);
+
+  const currentMonthPending = useMemo(() => {
+    return currentMonthFees.reduce((acc, f) => {
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
+        return acc;
+      }
+      const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+      return acc + Math.max(0, f.amount + fineVal - f.discount - (f.paidAmount || 0));
+    }, 0);
+  }, [currentMonthFees]);
   const [feeSearchQuery, setFeeSearchQuery] = useState('');
   const [showLedgerSuggestions, setShowLedgerSuggestions] = useState(false);
   const [showDirSuggestions, setShowDirSuggestions] = useState(false);
@@ -1709,6 +1744,7 @@ function AdminDashboardContent() {
       if (res.ok) {
         setFees(data.fees || []);
         setFinanceRefreshTrigger(prev => prev + 1);
+        setLedgerRefreshTrigger(prev => prev + 1);
       }
     } catch (err) {
       console.error(err);
@@ -3288,7 +3324,7 @@ function AdminDashboardContent() {
 
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <QuickServicesWidget role="ADMIN" setActiveTab={setActiveTab} />
+          <QuickServicesWidget role="ADMIN" setActiveTab={handleQuickServiceClick} />
           
           {/* Key Metrics Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
@@ -3853,7 +3889,12 @@ function AdminDashboardContent() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
-                {filteredDirectoryUsers.length === 0 ? (
+                {isSearching ? (
+                  <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 0', gap: '0.5rem' }}>
+                    <div style={{ width: '28px', height: '28px', border: '3px solid rgba(99,102,241,0.2)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Searching directory...</p>
+                  </div>
+                ) : filteredDirectoryUsers.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)', gridColumn: '1/-1', textAlign: 'center', padding: '3rem 0' }}>No users found.</p>
                 ) : (
                   filteredDirectoryUsers.map(u => (
@@ -4108,7 +4149,6 @@ function AdminDashboardContent() {
           <div className="subtab-nav no-scrollbar">
             {[
               { id: 'OVERVIEW', label: 'Finance Hub', desc: 'Overview & Stats' },
-              { id: 'LEDGER', label: 'Fee Ledger', desc: 'Transactions & Dues' },
               { id: 'ASSIGN', label: 'Assign Fee', desc: 'Assign Custom/Batch' },
               { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Outflows & Claims' },
               { id: 'STATEMENT', label: 'Monthly Statement', desc: 'Monthly Transactions' },
@@ -4145,10 +4185,10 @@ function AdminDashboardContent() {
               {/* ── Top Level Stats Grid ── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
                  {[
-                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Received student dues' },
-                   { label: 'Total Expenses', value: `₹${(finSummary?.totalExpenses || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outflow & administrative costs' },
-                   { label: 'Net Profit', value: `₹${(finSummary?.netProfit || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Net cash balance' },
-                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outstanding invoices' }
+                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Received student dues (All Time)' },
+                   { label: 'Current Month Pending', value: `₹${currentMonthPending.toLocaleString()}`, color: 'var(--primary)', desc: 'Pending dues this month' },
+                   { label: 'Current Month Collected', value: `₹${currentMonthCollected.toLocaleString()}`, color: 'var(--secondary)', desc: 'Collected fees this month' },
+                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outstanding invoices (All Time)' }
                  ].map((s, i) => (
                    <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ width: '100%' }}>
@@ -4163,6 +4203,54 @@ function AdminDashboardContent() {
                  ))}
               </div>
 
+              {/* Submenu Shortcuts Grid */}
+              <div className="glass-card animate-scale-up" style={{ padding: '1.5rem' }}>
+                 <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                   ⚡ Finance Hub Shortcuts
+                 </h4>
+                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 1rem 0' }}>Instant shortcuts to ledger database, assign forms, billing engines, and expense panels.</p>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                   {[
+                     { id: 'LEDGER', label: 'Fee Ledger & Collections', desc: 'Track, collect & delete student invoices', icon: '💰' },
+                     { id: 'ASSIGN', label: 'Assign Fee', desc: 'Charge single or multiple students', icon: '✍️' },
+                     { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Record administrative outflows', icon: '📊' },
+                     { id: 'BILLING_ENGINE', label: 'Billing Engine', desc: 'Generate monthly automated bills', icon: '⚙️' }
+                   ].map(shortcut => (
+                     <div
+                       key={shortcut.id}
+                       onClick={() => setFinanceSubTab(shortcut.id as any)}
+                       style={{
+                         padding: '1rem 1.25rem',
+                         background: 'var(--card-bg)',
+                         border: '1px solid var(--border)',
+                         borderRadius: '16px',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.75rem'
+                       }}
+                       onMouseEnter={e => {
+                         e.currentTarget.style.borderColor = 'var(--primary)';
+                         e.currentTarget.style.transform = 'translateY(-2px)';
+                         e.currentTarget.style.background = 'rgba(99,102,241,0.05)';
+                       }}
+                       onMouseLeave={e => {
+                         e.currentTarget.style.borderColor = 'var(--border)';
+                         e.currentTarget.style.transform = 'translateY(0)';
+                         e.currentTarget.style.background = 'var(--card-bg)';
+                       }}
+                     >
+                       <div style={{ fontSize: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{shortcut.icon}</div>
+                       <div>
+                         <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text)' }}>{shortcut.label}</div>
+                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{shortcut.desc}</div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+
               {/* Two Column Grid under Overview */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
                 
@@ -4170,9 +4258,6 @@ function AdminDashboardContent() {
                 <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '260px' }}>
                   <div>
                     <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Billing Overview</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                      Breakdown of outstanding student collections. Manage fee assignments or run the automated monthly billing engine.
-                    </p>
                   </div>
 
                   {/* Visual Progress Bar */}
@@ -4624,8 +4709,6 @@ function AdminDashboardContent() {
                                         {(fee.status !== 'PENDING') && (
                                           <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
                                         )}
-                                        <button onClick={() => { setEditingFeeRecord(fee); setShowEditFeeModal(true); }} style={{ padding: '6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }} title="Edit Fee Record">✎</button>
-                                        <button onClick={() => openDelModal(fee.id)} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🗑</button>
                                         <button 
                                           onClick={() => setSelectedUserDetail(s)} 
                                           style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
@@ -10038,21 +10121,42 @@ function AdminDashboardContent() {
                   <div className="scrollable-ledger-container">
                     <StudentLedger 
                       studentId={selectedUserDetail.id}
-                    onViewReceipt={async (feeId) => {
-                      try {
-                        const res = await fetch(`/api/student/fees/receipt/${feeId}`);
-                        if (res.ok) {
-                          const data = await res.json();
-                          setActiveReceipt(data.fee);
-                        } else {
-                          const d = await res.json();
-                          alert(d.error || 'Failed to open receipt.');
+                      isAdmin={true}
+                      refreshTrigger={ledgerRefreshTrigger}
+                      onCollect={(fee) => {
+                        setPayingFee(fee);
+                        setShowPaymentModal(true);
+                        setPaymentDetails({
+                          paymentMethod: 'CASH',
+                          transactionId: '',
+                          discount: fee.discount,
+                          remarks: '',
+                          paidAmount: (fee.amount + (Math.max(fee.lateFine || 0, fee.currentLateFine || 0)) - fee.discount - (fee.paidAmount || 0)).toString(),
+                          paidAt: new Date().toISOString().split('T')[0]
+                        });
+                      }}
+                      onEdit={(fee) => {
+                        setEditingFeeRecord(fee);
+                        setShowEditFeeModal(true);
+                      }}
+                      onDelete={(feeId) => {
+                        openDelModal(feeId);
+                      }}
+                      onViewReceipt={async (feeId) => {
+                        try {
+                          const res = await fetch(`/api/student/fees/receipt/${feeId}`);
+                          if (res.ok) {
+                            const data = await res.json();
+                            setActiveReceipt(data.fee);
+                          } else {
+                            const d = await res.json();
+                            alert(d.error || 'Failed to open receipt.');
+                          }
+                        } catch (e) {
+                          console.error(e);
+                          alert('Network error. Failed to load receipt.');
                         }
-                      } catch (e) {
-                        console.error(e);
-                        alert('Network error. Failed to load receipt.');
-                      }
-                    }}
+                      }}
                     />
                   </div>
                 </div>

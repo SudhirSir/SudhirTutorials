@@ -156,6 +156,7 @@ function StudentDashboardContent() {
     attendance: { percentage: 0, present: 0, total: 0, history: [] },
     testStats: { averageScore: 0, results: [] }
   });
+  const [dashboardLoading, setDashboardLoading] = useState(true);
   const [materials, setMaterials] = useState<any[]>([]);
   const [materialsLoading, setMaterialsLoading] = useState(false);
   const [fees, setFees] = useState<any[]>([]);
@@ -509,10 +510,17 @@ function StudentDashboardContent() {
   }, [activeTab, session]);
 
   const fetchDashboard = async () => {
+    setDashboardLoading(true);
     try {
       const res = await fetch('/api/student/dashboard');
-      if (res.ok) setDashboard(await res.json());
-    } catch (e) { console.error(e); }
+      if (res.ok) {
+        setDashboard(await res.json());
+        setDashboardLoading(false);
+      }
+    } catch (e) {
+      console.error(e);
+      setDashboardLoading(false);
+    }
   };
 
   const fetchMaterials = async () => {
@@ -989,7 +997,28 @@ function StudentDashboardContent() {
                 <h3 style={{ fontSize: '1.4rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   My Batches & Instructors
                 </h3>
-                {dashboard?.batches && dashboard.batches.length > 0 ? (
+                 {dashboardLoading ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+                    {[1, 2].map((i) => (
+                      <div key={i} className="animate-pulse" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border)', gap: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ height: '1.2rem', width: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+                            <div style={{ height: '0.8rem', width: '60%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginTop: '0.5rem' }} />
+                          </div>
+                          <div style={{ height: '1.2rem', width: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px' }} />
+                        </div>
+                        <div style={{ height: '1px', background: 'var(--border)' }} />
+                        <div>
+                          <div style={{ height: '0.8rem', width: '120px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginBottom: '0.75rem' }} />
+                          <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ height: '40px', width: '150px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : dashboard?.batches && dashboard.batches.length > 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
                     {dashboard.batches.map((b: any) => (
                       <div key={b.id} style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--border)', gap: '1rem' }}>
@@ -1054,18 +1083,26 @@ function StudentDashboardContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               
               {/* Fee Status */}
-              <div className={`glass-card ${(dashboard as any)?.feeHighlight?.isOverdue ? 'overdue-pulse' : ''}`} style={{ padding: '2rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'linear-gradient(135deg, var(--primary), var(--accent))', border: (dashboard as any)?.feeHighlight?.isOverdue ? '1px solid rgba(239, 68, 68, 0.5)' : undefined }}>
-                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: (dashboard as any)?.feeHighlight?.isOverdue ? '#ef4444' : '#fff' }}>Fee Status</h3>
+              <div className={`glass-card ${((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'overdue-pulse' : ''}`} style={{
+                padding: '2rem',
+                background: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING')
+                  ? 'rgba(239, 68, 68, 0.1)'
+                  : 'linear-gradient(135deg, var(--primary), var(--accent))',
+                border: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING')
+                  ? '1px solid rgba(239, 68, 68, 0.5)'
+                  : undefined
+              }}>
+                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>Fee Status</h3>
                  
                  {(dashboard as any)?.feeHighlight ? (
                    <>
-                     <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: (dashboard as any).feeHighlight.isOverdue ? '#ef4444' : '#fff' }}>
+                     <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: ((dashboard as any).feeHighlight.isOverdue || (dashboard as any).feeHighlight.status === 'PENDING') ? '#ef4444' : '#fff' }}>
                        ₹{((dashboard as any).feeHighlight.totalAmount ?? (dashboard as any).feeHighlight.amount).toFixed(0)}
                      </div>
-                     <p style={{ color: (dashboard as any)?.feeHighlight?.isOverdue ? 'var(--text)' : 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                     <p style={{ color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'var(--text)' : 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                        {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${formatDateDisplay((dashboard as any).feeHighlight.dueDate)}` : `Status: ${(dashboard as any).feeHighlight.status}`}
                      </p>
-                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : 'rgba(255,255,255,0.15)', color: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '#fff', border: (dashboard as any)?.feeHighlight?.isOverdue ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
+                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : 'rgba(255,255,255,0.15)', color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '#fff', border: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
                         handleTabChange('fees');
                         if ((dashboard as any)?.feeHighlight) {
                           handlePayOnline((dashboard as any).feeHighlight, 'month');
@@ -1201,9 +1238,9 @@ function StudentDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Beautiful warning banner if there are any pending invoices */}
           {fees.some(f => f.status === 'PENDING') && (
-            <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(245,158,11,0.05)', border: '1px solid #f59e0b', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(239,68,68,0.05)', border: '1px solid #ef4444', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#f59e0b' }}>⚠️ Outstanding Invoice Alert</h3>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#ef4444' }}>⚠️ Outstanding Invoice Alert</h3>
                 <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Please settle your pending balance online to avoid automatic late fines.</p>
               </div>
               <button onClick={() => {
