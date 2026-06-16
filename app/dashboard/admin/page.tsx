@@ -8807,6 +8807,19 @@ function AdminDashboardContent() {
                   />
                 </div>
                 <div className="input-group">
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Paid Amount (₹)</label>
+                  <input 
+                    type="number" 
+                    required 
+                    value={editingFeeRecord.paidAmount ?? 0} 
+                    onChange={e => setEditingFeeRecord({...editingFeeRecord, paidAmount: parseFloat(e.target.value || '0')})} 
+                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="input-group">
                   <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Due Date</label>
                   <input 
                     type="date" 
@@ -8816,21 +8829,20 @@ function AdminDashboardContent() {
                     style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                   />
                 </div>
-              </div>
-
-              <div className="input-group">
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Payment Status</label>
-                <select 
-                  value={editingFeeRecord.status || 'PENDING'} 
-                  onChange={e => setEditingFeeRecord({...editingFeeRecord, status: e.target.value})}
-                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
-                >
-                  <option value="PENDING">Pending</option>
-                  <option value="PAID">Paid (Offline)</option>
-                  <option value="PAID_ONLINE">Paid (Online)</option>
-                  <option value="VERIFIED">Verified</option>
-                  <option value="FAILED">Failed</option>
-                </select>
+                <div className="input-group">
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Payment Status</label>
+                  <select 
+                    value={editingFeeRecord.status || 'PENDING'} 
+                    onChange={e => setEditingFeeRecord({...editingFeeRecord, status: e.target.value})}
+                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="PAID">Paid (Offline)</option>
+                    <option value="PAID_ONLINE">Paid (Online)</option>
+                    <option value="VERIFIED">Verified</option>
+                    <option value="FAILED">Failed</option>
+                  </select>
+                </div>
               </div>
 
               <div className="input-group">

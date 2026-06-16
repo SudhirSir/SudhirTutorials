@@ -444,7 +444,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks } = body;
+    const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks, paidAmount } = body;
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
 
     const existing = await withDbRetry(() => prisma.payment.findUnique({ 
@@ -488,15 +488,21 @@ export async function PUT(req: Request) {
         const finalAmount = (updateData.amount ?? existing.amount);
         const finalFine = (updateData.lateFine ?? existing.lateFine);
         const finalDiscount = (updateData.discount ?? effectiveDiscount);
-        updateData.paidAmount = Math.max(0, finalAmount + finalFine - finalDiscount);
+        updateData.paidAmount = paidAmount !== undefined 
+          ? parseFloat(String(paidAmount))
+          : Math.max(0, finalAmount + finalFine - finalDiscount);
         updateData.paidAt = new Date();
         if (status === 'PAID' || status === 'VERIFIED') {
           updateData.collectedBy = session.user.name || session.user.username || 'Admin';
         }
       } else if (status === 'PENDING') {
-        updateData.paidAmount = 0;
+        updateData.paidAmount = paidAmount !== undefined ? parseFloat(String(paidAmount)) : 0;
         updateData.paidAt = null;
         updateData.collectedBy = null;
+      }
+    } else {
+      if (paidAmount !== undefined) {
+        updateData.paidAmount = parseFloat(String(paidAmount));
       }
     }
 
