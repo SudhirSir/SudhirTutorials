@@ -56,8 +56,7 @@ export async function POST(req: Request) {
       const outstandingPayments = allPayments.filter(fee => {
         if (fee.status === 'PAID_ONLINE') return false; // Already submitted online awaiting verification
         const storedFine = fee.lateFine || 0;
-        const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
-        const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+        const effectiveDueDate = fee.dueDate;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
@@ -74,8 +73,7 @@ export async function POST(req: Request) {
         if (remainingPaidPool <= 0) break;
 
         const storedFine = fee.lateFine || 0;
-        const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
-        const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+        const effectiveDueDate = fee.dueDate;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
@@ -116,8 +114,7 @@ export async function POST(req: Request) {
 
       const leftOutstanding = outstandingPayments.reduce((sum, fee) => {
         const storedFine = fee.lateFine || 0;
-        const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
-        const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+        const effectiveDueDate = fee.dueDate;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
@@ -153,9 +150,24 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Payment is already processing and awaiting verification' }, { status: 400 });
       }
 
+      // Chronological/Serial payment enforcement: check if there are earlier pending fees
+      const previousPending = await withDbRetry(() => prisma.payment.findFirst({
+        where: {
+          studentId: session.user.id,
+          status: 'PENDING',
+          dueDate: { lt: fee.dueDate },
+          id: { not: fee.id }
+        }
+      }));
+
+      if (previousPending) {
+        return NextResponse.json({ 
+          error: `Cannot pay for ${fee.billingMonth} because a previous month's fee (${previousPending.billingMonth}) is still pending. Fees must be paid strictly in chronological order.` 
+        }, { status: 400 });
+      }
+
       const storedFine = fee.lateFine || 0;
-      const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
-      const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+      const effectiveDueDate = fee.dueDate;
       const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
       const activeFine = Math.max(storedFine, realTimeFine);
       const scholarship = fee.student?.studentProfile?.scholarship || 0;

@@ -14,12 +14,44 @@ export default function OnboardingPage() {
   const [phone, setPhone] = useState("");
   const [parentName, setParentName] = useState(""); // Only for students
   const [parentContact, setParentContact] = useState(""); // Only for students
-  const [recoveryPin, setRecoveryPin] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [mockOtpMessage, setMockOtpMessage] = useState("");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const role = (session?.user as any)?.role;
+
+  const sendOtp = async () => {
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return setError("Please enter a valid email address first.");
+    }
+    setError("");
+    setSendingOtp(true);
+    setMockOtpMessage("");
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpSent(true);
+        if (data.isMock && data.mockOtp) {
+          setMockOtpMessage(`Code: ${data.mockOtp} (shown for testing)`);
+        }
+      } else {
+        setError(data.error || "Failed to send OTP code.");
+      }
+    } catch (err) {
+      setError("Failed to send OTP code.");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +92,11 @@ export default function OnboardingPage() {
     if (phone && !/^\d{10}$/.test(phone.trim())) {
       return setError("Phone number must be exactly 10 digits.");
     }
-    if (!recoveryPin || recoveryPin.length !== 6 || isNaN(Number(recoveryPin))) {
-      return setError("Recovery PIN must be exactly 6 digits");
+    if (!otpSent) {
+      return setError("Please verify your email address by sending and entering the OTP first.");
+    }
+    if (!otp || otp.length !== 6 || isNaN(Number(otp))) {
+      return setError("Verification OTP must be exactly 6 digits");
     }
 
     setLoading(true);
@@ -71,7 +106,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, email, phone, parentName, parentContact, recoveryPin })
+        body: JSON.stringify({ password, email, phone, parentName, parentContact, otp })
       });
 
       if (res.ok) {
@@ -150,20 +185,61 @@ export default function OnboardingPage() {
           )}
 
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#fff' }}>3. Secure Account Recovery</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Set a 6-digit Secret PIN. You will need this to reset your password if you ever get locked out.</p>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label>6-Digit Secret PIN</label>
-              <input 
-                type="text" 
-                maxLength={6} 
-                placeholder="e.g. 123456" 
-                required 
-                value={recoveryPin} 
-                onChange={e => setRecoveryPin(e.target.value.replace(/\D/g, ''))} 
-                style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center', width: '100%' }}
-              />
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#fff' }}>3. Email Verification</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Verify your email address to secure your account.</p>
+            
+            <div className="input-group" style={{ marginBottom: otpSent ? '1rem' : 0 }}>
+              <label>Email Address</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input 
+                  type="email" 
+                  required 
+                  placeholder="e.g. email@example.com" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  disabled={otpSent}
+                  style={{ flex: 1, minWidth: 0 }}
+                />
+                {!otpSent ? (
+                  <button 
+                    type="button" 
+                    onClick={sendOtp} 
+                    disabled={sendingOtp || !email}
+                    style={{ padding: '0.85rem 1.25rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    {sendingOtp ? 'Sending...' : 'Send OTP'}
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    onClick={() => { setOtpSent(false); setOtp(''); setMockOtpMessage(''); }} 
+                    style={{ padding: '0.85rem 1.25rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
             </div>
+
+            {otpSent && (
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label style={{ marginTop: '0.5rem' }}>6-Digit Verification OTP</label>
+                <input 
+                  type="text" 
+                  maxLength={6} 
+                  placeholder="e.g. 123456" 
+                  required 
+                  value={otp} 
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
+                  style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center', width: '100%' }}
+                />
+                {mockOtpMessage && (
+                  <div style={{ marginTop: '0.5rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>
+                    💡 Local testing: {mockOtpMessage}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <button type="submit" disabled={loading} style={{ 

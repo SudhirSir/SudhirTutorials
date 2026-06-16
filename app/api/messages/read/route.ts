@@ -12,23 +12,48 @@ export async function PATCH(req: Request) {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { senderId } = await req.json();
+    const { senderId, groupId } = await req.json();
 
-    await withDbRetry(() => prisma.message.updateMany({
-      where: {
+    if (groupId) {
+      await withDbRetry(() => prisma.message.updateMany({
+        where: {
+          groupId,
+          senderId: { not: session.user.id },
+          isRead: false
+        },
+        data: { isRead: true }
+      }));
+
+      // Get group members to dispatch SSE
+      const groupMembers = await withDbRetry(() => prisma.groupMember.findMany({
+        where: { groupId },
+        select: { userId: true }
+      }));
+      const memberIds = groupMembers.map(m => m.userId);
+
+      messageEmitter.emit('message', {
+        type: 'read',
+        groupId,
+        senderId: session.user.id,
+        memberIds
+      });
+    } else if (senderId) {
+      await withDbRetry(() => prisma.message.updateMany({
+        where: {
+          senderId,
+          receiverId: session.user.id,
+          isRead: false
+        },
+        data: { isRead: true }
+      }));
+
+      // Emit read event to notify the sender
+      messageEmitter.emit('message', {
+        type: 'read',
         senderId,
-        receiverId: session.user.id,
-        isRead: false
-      },
-      data: { isRead: true }
-    }));
-
-    // Emit read event to notify the sender
-    messageEmitter.emit('message', {
-      type: 'read',
-      senderId,
-      receiverId: session.user.id
-    });
+        receiverId: session.user.id
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

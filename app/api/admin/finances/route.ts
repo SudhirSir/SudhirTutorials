@@ -88,8 +88,7 @@ export async function GET(req: Request) {
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
     const enrichedFees = fees.map((fee: any) => {
-      const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
-      const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+      const effectiveDueDate = fee.dueDate;
 
       // For pending fees, show real-time calculated fine
       // For paid/verified fees, show the fine that was locked in at time of payment
@@ -301,6 +300,24 @@ export async function PATCH(req: Request) {
     }));
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
+    // Enforce chronological/serial check: check if there are earlier pending fees
+    if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') {
+      const previousPending = await withDbRetry(() => prisma.payment.findFirst({
+        where: {
+          studentId: currentFee.studentId,
+          status: 'PENDING',
+          dueDate: { lt: currentFee.dueDate },
+          id: { not: currentFee.id }
+        }
+      }));
+
+      if (previousPending) {
+        return NextResponse.json({
+          error: `Cannot collect/verify payment because a previous month's fee (${previousPending.billingMonth}) is still pending. Fees must be collected strictly in chronological order.`
+        }, { status: 400 });
+      }
+    }
+
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
     let paymentDateForFine = new Date();
     if (paidAt) {
@@ -319,8 +336,7 @@ export async function PATCH(req: Request) {
     // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED/PAID_ONLINE
     let lateFine = currentFee.lateFine;
     if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
-      const parsed = new Date(`${currentFee.billingMonth} ${feeDueDay || 12}`);
-      const effectiveDueDate = isNaN(parsed.getTime()) ? currentFee.dueDate : parsed;
+      const effectiveDueDate = currentFee.dueDate;
       lateFine = calculateLateFine(effectiveDueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
     }
 

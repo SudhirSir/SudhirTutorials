@@ -47,8 +47,7 @@ export async function GET() {
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
     const fees = rawFees.map((fee: any) => {
-      const parsed = new Date(`${fee.billingMonth} ${feeDueDay || 12}`);
-      const effectiveDueDate = isNaN(parsed.getTime()) ? fee.dueDate : parsed;
+      const effectiveDueDate = fee.dueDate;
 
       const now = new Date();
       const due = effectiveDueDate;

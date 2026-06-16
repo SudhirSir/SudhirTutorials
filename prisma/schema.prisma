@@ -387,3 +387,12 @@ model DoubtHistory {
 
   @@index([studentId])
 }
+
+model OtpVerification {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  otp       String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+

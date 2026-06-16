@@ -23,7 +23,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { password, email, phone, parentName, parentContact, recoveryPin } = await req.json();
+    const { password, email, phone, parentName, parentContact, otp } = await req.json();
+
+    if (!email) {
+      return NextResponse.json({ error: 'Email address is required for verification.' }, { status: 400 });
+    }
+    if (!otp) {
+      return NextResponse.json({ error: 'Verification OTP code is required.' }, { status: 400 });
+    }
+
+    // Verify the OTP
+    const otpRecord = await withDbRetry(() => prisma.otpVerification.findUnique({
+      where: { email },
+    }));
+
+    if (!otpRecord || otpRecord.otp !== otp) {
+      return NextResponse.json({ error: 'Invalid verification code.' }, { status: 400 });
+    }
+
+    if (new Date() > otpRecord.expiresAt) {
+      return NextResponse.json({ error: 'Verification code has expired.' }, { status: 400 });
+    }
+
+    // Delete the verified OTP
+    await withDbRetry(() => prisma.otpVerification.delete({
+      where: { email },
+    }));
 
     if (password && user.mustChangePassword) {
       if (password.length < 8 ||
@@ -59,10 +84,6 @@ export async function POST(req: Request) {
       updateData.mustChangePassword = false;
     }
 
-    if (recoveryPin) {
-      updateData.recoveryPinHash = await bcrypt.hash(recoveryPin, 10);
-    }
-
     await withDbRetry(() => prisma.user.update({
       where: { id: user.id },
       data: updateData
@@ -81,7 +102,15 @@ export async function POST(req: Request) {
         }
       }));
     } else if (user.role === 'TEACHER') {
-      // Not collecting specific profile info for teacher yet, but we ensure profile is verified.
+      await withDbRetry(() => prisma.teacherProfile.upsert({
+        where: { userId: user.id },
+        update: { email, phone },
+        create: {
+          userId: user.id,
+          email,
+          phone
+        }
+      }));
     }
 
     return NextResponse.json({ success: true });

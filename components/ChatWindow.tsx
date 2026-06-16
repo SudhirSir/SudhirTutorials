@@ -115,6 +115,14 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [forwardSearchQuery, setForwardSearchQuery] = useState('');
 
+  // Group Settings & Management States
+  const [groupMembers, setGroupMembers] = useState<any[]>([]);
+  const [groupCreatorId, setGroupCreatorId] = useState<string>('');
+  const [isAdminOfGroup, setIsAdminOfGroup] = useState<boolean>(false);
+  const [loadingGroupDetails, setLoadingGroupDetails] = useState<boolean>(false);
+  const [showAddMembersPanel, setShowAddMembersPanel] = useState<boolean>(false);
+  const [selectedAddUsers, setSelectedAddUsers] = useState<string[]>([]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedUserRef = useRef<ChatUser | null>(null);
@@ -190,10 +198,13 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         return Array.from(map.values());
       });
 
-      // Auto mark as read for current open chat (skip for groups)
+      // Auto mark as read for current open chat
       const su = selectedUserRef.current;
-      if (su && su.role !== 'GROUP') {
-        const hasUnread = msgs.some(m => m.senderId === su.id && m.receiverId === currentUserId && !m.isRead);
+      if (su) {
+        const isGrp = su.role === 'GROUP';
+        const hasUnread = isGrp
+          ? msgs.some(m => m.groupId === su.id && m.senderId !== currentUserId && !m.isRead)
+          : msgs.some(m => m.senderId === su.id && m.receiverId === currentUserId && !m.isRead);
         if (hasUnread) markAsRead(su.id, false);
       }
     } catch (e) {
@@ -205,21 +216,21 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   }, [currentUserId]);
 
   // ── Mark messages as read (silent - no re-fetch) ──────────────────────────
-  const markAsRead = useCallback(async (senderId: string, updateState = true) => {
-    // Check if the recipient is a group. If so, return early (read receipts not supported for groups)
-    const su = contacts.find(c => c.id === senderId);
-    if (su?.role === 'GROUP') return;
-
+  const markAsRead = useCallback(async (id: string, updateState = true) => {
+    const isGroup = contacts.some(c => c.id === id && c.role === 'GROUP');
     try {
       await fetch('/api/messages/read', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ senderId }),
+        body: JSON.stringify(isGroup ? { groupId: id } : { senderId: id }),
       });
       if (updateState) {
-        setMessages(prev => prev.map(m =>
-          m.senderId === senderId && m.receiverId === currentUserId ? { ...m, isRead: true } : m
-        ));
+        setMessages(prev => prev.map(m => {
+          if (isGroup) {
+            return m.groupId === id ? { ...m, isRead: true } : m;
+          }
+          return m.senderId === id && m.receiverId === currentUserId ? { ...m, isRead: true } : m;
+        }));
       }
       onMessagesRead?.();
     } catch {}
@@ -269,17 +280,20 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
               setContacts(prev => prev.some(c => c.id === other.id) ? prev : [other, ...prev]);
             }
           }
-          // Auto-read if chat is open (skip group)
+          // Auto-read if chat is open
           const su = selectedUserRef.current;
-          if (su && su.role !== 'GROUP' && newMsg.senderId === su.id && newMsg.receiverId === currentUserId) {
+          if (su && (su.role === 'GROUP' ? newMsg.groupId === su.id : newMsg.senderId === su.id) && newMsg.senderId !== currentUserId) {
             markAsRead(su.id, true);
           }
         }
         else if (data.type === 'read') {
-          setMessages(prev => prev.map(m =>
-            m.senderId === data.senderId && m.receiverId === data.receiverId
-              ? { ...m, isRead: true } : m
-          ));
+          setMessages(prev => prev.map(m => {
+            if (data.groupId) {
+              return m.groupId === data.groupId ? { ...m, isRead: true } : m;
+            }
+            return m.senderId === data.senderId && m.receiverId === data.receiverId
+              ? { ...m, isRead: true } : m;
+          }));
           onMessagesRead?.();
         }
         else if (data.type === 'delete') {
@@ -288,7 +302,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           }
         }
         else if (data.type === 'deleteChat') {
-          if (data.deletedByUserId === currentUserId) {
+          if (data.deletedByUserId === currentUserId || data.chatGroupId) {
             const id = data.chatGroupId || data.chatUserId;
             setMessages(prev => prev.filter(m => m.groupId !== id && m.senderId !== id && m.receiverId !== id));
             setContacts(prev => prev.filter(c => c.id !== id));
@@ -550,6 +564,139 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       }
     } catch { alert('Network error.'); }
   }, [groupName, selectedGroupMembers]);
+
+  // Group Details and Member Actions
+  const fetchGroupDetails = useCallback(async (groupId: string) => {
+    setLoadingGroupDetails(true);
+    try {
+      const res = await fetch(`/api/messages/groups/settings?groupId=${groupId}`);
+      const data = await res.json();
+      if (res.ok && data.group) {
+        setGroupMembers(data.group.members || []);
+        setGroupCreatorId(data.group.createdById || '');
+        const me = data.group.members.find((m: any) => m.userId === currentUserId);
+        setIsAdminOfGroup(me?.isAdmin || data.group.createdById === currentUserId);
+      }
+    } catch (err) {
+      console.error('Failed to fetch group details:', err);
+    } finally {
+      setLoadingGroupDetails(false);
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (showProfileModal && selectedUser && selectedUser.role === 'GROUP') {
+      fetchGroupDetails(selectedUser.id);
+      setShowAddMembersPanel(false);
+      setSelectedAddUsers([]);
+    }
+  }, [showProfileModal, selectedUser, fetchGroupDetails]);
+
+  const openAddMembersPanel = useCallback(async () => {
+    setShowAddMembersPanel(true);
+    setSelectedAddUsers([]);
+    if (preloadedUsers.length === 0) {
+      try {
+        const res = await fetch('/api/messages/directory?q=');
+        if (res.ok) {
+          const data = await res.json();
+          setPreloadedUsers(data.users || []);
+        }
+      } catch {}
+    }
+  }, [preloadedUsers]);
+
+  const handleSetGroupAdmin = async (targetUserId: string, isAdmin: boolean) => {
+    if (!selectedUser) return;
+    try {
+      const res = await fetch('/api/messages/groups/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId: selectedUser.id, action: 'SET_ADMIN', targetUserId, isAdmin })
+      });
+      if (res.ok) {
+        fetchGroupDetails(selectedUser.id);
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to update admin status.');
+      }
+    } catch { alert('Network error.'); }
+  };
+
+  const handleRemoveGroupMember = async (targetUserId: string) => {
+    if (!selectedUser) return;
+    if (!confirm('Are you sure you want to remove this member from the group?')) return;
+    try {
+      const res = await fetch('/api/messages/groups/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId: selectedUser.id, action: 'REMOVE_MEMBER', targetUserId })
+      });
+      if (res.ok) {
+        fetchGroupDetails(selectedUser.id);
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to remove member.');
+      }
+    } catch { alert('Network error.'); }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!selectedUser) return;
+    if (!confirm('Are you sure you want to leave this group?')) return;
+    try {
+      const res = await fetch('/api/messages/groups/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId: selectedUser.id, action: 'LEAVE_GROUP' })
+      });
+      if (res.ok) {
+        setSelectedUser(null);
+        setContacts(prev => prev.filter(c => c.id !== selectedUser.id));
+        setShowProfileModal(false);
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to leave group.');
+      }
+    } catch { alert('Network error.'); }
+  };
+
+  const handleAddGroupMembers = async () => {
+    if (!selectedUser || selectedAddUsers.length === 0) return;
+    try {
+      const res = await fetch('/api/messages/groups/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId: selectedUser.id, action: 'ADD_MEMBERS', userIds: selectedAddUsers })
+      });
+      if (res.ok) {
+        setShowAddMembersPanel(false);
+        setSelectedAddUsers([]);
+        fetchGroupDetails(selectedUser.id);
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to add members.');
+      }
+    } catch { alert('Network error.'); }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!selectedUser) return;
+    if (!confirm('Are you sure you want to delete this group? All messages will be permanently deleted for all members.')) return;
+    try {
+      const res = await fetch(`/api/messages/groups/settings?groupId=${selectedUser.id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setSelectedUser(null);
+        setContacts(prev => prev.filter(c => c.id !== selectedUser.id));
+        setShowProfileModal(false);
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to delete group.');
+      }
+    } catch { alert('Network error.'); }
+  };
 
   // ── Attach file / image ───────────────────────────────────────────────────
   const handleAttachFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1321,7 +1468,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                           {renderMessageContent(m.content)}
                           <span style={{ fontSize: '0.63rem', color: isMe ? 'rgba(255,255,255,0.72)' : 'var(--text-muted)', float: 'right', marginTop: 8, marginLeft: 12, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
                             {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            {isMe && !isTemp && !m.groupId && <Ticks isRead={m.isRead} />}
+                            {isMe && !isTemp && <Ticks isRead={m.isRead} />}
                             {isTemp && <span style={{ marginLeft: 4, fontSize: '0.6rem', opacity: 0.6 }}>⏳</span>}
                           </span>
                         </div>
@@ -1420,9 +1567,113 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             <div style={{ fontSize: '0.82rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: '1.25rem' }}>● {selectedUser.role === 'GROUP' ? 'Group Chat' : selectedUser.role}</div>
             
             {selectedUser.role === 'GROUP' ? (
-              <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.9rem 1.1rem', textAlign: 'left', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Group ID</span>
-                <span style={{ fontSize: '0.88rem', color: 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{selectedUser.id}</span>
+              <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Group Members ({groupMembers.length})
+                  </span>
+                  {isAdminOfGroup && !showAddMembersPanel && (
+                    <button 
+                      type="button" 
+                      onClick={openAddMembersPanel}
+                      style={{ padding: '4px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      ➕ Add Member
+                    </button>
+                  )}
+                </div>
+
+                {showAddMembersPanel ? (
+                  <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '1rem', border: '1px solid var(--border)', maxHeight: 220, overflowY: 'auto', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 'bold' }}>Select Users to Add</span>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowAddMembersPanel(false)}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {preloadedUsers
+                      .filter(u => u.id !== currentUserId && !groupMembers.some(m => m.userId === u.id))
+                      .map(u => (
+                        <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedAddUsers.includes(u.id)}
+                            onChange={e => {
+                              if (e.target.checked) setSelectedAddUsers(prev => [...prev, u.id]);
+                              else setSelectedAddUsers(prev => prev.filter(id => id !== u.id));
+                            }}
+                          />
+                          <span>{u.name} ({u.role})</span>
+                        </label>
+                      ))}
+                    {preloadedUsers.filter(u => u.id !== currentUserId && !groupMembers.some(m => m.userId === u.id)).length === 0 && (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem 0' }}>No users available to add.</div>
+                    )}
+                    {selectedAddUsers.length > 0 && (
+                      <button 
+                        type="button" 
+                        onClick={handleAddGroupMembers}
+                        style={{ width: '100%', padding: '0.6rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginTop: '0.75rem', fontSize: '0.8rem', cursor: 'pointer' }}
+                      >
+                        Add {selectedAddUsers.length} Member(s)
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid var(--border)', maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {loadingGroupDetails ? (
+                      <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1rem 0', fontSize: '0.85rem' }}>Loading group details...</div>
+                    ) : (
+                      groupMembers.map((m: any) => {
+                        const isTargetCreator = m.userId === groupCreatorId;
+                        const isTargetMe = m.userId === currentUserId;
+                        return (
+                          <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '0.35rem' }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                {m.user?.name || 'Unknown User'}
+                                {isTargetCreator && (
+                                  <span style={{ fontSize: '0.6rem', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '1px 4px', borderRadius: 4, fontWeight: 700 }}>
+                                    CREATOR
+                                  </span>
+                                )}
+                                {m.isAdmin && !isTargetCreator && (
+                                  <span style={{ fontSize: '0.6rem', background: 'rgba(59,130,246,0.15)', color: '#3b82f6', padding: '1px 4px', borderRadius: 4, fontWeight: 700 }}>
+                                    ADMIN
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>@{m.user?.username || ''} ({m.user?.role || ''})</div>
+                            </div>
+                            
+                            {isAdminOfGroup && !isTargetMe && !isTargetCreator && (
+                              <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                                <button 
+                                  onClick={() => handleSetGroupAdmin(m.userId, !m.isAdmin)}
+                                  style={{ padding: '3px 6px', background: 'rgba(255,255,255,0.08)', color: 'var(--text)', border: 'none', borderRadius: 4, fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                  title={m.isAdmin ? 'Demote to Member' : 'Promote to Admin'}
+                                >
+                                  {m.isAdmin ? 'Demote' : 'Admin'}
+                                </button>
+                                <button 
+                                  onClick={() => handleRemoveGroupMember(m.userId)}
+                                  style={{ padding: '3px 6px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'none', borderRadius: 4, fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                  title="Remove Member"
+                                >
+                                  ❌
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.9rem 1.1rem', textAlign: 'left', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', border: '1px solid var(--border)' }}>
@@ -1437,10 +1688,18 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {selectedUser.role === 'GROUP' ? (
-                <button onClick={() => { if (confirm('Leave and delete this entire group chat? Cannot be undone.')) { handleDeleteChat(selectedUser.id); setShowProfileModal(false); } }}
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
-                  🗑️ Leave Group
-                </button>
+                <>
+                  <button onClick={handleLeaveGroup}
+                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                    🚪 Leave Group
+                  </button>
+                  {isAdminOfGroup && (
+                    <button onClick={handleDeleteGroup}
+                      style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                      🗑️ Delete Group
+                    </button>
+                  )}
+                </>
               ) : (
                 <>
                   <button onClick={() => handleToggleBlock(selectedUser.id)}

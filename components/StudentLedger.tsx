@@ -149,6 +149,19 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
     });
   }, [fees]);
 
+  const isBlockedByPrevious = useMemo(() => {
+    return (record: any) => {
+      if (!record.dueDate) return false;
+      const currentDueTime = new Date(record.dueDate).getTime();
+      return fees.some(f => 
+        f.status === 'PENDING' && 
+        f.id !== record.id && 
+        f.dueDate && 
+        new Date(f.dueDate).getTime() < currentDueTime
+      );
+    };
+  }, [fees]);
+
   const handlePrintStatement = async () => {
     setDownloadingStatement(true);
     try {
@@ -680,12 +693,29 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                               </span>
                             </div>
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
-                              {['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (
-                                <button type="button" onClick={() => onPayOnline(record)}
-                                  className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                                  Pay
-                                </button>
-                              )}
+                              {['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (() => {
+                                const blocked = isBlockedByPrevious(record);
+                                return (
+                                  <button type="button" 
+                                    onClick={() => !blocked && onPayOnline(record)}
+                                    disabled={blocked}
+                                    className={blocked ? "" : "btn-primary"} 
+                                    style={{ 
+                                      padding: '6px 12px', 
+                                      fontSize: '0.75rem', 
+                                      fontWeight: 700,
+                                      cursor: blocked ? 'not-allowed' : 'pointer',
+                                      background: blocked ? 'rgba(255,255,255,0.05)' : undefined,
+                                      color: blocked ? 'var(--text-muted)' : undefined,
+                                      border: blocked ? '1px solid var(--border)' : undefined,
+                                      borderRadius: '8px'
+                                    }}
+                                    title={blocked ? "You must pay previous months' pending fees first." : "Pay this invoice"}
+                                  >
+                                    {blocked ? 'Blocked' : 'Pay'}
+                                  </button>
+                                );
+                              })()}
                               {isPaid && onViewReceipt && (
                                 <button type="button" onClick={() => onViewReceipt(record.id)}
                                   style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
@@ -694,6 +724,11 @@ export function StudentLedger({ studentId, refreshTrigger, onPayOnline, onViewRe
                               )}
                             </div>
                           </div>
+                          {isBlockedByPrevious(record) && (
+                            <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, marginTop: '0.5rem', textAlign: 'right' }}>
+                              ⚠️ Pay previous pending fees first
+                            </div>
+                          )}
                           {record.paidAt && (
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'right' }}>
                               Paid {new Date(record.paidAt).toLocaleDateString('en-GB')}

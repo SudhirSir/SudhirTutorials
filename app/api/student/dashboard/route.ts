@@ -60,7 +60,6 @@ export async function GET() {
           },
           payments: {
             orderBy: { dueDate: 'asc' },
-            take: 1,
             where: { status: 'PENDING' },
             select: {
               id: true,
@@ -111,20 +110,38 @@ export async function GET() {
     // Process fee highlight using already-fetched settings
     let feeHighlight = null;
     if (user.payments.length > 0) {
-      const pendingPayment = user.payments[0];
-      const { perDayFine, flatFineAfter10Days, feeDueDay } = feeSettings;
-      const parsed = new Date(`${pendingPayment.billingMonth} ${feeDueDay || 12}`);
-      const effectiveDueDate = isNaN(parsed.getTime()) ? pendingPayment.dueDate : parsed;
-      const lateFine = calculateLateFine(effectiveDueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
+      const { perDayFine, flatFineAfter10Days } = feeSettings;
       const scholarship = user.studentProfile?.scholarship || 0;
-      const effectiveDiscount = Math.max(pendingPayment.discount ?? 0, scholarship);
+      
+      let totalAmountSum = 0;
+      let oldestDueDate = user.payments[0].dueDate;
+      let billingMonths: string[] = [];
+
+      for (const pendingPayment of user.payments) {
+        const effectiveDueDate = pendingPayment.dueDate;
+        const lateFine = calculateLateFine(effectiveDueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
+        const effectiveDiscount = Math.max(pendingPayment.discount ?? 0, scholarship);
+        const totalDueForThisMonth = pendingPayment.amount + lateFine - effectiveDiscount - (pendingPayment.paidAmount || 0);
+        totalAmountSum += Math.max(0, totalDueForThisMonth);
+        billingMonths.push(pendingPayment.billingMonth);
+      }
+
+      const oldestPayment = user.payments[0];
+      const oldestDiscount = Math.max(oldestPayment.discount ?? 0, scholarship);
+
       feeHighlight = {
-        ...pendingPayment,
-        discount: effectiveDiscount,
-        isOverdue: lateFine > 0,
-        lateFine,
-        currentLateFine: lateFine,
-        totalAmount: pendingPayment.amount + lateFine - effectiveDiscount,
+        id: oldestPayment.id,
+        title: user.payments.length > 1 ? `Pending Fees (${billingMonths.join(', ')})` : oldestPayment.title,
+        amount: totalAmountSum,
+        discount: oldestDiscount,
+        isOverdue: user.payments.some(p => {
+          const fine = calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days);
+          return fine > 0;
+        }),
+        lateFine: user.payments.reduce((acc, p) => acc + calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days), 0),
+        dueDate: oldestDueDate,
+        status: 'PENDING',
+        totalAmount: totalAmountSum,
       };
     }
 
