@@ -57,6 +57,7 @@ export async function POST(req: Request) {
         board: data.board,
         program: data.program,
         dob: data.dob,
+        message: data.message || null,
         status: 'PENDING'
       }
     }));

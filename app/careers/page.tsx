@@ -127,7 +127,9 @@ export default function CareersPage() {
         <nav className="navbar-links">
           <Link href="/" className="nav-link">Home</Link>
           <Link href="/#programs" className="nav-link">Flagship Programs</Link>
+          <Link href="/admissions" className="nav-link">Admissions</Link>
           <Link href="/#about" className="nav-link">Why Us</Link>
+          <Link href="/careers" className="nav-link active" style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Careers</Link>
           <Link href="/login" className="login-portal-btn">
             Portal Login <span className="arrow">→</span>
           </Link>

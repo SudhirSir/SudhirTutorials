@@ -37,11 +37,7 @@ export default function Home() {
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
 
-  // Admissions modal states
-  const [showAdmissionsModal, setShowAdmissionsModal] = useState<boolean>(false);
-  const [admissionsLoading, setAdmissionsLoading] = useState<boolean>(false);
-  const [admissionsError, setAdmissionsError] = useState<string>("");
-  const [admissionsSuccess, setAdmissionsSuccess] = useState<string | null>(null);
+
 
 
 
@@ -54,17 +50,7 @@ export default function Home() {
   const [reportEmail, setReportEmail] = useState<string>("");
   const [reportScreenshot, setReportScreenshot] = useState<string | null>(null);
 
-  // Admission form state
-  const [admName, setAdmName] = useState("");
-  const [admFatherName, setAdmFatherName] = useState("");
-  const [admPhone, setAdmPhone] = useState("");
-  const [admEmail, setAdmEmail] = useState("");
-  const [admAddress, setAdmAddress] = useState("");
-  const [admClass, setAdmClass] = useState("");
-  const [admBoard, setAdmBoard] = useState("");
-  const [admProgram, setAdmProgram] = useState("");
-  const [admDob, setAdmDob] = useState("");
-  const [admMessage, setAdmMessage] = useState("");
+
 
   // AI Assistant states
   const [doubtText, setDoubtText] = useState<string>("");
@@ -208,80 +194,7 @@ export default function Home() {
     setQuizSubmitted(false);
   };
 
-  // Admissions submit handler
-  const handleAdmissionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdmissionsLoading(true);
-    setAdmissionsError("");
-    setAdmissionsSuccess(null);
 
-    // Validate
-    if (!admName.trim() || !admFatherName.trim() || !admPhone.trim() || !admAddress.trim() || !admClass || !admBoard || !admProgram || !admDob) {
-      setAdmissionsError("Please fill out all required fields.");
-      setAdmissionsLoading(false);
-      return;
-    }
-    if (!/^\d{10}$/.test(admPhone.trim())) {
-      setAdmissionsError("Phone number must be exactly 10 digits.");
-      setAdmissionsLoading(false);
-      return;
-    }
-    if (admName.length > 150 || !/^[a-zA-Z\s]+$/.test(admName)) {
-      setAdmissionsError("Student name must contain only alphabets and spaces, and be at most 150 characters.");
-      setAdmissionsLoading(false);
-      return;
-    }
-    if (admFatherName.length > 150 || !/^[a-zA-Z\s]+$/.test(admFatherName)) {
-      setAdmissionsError("Father's name must contain only alphabets and spaces, and be at most 150 characters.");
-      setAdmissionsLoading(false);
-      return;
-    }
-    if (admAddress.length > 150) {
-      setAdmissionsError("Address must be at most 150 characters.");
-      setAdmissionsLoading(false);
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/admissions/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: admName,
-          fatherName: admFatherName,
-          phone: admPhone,
-          email: admEmail,
-          address: admAddress,
-          className: admClass,
-          board: admBoard,
-          program: admProgram,
-          dob: admDob,
-          message: admMessage
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setAdmissionsSuccess(data.appNumber);
-        // Reset fields
-        setAdmName("");
-        setAdmFatherName("");
-        setAdmPhone("");
-        setAdmEmail("");
-        setAdmAddress("");
-        setAdmClass("");
-        setAdmBoard("");
-        setAdmProgram("");
-        setAdmDob("");
-        setAdmMessage("");
-      } else {
-        setAdmissionsError(data.error || "Submission failed. Please try again.");
-      }
-    } catch (err) {
-      setAdmissionsError("Network error. Could not connect to system.");
-    } finally {
-      setAdmissionsLoading(false);
-    }
-  };
 
 
 
@@ -355,9 +268,9 @@ export default function Home() {
         </div>
         <nav className="navbar-links">
           <Link href="#programs" className="nav-link">Flagship Programs</Link>
+          <Link href="/admissions" className="nav-link">Admissions</Link>
           <Link href="#about" className="nav-link">Why Us</Link>
           <Link href="/careers" className="nav-link">Careers</Link>
-          <span onClick={() => setShowAdmissionsModal(true)} className="nav-link" style={{ cursor: 'pointer' }}>Apply Admissions</span>
           <Link href="/login" className="login-portal-btn">
             Portal Login <span className="arrow">→</span>
           </Link>
@@ -367,9 +280,9 @@ export default function Home() {
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
-          <div className="admission-pill animate-float" onClick={() => setShowAdmissionsModal(true)} style={{ cursor: 'pointer' }}>
+          <Link href="/admissions" className="admission-pill animate-float" style={{ cursor: 'pointer', textDecoration: 'none' }}>
             Admissions Active for Academic Year 2026-27 (Apply Now)
-          </div>
+          </Link>
           <h1 className="hero-title">
             Unlock Academic Excellence.<br/>
             <span className="text-gradient">Prepare. Compete. Conquer.</span>
@@ -391,9 +304,9 @@ export default function Home() {
           </p>
           <div className="hero-cta-buttons">
             <Link href="/login" className="btn-primary-hero">Student Login</Link>
-            <button onClick={() => setShowAdmissionsModal(true)} className="btn-secondary-hero" style={{ cursor: 'pointer', border: '1.5px solid var(--border)' }}>
-              📝 Admission Form
-            </button>
+            <Link href="/admissions" className="btn-secondary-hero" style={{ border: '1.5px solid var(--border)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              Admission Form
+            </Link>
           </div>
         </div>
 
@@ -821,7 +734,7 @@ export default function Home() {
                 <li><span className="bullet-check" style={{ color: prog.color }}>✓</span> Weekly Mock Papers & Ranks</li>
                 <li><span className="bullet-check" style={{ color: prog.color }}>✓</span> Specialized Offline Doubt Counters</li>
               </ul>
-              <button onClick={() => setShowAdmissionsModal(true)} className="program-btn" style={{ cursor: 'pointer' }}>Apply & Enroll Now</button>
+              <Link href="/admissions" className="program-btn" style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>Apply & Enroll Now</Link>
             </div>
           ))}
         </div>
@@ -1030,294 +943,6 @@ export default function Home() {
           © {new Date().getFullYear()} Sudhir Tutorials Coaching Institute. All rights reserved.
         </div>
       </footer>
-
-      {/* Admissions Inquiry Form Modal */}
-      {showAdmissionsModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem',
-          overflowY: 'auto'
-        }}>
-          <div className="glass-card animate-scale-up" style={{
-            width: '100%',
-            maxWidth: '700px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '2.5rem',
-            border: '1px solid var(--border)',
-            borderRadius: '24px',
-            position: 'relative'
-          }}>
-            {/* Close Button */}
-            <button 
-              onClick={() => {
-                setShowAdmissionsModal(false);
-                setAdmissionsSuccess(null);
-                setAdmissionsError("");
-              }}
-              style={{
-                position: 'absolute',
-                top: '1.25rem',
-                right: '1.25rem',
-                background: 'var(--card-bg-alt)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                borderRadius: '50%',
-                width: '36px',
-                height: '36px',
-                cursor: 'pointer',
-                fontSize: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-            >
-              ×
-            </button>
-
-            {admissionsSuccess ? (
-              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                  <div style={{
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: '50%',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '2px solid #10b981',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#10b981'
-                  }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  </div>
-                </div>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--secondary)' }}>Inquiry Submitted!</h3>
-                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
-                  Thank you for choosing Sudhir Tutorials. Your admission application has been registered successfully.
-                </p>
-                <div style={{
-                  background: 'rgba(239, 68, 68, 0.08)',
-                  border: '1px dashed var(--primary)',
-                  padding: '1.25rem',
-                  borderRadius: '16px',
-                  display: 'inline-block',
-                  marginBottom: '2rem'
-                }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800 }}>Application Number</span>
-                  <strong style={{ fontSize: '2rem', color: 'var(--primary)', letterSpacing: '1px' }}>{admissionsSuccess}</strong>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  Our academic counselors will contact you on your registered phone number shortly.
-                </p>
-                <button 
-                  onClick={() => {
-                    setShowAdmissionsModal(false);
-                    setAdmissionsSuccess(null);
-                  }}
-                  className="btn-primary"
-                  style={{ marginTop: '2rem', border: 'none', width: '100%' }}
-                >
-                  Close Window
-                </button>
-              </div>
-            ) : (
-              <div>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                  Academic Admission Form
-                </h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: '1.5' }}>
-                  Academic Year 2026-27 Enrollment. Please enter authentic academic and contact credentials to submit your admission inquiry.
-                </p>
-
-                {admissionsError && (
-                  <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                    {admissionsError}
-                  </div>
-                )}
-                <form onSubmit={handleAdmissionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  {/* Grid for two columns */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
-                    <style>{`
-                      @media (max-width: 600px) {
-                        .form-grid-2col {
-                          grid-template-columns: 1fr !important;
-                        }
-                      }
-                    `}</style>
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Student Name *</label>
-                      <input 
-                        type="text" 
-                        required 
-                        maxLength={150}
-                        placeholder="e.g. Rahul Kumar" 
-                        value={admName} 
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
-                            setAdmName(val);
-                          }
-                        }} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      />
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Father's Name *</label>
-                      <input 
-                        type="text" 
-                        required 
-                        maxLength={150}
-                        placeholder="e.g. Rajesh Kumar" 
-                        value={admFatherName} 
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
-                            setAdmFatherName(val);
-                          }
-                        }} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Contact Phone *</label>
-                      <input 
-                        type="tel" 
-                        required 
-                        placeholder="e.g. 9876543210" 
-                        value={admPhone} 
-                        maxLength={10}
-                        onChange={e => {
-                          const val = e.target.value.replace(/\D/g, '');
-                          setAdmPhone(val);
-                        }} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      />
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Email Address (Optional)</label>
-                      <input 
-                        type="email" 
-                        placeholder="e.g. rahul@gmail.com" 
-                        value={admEmail} 
-                        onChange={e => setAdmEmail(e.target.value)} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Date of Birth *</label>
-                      <input 
-                        type="date" 
-                        required 
-                        value={admDob} 
-                        onChange={e => setAdmDob(e.target.value)} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      />
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Target Class *</label>
-                      <select 
-                        required 
-                        value={admClass} 
-                        onChange={e => setAdmClass(e.target.value)} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      >
-                        <option value="">Select Class</option>
-                        {Array.from({ length: 7 }, (_, i) => `Class ${i + 6}`).map(cls => (
-                          <option key={cls} value={cls}>{cls}</option>
-                        ))}
-                        <option value="Droppers Batch">Droppers Batch</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }} className="form-grid-2col">
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Board *</label>
-                      <select 
-                        required 
-                        value={admBoard} 
-                        onChange={e => setAdmBoard(e.target.value)} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      >
-                        <option value="">Select Board</option>
-                        <option value="CBSE">CBSE</option>
-                        <option value="ICSE">ICSE</option>
-                        <option value="State Board">State Board</option>
-                        <option value="IB">IB</option>
-                        <option value="IGCSE">IGCSE</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label" style={{ marginBottom: '4px' }}>Academic Program *</label>
-                      <select 
-                        required 
-                        value={admProgram} 
-                        onChange={e => setAdmProgram(e.target.value)} 
-                        style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      >
-                        <option value="">Select Program</option>
-                        <option value="JEE">JEE (Main & Advanced)</option>
-                        <option value="NEET">NEET (Medical)</option>
-                        <option value="Foundation">Pre-Foundation Academy</option>
-                        <option value="Boards">Boards Masterclass</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label" style={{ marginBottom: '4px' }}>Address *</label>
-                    <textarea 
-                      required 
-                      rows={2} 
-                      maxLength={150}
-                      value={admAddress} 
-                      onChange={e => setAdmAddress(e.target.value)} 
-                      style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', resize: 'vertical' }}
-                      placeholder="Full residential address (max 150 characters)"
-                    ></textarea>
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label" style={{ marginBottom: '4px' }}>Message or Query</label>
-                    <textarea 
-                      rows={2} 
-                      value={admMessage} 
-                      onChange={e => setAdmMessage(e.target.value)} 
-                      style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', resize: 'vertical' }}
-                      placeholder="Any questions or remarks? (Optional)"
-                    ></textarea>
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    className="btn-primary" 
-                    style={{ border: 'none', padding: '0.9rem', fontWeight: 800, marginTop: '0.5rem' }}
-                    disabled={admissionsLoading}
-                  >
-                    {admissionsLoading ? "Submitting Inquiry..." : "Submit Admission Inquiry"}
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Embedded CSS styling for rich responsive aesthetics and human-coded micro-animations */}
       <style jsx global>{`
