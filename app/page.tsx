@@ -932,9 +932,9 @@ export default function Home() {
           <div className="footer-links-col contact-col">
             <h4>Contact Info</h4>
             <ul>
-              <li>📍 <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" className="footer-link">Haibowal, Ludhiana, Punjab</a></li>
+              <li>📍 <a href="https://maps.google.com/?q=Haibowal,+Ludhiana,+Punjab" target="_blank" rel="noopener noreferrer" className="footer-link">Ludhiana, Punjab, India</a></li>
               <li>📞 <a href="tel:9914287998" className="footer-link">99142-87998</a></li>
-              <li>✉️ <a href="mailto:sudhir.tutorials.ludhiana@gmail.com" className="footer-link" style={{ wordBreak: 'break-all' }}>sudhir.tutorials.ludhiana@gmail.com</a></li>
+              <li>✉️ <a href="mailto:contact@sudhirtutorials.me" className="footer-link" style={{ wordBreak: 'break-all' }}>contact@sudhirtutorials.me</a></li>
             </ul>
           </div>
         </div>
