@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 // Math/science formulas for the floating background animation
 const floatingFormulas = [
-  "E = mc²", "F = ma", "∇ × B = μ₀J", "pv = nRT", "sin²θ + cos²θ = 1",
+  "F = ma", "∇ × B = μ₀J", "pv = nRT", "sin²θ + cos²θ = 1",
   "∫ x dx = x²/2 + C", "H₂ + O₂ → H₂O", "λ = h/p", "V = IR", "i² = -1",
   "F = G(m₁m₂)/r²", "pH = -log[H⁺]"
 ];
@@ -260,12 +260,12 @@ export default function Home() {
 
       {/* Sticky Premium Navbar */}
       <header className="navbar-container">
-        <div className="navbar-logo">
+        <Link href="/" className="navbar-logo" style={{ textDecoration: 'none' }}>
           <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain' }} priority />
           <span className="logo-text">
             <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
-        </div>
+        </Link>
         <nav className="navbar-links">
           <Link href="#programs" className="nav-link">Flagship Programs</Link>
           <Link href="/admissions" className="nav-link">Admissions</Link>

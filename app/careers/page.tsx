@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 
 // Math/science formulas for the floating background animation
 const floatingFormulas = [
-  "E = mc²", "F = ma", "∇ × B = μ₀J", "pv = nRT", "sin²θ + cos²θ = 1",
+  "F = ma", "∇ × B = μ₀J", "pv = nRT", "sin²θ + cos²θ = 1",
   "∫ x dx = x²/2 + C", "H₂ + O₂ → H₂O", "λ = h/p", "V = IR", "i² = -1",
   "F = G(m₁m₂)/r²", "pH = -log[H⁺]"
 ];
@@ -118,14 +118,13 @@ export default function CareersPage() {
 
       {/* Sticky Premium Navbar */}
       <header className="navbar-container">
-        <div className="navbar-logo">
+        <Link href="/" className="navbar-logo" style={{ textDecoration: 'none' }}>
           <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain' }} priority />
           <span className="logo-text">
             <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
-        </div>
+        </Link>
         <nav className="navbar-links">
-          <Link href="/" className="nav-link">Home</Link>
           <Link href="/#programs" className="nav-link">Flagship Programs</Link>
           <Link href="/admissions" className="nav-link">Admissions</Link>
           <Link href="/#about" className="nav-link">Why Us</Link>
@@ -141,7 +140,7 @@ export default function CareersPage() {
         
         {/* Header Title */}
         <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
-          <h1 className="hero-title" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '1rem', letterSpacing: '-0.02em' }}>
+          <h1 className="hero-title" style={{ fontSize: 'clamp(2.2rem, 6vw, 3.2rem)', fontWeight: 900, marginBottom: '1rem', letterSpacing: '-0.02em' }}>
             Work with <span className="text-gradient">Sudhir Tutorials</span>
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: '1.6', margin: 0 }}>
