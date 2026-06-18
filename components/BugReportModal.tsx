@@ -61,7 +61,21 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
         
         {reportSuccess ? (
           <div style={{ padding: '2rem', textAlign: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', borderRadius: '12px', color: '#10b981' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1.5px solid #10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#10b981'
+              }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+            </div>
             <h3 style={{ margin: 0, fontWeight: 700 }}>Thank you!</h3>
             <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Your report has been sent directly to the administrative team.</p>
             <button onClick={handleClose} className="btn-primary" style={{ marginTop: '1.5rem', width: '100%', background: '#10b981' }}>Close</button>
@@ -114,7 +128,7 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                   const file = e.target.files?.[0];
                   if (file) {
                     if (file.size > 2 * 1024 * 1024) {
-                      alert("⚠️ Image size exceeds 2 MB.");
+                      alert("Image size exceeds 2 MB.");
                       e.target.value = '';
                       return;
                     }
@@ -190,7 +204,7 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                 cursor: reportLoading ? 'not-allowed' : 'pointer'
               }}
             >
-              {reportLoading ? 'Sending...' : 'Submit Report 🚀'}
+              {reportLoading ? 'Sending...' : 'Submit Report'}
             </button>
           </form>
         )}

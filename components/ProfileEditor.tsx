@@ -44,10 +44,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pwSaving, setPwSaving] = useState(false);
 
-  const [changingPin, setChangingPin] = useState(false);
-  const [pinForm, setPinForm] = useState({ currentPassword: '', newPin: '' });
-  const [pinMsg, setPinMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [pinSaving, setPinSaving] = useState(false);
+
 
   const [error, setError] = useState<string | null>(null);
 
@@ -235,7 +232,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
       });
       const d = await res.json();
       if (res.ok) {
-        setPwMsg({ type: 'success', text: '✅ Password changed successfully!' });
+        setPwMsg({ type: 'success', text: 'Password changed successfully!' });
         setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setChangingPassword(false);
       } else {
@@ -245,34 +242,14 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
     finally { setPwSaving(false); }
   };
 
-  const handlePinChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pinForm.newPin.length !== 6 || isNaN(Number(pinForm.newPin)))
-      return setPinMsg({ type: 'error', text: 'PIN must be exactly 6 digits.' });
-    setPinSaving(true); setPinMsg(null);
-    try {
-      const res = await fetch('/api/user/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'RECOVERY_PIN', ...pinForm })
-      });
-      const d = await res.json();
-      if (res.ok) {
-        setPinMsg({ type: 'success', text: '✅ Secret PIN updated successfully!' });
-        setPinForm({ currentPassword: '', newPin: '' });
-      } else {
-        setPinMsg({ type: 'error', text: d.error || 'Failed to update PIN.' });
-      }
-    } catch { setPinMsg({ type: 'error', text: 'Network error.' }); }
-    finally { setPinSaving(false); }
-  };
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 3 * 1024 * 1024) {
-      alert('⚠️ Image size exceeds the 3 MB limit.');
+      alert('Image size exceeds the 3 MB limit.');
       e.target.value = '';
       return;
     }
@@ -350,32 +327,25 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
               {role}
             </span>
           </div>
-          {profile.isProfileVerified && (
-            <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#10b981', fontWeight: 700 }}>
-              🔵 Verified Account
+          {profile?.isProfileVerified && (
+            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Verified Account
             </div>
           )}
 
           {/* Quick password change button */}
           <button
-            onClick={() => { setChangingPassword(v => !v); setChangingPin(false); }}
+            onClick={() => setChangingPassword(v => !v)}
             style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
           >
-            🔑 Change Password
-          </button>
-
-          {/* Quick Secret PIN change button */}
-          <button
-            onClick={() => { setChangingPin(v => !v); setChangingPassword(false); }}
-            style={{ marginTop: '0.75rem', width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(245,158,11,0.1)', border: '1px solid #f59e0b', color: '#f59e0b', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
-          >
-            🛡️ Reset Secret PIN
+            Change Password
           </button>
 
           {/* Display Theme & Support */}
           <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '0.6rem 0.85rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>🌓 App Display Theme</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>App Display Theme</span>
               <ThemeToggle />
             </div>
             
@@ -385,7 +355,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                 onClick={() => setShowBugReportModal(true)}
                 style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'rgba(239,68,68,0.04)', border: '1px dashed var(--primary)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                🐞 Report a Bug / Suggestion
+                Report a Bug / Suggestion
               </button>
             )}
           </div>
@@ -415,37 +385,6 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
               </div>
               <button type="submit" disabled={pwSaving} style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: pwSaving ? 0.7 : 1 }}>
                 {pwSaving ? 'Saving...' : 'Update Password'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* PIN Change Panel */}
-        {changingPin && (
-          <div className="glass-card" style={{ padding: '1.5rem', marginTop: '1rem' }}>
-            <h4 style={{ margin: '0 0 1rem', fontSize: '1rem', color: '#f59e0b' }}>Reset Secret Recovery PIN</h4>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Your 6-digit Secret PIN is used to recover your account if you forget your password.
-            </p>
-            {pinMsg && (
-              <div style={{ padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem', background: pinMsg.type === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: pinMsg.type === 'success' ? '#10b981' : '#ef4444', border: `1px solid ${pinMsg.type === 'success' ? '#10b981' : '#ef4444'}` }}>
-                {pinMsg.text}
-              </div>
-            )}
-            <form onSubmit={handlePinChange} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div>
-                <label style={labelStyle}>Confirm Password</label>
-                <input type="password" required style={inputStyle} value={pinForm.currentPassword} onChange={e => setPinForm(f => ({ ...f, currentPassword: e.target.value }))} placeholder="Enter login password" />
-              </div>
-              <div>
-                <label style={labelStyle}>New 6-Digit PIN</label>
-                <input type="password" required maxLength={6} minLength={6} style={inputStyle} value={pinForm.newPin} onChange={e => {
-                  const val = e.target.value.replace(/\D/g, ''); // only digits
-                  setPinForm(f => ({ ...f, newPin: val }));
-                }} placeholder="e.g. 123456" />
-              </div>
-              <button type="submit" disabled={pinSaving} style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#f59e0b', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: pinSaving ? 0.7 : 1 }}>
-                {pinSaving ? 'Saving...' : 'Set Secret PIN'}
               </button>
             </form>
           </div>

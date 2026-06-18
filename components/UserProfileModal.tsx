@@ -60,7 +60,6 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
             <button onClick={onClose} style={closeBtnStyle}>×</button>
           </div>
           <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
-            <span style={{ fontSize: '2rem' }}>⚠️</span>
             <p style={{ marginTop: '0.5rem', fontWeight: 600 }}>{error || 'Profile could not be loaded'}</p>
           </div>
         </div>
@@ -88,7 +87,11 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
           </div>
           <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             {name || 'Unnamed User'}
-            {isProfileVerified && <span title="Verified Member" style={{ fontSize: '0.9rem', color: '#3b82f6' }}>🔵</span>}
+            {isProfileVerified && (
+              <span title="Verified Member" style={{ fontSize: '0.9rem', color: '#3b82f6', display: 'flex', alignItems: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              </span>
+            )}
           </h3>
           <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{username}</p>
           

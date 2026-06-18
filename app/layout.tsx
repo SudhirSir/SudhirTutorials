@@ -6,8 +6,9 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const poppins = Poppins({ weight: ['400', '500', '600', '700', '800'], subsets: ['latin'], variable: '--font-poppins' });
 
 export const metadata: Metadata = {
-  title: 'SUDHIR TUTORIALS | Premier Coaching Institute',
-  description: 'Manage students, teachers, and online fee payments securely at SUDHIR TUTORIALS.',
+  title: "Sudhir Tutorials",
+  description:
+    "Empowering every student with AI-driven intelligence. A premium digital learning ecosystem designed to personalize education, boost confidence, and drive academic success.",
 };
 
 import { Providers } from '@/components/Providers';

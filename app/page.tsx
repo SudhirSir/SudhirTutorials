@@ -43,18 +43,7 @@ export default function Home() {
   const [admissionsError, setAdmissionsError] = useState<string>("");
   const [admissionsSuccess, setAdmissionsSuccess] = useState<string | null>(null);
 
-  // Careers modal states
-  const [showCareersModal, setShowCareersModal] = useState<boolean>(false);
-  const [careersName, setCareersName] = useState<string>("");
-  const [careersEmail, setCareersEmail] = useState<string>("");
-  const [careersPhone, setCareersPhone] = useState<string>("");
-  const [careersPosition, setCareersPosition] = useState<string>("Mathematics Teacher");
-  const [careersExperience, setCareersExperience] = useState<string>("");
-  const [careersCoverLetter, setCareersCoverLetter] = useState<string>("");
-  const [careersFile, setCareersFile] = useState<File | null>(null);
-  const [careersSuccess, setCareersSuccess] = useState<string | null>(null);
-  const [careersError, setCareersError] = useState<string>("");
-  const [careersSubmitting, setCareersSubmitting] = useState<boolean>(false);
+
 
   // Bug Report states
   const [showReportBugModal, setShowReportBugModal] = useState<boolean>(false);
@@ -294,69 +283,7 @@ export default function Home() {
     }
   };
 
-  // Careers submit handler
-  const handleCareersSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCareersSubmitting(true);
-    setCareersError("");
-    setCareersSuccess(null);
 
-    // Validate
-    if (!careersName.trim() || !careersEmail.trim() || !careersPhone.trim() || !careersPosition || !careersExperience.trim()) {
-      setCareersError("Please fill out all mandatory fields.");
-      setCareersSubmitting(false);
-      return;
-    }
-    if (!/^\d{10}$/.test(careersPhone.trim())) {
-      setCareersError("Phone number must be exactly 10 digits.");
-      setCareersSubmitting(false);
-      return;
-    }
-    if (careersName.length > 150 || !/^[a-zA-Z\s]+$/.test(careersName)) {
-      setCareersError("Name must contain only alphabets and spaces, and be at most 150 characters.");
-      setCareersSubmitting(false);
-      return;
-    }
-    if (!careersFile) {
-      setCareersError("Please attach your resume file (PDF or DOCX).");
-      setCareersSubmitting(false);
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('name', careersName);
-      formData.append('email', careersEmail);
-      formData.append('phone', careersPhone);
-      formData.append('position', careersPosition);
-      formData.append('experience', careersExperience);
-      formData.append('coverLetter', careersCoverLetter);
-      formData.append('file', careersFile);
-
-      const res = await fetch('/api/careers/apply', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCareersSuccess(data.appNumber);
-        // Reset fields
-        setCareersName("");
-        setCareersEmail("");
-        setCareersPhone("");
-        setCareersPosition("Mathematics Teacher");
-        setCareersExperience("");
-        setCareersCoverLetter("");
-        setCareersFile(null);
-      } else {
-        setCareersError(data.error || "Submission failed. Please try again.");
-      }
-    } catch (err) {
-      setCareersError("Network error. Could not connect to system.");
-    } finally {
-      setCareersSubmitting(false);
-    }
-  };
 
   // Simulated AI Doubt Solver
   const handleSolveDoubt = (e: React.FormEvent) => {
@@ -429,10 +356,10 @@ export default function Home() {
         <nav className="navbar-links">
           <Link href="#programs" className="nav-link">Flagship Programs</Link>
           <Link href="#about" className="nav-link">Why Us</Link>
-          <span onClick={() => setShowCareersModal(true)} className="nav-link" style={{ cursor: 'pointer' }}>Careers</span>
+          <Link href="/careers" className="nav-link">Careers</Link>
           <span onClick={() => setShowAdmissionsModal(true)} className="nav-link" style={{ cursor: 'pointer' }}>Apply Admissions</span>
           <Link href="/login" className="login-portal-btn">
-            🎓 Portal Login <span className="arrow">→</span>
+            Portal Login <span className="arrow">→</span>
           </Link>
         </nav>
       </header>
@@ -441,14 +368,26 @@ export default function Home() {
       <section className="hero-section">
         <div className="hero-content">
           <div className="admission-pill animate-float" onClick={() => setShowAdmissionsModal(true)} style={{ cursor: 'pointer' }}>
-            <span className="pill-emoji">🎒</span> Admissions Active for Academic Year 2026-27 (Apply Now)
+            Admissions Active for Academic Year 2026-27 (Apply Now)
           </div>
           <h1 className="hero-title">
             Unlock Academic Excellence.<br/>
             <span className="text-gradient">Prepare. Compete. Conquer.</span>
           </h1>
+          <div style={{
+            fontSize: '1.4rem',
+            fontWeight: 800,
+            color: 'var(--secondary)',
+            margin: '0.5rem 0 1.5rem',
+            fontStyle: 'italic',
+            letterSpacing: '0.2px',
+            fontFamily: 'var(--font-poppins)',
+            textShadow: '0 2px 10px rgba(59, 130, 246, 0.15)',
+          }} className="hero-tagline-quote">
+            “Sahab Hum Jabardasti nhi, Zabardast padhate hai”
+          </div>
           <p className="hero-subtitle">
-            Providing premium coaching and digital LMS ecosystems for JEE Main & Advanced, NEET, and Foundation courses. Real education designed by expert tutors.
+            Empowering every student with AI-driven intelligence. A premium digital learning ecosystem designed to personalize education, boost confidence, and drive academic success.
           </p>
           <div className="hero-cta-buttons">
             <Link href="/login" className="btn-primary-hero">Student Login</Link>
@@ -489,7 +428,7 @@ export default function Home() {
                 </pre>
               ) : (
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  💡 Tip: Ask "What is Photosynthesis?" or "Newton's laws" to get instant answers.
+                  Tip: Ask "What is Photosynthesis?" or "Newton's laws" to get instant answers.
                 </span>
               )}
             </div>
@@ -655,10 +594,58 @@ export default function Home() {
           perspective: '1000px'
         }}>
           {[
-            { value: '98.4%', label: 'JEE/NEET Selection Rate', icon: '🏆', border: 'var(--primary)', shadow: 'rgba(239, 68, 68, 0.2)' },
-            { value: '12 : 1', label: 'Student-Teacher Ratio', icon: '👨‍🏫', border: 'var(--secondary)', shadow: 'rgba(37, 99, 235, 0.2)' },
-            { value: '24/7', label: 'AI + Offline Doubt Desk', icon: '⚡', border: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.2)' },
-            { value: '10K+', label: 'Successful Alumni', icon: '🎓', border: '#10b981', shadow: 'rgba(16, 185, 129, 0.2)' }
+            { 
+              value: '98.4%', 
+              label: 'JEE/NEET Selection Rate', 
+              icon: (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path>
+                  <path d="M12 2a7.7 7.7 0 0 1 7.54 8H4.46A7.7 7.7 0 0 1 12 2z"></path>
+                </svg>
+              ), 
+              border: 'var(--primary)', 
+              shadow: 'rgba(239, 68, 68, 0.2)' 
+            },
+            { 
+              value: '12 : 1', 
+              label: 'Student-Teacher Ratio', 
+              icon: (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              ), 
+              border: 'var(--secondary)', 
+              shadow: 'rgba(37, 99, 235, 0.2)' 
+            },
+            { 
+              value: '24/7', 
+              label: 'AI + Offline Doubt Desk', 
+              icon: (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              ), 
+              border: '#f59e0b', 
+              shadow: 'rgba(245, 158, 11, 0.2)' 
+            },
+            { 
+              value: '10K+', 
+              label: 'Successful Alumni', 
+              icon: (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                  <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path>
+                </svg>
+              ), 
+              border: '#10b981', 
+              shadow: 'rgba(16, 185, 129, 0.2)' 
+            }
           ].map((stat, idx) => (
             <div 
               key={idx}
@@ -912,19 +899,34 @@ export default function Home() {
           <div className="features-left">
             {[
               { 
-                title: '🧠 Elite IITian & Doctor Mentorship', 
+                title: 'Elite IITian & Doctor Mentorship', 
                 desc: 'Learn directly from battle-tested educators who have cleared these elite exams themselves. Our faculty focuses on cognitive concept building rather than rote learning, bridging the gap between effort and high rank results.', 
-                icon: '🎓' 
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                    <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path>
+                  </svg>
+                )
               },
               { 
-                title: '📊 Cognitive Tracking & Transparency', 
+                title: 'Cognitive Tracking & Transparency', 
                 desc: 'Say goodbye to guesswork. Through our proprietary LMS dashboard, parents receive real-time, bank-style fee ledgers, detailed student attendance tracking, and micro-conceptual mock test performance analytics.', 
-                icon: '💻' 
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                )
               },
               { 
-                title: '⚡ Instant 12-Hour Doubt Counter', 
+                title: 'Instant 12-Hour Doubt Counter', 
                 desc: 'A student\'s doubt left unsolved is a rank compromised. We operate dedicated face-to-face offline doubt counters 12 hours a day, backed by our 24/7 AI-powered Doubt Solver for learning support at home.', 
-                icon: '🔥' 
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                  </svg>
+                )
               }
             ].map((feat, i) => (
               <div key={i} className="feature-row feature-card-tilt" style={{
@@ -1010,7 +1012,7 @@ export default function Home() {
               <li><Link href="/login" className="footer-link">Student Login</Link></li>
               <li><Link href="/login" className="footer-link">Teacher Panel</Link></li>
               <li><Link href="/login" className="footer-link">Admin Command Center</Link></li>
-              <li><span onClick={() => setShowCareersModal(true)} className="footer-link" style={{ cursor: 'pointer' }}>Careers</span></li>
+              <li><Link href="/careers" className="footer-link">Careers</Link></li>
             </ul>
           </div>
 
@@ -1083,7 +1085,21 @@ export default function Home() {
 
             {admissionsSuccess ? (
               <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🎉</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '2px solid #10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#10b981'
+                  }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                </div>
                 <h3 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--secondary)' }}>Inquiry Submitted!</h3>
                 <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
                   Thank you for choosing Sudhir Tutorials. Your admission application has been registered successfully.
@@ -1116,7 +1132,7 @@ export default function Home() {
             ) : (
               <div>
                 <h2 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                  🏫 Academic Admission Form
+                  Academic Admission Form
                 </h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: '1.5' }}>
                   Academic Year 2026-27 Enrollment. Please enter authentic academic and contact credentials to submit your admission inquiry.
@@ -1124,7 +1140,7 @@ export default function Home() {
 
                 {admissionsError && (
                   <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                    ⚠️ {admissionsError}
+                    {admissionsError}
                   </div>
                 )}
                 <form onSubmit={handleAdmissionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -1286,7 +1302,6 @@ export default function Home() {
                       style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', resize: 'vertical' }}
                       placeholder="Any questions or remarks? (Optional)"
                     ></textarea>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '4px', fontWeight: 600 }}>* Your query will be answered through mail.</span>
                   </div>
 
                   <button 
@@ -1295,276 +1310,9 @@ export default function Home() {
                     style={{ border: 'none', padding: '0.9rem', fontWeight: 800, marginTop: '0.5rem' }}
                     disabled={admissionsLoading}
                   >
-                    {admissionsLoading ? "Submitting Inquiry..." : "🚀 Submit Admission Inquiry"}
+                    {admissionsLoading ? "Submitting Inquiry..." : "Submit Admission Inquiry"}
                   </button>
                 </form>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Careers Modal */}
-      {showCareersModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem',
-          overflowY: 'auto'
-        }}>
-          <div className="glass-card animate-scale-up" style={{
-            width: '100%',
-            maxWidth: '850px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '2.5rem',
-            border: '1px solid var(--border)',
-            borderRadius: '24px',
-            position: 'relative',
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(20px)'
-          }}>
-            {/* Close Button */}
-            <button 
-              onClick={() => {
-                setShowCareersModal(false);
-                setCareersSuccess(null);
-                setCareersError("");
-              }}
-              style={{
-                position: 'absolute',
-                top: '1.25rem',
-                right: '1.25rem',
-                background: 'var(--card-bg-alt)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                borderRadius: '50%',
-                width: '36px',
-                height: '36px',
-                cursor: 'pointer',
-                fontSize: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                zIndex: 10
-              }}
-            >
-              ×
-            </button>
-
-            {careersSuccess ? (
-              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>💼</div>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--secondary)' }}>Application Submitted!</h3>
-                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
-                  Thank you for applying to Sudhir Tutorials. Your job application has been registered successfully.
-                </p>
-                <div style={{
-                  background: 'rgba(56, 189, 248, 0.08)',
-                  border: '1px dashed var(--secondary)',
-                  padding: '1.25rem',
-                  borderRadius: '16px',
-                  display: 'inline-block',
-                  marginBottom: '2rem'
-                }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800 }}>Application Ref Number</span>
-                  <strong style={{ fontSize: '1.8rem', color: 'var(--secondary)', letterSpacing: '1px' }}>{careersSuccess}</strong>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  Our recruitment team will review your resume and contact you if your profile matches our requirements.
-                </p>
-                <button 
-                  onClick={() => {
-                    setShowCareersModal(false);
-                    setCareersSuccess(null);
-                  }}
-                  className="btn-primary"
-                  style={{ marginTop: '2rem', border: 'none', width: '100%' }}
-                >
-                  Close Window
-                </button>
-              </div>
-            ) : (
-              <div>
-                <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--primary)', letterSpacing: '-0.5px' }}>
-                  Work with <span className="text-gradient">Sudhir Tutorials</span>
-                </h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: '1.5' }}>
-                  Join Ludhiana's premier academic coaching institute. We are always looking for passionate educators and administrators who want to make a real difference.
-                </p>
-
-                {/* Grid layout for info and form */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.2fr', gap: '2.5rem' }} className="careers-modal-grid">
-                  <style>{`
-                    @media (max-width: 768px) {
-                      .careers-modal-grid {
-                        grid-template-columns: 1fr !important;
-                        gap: 2rem !important;
-                      }
-                    }
-                  `}</style>
-                  
-                  {/* Left Column: Work Culture & Perks */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div style={{ background: 'var(--surface-light)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        🧠 Our Pedagogy & Culture
-                      </h4>
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
-                        At Sudhir Tutorials, work culture is built strictly on academic freedom, structured practice, and collaborative teacher training. We believe in providing premium resources so you can focus on what matters most: mentoring minds.
-                      </p>
-                    </div>
-
-                    <div style={{ background: 'var(--surface-light)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        🎁 Perks & Benefits
-                      </h4>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.82rem', color: 'var(--text)' }}>
-                        <li>📈 <strong>Competitive Salary:</strong> Performance-based yearly increments.</li>
-                        <li>🩺 <strong>Health Benefits:</strong> Comprehensive wellness coverage.</li>
-                        <li>🚀 <strong>Professional Growth:</strong> Access to structured pedagogy training.</li>
-                        <li>🎨 <strong>Digital Support:</strong> Custom LMS and AI assistant interfaces.</li>
-                      </ul>
-                    </div>
-
-                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '16px', border: '1px dashed var(--primary)' }}>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                        🎯 Current Openings
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>
-                        • Mathematics Educator (IIT JEE Advanced)<br/>
-                        • Physics Educator (JEE/NEET Main & Adv)<br/>
-                        • Chemistry & Biology Faculty (Foundation/NEET)<br/>
-                        • Academic Counselors & Operations Leads
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Application Form */}
-                  <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-heading)' }}>
-                      Apply For a Position
-                    </h3>
-
-                    {careersError && (
-                      <div style={{ padding: '0.85rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1rem', fontSize: '0.8rem' }}>
-                        ⚠️ {careersError}
-                      </div>
-                    )}
-
-                    <form onSubmit={handleCareersSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div className="input-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Full Name *</label>
-                        <input 
-                          type="text" 
-                          required 
-                          placeholder="e.g. Amit Sharma"
-                          value={careersName}
-                          onChange={e => setCareersName(e.target.value)}
-                          style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div className="input-group">
-                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Email *</label>
-                          <input 
-                            type="email" 
-                            required 
-                            placeholder="e.g. amit@mail.com"
-                            value={careersEmail}
-                            onChange={e => setCareersEmail(e.target.value)}
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
-                          />
-                        </div>
-                        <div className="input-group">
-                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Phone *</label>
-                          <input 
-                            type="text" 
-                            required 
-                            placeholder="10-digit number"
-                            value={careersPhone}
-                            onChange={e => setCareersPhone(e.target.value)}
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1rem' }}>
-                        <div className="input-group">
-                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Position Applied For *</label>
-                          <select 
-                            required 
-                            value={careersPosition}
-                            onChange={e => setCareersPosition(e.target.value)}
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
-                          >
-                            <option value="Mathematics Teacher">Maths Teacher (JEE/NEET)</option>
-                            <option value="Physics Teacher">Physics Teacher (JEE/NEET)</option>
-                            <option value="Chemistry Teacher">Chemistry Teacher (JEE/NEET)</option>
-                            <option value="Biology Teacher">Biology Teacher (NEET)</option>
-                            <option value="Academic Counselor">Academic Counselor</option>
-                            <option value="LMS Administrator">LMS Administrator</option>
-                            <option value="Other">Other Position</option>
-                          </select>
-                        </div>
-                        <div className="input-group">
-                          <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Experience *</label>
-                          <input 
-                            type="text" 
-                            required 
-                            placeholder="e.g. 3 Years"
-                            value={careersExperience}
-                            onChange={e => setCareersExperience(e.target.value)}
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%' }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="input-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Upload Resume (PDF/DOCX) *</label>
-                        <input 
-                          type="file" 
-                          required 
-                          accept=".pdf,.docx,.doc"
-                          onChange={e => {
-                            if (e.target.files && e.target.files[0]) {
-                              setCareersFile(e.target.files[0]);
-                            }
-                          }}
-                          style={{ padding: '0.5rem', borderRadius: '8px', border: '1px dashed var(--border)', color: 'var(--text)', fontSize: '0.8rem', width: '100%' }}
-                        />
-                      </div>
-
-                      <div className="input-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-muted)', marginBottom: '4px' }}>Cover Letter / Notes</label>
-                        <textarea 
-                          rows={2} 
-                          placeholder="Tell us briefly about yourself..."
-                          value={careersCoverLetter}
-                          onChange={e => setCareersCoverLetter(e.target.value)}
-                          style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', resize: 'vertical' }}
-                        ></textarea>
-                      </div>
-
-                      <button 
-                        type="submit" 
-                        className="btn-primary" 
-                        style={{ border: 'none', padding: '0.75rem', fontWeight: 800, marginTop: '0.25rem', width: '100%' }}
-                        disabled={careersSubmitting}
-                      >
-                        {careersSubmitting ? "Uploading & Applying..." : "📨 Apply Now"}
-                      </button>
-                    </form>
-                  </div>
-                </div>
               </div>
             )}
           </div>
