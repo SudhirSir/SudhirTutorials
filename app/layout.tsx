@@ -6,9 +6,45 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const poppins = Poppins({ weight: ['400', '500', '600', '700', '800'], subsets: ['latin'], variable: '--font-poppins' });
 
 export const metadata: Metadata = {
-  title: "SUDHIR TUTORIALS",
+  metadataBase: new URL('https://sudhirtutorials.me'),
+  title: "SUDHIR TUTORIALS - AI Powered Learning Platform",
   description:
-    "Empowering every student with AI-driven intelligence. A premium digital learning ecosystem designed to personalize education, boost confidence, and drive academic success.",
+    "It is an AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+  },
+  openGraph: {
+    title: "SUDHIR TUTORIALS - AI Powered Learning Platform",
+    description:
+      "It is an AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
+    url: "https://sudhirtutorials.me",
+    siteName: "SUDHIR TUTORIALS",
+    images: [
+      {
+        url: "/favicon-512.png",
+        width: 512,
+        height: 512,
+        alt: "SUDHIR TUTORIALS Logo",
+      }
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SUDHIR TUTORIALS - AI Powered Learning Platform",
+    description:
+      "It is an AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
+    images: ["/favicon-512.png"],
+  }
 };
 
 import { Providers } from '@/components/Providers';
@@ -18,6 +54,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "SUDHIR TUTORIALS",
+    "alternateName": ["Sudhir Tutorials", "ST"],
+    "url": "https://sudhirtutorials.me"
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -35,6 +79,10 @@ export default function RootLayout({
             `,
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
         <Providers>{children}</Providers>
@@ -42,3 +90,4 @@ export default function RootLayout({
     </html>
   );
 }
+
