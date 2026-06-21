@@ -110,6 +110,31 @@ export async function GET(req: Request) {
   }
 }
 
+async function consumeUnpaidBalances(studentId: string): Promise<number> {
+  const unresolvedPartials = await withDbRetry(() => prisma.payment.findMany({
+    where: {
+      studentId: studentId,
+      status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
+      balanceCarriedForward: false
+    }
+  }));
+
+  let sum = 0;
+  for (const fee of unresolvedPartials) {
+    const totalDue = fee.amount + (fee.lateFine || 0) - (fee.discount || 0) + (fee.previousBalance || 0);
+    const paidAmount = fee.paidAmount || 0;
+    const remaining = totalDue - paidAmount;
+    if (remaining > 0.01) {
+      sum += remaining;
+      await withDbRetry(() => prisma.payment.update({
+        where: { id: fee.id },
+        data: { balanceCarriedForward: true }
+      }));
+    }
+  }
+  return sum;
+}
+
 // POST: Execute the automated monthly billing and calculate student fees
 export async function POST(req: Request) {
   try {
@@ -197,6 +222,8 @@ export async function POST(req: Request) {
           }
         }
       }
+      
+      const prevBal = await consumeUnpaidBalances(student.id);
 
       await withDbRetry(() => prisma.payment.create({
         data: {
@@ -207,6 +234,7 @@ export async function POST(req: Request) {
           title: `Monthly Tuition Fee - ${billingMonth}`,
           status: 'PENDING',
           discount: scholarship,
+          previousBalance: prevBal,
           remarks: 'Automated monthly fee assignment'
         }
       }));
