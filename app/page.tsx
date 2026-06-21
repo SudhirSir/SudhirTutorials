@@ -376,7 +376,7 @@ export default function Home() {
               letterSpacing: '1.5px',
               alignSelf: 'flex-start'
             }}>
-              Now on Android & iOS
+              Now on Android
             </span>
             
             <h2 style={{
@@ -426,17 +426,17 @@ export default function Home() {
               ))}
             </ul>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: '1rem' }}>
               <a 
                 href="https://drive.google.com/drive/folders/1q1hIGvl-ilAepbElMnR3y96IRqnh32Gw?usp=sharing" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="btn-primary"
                 style={{
-                  padding: '1rem 1.75rem',
+                  padding: '1rem 2rem',
                   borderRadius: '16px',
                   fontWeight: 800,
-                  fontSize: '0.95rem',
+                  fontSize: '1rem',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.75rem',
@@ -448,31 +448,7 @@ export default function Home() {
                   transition: 'all 0.2s ease'
                 }}
               >
-                🤖 Download for Android
-              </a>
-
-              <a 
-                href="https://drive.google.com/drive/folders/1q1hIGvl-ilAepbElMnR3y96IRqnh32Gw?usp=sharing" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn-primary"
-                style={{
-                  padding: '1rem 1.75rem',
-                  borderRadius: '16px',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 8px 25px rgba(99, 102, 241, 0.25)',
-                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                  border: 'none',
-                  color: 'white',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                🍎 Download for iOS
+                🤖 Download for Android (APK)
               </a>
             </div>
           </div>
