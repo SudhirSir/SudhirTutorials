@@ -31,7 +31,6 @@ export async function GET() {
       const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
 
       const pendingPayments = await prisma.payment.findMany({
-        where: { status: 'PENDING' },
         select: { amount: true, paidAmount: true, lateFine: true, discount: true }
       });
       const pendingDues = pendingPayments.reduce((acc: number, p: any) => {

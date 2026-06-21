@@ -1388,9 +1388,6 @@ function AdminDashboardContent() {
 
   const currentMonthPending = useMemo(() => {
     return currentMonthFees.reduce((acc, f) => {
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
-        return acc;
-      }
       const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
       return acc + Math.max(0, f.amount + fineVal - f.discount - (f.paidAmount || 0));
     }, 0);
@@ -4647,7 +4644,7 @@ function AdminDashboardContent() {
                                     <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
                                     <td>
                                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {fee.status === 'PENDING' && (
+                                        {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
                                           <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
                                         )}
                                         {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
@@ -4698,12 +4695,12 @@ function AdminDashboardContent() {
                                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{studentInvoices.length} billing cycles</div>
                                   </td>
                                   <td>
-                                    {pendingCount > 0 ? (
+                                    {(pendingCount > 0 || outstanding > 0.01) ? (
                                       <span style={{
                                         padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
                                         background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid #ef4444'
                                       }}>
-                                        {pendingCount} PENDING
+                                        {pendingCount > 0 ? `${pendingCount} PENDING` : 'PARTIAL DUE'}
                                       </span>
                                     ) : (
                                       <span style={{
@@ -4723,8 +4720,10 @@ function AdminDashboardContent() {
                                   <td style={{ fontWeight: 700 }}>₹{outstanding.toFixed(0)}</td>
                                   <td>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                      {pendingCount > 0 && (() => {
-                                        const oldestPending = [...pendingInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+                                      {(pendingCount > 0 || outstanding > 0.01) && (() => {
+                                        const invoicesWithDues = studentInvoices.filter(f => f.status === 'PENDING' || f.totalDue > 0.01);
+                                        const oldestPending = [...invoicesWithDues].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+                                        if (!oldestPending) return null;
                                         return (
                                           <button 
                                             onClick={() => { setPayingFee(oldestPending); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: oldestPending.discount, remarks: '', paidAmount: (oldestPending.amount + oldestPending.currentLateFine - oldestPending.discount - (oldestPending.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 

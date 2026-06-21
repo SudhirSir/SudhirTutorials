@@ -34,7 +34,6 @@ export async function GET() {
         select: { amount: true, date: true } // Avoid retrieving unnecessary large columns like remarks
       })),
       withDbRetry(() => prisma.payment.findMany({
-        where: { status: 'PENDING' },
         select: { amount: true, paidAmount: true, lateFine: true, discount: true }
       }))
     ]);

@@ -364,7 +364,7 @@ export function StudentLedger({
       doc.setTextColor(55, 65, 81);
       let cx = MARGIN + 2;
       cols.forEach(col => {
-        doc.text(col.label, col.align === 'right' ? cx + col.w - 2 : cx, y + 5.5, { align: col.align as any });
+        doc.text(col.label, col.align === 'right' ? cx + col.w - 4 : cx, y + 5.5, { align: col.align as any });
         cx += col.w;
       });
       y += HEAD_H;
@@ -393,7 +393,7 @@ export function StudentLedger({
         cells.forEach(cell => {
           doc.setFont('helvetica', cell.align === 'right' ? 'bold' : 'normal');
           doc.setTextColor(...cell.color);
-          doc.text(cell.val, cell.align === 'right' ? cx + cell.w - 2 : cx, y + 4.8, { align: cell.align as any });
+          doc.text(cell.val, cell.align === 'right' ? cx + cell.w - 4 : cx, y + 4.8, { align: cell.align as any });
           cx += cell.w;
         });
         y += ROW_H;
@@ -713,7 +713,7 @@ export function StudentLedger({
                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                               {isAdmin && (
                                 <>
-                                  {status === 'PENDING' && onCollect && (
+                                  {(status === 'PENDING' || Math.max(0, record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0)) > 0.01) && onCollect && (
                                     <button type="button" onClick={() => onCollect(record)}
                                       className="btn-primary"
                                       style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}>
@@ -823,12 +823,10 @@ export function StudentLedger({
                 { label: 'Total Settled', value: `₹${totalCredit.toFixed(2)}`, color: 'var(--secondary)' },
                 { 
                   label: 'Net Balance', 
-                  value: finalBalance > 0 
-                    ? `+₹${finalBalance.toFixed(2)} Credit` 
-                    : finalBalance < 0 
-                      ? `₹${Math.abs(finalBalance).toFixed(2)} Due` 
-                      : 'Settled', 
-                  color: finalBalance > 0 ? 'var(--secondary)' : finalBalance < 0 ? '#ef4444' : 'var(--secondary)' 
+                  value: finalBalance >= 0 
+                    ? `+₹${finalBalance.toFixed(2)} Cr` 
+                    : `₹${Math.abs(finalBalance).toFixed(2)} Dr`, 
+                  color: finalBalance >= 0 ? 'var(--secondary)' : '#ef4444' 
                 },
               ].map(s => (
                 <div key={s.label} style={{ padding: '1.1rem 1.5rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)' }}>
@@ -875,7 +873,7 @@ export function StudentLedger({
                         <td style={{ textAlign: 'center', paddingRight: '1.5rem' }}>
                           {p.fee ? (
                             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                              {isAdmin && p.fee.status === 'PENDING' && onCollect && (
+                              {isAdmin && (p.fee.status === 'PENDING' || Math.max(0, p.fee.amount + (p.fee.lateFine || 0) - (p.fee.discount || 0) - (p.fee.paidAmount || 0)) > 0.01) && onCollect && (
                                 <button type="button" onClick={() => onCollect(p.fee)}
                                   className="btn-primary"
                                   style={{ padding: '4px 8px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }}

@@ -351,8 +351,7 @@ export async function PATCH(req: Request) {
       lateFine = calculateLateFine(effectiveDueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
     }
 
-    const scholarship = currentFee.student?.studentProfile?.scholarship || 0;
-    const effectiveDiscount = Math.max(discount !== undefined ? discount : currentFee.discount, scholarship);
+    const effectiveDiscount = discount !== undefined ? discount : currentFee.discount;
 
     const netDueBefore = currentFee.amount + lateFine - effectiveDiscount;
     const remainingDueBefore = Math.max(0, netDueBefore - (currentFee.paidAmount || 0));
@@ -479,9 +478,7 @@ export async function PUT(req: Request) {
     if (title !== undefined) updateData.title = title;
     if (billingMonth !== undefined) updateData.billingMonth = billingMonth;
     if (amount !== undefined) updateData.amount = parseFloat(String(amount));
-    const scholarship = existing.student?.studentProfile?.scholarship || 0;
-    const inputDiscount = discount !== undefined ? parseFloat(String(discount)) : existing.discount;
-    const effectiveDiscount = Math.max(inputDiscount, scholarship);
+    const effectiveDiscount = discount !== undefined ? parseFloat(String(discount)) : existing.discount;
 
     if (discount !== undefined || existing.discount !== effectiveDiscount) {
       updateData.discount = effectiveDiscount;
