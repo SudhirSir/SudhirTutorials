@@ -8555,7 +8555,9 @@ function AdminDashboardContent() {
               Student: <strong>{payingFee[0]?.student?.name || 'Multiple'}</strong>
             </p>
 
-            {/* Months list card removed */}
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              Month: <strong>{payingFee.filter((f: any) => selectedCollectIds.includes(f.id)).map((f: any) => f.billingMonth).join(', ')}</strong>
+            </p>
 
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>

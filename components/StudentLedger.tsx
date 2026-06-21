@@ -318,7 +318,7 @@ export function StudentLedger({
 
       const infoRows: string[][] = [
         ['Student ID', student?.username || 'N/A', 'Class / Grade', sp?.className || 'N/A'],
-        ['Roll Number', sp?.rollNumber  || 'N/A', 'Batch',         sp?.batch      || 'N/A'],
+        ['Monthly Fee', sp?.baseFee ? 'Rs. ' + sp.baseFee : 'N/A', 'Batch',         sp?.batch      || 'N/A'],
         ["Father's Name", sp?.fatherName || 'N/A', 'Contact',      sp?.phone      || 'N/A'],
       ];
       doc.setFont('helvetica', 'normal');

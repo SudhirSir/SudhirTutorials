@@ -81,6 +81,7 @@ export async function GET(req: Request) {
                 fatherName: true,
                 address: true,
                 scholarship: true,
+                baseFee: true,
               }
             }
           } 

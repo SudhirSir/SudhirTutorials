@@ -36,6 +36,7 @@ export async function GET() {
                 fatherName: true,
                 address: true,
                 scholarship: true,
+                baseFee: true,
               }
             }
           }
