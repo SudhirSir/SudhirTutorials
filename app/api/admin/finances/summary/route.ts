@@ -20,10 +20,8 @@ export async function GET() {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 11); // Get last 12 months for better trend
     sixMonthsAgo.setDate(1);
 
-    const currentMonthYear = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-
     // Parallelize all financial queries to drastically minimize database round-trip times
-    const [payments, expenses, pendingAggregate, currentMonthPayments] = await Promise.all([
+    const [payments, expenses, pendingAggregate] = await Promise.all([
       withDbRetry(() => prisma.payment.findMany({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
@@ -38,31 +36,12 @@ export async function GET() {
       withDbRetry(() => prisma.payment.aggregate({
         where: { status: 'PENDING' },
         _sum: { amount: true } // Execute aggregate sum at the DB layer
-      })),
-      withDbRetry(() => prisma.payment.findMany({
-        where: { billingMonth: currentMonthYear },
-        select: { status: true, paidAmount: true, amount: true, lateFine: true, discount: true, previousBalance: true }
       }))
     ]);
 
     const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
     const totalExpenses = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
     const totalPending = pendingAggregate._sum.amount || 0;
-
-    const currentMonthCollected = currentMonthPayments.reduce((acc: number, f: any) => {
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
-        return acc + (f.paidAmount || (f.amount + (f.lateFine || 0) - f.discount));
-      }
-      return acc + (f.paidAmount || 0);
-    }, 0);
-
-    const currentMonthPending = currentMonthPayments.reduce((acc: number, f: any) => {
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
-        return acc;
-      }
-      const fineVal = f.lateFine || 0;
-      return acc + Math.max(0, f.amount + fineVal - f.discount + f.previousBalance - (f.paidAmount || 0));
-    }, 0);
 
     // Monthly breakdown (last 6 months)
     const monthlyData = [];
@@ -91,8 +70,6 @@ export async function GET() {
       totalExpenses,
       totalPending,
       netProfit: totalRevenue - totalExpenses,
-      currentMonthCollected,
-      currentMonthPending,
       monthlyData
     });
   } catch (error) {

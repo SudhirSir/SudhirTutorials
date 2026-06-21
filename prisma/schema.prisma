@@ -164,9 +164,6 @@ model Payment {
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
   collectedBy   String?   // Admin who collected/verified the fee
-  previousBalance Float   @default(0)
-  balanceCarriedForward Boolean @default(false)
-  isUnlocked    Boolean   @default(false)
 
   @@index([studentId])
   @@index([status])

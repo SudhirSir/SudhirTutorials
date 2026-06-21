@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
-import { calculateLateFine, generateReceiptNo } from '@/lib/feeUtils';
+import { calculateLateFine } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 
 export async function GET() {
@@ -44,13 +44,6 @@ export async function GET() {
       orderBy: { dueDate: 'desc' }
     }));
 
-    const allPayments = await withDbRetry(() => prisma.payment.findMany({
-      select: { id: true },
-      orderBy: { createdAt: 'asc' }
-    }));
-    const rankMap = new Map<string, number>();
-    allPayments.forEach((p, idx) => rankMap.set(p.id, idx));
-
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
     const fees = rawFees.map((fee: any) => {
@@ -68,13 +61,7 @@ export async function GET() {
 
       const scholarship = fee.student?.studentProfile?.scholarship || 0;
       const effectiveDiscount = Math.max(fee.discount, scholarship);
-      
-      let receiptNo = '-';
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(fee.status)) {
-        const rank = rankMap.get(fee.id) ?? 0;
-        const serial = 1001 + rank;
-        receiptNo = generateReceiptNo(fee, serial);
-      }
+      const receiptNo = `REC-${fee.id.slice(-6).toUpperCase()}`;
 
       return {
         ...fee,
@@ -82,7 +69,7 @@ export async function GET() {
         daysLate: daysLate > 0 ? daysLate : 0,
         lateFine: currentFine,
         currentLateFine: currentFine,
-        totalAmount: fee.amount + currentFine - effectiveDiscount + fee.previousBalance,
+        totalAmount: fee.amount + currentFine - effectiveDiscount,
         receiptNo
       };
     });
