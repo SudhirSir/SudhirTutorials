@@ -12,12 +12,14 @@ import { logActivity } from '@/lib/activity';
 
 const feeSchema = z.object({
   type: z.enum(['INDIVIDUAL', 'BATCH']),
-  amount: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
+  amount: z.union([z.string(), z.number()])
+    .transform(val => typeof val === 'string' ? parseFloat(val) : val)
+    .refine(val => val >= 0, "Amount cannot be negative"),
   billingMonth: z.string().min(1, "Month is required"),
   title: z.string().optional().default("Monthly Fee"),
   studentId: z.string().optional(), // For individual
   batchId: z.string().optional(), // For batch-specific assignment
-  discount: z.number().optional().default(0),
+  discount: z.number().nonnegative("Discount cannot be negative").optional().default(0),
   remarks: z.string().optional(),
   dueDate: z.string().optional(),
   createdAt: z.string().optional(),
@@ -29,9 +31,9 @@ const updateStatusSchema = z.object({
   status: z.enum(['PENDING', 'PAID', 'PAID_ONLINE', 'VERIFIED', 'FAILED']).optional(),
   paymentMethod: z.string().optional(),
   transactionId: z.string().optional(),
-  discount: z.number().optional(),
+  discount: z.number().nonnegative("Discount cannot be negative").optional(),
   remarks: z.string().optional(),
-  paidAmount: z.number().optional(),
+  paidAmount: z.number().nonnegative("Paid amount cannot be negative").optional(),
   paidAt: z.string().optional(),
   isUnlocked: z.boolean().optional(),
 });
@@ -578,6 +580,19 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks, paidAmount } = body;
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
+
+    if (amount !== undefined && (isNaN(parseFloat(String(amount))) || parseFloat(String(amount)) < 0)) {
+      return NextResponse.json({ error: 'Amount cannot be negative' }, { status: 400 });
+    }
+    if (discount !== undefined && (isNaN(parseFloat(String(discount))) || parseFloat(String(discount)) < 0)) {
+      return NextResponse.json({ error: 'Discount cannot be negative' }, { status: 400 });
+    }
+    if (lateFine !== undefined && (isNaN(parseFloat(String(lateFine))) || parseFloat(String(lateFine)) < 0)) {
+      return NextResponse.json({ error: 'Late fine cannot be negative' }, { status: 400 });
+    }
+    if (paidAmount !== undefined && (isNaN(parseFloat(String(paidAmount))) || parseFloat(String(paidAmount)) < 0)) {
+      return NextResponse.json({ error: 'Paid amount cannot be negative' }, { status: 400 });
+    }
 
     const existing = await withDbRetry(() => prisma.payment.findUnique({ 
       where: { id },
