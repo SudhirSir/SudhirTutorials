@@ -8469,6 +8469,17 @@ function AdminDashboardContent() {
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
                   <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0))).toFixed(2)}</span>
                 </div>
+                {(() => {
+                  const netDue = activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0);
+                  const paid = activeReceipt.paidAmount || 0;
+                  const remaining = Math.max(0, netDue - paid);
+                  return remaining > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', color: '#ef4444' }}>
+                      <span style={{ fontWeight: 800 }}>REMAINING DUE</span>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{remaining.toFixed(2)}</span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1.25rem' }}>
