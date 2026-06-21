@@ -373,11 +373,11 @@ export function StudentLedger({
 
       const cols: { label: string; w: number; align: string }[] = [
         { label: 'Date',        w: 24, align: 'left'  },
-        { label: 'Receipt No.', w: 28, align: 'left'  },
-        { label: 'Description', w: 62, align: 'left'  },
+        { label: 'Receipt No.', w: 26, align: 'left'  },
+        { label: 'Description', w: 56, align: 'left'  },
         { label: 'Debit (Dr)',  w: 24, align: 'right' },
         { label: 'Credit (Cr)', w: 24, align: 'right' },
-        { label: 'Balance',     w: 22, align: 'right' },
+        { label: 'Balance',     w: 24, align: 'right' },
       ];
       const ROW_H = 7;
       const HEAD_H = 8;
