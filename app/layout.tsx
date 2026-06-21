@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://sudhirtutorials.me'),
   title: "SUDHIR TUTORIALS - AI Powered Learning Platform",
   description:
-    "It is an AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
+    "SUDHIR TUTORIALS is a premium AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
   icons: {
     icon: [
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SUDHIR TUTORIALS - AI Powered Learning Platform",
     description:
-      "It is an AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
+      "SUDHIR TUTORIALS is a premium AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
     url: "https://sudhirtutorials.me",
     siteName: "SUDHIR TUTORIALS",
     images: [
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "SUDHIR TUTORIALS - AI Powered Learning Platform",
     description:
-      "It is an AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
+      "SUDHIR TUTORIALS is a premium AI-powered learning platform that combines expert educational content with Guru AI, a 24/7 academic assistant that provides instant doubt solving, personalized guidance, and continuous learning support. Our mission is to give every student a personal AI learning companion that makes quality education more accessible, engaging, and effective.",
     images: ["/favicon-512.png"],
   }
 };
