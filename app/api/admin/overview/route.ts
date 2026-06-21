@@ -33,7 +33,15 @@ export async function GET() {
       const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
 
       const pendingPaymentsList = await prisma.payment.findMany({
-        where: { status: 'PENDING' }
+        where: {
+          OR: [
+            { status: 'PENDING' },
+            {
+              status: { in: ['PAID', 'VERIFIED'] },
+              balanceCarriedForward: false
+            }
+          ]
+        }
       });
       const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
       const pendingDues = pendingPaymentsList.reduce((sum, p) => {

@@ -659,6 +659,31 @@ export async function PUT(req: Request) {
       data: updateData,
     }));
 
+    // Carry forward logic: if verified/paid and there is a remaining balance, push to next month
+    const remainingBalance = (updated.amount + (updated.lateFine || 0) - (updated.discount || 0) + (updated.previousBalance || 0)) - (updated.paidAmount || 0);
+    if ((updated.status === 'PAID' || updated.status === 'VERIFIED') && remainingBalance > 0.01 && !updated.balanceCarriedForward) {
+      const nextMonthStr = getNextBillingMonth(updated.billingMonth);
+      const nextFee = await withDbRetry(() => prisma.payment.findFirst({
+        where: {
+          studentId: updated.studentId,
+          billingMonth: nextMonthStr
+        }
+      }));
+
+      if (nextFee) {
+        await withDbRetry(() => prisma.payment.update({
+          where: { id: nextFee.id },
+          data: {
+            previousBalance: nextFee.previousBalance + remainingBalance
+          }
+        }));
+        await withDbRetry(() => prisma.payment.update({
+          where: { id: updated.id },
+          data: { balanceCarriedForward: true }
+          }));
+      }
+    }
+
     await logActivity(
       session.user.id,
       'EDIT_FEE_RECORD',

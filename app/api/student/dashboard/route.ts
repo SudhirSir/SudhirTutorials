@@ -60,7 +60,15 @@ export async function GET() {
           },
           payments: {
             orderBy: { dueDate: 'asc' },
-            where: { status: 'PENDING' },
+            where: {
+              OR: [
+                { status: 'PENDING' },
+                {
+                  status: { in: ['PAID', 'VERIFIED'] },
+                  balanceCarriedForward: false
+                }
+              ]
+            },
             select: {
               id: true,
               title: true,
@@ -72,6 +80,7 @@ export async function GET() {
               lateFine: true,
               billingMonth: true,
               previousBalance: true,
+              balanceCarriedForward: true,
             }
           }
         }
@@ -115,7 +124,6 @@ export async function GET() {
       const scholarship = user.studentProfile?.scholarship || 0;
       
       let totalAmountSum = 0;
-      let oldestDueDate = user.payments[0].dueDate;
       let billingMonths: string[] = [];
 
       for (const pendingPayment of user.payments) {
@@ -124,26 +132,35 @@ export async function GET() {
         const effectiveDiscount = Math.max(pendingPayment.discount ?? 0, scholarship);
         const totalDueForThisMonth = pendingPayment.amount + lateFine - effectiveDiscount + (pendingPayment.previousBalance || 0) - (pendingPayment.paidAmount || 0);
         totalAmountSum += Math.max(0, totalDueForThisMonth);
-        billingMonths.push(pendingPayment.billingMonth);
+        if (totalDueForThisMonth > 0.01) {
+          billingMonths.push(pendingPayment.billingMonth);
+        }
       }
 
-      const oldestPayment = user.payments[0];
-      const oldestDiscount = Math.max(oldestPayment.discount ?? 0, scholarship);
+      if (totalAmountSum > 0.01) {
+        const oldestPayment = user.payments.find(p => {
+          const lateFine = calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days);
+          const effectiveDiscount = Math.max(p.discount ?? 0, scholarship);
+          return (p.amount + lateFine - effectiveDiscount + (p.previousBalance || 0) - (p.paidAmount || 0)) > 0.01;
+        }) || user.payments[0];
 
-      feeHighlight = {
-        id: oldestPayment.id,
-        title: user.payments.length > 1 ? `Pending Fees (${billingMonths.join(', ')})` : oldestPayment.title,
-        amount: totalAmountSum,
-        discount: oldestDiscount,
-        isOverdue: user.payments.some(p => {
-          const fine = calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days);
-          return fine > 0;
-        }),
-        lateFine: user.payments.reduce((acc, p) => acc + calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days), 0),
-        dueDate: oldestDueDate,
-        status: 'PENDING',
-        totalAmount: totalAmountSum,
-      };
+        const oldestDiscount = Math.max(oldestPayment.discount ?? 0, scholarship);
+
+        feeHighlight = {
+          id: oldestPayment.id,
+          title: billingMonths.length > 1 ? `Pending Fees (${billingMonths.join(', ')})` : oldestPayment.title,
+          amount: totalAmountSum,
+          discount: oldestDiscount,
+          isOverdue: user.payments.some(p => {
+            const fine = calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days);
+            return fine > 0;
+          }),
+          lateFine: user.payments.reduce((acc, p) => acc + calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days), 0),
+          dueDate: oldestPayment.dueDate,
+          status: 'PENDING',
+          totalAmount: totalAmountSum,
+        };
+      }
     }
 
     // Calculate dynamic attendance stats

@@ -632,7 +632,8 @@ function StudentDashboardContent() {
 
   const totalOutstanding = useMemo(() => {
     return fees.reduce((sum, fee) => {
-      if (fee.status === 'PAID_ONLINE' || fee.status === 'VERIFIED' || fee.status === 'PAID') return sum;
+      const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(fee.status) && fee.balanceCarriedForward) || fee.status === 'PAID_ONLINE';
+      if (isSettledAndCarried) return sum;
       const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
       const remainingDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) + (fee.previousBalance || 0) - (fee.paidAmount || 0));
       return sum + remainingDue;
@@ -672,7 +673,8 @@ function StudentDashboardContent() {
     
     // We compute total outstanding at the time of click
     const outstandingVal = fees.reduce((sum, f) => {
-      if (f.status === 'PAID_ONLINE' || f.status === 'VERIFIED' || f.status === 'PAID') return sum;
+      const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(f.status) && f.balanceCarriedForward) || f.status === 'PAID_ONLINE';
+      if (isSettledAndCarried) return sum;
       const fVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
       const rem = Math.max(0, f.amount + fVal - (f.discount || 0) + (f.previousBalance || 0) - (f.paidAmount || 0));
       return sum + rem;

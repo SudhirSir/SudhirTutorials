@@ -4650,6 +4650,13 @@ function AdminDashboardContent() {
                                       }}>
                                         {pendingCount} PENDING
                                       </span>
+                                    ) : outstanding > 0.01 ? (
+                                      <span style={{
+                                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
+                                        background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid #fbbf24'
+                                      }}>
+                                        PARTIAL DUE
+                                      </span>
                                     ) : (
                                       <span style={{
                                         padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
@@ -4668,11 +4675,18 @@ function AdminDashboardContent() {
                                   <td style={{ fontWeight: 700 }}>₹{outstanding.toFixed(0)}</td>
                                   <td>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                      {pendingCount > 0 && (() => {
+                                      {(pendingCount > 0 || outstanding > 0.01) && (() => {
                                         return (
                                           <button 
                                             onClick={() => {
-                                              const sortedPending = [...pendingInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+                                              const unpaidInvoices = studentInvoices.filter(f => {
+                                                const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(f.status) && f.balanceCarriedForward) || f.status === 'PAID_ONLINE';
+                                                if (isSettledAndCarried) return false;
+                                                const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+                                                const remaining = f.amount + fine - f.discount + (f.previousBalance || 0) - (f.paidAmount || 0);
+                                                return remaining > 0.01;
+                                              });
+                                              const sortedPending = [...unpaidInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
                                               setPayingFee(sortedPending);
                                               setSelectedCollectIds(sortedPending.map(f => f.id));
                                               setShowPaymentModal(true);
@@ -4816,8 +4830,9 @@ function AdminDashboardContent() {
                                 }, 0);
                               
                               const pendingDues = studentInvoices
-                                .filter(f => f.status === 'PENDING')
                                 .reduce((acc, f) => {
+                                  const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(f.status) && f.balanceCarriedForward) || f.status === 'PAID_ONLINE';
+                                  if (isSettledAndCarried) return acc;
                                   const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
                                   return acc + Math.max(0, f.amount + fine - f.discount + (f.previousBalance || 0) - (f.paidAmount || 0));
                                 }, 0);
