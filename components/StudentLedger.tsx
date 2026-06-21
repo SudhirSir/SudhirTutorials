@@ -759,20 +759,7 @@ export function StudentLedger({
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {hasRecord && status === 'PENDING' && (
-                              <input
-                                type="checkbox"
-                                checked={selectedFeeIds.includes(record.id)}
-                                onChange={e => {
-                                  if (e.target.checked) {
-                                    setSelectedFeeIds(prev => [...prev, record.id]);
-                                  } else {
-                                    setSelectedFeeIds(prev => prev.filter(id => id !== record.id));
-                                  }
-                                }}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                              />
-                            )}
+                            {/* Multimonth selection disabled */}
                             <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>{month}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -1008,20 +995,7 @@ export function StudentLedger({
                   {postings.map((p, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.88rem' }}>
                       <td style={{ textAlign: 'center' }}>
-                        {p.type === 'DEBIT' && p.fee && p.fee.status === 'PENDING' && (
-                          <input
-                            type="checkbox"
-                            checked={selectedFeeIds.includes(p.fee.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedFeeIds(prev => [...prev, p.fee.id]);
-                              } else {
-                                setSelectedFeeIds(prev => prev.filter(id => id !== p.fee.id));
-                              }
-                            }}
-                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                          />
-                        )}
+                        {/* Multimonth selection disabled */}
                       </td>
                       <td style={{ color: 'var(--text)' }}>{new Date(p.date).toLocaleDateString('en-GB')}</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{p.reference}</td>

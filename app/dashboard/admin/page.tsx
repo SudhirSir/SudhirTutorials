@@ -8628,35 +8628,19 @@ function AdminDashboardContent() {
               Student: <strong>{payingFee[0]?.student?.name || 'Multiple'}</strong>
             </p>
 
-            {/* List of pending months with checkboxes */}
+            {/* List of pending months being collected */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem', maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.15)', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Select Months to Collect</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Months to Collect</span>
               {payingFee.map((f: any) => {
                 const fine = calculateLiveLateFine(f.dueDate, paymentDetails.paidAt, f.billingMonth);
                 const netDue = Math.max(0, f.amount + fine - (f.discount || 0) + (f.previousBalance || 0) - (f.paidAmount || 0));
-                const isSelected = selectedCollectIds.includes(f.id);
                 return (
-                  <label key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: '6px', background: isSelected ? 'rgba(59,130,246,0.08)' : 'transparent', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: '6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={payingFee.length === 1}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setSelectedCollectIds(prev => [...prev, f.id]);
-                          } else {
-                            if (selectedCollectIds.length > 1) {
-                              setSelectedCollectIds(prev => prev.filter(id => id !== f.id));
-                            }
-                          }
-                        }}
-                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                      />
                       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>{f.billingMonth}</span>
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isSelected ? 'var(--primary)' : 'var(--text-muted)' }}>₹{netDue.toFixed(0)}</span>
-                  </label>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary)' }}>₹{netDue.toFixed(0)}</span>
+                  </div>
                 );
               })}
             </div>
