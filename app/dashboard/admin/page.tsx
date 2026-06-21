@@ -10095,6 +10095,7 @@ function AdminDashboardContent() {
                           }, 0);
                           const totalDiscount = fee.reduce((sum, f) => sum + (f.discount || 0), 0);
                           
+                          setSelectedCollectIds(fee.map(f => f.id));
                           setPayingFee(fee);
                           setShowPaymentModal(true);
                           setPaymentDetails({
@@ -10108,7 +10109,9 @@ function AdminDashboardContent() {
                         } else {
                           const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
                           const netDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) + (fee.previousBalance || 0) - (fee.paidAmount || 0));
-                          setPayingFee(fee);
+                          
+                          setSelectedCollectIds([fee.id]);
+                          setPayingFee([fee]);
                           setShowPaymentModal(true);
                           setPaymentDetails({
                             paymentMethod: 'CASH',

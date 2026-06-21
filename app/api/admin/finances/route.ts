@@ -454,7 +454,11 @@ export async function PATCH(req: Request) {
 
       let inputPaidAmount = 0;
       if (remainingPaidPool === null) {
-        inputPaidAmount = remainingDueBefore;
+        if (currentFee.status === 'PENDING') {
+          inputPaidAmount = remainingDueBefore;
+        } else {
+          inputPaidAmount = 0;
+        }
       } else {
         inputPaidAmount = Math.min(remainingPaidPool, remainingDueBefore);
         remainingPaidPool -= inputPaidAmount;
