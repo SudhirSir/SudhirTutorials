@@ -30,11 +30,16 @@ export async function GET() {
       });
       const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
 
-      const pendingPayments = await prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: { status: 'PENDING' }
+      const pendingPayments = await prisma.payment.findMany({
+        where: { status: 'PENDING' },
+        select: { amount: true, paidAmount: true, lateFine: true, discount: true }
       });
-      const pendingDues = pendingPayments._sum.amount || 0;
+      const pendingDues = pendingPayments.reduce((acc: number, p: any) => {
+        const fine = p.lateFine || 0;
+        const discount = p.discount || 0;
+        const paid = p.paidAmount || 0;
+        return acc + Math.max(0, p.amount + fine - discount - paid);
+      }, 0);
 
       const classGroups = await prisma.studentProfile.groupBy({
         by: ['className'],

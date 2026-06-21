@@ -33,15 +33,22 @@ export async function GET() {
         where: { date: { gte: sixMonthsAgo } },
         select: { amount: true, date: true } // Avoid retrieving unnecessary large columns like remarks
       })),
-      withDbRetry(() => prisma.payment.aggregate({
+      withDbRetry(() => prisma.payment.findMany({
         where: { status: 'PENDING' },
-        _sum: { amount: true } // Execute aggregate sum at the DB layer
+        select: { amount: true, paidAmount: true, lateFine: true, discount: true }
       }))
     ]);
 
     const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
     const totalExpenses = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
-    const totalPending = pendingAggregate._sum.amount || 0;
+
+    // Sum the actual outstanding balance of all pending/partially paid payments
+    const totalPending = pendingAggregate.reduce((acc: number, p: any) => {
+      const fine = p.lateFine || 0;
+      const discount = p.discount || 0;
+      const paid = p.paidAmount || 0;
+      return acc + Math.max(0, p.amount + fine - discount - paid);
+    }, 0);
 
     // Monthly breakdown (last 6 months)
     const monthlyData = [];

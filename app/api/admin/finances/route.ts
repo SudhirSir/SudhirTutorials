@@ -346,8 +346,11 @@ export async function PATCH(req: Request) {
     const netDueBefore = currentFee.amount + lateFine - effectiveDiscount;
     const remainingDueBefore = Math.max(0, netDueBefore - (currentFee.paidAmount || 0));
 
-    // Custom paidAmount can be passed
-    const inputPaidAmount = paidAmount !== undefined ? paidAmount : remainingDueBefore;
+    // Custom paidAmount can be passed.
+    // If not passed, we default to remainingDueBefore when collecting cash/cheque/etc from PENDING status.
+    // But if verifying an already recorded payment (PAID_ONLINE/PAID status), no new payment is collected (default to 0).
+    const defaultPaidAmount = ['PAID_ONLINE', 'PAID'].includes(currentFee.status) ? 0 : remainingDueBefore;
+    const inputPaidAmount = paidAmount !== undefined ? paidAmount : defaultPaidAmount;
 
     // Accumulate total paid amount
     const newTotalPaidAmount = (currentFee.paidAmount || 0) + inputPaidAmount;
