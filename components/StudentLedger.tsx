@@ -681,8 +681,25 @@ export function StudentLedger({
                     <button
                       type="button"
                       onClick={() => setSelectedFeeIds([])}
-                      className="btn-secondary"
-                      style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700 }}
+                      style={{
+                        padding: '8px 16px',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        borderRadius: '99px',
+                        color: '#ef4444',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                      }}
                     >
                       Cancel
                     </button>

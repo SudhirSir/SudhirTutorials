@@ -7572,8 +7572,10 @@ function AdminDashboardContent() {
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem', lineHeight: 1.5 }}>This action cannot be undone. The student's fee record will be permanently removed.</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
               <button 
+                type="button"
                 onClick={() => setShowDelModal(false)} 
-                style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
+                className="btn-secondary"
+                style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 600 }}
               >
                 Cancel
               </button>
@@ -10196,8 +10198,8 @@ function AdminDashboardContent() {
 
       {/* ── Security / Password Verification Backdrop Modal ─────────────────── */}
       {securityConfirm.isOpen && typeof window !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, padding: '1rem' }} className="no-print">
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '420px', padding: '2.5rem', border: '2px solid #ef4444', background: '#111', borderRadius: '24px', boxShadow: '0 10px 40px rgba(239, 68, 68, 0.2)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100200, padding: '1rem' }} className="no-print">
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '420px', padding: '2.5rem', border: '2px solid #ef4444', background: 'var(--card-bg)', borderRadius: '24px', boxShadow: '0 10px 40px rgba(239, 68, 68, 0.2)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '1.5rem' }}>
               <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', marginBottom: '1rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                 🔒
@@ -10215,7 +10217,7 @@ function AdminDashboardContent() {
                   placeholder="••••••••" 
                   value={securityPassword} 
                   onChange={e => setSecurityPassword(e.target.value)} 
-                  style={{ width: '100%', padding: '1rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#fff', fontSize: '1.1rem', textAlign: 'center' }} 
+                  style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1.1rem', textAlign: 'center' }} 
                   autoFocus
                 />
               </div>
@@ -10224,7 +10226,8 @@ function AdminDashboardContent() {
                 <button 
                   type="button" 
                   onClick={() => setSecurityConfirm(prev => ({ ...prev, isOpen: false }))} 
-                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: '#222', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}
+                  className="btn-secondary"
+                  style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', fontWeight: 600 }}
                 >
                   Cancel
                 </button>
