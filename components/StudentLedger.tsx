@@ -259,7 +259,7 @@ export function StudentLedger({
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(107, 114, 128); // Gray
-      doc.text('Official Student Fee Statement', logoOffset, 17);
+      doc.text('Empowering Minds, Shaping Futures', logoOffset, 17);
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
@@ -292,7 +292,7 @@ export function StudentLedger({
 
       const infoRows: string[][] = [
         ['Student ID', student?.username || 'N/A', 'Class / Grade', sp?.className || 'N/A'],
-        ['Roll Number', sp?.rollNumber  || 'N/A', 'Batch',         sp?.batch      || 'N/A'],
+        ['Monthly Fee', sp?.baseFee ? `₹${sp.baseFee}` : 'N/A', 'Batch',         sp?.batch      || 'N/A'],
         ["Father's Name", sp?.fatherName || 'N/A', 'Contact',      sp?.phone      || 'N/A'],
       ];
       doc.setFont('helvetica', 'normal');
@@ -346,12 +346,12 @@ export function StudentLedger({
       y += 5;
 
       const cols: { label: string; w: number; align: string }[] = [
-        { label: 'Date',        w: 24, align: 'left'  },
-        { label: 'Receipt No.', w: 28, align: 'left'  },
-        { label: 'Description', w: 62, align: 'left'  },
-        { label: 'Debit (Dr)',  w: 24, align: 'right' },
-        { label: 'Credit (Cr)', w: 24, align: 'right' },
-        { label: 'Balance',     w: 22, align: 'right' },
+        { label: 'Date',        w: 22, align: 'left'  },
+        { label: 'Receipt No.', w: 26, align: 'left'  },
+        { label: 'Description', w: 60, align: 'left'  },
+        { label: 'Debit (Dr)',  w: 23, align: 'right' },
+        { label: 'Credit (Cr)', w: 23, align: 'right' },
+        { label: 'Balance',     w: 28, align: 'right' },
       ];
       const ROW_H = 7;
       const HEAD_H = 8;
@@ -798,12 +798,12 @@ export function StudentLedger({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {fees[0]?.student && (
               <div style={{ padding: '1.25rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.875rem' }}>Student Account Profile</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.875rem' }}>Student Details & Account Summary</span>
                 <div className="student-profile-info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem 1.5rem', fontSize: '0.85rem' }}>
                   {[
                     ['Name', fees[0].student.name],
                     ['Student ID', `${fees[0].student.username}`],
-                    ['Roll Number', fees[0].student.studentProfile?.rollNumber],
+                    ['Monthly Fee', fees[0].student.studentProfile?.baseFee ? `₹${fees[0].student.studentProfile.baseFee}` : null],
                     ['Class', fees[0].student.studentProfile?.className],
                     ['Batch', fees[0].student.studentProfile?.batch],
                     ['Father', fees[0].student.studentProfile?.fatherName],

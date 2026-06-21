@@ -1351,7 +1351,7 @@ function StudentDashboardContent() {
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                 <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
                 <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
-                <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Professional Coaching for Academic Excellence</p>
+                <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Empowering Minds, Shaping Futures</p>
                 <div style={{ height: '1px', background: '#e5e7eb', width: '30px', margin: '0.5rem auto' }}></div>
                 <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0', whiteSpace: 'nowrap' }}>FEE PAYMENT RECEIPT</h2>
               </div>

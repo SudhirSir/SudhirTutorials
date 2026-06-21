@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
-import { calculateLateFine } from '@/lib/feeUtils';
+import { calculateLateFine, generateReceiptNo } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 
 export async function GET() {
@@ -46,6 +46,15 @@ export async function GET() {
 
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
+    // Fetch all payments sorted by createdAt to determine chronological serial number
+    const allPaymentsSorted = await withDbRetry(() => prisma.payment.findMany({
+      select: { id: true, createdAt: true },
+      orderBy: { createdAt: 'asc' }
+    }));
+    
+    // Map payment ID to its 1-based chronological index
+    const paymentIndexMap = new Map(allPaymentsSorted.map((p, idx) => [p.id, idx + 1]));
+
     const fees = rawFees.map((fee: any) => {
       const effectiveDueDate = fee.dueDate;
 
@@ -61,7 +70,11 @@ export async function GET() {
 
       const scholarship = fee.student?.studentProfile?.scholarship || 0;
       const effectiveDiscount = Math.max(fee.discount, scholarship);
-      const receiptNo = `REC-${fee.id.slice(-6).toUpperCase()}`;
+      
+      // Compute actual sequential receipt number matched with receipt page
+      const count = paymentIndexMap.get(fee.id) || 1;
+      const serial = 1000 + count;
+      const receiptNo = generateReceiptNo(fee, serial);
 
       return {
         ...fee,
