@@ -426,25 +426,53 @@ export default function Home() {
               ))}
             </ul>
 
-            <div style={{ marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
               <a 
                 href="https://drive.google.com/drive/folders/1q1hIGvl-ilAepbElMnR3y96IRqnh32Gw?usp=sharing" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="btn-primary"
                 style={{
-                  padding: '1rem 2rem',
+                  padding: '1rem 1.75rem',
                   borderRadius: '16px',
                   fontWeight: 800,
-                  fontSize: '1rem',
+                  fontSize: '0.95rem',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.75rem',
                   textDecoration: 'none',
-                  boxShadow: '0 8px 30px rgba(99, 102, 241, 0.3)'
+                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.25)',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: 'none',
+                  color: 'white',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                📲 Download Our Mobile App
+                🤖 Download for Android
+              </a>
+
+              <a 
+                href="https://drive.google.com/drive/folders/1q1hIGvl-ilAepbElMnR3y96IRqnh32Gw?usp=sharing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn-primary"
+                style={{
+                  padding: '1rem 1.75rem',
+                  borderRadius: '16px',
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 8px 25px rgba(99, 102, 241, 0.25)',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  border: 'none',
+                  color: 'white',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                🍎 Download for iOS
               </a>
             </div>
           </div>

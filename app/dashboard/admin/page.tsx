@@ -4582,7 +4582,7 @@ function AdminDashboardContent() {
                                             setAddFeeMode('INDIVIDUAL');
                                             setFeeStudentId(s.username);
                                             setFeeStudentSearch(`${s.name} (${s.username})`);
-                                            setFeeAmount(String(finalBase));
+                                            setFeeAmount(String(baseFee));
                                             setFinanceSubTab('ASSIGN');
                                           }}
                                           style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
