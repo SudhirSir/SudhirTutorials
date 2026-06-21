@@ -4767,7 +4767,7 @@ function AdminDashboardContent() {
                                             }} 
                                             style={{ padding: '6px 10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
                                           >
-                                            Collect All
+                                            Collect
                                           </button>
                                         );
                                       })()}
@@ -8628,22 +8628,7 @@ function AdminDashboardContent() {
               Student: <strong>{payingFee[0]?.student?.name || 'Multiple'}</strong>
             </p>
 
-            {/* List of pending months being collected */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem', maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.15)', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Months to Collect</span>
-              {payingFee.map((f: any) => {
-                const fine = calculateLiveLateFine(f.dueDate, paymentDetails.paidAt, f.billingMonth);
-                const netDue = Math.max(0, f.amount + fine - (f.discount || 0) + (f.previousBalance || 0) - (f.paidAmount || 0));
-                return (
-                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: '6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>{f.billingMonth}</span>
-                    </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary)' }}>₹{netDue.toFixed(0)}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Months list card removed */}
 
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>

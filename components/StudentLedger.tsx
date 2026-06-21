@@ -933,7 +933,7 @@ export function StudentLedger({
                   {[
                     ['Name', fees[0].student.name],
                     ['Student ID', `${fees[0].student.username}`],
-                    ['Roll Number', fees[0].student.studentProfile?.rollNumber],
+                    ['Monthly Fee', fees[0].student.studentProfile?.baseFee ? `₹${fees[0].student.studentProfile.baseFee}` : 'N/A'],
                     ['Class', fees[0].student.studentProfile?.className],
                     ['Batch', fees[0].student.studentProfile?.batch],
                     ['Father', fees[0].student.studentProfile?.fatherName],
