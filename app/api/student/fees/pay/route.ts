@@ -15,10 +15,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { feeId, feeIds, transactionId, paymentMethod, customAmount } = await req.json();
-    if (!feeId && (!feeIds || feeIds.length === 0)) {
-      return NextResponse.json({ error: 'Fee ID or feeIds list is required' }, { status: 400 });
-    }
+    const { feeId, transactionId, paymentMethod, customAmount } = await req.json();
+    if (!feeId) return NextResponse.json({ error: 'Fee ID is required' }, { status: 400 });
 
     const parsedCustom = parseFloat(String(customAmount));
     if (isNaN(parsedCustom) || parsedCustom <= 0) {
@@ -33,14 +31,10 @@ export async function POST(req: Request) {
     let notifyMsg = "";
     let studentMsg = "";
 
-    if (feeId === 'OUTSTANDING' || (feeIds && Array.isArray(feeIds) && feeIds.length > 0)) {
-      // FIFO Outstanding payment across all pending bills OR selected billing items
-      const targetIds = feeIds && Array.isArray(feeIds) ? feeIds : [];
+    if (feeId === 'OUTSTANDING') {
+      // FIFO Outstanding payment across all pending bills
       const allPayments = await withDbRetry(() => prisma.payment.findMany({
-        where: { 
-          studentId: session.user.id,
-          ...(targetIds.length > 0 && { id: { in: targetIds } })
-        },
+        where: { studentId: session.user.id },
         orderBy: { dueDate: 'asc' },
         include: {
           student: {
@@ -67,7 +61,7 @@ export async function POST(req: Request) {
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
         const effectiveDiscount = Math.max(fee.discount, scholarship);
-        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount + fee.previousBalance;
+        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
         return pendingInvoiceDue > 0;
       });
@@ -84,7 +78,7 @@ export async function POST(req: Request) {
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
         const effectiveDiscount = Math.max(fee.discount, scholarship);
-        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount + fee.previousBalance;
+        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
 
         const paymentToApply = Math.min(remainingPaidPool, pendingInvoiceDue);
@@ -125,7 +119,7 @@ export async function POST(req: Request) {
         const activeFine = Math.max(storedFine, realTimeFine);
         const scholarship = fee.student?.studentProfile?.scholarship || 0;
         const effectiveDiscount = Math.max(fee.discount, scholarship);
-        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount + fee.previousBalance;
+        const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
         return sum + pendingInvoiceDue;
       }, 0) - totalApplied;
@@ -161,7 +155,6 @@ export async function POST(req: Request) {
         where: {
           studentId: session.user.id,
           status: 'PENDING',
-          isUnlocked: false, // SKIP if unlocked
           dueDate: { lt: fee.dueDate },
           id: { not: fee.id }
         }
@@ -179,7 +172,7 @@ export async function POST(req: Request) {
       const activeFine = Math.max(storedFine, realTimeFine);
       const scholarship = fee.student?.studentProfile?.scholarship || 0;
       const effectiveDiscount = Math.max(fee.discount, scholarship);
-      const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount + fee.previousBalance;
+      const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
       const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
 
       if (parsedCustom > pendingInvoiceDue) {

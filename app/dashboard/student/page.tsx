@@ -170,7 +170,7 @@ function StudentDashboardContent() {
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [razorpayFee, setRazorpayFee] = useState<any>(null);
   const [payAmount, setPayAmount] = useState<string>('');
-  const [paymentOption, setPaymentOption] = useState<'outstanding' | 'month' | 'selected'>('month');
+  const [paymentOption, setPaymentOption] = useState<'outstanding' | 'month'>('month');
   const [isRazorpayPaying, setIsRazorpayPaying] = useState(false);
   const [razorpaySuccess, setRazorpaySuccess] = useState(false);
   const [razorpayMethod, setRazorpayMethod] = useState('UPI');
@@ -632,38 +632,16 @@ function StudentDashboardContent() {
 
   const totalOutstanding = useMemo(() => {
     return fees.reduce((sum, fee) => {
-      const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(fee.status) && fee.balanceCarriedForward) || fee.status === 'PAID_ONLINE';
-      if (isSettledAndCarried) return sum;
+      if (fee.status === 'PAID_ONLINE' || fee.status === 'VERIFIED' || fee.status === 'PAID') return sum;
       const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
-      const remainingDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) + (fee.previousBalance || 0) - (fee.paidAmount || 0));
+      const remainingDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) - (fee.paidAmount || 0));
       return sum + remainingDue;
     }, 0);
   }, [fees]);
 
-  const handlePayOnline = (fee: any, initialOption: 'outstanding' | 'month' | 'selected' = 'month') => {
-    if (Array.isArray(fee)) {
-      const totalSelected = fee.reduce((sum, f) => {
-        const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-        return sum + Math.max(0, f.amount + fineVal - (f.discount || 0) + (f.previousBalance || 0) - (f.paidAmount || 0));
-      }, 0);
-
-      setRazorpayFee({
-        ids: fee.map(f => f.id),
-        totalAmount: totalSelected,
-        title: `${fee.length} Selected Months`,
-        billingMonth: fee.map(f => f.billingMonth).join(', ')
-      });
-      setPaymentOption('selected');
-      setPayAmount(totalSelected.toString());
-      setIsRazorpayOpen(true);
-      setRazorpaySuccess(false);
-      setIsRazorpayPaying(false);
-      setRazorpayTxId('');
-      return;
-    }
-
+  const handlePayOnline = (fee: any, initialOption: 'outstanding' | 'month' = 'month') => {
     const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
-    const calculatedTotal = Math.max(0, fee.amount + fineVal - (fee.discount || 0) + (fee.previousBalance || 0) - (fee.paidAmount || 0));
+    const calculatedTotal = Math.max(0, fee.amount + fineVal - (fee.discount || 0) - (fee.paidAmount || 0));
     
     setRazorpayFee({
       ...fee,
@@ -673,10 +651,9 @@ function StudentDashboardContent() {
     
     // We compute total outstanding at the time of click
     const outstandingVal = fees.reduce((sum, f) => {
-      const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(f.status) && f.balanceCarriedForward) || f.status === 'PAID_ONLINE';
-      if (isSettledAndCarried) return sum;
+      if (f.status === 'PAID_ONLINE' || f.status === 'VERIFIED' || f.status === 'PAID') return sum;
       const fVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-      const rem = Math.max(0, f.amount + fVal - (f.discount || 0) + (f.previousBalance || 0) - (f.paidAmount || 0));
+      const rem = Math.max(0, f.amount + fVal - (f.discount || 0) - (f.paidAmount || 0));
       return sum + rem;
     }, 0);
 
@@ -699,8 +676,7 @@ function StudentDashboardContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feeId: paymentOption === 'selected' ? undefined : (paymentOption === 'outstanding' ? 'OUTSTANDING' : razorpayFee.id),
-          feeIds: paymentOption === 'selected' ? razorpayFee.ids : undefined,
+          feeId: paymentOption === 'outstanding' ? 'OUTSTANDING' : razorpayFee.id,
           transactionId: razorpayTxId,
           paymentMethod: 'Razorpay Direct Link',
           customAmount: parseFloat(payAmount)
@@ -1410,19 +1386,9 @@ function StudentDashboardContent() {
                     <span style={{ fontWeight: 700 }}>-₹{receiptData.discount.toFixed(2)}</span>
                   </div>
                 )}
-                {receiptData.previousBalance > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
-                    <span>Prev. Balance</span>
-                    <span style={{ fontWeight: 700 }}>+₹{receiptData.previousBalance.toFixed(2)}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb', color: '#6b7280', fontSize: '0.8rem' }}>
-                  <span>Total Invoice Amount Due</span>
-                  <span style={{ fontWeight: 700 }}>₹{(receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0) + (receiptData.previousBalance || 0)).toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', color: '#1a1a1a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0) + (receiptData.previousBalance || 0))).toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -1532,56 +1498,50 @@ function StudentDashboardContent() {
                   </h3>
 
                   {/* Premium Payment Mode Selector */}
-                  {paymentOption !== 'selected' ? (
-                    <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setPaymentOption('outstanding');
-                          setPayAmount(totalOutstanding.toString());
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '6px 8px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: paymentOption === 'outstanding' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent',
-                          color: paymentOption === 'outstanding' ? '#fff' : 'var(--text-muted)',
-                          fontWeight: 700,
-                          fontSize: '0.7rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        Outstanding
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setPaymentOption('month');
-                          setPayAmount(razorpayFee.totalAmount.toString());
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '6px 8px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: paymentOption === 'month' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent',
-                          color: paymentOption === 'month' ? '#fff' : 'var(--text-muted)',
-                          fontWeight: 700,
-                          fontSize: '0.7rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        Monthly
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: 'var(--secondary)', fontWeight: 800, fontSize: '0.75rem', textAlign: 'center', marginBottom: '1.25rem' }}>
-                      Selected Months
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setPaymentOption('outstanding');
+                        setPayAmount(totalOutstanding.toString());
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: paymentOption === 'outstanding' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent',
+                        color: paymentOption === 'outstanding' ? '#fff' : 'var(--text-muted)',
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      Outstanding
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setPaymentOption('month');
+                        setPayAmount(razorpayFee.totalAmount.toString());
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: paymentOption === 'month' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent',
+                        color: paymentOption === 'month' ? '#fff' : 'var(--text-muted)',
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      Monthly
+                    </button>
+                  </div>
 
                   {paymentOption === 'outstanding' ? (
                     <div>

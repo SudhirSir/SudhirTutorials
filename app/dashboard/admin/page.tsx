@@ -117,7 +117,7 @@ function AdminDashboardContent() {
     router.push(pathname + '?' + params.toString());
   };
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
-  const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('LEDGER');
+  const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions'>('menu');
   const [lectureSubTab, setLectureSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES' | 'PENDING_FEES'>('ALL');
@@ -1371,6 +1371,30 @@ function AdminDashboardContent() {
     handleTabChange(tab);
   };
 
+  const currentMonthFees = useMemo(() => {
+    const currentMonthYear = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    return fees.filter(f => f.billingMonth === currentMonthYear);
+  }, [fees]);
+
+  const currentMonthCollected = useMemo(() => {
+    return currentMonthFees.reduce((acc, f) => {
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
+        const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+        return acc + (f.paidAmount || (f.amount + fineVal - f.discount));
+      }
+      return acc + (f.paidAmount || 0);
+    }, 0);
+  }, [currentMonthFees]);
+
+  const currentMonthPending = useMemo(() => {
+    return currentMonthFees.reduce((acc, f) => {
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
+        return acc;
+      }
+      const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+      return acc + Math.max(0, f.amount + fineVal - f.discount - (f.paidAmount || 0));
+    }, 0);
+  }, [currentMonthFees]);
   const [feeSearchQuery, setFeeSearchQuery] = useState('');
   const [showLedgerSuggestions, setShowLedgerSuggestions] = useState(false);
   const [showDirSuggestions, setShowDirSuggestions] = useState(false);
@@ -1461,21 +1485,15 @@ function AdminDashboardContent() {
     totalExpenses: number;
     totalPending: number;
     netProfit: number;
-    currentMonthCollected?: number;
-    currentMonthPending?: number;
     monthlyData: any[];
   }>({
     totalRevenue: 0,
     totalExpenses: 0,
     totalPending: 0,
     netProfit: 0,
-    currentMonthCollected: 0,
-    currentMonthPending: 0,
     monthlyData: []
   });
   const [isLoadingFinSummary, setIsLoadingFinSummary] = useState(false);
-  const currentMonthCollected = finSummary?.currentMonthCollected || 0;
-  const currentMonthPending = finSummary?.currentMonthPending || 0;
   const [expenses, setExpenses] = useState<any[]>([]);
   const [isLoadingFees, setIsLoadingFees] = useState(false);
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
@@ -1485,23 +1503,6 @@ function AdminDashboardContent() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [payingFee, setPayingFee] = useState<any>(null);
   const [paymentDetails, setPaymentDetails] = useState({ paymentMethod: 'CASH', transactionId: '', discount: 0, remarks: '', paidAmount: '', paidAt: '' });
-  const [selectedCollectIds, setSelectedCollectIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (showPaymentModal && payingFee && Array.isArray(payingFee)) {
-      const checkedFees = payingFee.filter((f: any) => selectedCollectIds.includes(f.id));
-      const baseFeeSum = checkedFees.reduce((sum: number, f: any) => sum + f.amount, 0);
-      const currentFine = checkedFees.reduce((sum: number, f: any) => sum + calculateLiveLateFine(f.dueDate, paymentDetails.paidAt, f.billingMonth), 0);
-      const paidAmtSum = checkedFees.reduce((sum: number, f: any) => sum + (f.paidAmount || 0), 0);
-      const prevBalSum = checkedFees.reduce((sum: number, f: any) => sum + (f.previousBalance || 0), 0);
-      const newTotal = Math.max(0, baseFeeSum + currentFine - paymentDetails.discount + prevBalSum - paidAmtSum);
-      
-      setPaymentDetails(prev => ({
-        ...prev,
-        paidAmount: newTotal.toString()
-      }));
-    }
-  }, [selectedCollectIds, paymentDetails.paidAt]);
 
   // Courses & Batches State
   const [courses, setCourses] = useState<any[]>([]);
@@ -1804,30 +1805,24 @@ function AdminDashboardContent() {
     }
   };
 
-  const updateFeeStatus = async (id: string | string[], status: string, details?: any) => {
+  const updateFeeStatus = async (id: string, status: string, details?: any) => {
     try {
-      const payload: any = { status, ...details };
-      if (Array.isArray(id)) {
-        payload.ids = id;
-      } else {
-        payload.id = id;
-      }
       const res = await fetch('/api/admin/finances', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ 
+          id, 
+          status,
+          ...details
+        })
       });
       if (res.ok) {
         fetchFinances();
         fetchFinSummary();
         setShowPaymentModal(false);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to update payment status');
       }
     } catch (err) {
       console.error(err);
-      alert('Network error. Failed to update payment status.');
     }
   };
 
@@ -4147,6 +4142,7 @@ function AdminDashboardContent() {
           {/* Sub-Tab Navigation Header */}
           <div className="subtab-nav no-scrollbar">
             {[
+              { id: 'OVERVIEW', label: 'Finance Hub', desc: 'Overview & Stats' },
               { id: 'LEDGER', label: 'Fee Ledger', desc: 'Accounts & Dues' },
               { id: 'ASSIGN', label: 'Assign Fee', desc: 'Assign Custom/Batch' },
               { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Outflows & Claims' },
@@ -4178,7 +4174,127 @@ function AdminDashboardContent() {
             ))}
           </div>
 
-          {/* Overview tab removed */}
+          {financeSubTab === 'OVERVIEW' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+              {/* ── Top Level Stats Grid ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                 {[
+                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Received student dues (All Time)' },
+                   { label: 'Current Month Pending', value: `₹${currentMonthPending.toLocaleString()}`, color: 'var(--primary)', desc: 'Pending dues this month' },
+                   { label: 'Current Month Collected', value: `₹${currentMonthCollected.toLocaleString()}`, color: 'var(--secondary)', desc: 'Collected fees this month' },
+                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outstanding invoices (All Time)' }
+                 ].map((s, i) => (
+                   <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ width: '100%' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {s.value}
+                          {isLoadingFinSummary && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: s.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{s.desc}</div>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+
+              {/* Submenu Shortcuts Grid */}
+              <div className="glass-card animate-scale-up" style={{ padding: '1.5rem' }}>
+                 <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                   ⚡ Finance Hub Shortcuts
+                 </h4>
+                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 1rem 0' }}>Instant shortcuts to ledger database, assign forms, billing engines, and expense panels.</p>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                   {[
+                     { id: 'LEDGER', label: 'Fee Ledger & Collections', desc: 'Track, collect & delete student invoices', icon: '💰' },
+                     { id: 'ASSIGN', label: 'Assign Fee', desc: 'Charge single or multiple students', icon: '✍️' },
+                     { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Record administrative outflows', icon: '📊' },
+                     { id: 'BILLING_ENGINE', label: 'Billing Engine', desc: 'Generate monthly automated bills', icon: '⚙️' }
+                   ].map(shortcut => (
+                     <div
+                       key={shortcut.id}
+                       onClick={() => setFinanceSubTab(shortcut.id as any)}
+                       style={{
+                         padding: '1rem 1.25rem',
+                         background: 'var(--card-bg)',
+                         border: '1px solid var(--border)',
+                         borderRadius: '16px',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.75rem'
+                       }}
+                       onMouseEnter={e => {
+                         e.currentTarget.style.borderColor = 'var(--primary)';
+                         e.currentTarget.style.transform = 'translateY(-2px)';
+                         e.currentTarget.style.background = 'rgba(99,102,241,0.05)';
+                       }}
+                       onMouseLeave={e => {
+                         e.currentTarget.style.borderColor = 'var(--border)';
+                         e.currentTarget.style.transform = 'translateY(0)';
+                         e.currentTarget.style.background = 'var(--card-bg)';
+                       }}
+                     >
+                       <div style={{ fontSize: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{shortcut.icon}</div>
+                       <div>
+                         <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text)' }}>{shortcut.label}</div>
+                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{shortcut.desc}</div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+
+              {/* Two Column Grid under Overview */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                
+                {/* Billing Summary Box / Chart */}
+                <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '260px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Billing Overview</h3>
+                  </div>
+
+                  {/* Visual Progress Bar */}
+                  <div style={{ margin: '1.5rem 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                      <span>Collection Efficiency</span>
+                      {(() => {
+                        const total = (finSummary?.totalRevenue || 0) + (finSummary?.totalPending || 0);
+                        const percent = total > 0 ? ((finSummary?.totalRevenue || 0) / total) * 100 : 0;
+                        return <span style={{ color: 'var(--secondary)' }}>{percent.toFixed(1)}%</span>;
+                      })()}
+                    </div>
+                    <div style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
+                      {(() => {
+                        const total = (finSummary?.totalRevenue || 0) + (finSummary?.totalPending || 0);
+                        const revPercent = total > 0 ? ((finSummary?.totalRevenue || 0) / total) * 100 : 0;
+                        const pendPercent = total > 0 ? ((finSummary?.totalPending || 0) / total) * 100 : 0;
+                        return (
+                          <>
+                            <div style={{ width: `${revPercent}%`, background: 'var(--secondary)', height: '100%' }} />
+                            <div style={{ width: `${pendPercent}%`, background: 'var(--primary)', height: '100%' }} />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.2)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--secondary)', fontWeight: 600 }}>Collected</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.05)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Uncollected Dues</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
 
           {financeSubTab === 'LEDGER' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -4573,7 +4689,6 @@ function AdminDashboardContent() {
                                     </td>
                                     <td style={{ fontSize: '0.8rem' }}>
                                        <div>Base: ₹{fee.amount}</div>
-                                       {fee.previousBalance > 0 && <div style={{ color: '#ef4444' }}>Prev. Bal: +₹{fee.previousBalance}</div>}
                                        {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
                                        {fee.discount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{fee.discount}</div>}
                                     </td>
@@ -4581,19 +4696,7 @@ function AdminDashboardContent() {
                                     <td>
                                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         {fee.status === 'PENDING' && (
-                                          <button onClick={() => {
-                                            setPayingFee([fee]);
-                                            setSelectedCollectIds([fee.id]);
-                                            setShowPaymentModal(true);
-                                            setPaymentDetails({
-                                              paymentMethod: 'CASH',
-                                              transactionId: '',
-                                              discount: fee.discount,
-                                              remarks: '',
-                                              paidAmount: (fee.amount + fee.currentLateFine - fee.discount + (fee.previousBalance || 0) - (fee.paidAmount || 0)).toString(),
-                                              paidAt: new Date().toISOString().split('T')[0]
-                                            });
-                                          }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
+                                          <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
                                         )}
                                         {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
                                           <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
@@ -4621,7 +4724,7 @@ function AdminDashboardContent() {
                               const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
                               const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
                                 const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                                return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0) + (f.previousBalance || 0));
+                                return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
                               }, 0);
 
                               const isOverdue = pendingInvoices.some(f => (f.lateFine || 0) > 0 || (f.currentLateFine || 0) > 0);
@@ -4650,13 +4753,6 @@ function AdminDashboardContent() {
                                       }}>
                                         {pendingCount} PENDING
                                       </span>
-                                    ) : outstanding > 0.01 ? (
-                                      <span style={{
-                                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                                        background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid #fbbf24'
-                                      }}>
-                                        PARTIAL DUE
-                                      </span>
                                     ) : (
                                       <span style={{
                                         padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
@@ -4675,40 +4771,14 @@ function AdminDashboardContent() {
                                   <td style={{ fontWeight: 700 }}>₹{outstanding.toFixed(0)}</td>
                                   <td>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                      {(pendingCount > 0 || outstanding > 0.01) && (() => {
+                                      {pendingCount > 0 && (() => {
+                                        const oldestPending = [...pendingInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
                                         return (
                                           <button 
-                                            onClick={() => {
-                                              const unpaidInvoices = studentInvoices.filter(f => {
-                                                const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(f.status) && f.balanceCarriedForward) || f.status === 'PAID_ONLINE';
-                                                if (isSettledAndCarried) return false;
-                                                const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                                                const remaining = f.amount + fine - f.discount + (f.previousBalance || 0) - (f.paidAmount || 0);
-                                                return remaining > 0.01;
-                                              });
-                                              const sortedPending = [...unpaidInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-                                              setPayingFee(sortedPending);
-                                              setSelectedCollectIds(sortedPending.map(f => f.id));
-                                              setShowPaymentModal(true);
-                                              
-                                              const totalDue = sortedPending.reduce((sum, f) => {
-                                                const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                                                return sum + Math.max(0, f.amount + fine - f.discount + (f.previousBalance || 0) - (f.paidAmount || 0));
-                                              }, 0);
-                                              const totalDiscount = sortedPending.reduce((sum, f) => sum + f.discount, 0);
-
-                                              setPaymentDetails({
-                                                paymentMethod: 'CASH',
-                                                transactionId: '',
-                                                discount: totalDiscount,
-                                                remarks: '',
-                                                paidAmount: totalDue.toString(),
-                                                paidAt: new Date().toISOString().split('T')[0]
-                                              });
-                                            }} 
+                                            onClick={() => { setPayingFee(oldestPending); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: oldestPending.discount, remarks: '', paidAmount: (oldestPending.amount + oldestPending.currentLateFine - oldestPending.discount - (oldestPending.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
                                             style={{ padding: '6px 10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
                                           >
-                                            Collect
+                                            Collect Oldest
                                           </button>
                                         );
                                       })()}
@@ -4830,11 +4900,10 @@ function AdminDashboardContent() {
                                 }, 0);
                               
                               const pendingDues = studentInvoices
+                                .filter(f => f.status === 'PENDING')
                                 .reduce((acc, f) => {
-                                  const isSettledAndCarried = (['PAID', 'VERIFIED'].includes(f.status) && f.balanceCarriedForward) || f.status === 'PAID_ONLINE';
-                                  if (isSettledAndCarried) return acc;
                                   const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                                  return acc + Math.max(0, f.amount + fine - f.discount + (f.previousBalance || 0) - (f.paidAmount || 0));
+                                  return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
                                 }, 0);
                               
                               const outstanding = Math.max(0, pendingDues - excessPaid);
@@ -8444,19 +8513,9 @@ function AdminDashboardContent() {
                     <span style={{ fontWeight: 700 }}>-₹{activeReceipt.discount.toFixed(2)}</span>
                   </div>
                 )}
-                {activeReceipt.previousBalance > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
-                    <span>Prev. Balance</span>
-                    <span style={{ fontWeight: 700 }}>+₹{activeReceipt.previousBalance.toFixed(2)}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb', color: '#6b7280', fontSize: '0.8rem' }}>
-                  <span>Total Invoice Amount Due</span>
-                  <span style={{ fontWeight: 700 }}>₹{(activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0) + (activeReceipt.previousBalance || 0)).toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', color: '#1a1a1a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0) + (activeReceipt.previousBalance || 0))).toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0))).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -8565,62 +8624,39 @@ function AdminDashboardContent() {
       {/* ── Collect Payment Modal ───────────────────── */}
       {showPaymentModal && payingFee && typeof window !== 'undefined' && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100010, overflowY: 'auto', padding: '2rem 1rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '480px', padding: '2rem', margin: 'auto' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem', margin: 'auto' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Collect Payment</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Student: <strong>{payingFee.student?.name}</strong> • {payingFee.billingMonth}</p>
             
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-              Student: <strong>{payingFee[0]?.student?.name || 'Multiple'}</strong>
-            </p>
-
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              Month: <strong>{payingFee.filter((f: any) => selectedCollectIds.includes(f.id)).map((f: any) => f.billingMonth).join(', ')}</strong>
-            </p>
-
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Base Fee:</span>
-                  <span>₹{payingFee.filter((f: any) => selectedCollectIds.includes(f.id)).reduce((sum: number, f: any) => sum + f.amount, 0)}</span>
+                  <span>₹{payingFee.amount}</span>
                </div>
                {(() => {
-                 const prevBalSum = payingFee.filter((f: any) => selectedCollectIds.includes(f.id)).reduce((sum: number, f: any) => sum + (f.previousBalance || 0), 0);
-                 return prevBalSum > 0 && (
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444', fontSize: '0.85rem' }}>
-                      <span>Prev. Balance:</span>
-                      <span>+₹{prevBalSum}</span>
-                   </div>
-                 );
-               })()}
-               {(() => {
-                 const liveFine = payingFee.filter((f: any) => selectedCollectIds.includes(f.id)).reduce((sum: number, f: any) => sum + calculateLiveLateFine(f.dueDate, paymentDetails.paidAt, f.billingMonth), 0);
+                 const liveFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
                  return liveFine > 0 && (
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444', fontSize: '0.85rem' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
                       <span>Late Fine:</span>
                       <span>+₹{liveFine}</span>
                    </div>
                  );
                })()}
-               {(() => {
-                 const paidAmtSum = payingFee.filter((f: any) => selectedCollectIds.includes(f.id)).reduce((sum: number, f: any) => sum + (f.paidAmount || 0), 0);
-                 return paidAmtSum > 0 && (
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#3b82f6', fontSize: '0.85rem' }}>
+               {payingFee.paidAmount > 0 && (
+                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#3b82f6' }}>
                       <span>Previously Paid:</span>
-                      <span>-₹{paidAmtSum}</span>
+                      <span>-₹{payingFee.paidAmount}</span>
                    </div>
-                 );
-               })()}
-               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981', fontSize: '0.85rem', alignItems: 'center' }}>
+               )}
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981' }}>
                   <span>Discount:</span>
                   <input 
                     type="number" 
                     value={paymentDetails.discount} 
                     onChange={e => {
                       const newDiscount = parseFloat(e.target.value || '0');
-                      const checkedFees = payingFee.filter((f: any) => selectedCollectIds.includes(f.id));
-                      const baseFeeSum = checkedFees.reduce((sum: number, f: any) => sum + f.amount, 0);
-                      const currentFine = checkedFees.reduce((sum: number, f: any) => sum + calculateLiveLateFine(f.dueDate, paymentDetails.paidAt, f.billingMonth), 0);
-                      const paidAmtSum = checkedFees.reduce((sum: number, f: any) => sum + (f.paidAmount || 0), 0);
-                      const prevBalSum = checkedFees.reduce((sum: number, f: any) => sum + (f.previousBalance || 0), 0);
-                      const newTotal = Math.max(0, baseFeeSum + currentFine - newDiscount + prevBalSum - paidAmtSum);
+                      const currentFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
+                      const newTotal = Math.max(0, payingFee.amount + currentFine - newDiscount - (payingFee.paidAmount || 0));
                       setPaymentDetails({
                         ...paymentDetails,
                         discount: newDiscount,
@@ -8632,14 +8668,7 @@ function AdminDashboardContent() {
                </div>
                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
                   <span>Total Payable:</span>
-                  <span>₹{(() => {
-                    const checkedFees = payingFee.filter((f: any) => selectedCollectIds.includes(f.id));
-                    const baseFeeSum = checkedFees.reduce((sum: number, f: any) => sum + f.amount, 0);
-                    const currentFine = checkedFees.reduce((sum: number, f: any) => sum + calculateLiveLateFine(f.dueDate, paymentDetails.paidAt, f.billingMonth), 0);
-                    const paidAmtSum = checkedFees.reduce((sum: number, f: any) => sum + (f.paidAmount || 0), 0);
-                    const prevBalSum = checkedFees.reduce((sum: number, f: any) => sum + (f.previousBalance || 0), 0);
-                    return Math.max(0, baseFeeSum + currentFine - paymentDetails.discount + prevBalSum - paidAmtSum);
-                  })()}</span>
+                  <span>₹{Math.max(0, payingFee.amount + calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
                </div>
             </div>
 
@@ -8675,9 +8704,7 @@ function AdminDashboardContent() {
                </div>
                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                  <button type="button" onClick={() => setShowPaymentModal(false)} style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>Cancel</button>
-                 <button onClick={() => {
-                   updateFeeStatus(selectedCollectIds, 'PAID', { ...paymentDetails, paidAmount: parseFloat(paymentDetails.paidAmount || '0') });
-                 }} className="btn-primary" style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }}>Confirm Payment</button>
+                 <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', { ...paymentDetails, paidAmount: parseFloat(paymentDetails.paidAmount || '0') })} className="btn-primary" style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }}>Confirm Payment</button>
                </div>
              </div>
           </div>
@@ -10107,40 +10134,16 @@ function AdminDashboardContent() {
                       isAdmin={true}
                       refreshTrigger={ledgerRefreshTrigger}
                       onCollect={(fee) => {
-                        if (Array.isArray(fee)) {
-                          const totalDue = fee.reduce((sum, f) => {
-                            const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                            return sum + Math.max(0, f.amount + fine - (f.discount || 0) + (f.previousBalance || 0) - (f.paidAmount || 0));
-                          }, 0);
-                          const totalDiscount = fee.reduce((sum, f) => sum + (f.discount || 0), 0);
-                          
-                          setSelectedCollectIds(fee.map(f => f.id));
-                          setPayingFee(fee);
-                          setShowPaymentModal(true);
-                          setPaymentDetails({
-                            paymentMethod: 'CASH',
-                            transactionId: '',
-                            discount: totalDiscount,
-                            remarks: '',
-                            paidAmount: totalDue.toString(),
-                            paidAt: new Date().toISOString().split('T')[0]
-                          });
-                        } else {
-                          const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
-                          const netDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) + (fee.previousBalance || 0) - (fee.paidAmount || 0));
-                          
-                          setSelectedCollectIds([fee.id]);
-                          setPayingFee([fee]);
-                          setShowPaymentModal(true);
-                          setPaymentDetails({
-                            paymentMethod: 'CASH',
-                            transactionId: '',
-                            discount: fee.discount,
-                            remarks: '',
-                            paidAmount: netDue.toString(),
-                            paidAt: new Date().toISOString().split('T')[0]
-                          });
-                        }
+                        setPayingFee(fee);
+                        setShowPaymentModal(true);
+                        setPaymentDetails({
+                          paymentMethod: 'CASH',
+                          transactionId: '',
+                          discount: fee.discount,
+                          remarks: '',
+                          paidAmount: (fee.amount + (Math.max(fee.lateFine || 0, fee.currentLateFine || 0)) - fee.discount - (fee.paidAmount || 0)).toString(),
+                          paidAt: new Date().toISOString().split('T')[0]
+                        });
                       }}
                       onEdit={(fee) => {
                         setEditingFeeRecord(fee);

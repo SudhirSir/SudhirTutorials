@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
-import { calculateLateFine, generateReceiptNo } from '@/lib/feeUtils';
+import { calculateLateFine } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
@@ -12,30 +12,26 @@ import { logActivity } from '@/lib/activity';
 
 const feeSchema = z.object({
   type: z.enum(['INDIVIDUAL', 'BATCH']),
-  amount: z.union([z.string(), z.number()])
-    .transform(val => typeof val === 'string' ? parseFloat(val) : val)
-    .refine(val => val >= 0, "Amount cannot be negative"),
+  amount: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
   billingMonth: z.string().min(1, "Month is required"),
   title: z.string().optional().default("Monthly Fee"),
   studentId: z.string().optional(), // For individual
   batchId: z.string().optional(), // For batch-specific assignment
-  discount: z.number().nonnegative("Discount cannot be negative").optional().default(0),
+  discount: z.number().optional().default(0),
   remarks: z.string().optional(),
   dueDate: z.string().optional(),
   createdAt: z.string().optional(),
 });
 
 const updateStatusSchema = z.object({
-  id: z.string().optional(),
-  ids: z.array(z.string()).optional(),
-  status: z.enum(['PENDING', 'PAID', 'PAID_ONLINE', 'VERIFIED', 'FAILED']).optional(),
+  id: z.string().min(1),
+  status: z.enum(['PENDING', 'PAID', 'PAID_ONLINE', 'VERIFIED', 'FAILED']),
   paymentMethod: z.string().optional(),
   transactionId: z.string().optional(),
-  discount: z.number().nonnegative("Discount cannot be negative").optional(),
+  discount: z.number().optional(),
   remarks: z.string().optional(),
-  paidAmount: z.number().nonnegative("Paid amount cannot be negative").optional(),
+  paidAmount: z.number().optional(),
   paidAt: z.string().optional(),
-  isUnlocked: z.boolean().optional(),
 });
 
 // ─── GET: list every payment ───────────────────────
@@ -81,7 +77,6 @@ export async function GET(req: Request) {
                 fatherName: true,
                 address: true,
                 scholarship: true,
-                baseFee: true,
               }
             }
           } 
@@ -89,13 +84,6 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: 'desc' },
     }));
-
-    const allPayments = await withDbRetry(() => prisma.payment.findMany({
-      select: { id: true },
-      orderBy: { createdAt: 'asc' }
-    }));
-    const rankMap = new Map<string, number>();
-    allPayments.forEach((p, idx) => rankMap.set(p.id, idx));
 
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
@@ -112,12 +100,8 @@ export async function GET(req: Request) {
       const due = effectiveDueDate;
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
-      let receiptNo = '-';
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(fee.status)) {
-        const rank = rankMap.get(fee.id) ?? 0;
-        const serial = 1001 + rank;
-        receiptNo = generateReceiptNo(fee, serial);
-      }
+      // Fast fallback receipt format, full sequential serial computed only when requesting/downloading receipt
+      const receiptNo = `REC-${fee.id.slice(-6).toUpperCase()}`;
 
       const scholarship = fee.student?.studentProfile?.scholarship || 0;
       const effectiveDiscount = Math.max(fee.discount, scholarship);
@@ -127,7 +111,7 @@ export async function GET(req: Request) {
         discount: effectiveDiscount,
         daysLate: daysLate > 0 ? daysLate : 0,
         currentLateFine: currentFine,
-        totalDue: Math.max(0, fee.amount + currentFine - effectiveDiscount + fee.previousBalance - (fee.paidAmount || 0)),
+        totalDue: Math.max(0, fee.amount + currentFine - effectiveDiscount - (fee.paidAmount || 0)),
         receiptNo
       };
     });
@@ -136,50 +120,6 @@ export async function GET(req: Request) {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch finances' }, { status: 500 });
   }
-}
-
-async function consumeUnpaidBalances(studentId: string): Promise<number> {
-  const unresolvedPartials = await withDbRetry(() => prisma.payment.findMany({
-    where: {
-      studentId: studentId,
-      status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-      balanceCarriedForward: false
-    }
-  }));
-
-  let sum = 0;
-  for (const fee of unresolvedPartials) {
-    const totalDue = fee.amount + (fee.lateFine || 0) - (fee.discount || 0) + (fee.previousBalance || 0);
-    const paidAmount = fee.paidAmount || 0;
-    const remaining = totalDue - paidAmount;
-    if (remaining > 0.01) {
-      sum += remaining;
-      await withDbRetry(() => prisma.payment.update({
-        where: { id: fee.id },
-        data: { balanceCarriedForward: true }
-      }));
-    }
-  }
-  return sum;
-}
-
-function getNextBillingMonth(billingMonth: string): string {
-  const parts = billingMonth.split(' ');
-  if (parts.length !== 2) return billingMonth;
-  const monthName = parts[0];
-  const year = parseInt(parts[1], 10);
-  const index = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ].indexOf(monthName);
-  if (index === -1) return billingMonth;
-  const nextIndex = (index + 1) % 12;
-  const nextYear = index === 11 ? year + 1 : year;
-  const nextMonthName = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ][nextIndex];
-  return `${nextMonthName} ${nextYear}`;
 }
 
 // ─── POST: assign fee (individual or batch) ─────────────────────────────────
@@ -233,7 +173,6 @@ export async function POST(req: Request) {
         const sScholarship = s.studentProfile?.scholarship || 0;
         const sDiscount = Math.max(discount || 0, sScholarship);
         const finalAssignedAmount = amount || s.studentProfile?.baseFee || 0;
-        const prevBal = await consumeUnpaidBalances(s.id);
         await withDbRetry(() => prisma.payment.create({
           data: {
             studentId: s.id,
@@ -244,7 +183,6 @@ export async function POST(req: Request) {
             title: title || 'Monthly Fee',
             status: 'PENDING',
             discount: sDiscount,
-            previousBalance: prevBal,
             remarks
           }
         }));
@@ -291,7 +229,6 @@ export async function POST(req: Request) {
       const sScholarship = student.studentProfile?.scholarship || 0;
       const sDiscount = Math.max(discount || 0, sScholarship);
       const finalAssignedAmount = amount || student.studentProfile?.baseFee || 0;
-      const prevBal = await consumeUnpaidBalances(student.id);
       const payment = await withDbRetry(() => prisma.payment.create({
         data: {
           studentId: student.id,
@@ -302,7 +239,6 @@ export async function POST(req: Request) {
           title: title || 'Monthly Fee',
           status: 'PENDING',
           discount: sDiscount,
-          previousBalance: prevBal,
           remarks
         },
       }));
@@ -348,32 +284,10 @@ export async function PATCH(req: Request) {
     const validation = updateStatusSchema.safeParse(body);
     if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
-    const { id, ids, status, paymentMethod, transactionId, discount, remarks, paidAmount, paidAt, isUnlocked } = validation.data;
+    const { id, status, paymentMethod, transactionId, discount, remarks, paidAmount, paidAt } = validation.data;
 
-    // Handle manual unlock/lock override immediately
-    if (isUnlocked !== undefined) {
-      const targetIds = ids || (id ? [id] : []);
-      if (targetIds.length > 0) {
-        await withDbRetry(() => prisma.payment.updateMany({
-          where: { id: { in: targetIds } },
-          data: { isUnlocked }
-        }));
-        await logActivity(
-          session.user.id,
-          'UNLOCK_FEE_RECORD',
-          `Set isUnlocked to ${isUnlocked} for records: ${targetIds.join(', ')}`
-        );
-        return NextResponse.json({ success: true });
-      }
-    }
-
-    const targetIds = ids || (id ? [id] : []);
-    if (targetIds.length === 0) {
-      return NextResponse.json({ error: 'Missing payment ID(s)' }, { status: 400 });
-    }
-
-    const currentFees = await withDbRetry(() => prisma.payment.findMany({
-      where: { id: { in: targetIds } },
+    const currentFee = await withDbRetry(() => prisma.payment.findUnique({ 
+      where: { id },
       include: {
         student: {
           select: {
@@ -382,15 +296,29 @@ export async function PATCH(req: Request) {
             }
           }
         }
-      },
-      orderBy: { dueDate: 'asc' } // Process chronologically!
+      }
     }));
+    if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
-    if (currentFees.length === 0) {
-      return NextResponse.json({ error: 'Payment records not found' }, { status: 404 });
+    // Enforce chronological/serial check: check if there are earlier pending fees
+    if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') {
+      const previousPending = await withDbRetry(() => prisma.payment.findFirst({
+        where: {
+          studentId: currentFee.studentId,
+          status: 'PENDING',
+          dueDate: { lt: currentFee.dueDate },
+          id: { not: currentFee.id }
+        }
+      }));
+
+      if (previousPending) {
+        return NextResponse.json({
+          error: `Cannot collect/verify payment because a previous month's fee (${previousPending.billingMonth}) is still pending. Fees must be collected strictly in chronological order.`
+        }, { status: 400 });
+      }
     }
 
-    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+    const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
     let paymentDateForFine = new Date();
     if (paidAt) {
       const parts = paidAt.split('-');
@@ -405,165 +333,102 @@ export async function PATCH(req: Request) {
       }
     }
 
-    let remainingPaidPool = paidAmount !== undefined ? paidAmount : null;
-    const updatedPayments = [];
+    // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED/PAID_ONLINE
+    let lateFine = currentFee.lateFine;
+    if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
+      const effectiveDueDate = currentFee.dueDate;
+      lateFine = calculateLateFine(effectiveDueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
+    }
 
-    for (let i = 0; i < currentFees.length; i++) {
-      const feeId = currentFees[i].id;
-      // Refresh currentFee from DB to account for any previousBalances carried forward in prior iterations
-      const currentFee = await withDbRetry(() => prisma.payment.findUnique({
-        where: { id: feeId },
-        include: {
-          student: {
-            select: {
-              studentProfile: {
-                select: { scholarship: true }
-              }
-            }
-          }
-        }
-      }));
-      if (!currentFee) continue;
+    const scholarship = currentFee.student?.studentProfile?.scholarship || 0;
+    const effectiveDiscount = Math.max(discount !== undefined ? discount : currentFee.discount, scholarship);
 
-      // Enforce chronological check unless overridden by isUnlocked
-      if (!currentFee.isUnlocked && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
-        const previousPending = await withDbRetry(() => prisma.payment.findFirst({
-          where: {
-            studentId: currentFee.studentId,
-            status: 'PENDING',
-            dueDate: { lt: currentFee.dueDate },
-            id: { not: currentFee.id }
-          }
-        }));
+    const netDueBefore = currentFee.amount + lateFine - effectiveDiscount;
+    const remainingDueBefore = Math.max(0, netDueBefore - (currentFee.paidAmount || 0));
 
-        if (previousPending) {
-          return NextResponse.json({
-            error: `Cannot collect/verify payment because a previous month's fee (${previousPending.billingMonth}) is still pending. Fees must be collected strictly in chronological order.`
-          }, { status: 400 });
-        }
+    // Custom paidAmount can be passed
+    const inputPaidAmount = paidAmount !== undefined ? paidAmount : remainingDueBefore;
+
+    // Accumulate total paid amount
+    const newTotalPaidAmount = (currentFee.paidAmount || 0) + inputPaidAmount;
+
+    // Decide new status: if accumulated paid is still less than total due, keep status as PENDING (partial payment)
+    let finalStatus = status;
+    if (status === 'PAID' || status === 'VERIFIED') {
+      if (newTotalPaidAmount < netDueBefore - 0.01) {
+        finalStatus = 'PENDING';
       }
+    }
 
-      // Lock in late fine only when moving FROM PENDING TO PAID/VERIFIED/PAID_ONLINE
-      let lateFine = currentFee.lateFine;
-      if (currentFee.status === 'PENDING' && (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE')) {
-        lateFine = calculateLateFine(currentFee.dueDate, 'PENDING', perDayFine, flatFineAfter10Days, paymentDateForFine);
-      }
-
-      const scholarship = currentFee.student?.studentProfile?.scholarship || 0;
-      const effectiveDiscount = Math.max(discount !== undefined ? discount : currentFee.discount, scholarship);
-
-      const totalDue = currentFee.amount + lateFine - effectiveDiscount + currentFee.previousBalance;
-      const remainingDueBefore = Math.max(0, totalDue - (currentFee.paidAmount || 0));
-
-      let inputPaidAmount = 0;
-      if (remainingPaidPool === null) {
-        if (currentFee.status === 'PENDING') {
-          inputPaidAmount = remainingDueBefore;
+    let finalPaidAt: Date | null = null;
+    if (['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus) && newTotalPaidAmount > 0) {
+      if (paidAt) {
+        const parts = paidAt.split('-');
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          const liveNow = new Date();
+          finalPaidAt = new Date(
+            year,
+            month,
+            day,
+            liveNow.getHours(),
+            liveNow.getMinutes(),
+            liveNow.getSeconds(),
+            liveNow.getMilliseconds()
+          );
         } else {
-          inputPaidAmount = 0;
+          finalPaidAt = new Date(paidAt);
         }
       } else {
-        inputPaidAmount = Math.min(remainingPaidPool, remainingDueBefore);
-        remainingPaidPool -= inputPaidAmount;
+        finalPaidAt = currentFee.paidAt || new Date();
       }
+    }
 
-      const newTotalPaidAmount = (currentFee.paidAmount || 0) + inputPaidAmount;
-      const finalStatus = status || currentFee.status;
-      const remainingBalance = totalDue - newTotalPaidAmount;
+    const updated = await withDbRetry(() => prisma.payment.update({
+      where: { id },
+      data: {
+        status: finalStatus,
+        paymentMethod,
+        transactionId,
+        remarks,
+        discount: effectiveDiscount,
+        lateFine,
+        paidAmount: ['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus)
+          ? newTotalPaidAmount
+          : 0,
+        paidAt: finalPaidAt,
+        ...((finalStatus === 'PAID' || finalStatus === 'VERIFIED') && {
+          collectedBy: session.user.name || session.user.username || 'Admin'
+        })
+      },
+    }));
 
-      let finalPaidAt: Date | null = null;
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE', 'PENDING'].includes(finalStatus) && newTotalPaidAmount > 0) {
-        if (paidAt) {
-          const parts = paidAt.split('-');
-          if (parts.length === 3) {
-            const year = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1;
-            const day = parseInt(parts[2], 10);
-            const liveNow = new Date();
-            finalPaidAt = new Date(
-              year,
-              month,
-              day,
-              liveNow.getHours(),
-              liveNow.getMinutes(),
-              liveNow.getSeconds(),
-              liveNow.getMilliseconds()
-            );
-          } else {
-            finalPaidAt = new Date(paidAt);
-          }
-        } else {
-          finalPaidAt = currentFee.paidAt || new Date();
-        }
-      }
-
-      const updated = await withDbRetry(() => prisma.payment.update({
-        where: { id: feeId },
-        data: {
-          status: finalStatus,
-          paymentMethod,
-          transactionId,
-          remarks: remarks !== undefined ? remarks : currentFee.remarks,
-          discount: effectiveDiscount,
-          lateFine,
-          paidAmount: newTotalPaidAmount,
-          paidAt: finalPaidAt,
-          ...((finalStatus === 'PAID' || finalStatus === 'VERIFIED') && {
-            collectedBy: session.user.name || session.user.username || 'Admin'
-          })
-        },
-      }));
-
-      // Carry forward logic: if verified/paid and there is a remaining balance, push to next month
-      if ((finalStatus === 'PAID' || finalStatus === 'VERIFIED') && remainingBalance > 0.01) {
-        const nextMonthStr = getNextBillingMonth(currentFee.billingMonth);
-        const nextFee = await withDbRetry(() => prisma.payment.findFirst({
-          where: {
-            studentId: currentFee.studentId,
-            billingMonth: nextMonthStr
+    // Notify the student that their payment has been verified & recorded in ledger
+    if (status === 'VERIFIED' || status === 'PAID') {
+      try {
+        await withDbRetry(() => prisma.notification.create({
+          data: {
+            userId: currentFee.studentId,
+            title: '✅ Fee Payment Verified',
+            message: `Your payment of ₹${(currentFee.amount + lateFine - effectiveDiscount).toFixed(0)} for ${currentFee.title} (${currentFee.billingMonth}) has been verified by the admin and updated in the ledger. You can now download your receipt!`,
+            type: 'FEE',
+            isRead: false
           }
         }));
-
-        if (nextFee) {
-          await withDbRetry(() => prisma.payment.update({
-            where: { id: nextFee.id },
-            data: {
-              previousBalance: nextFee.previousBalance + remainingBalance
-            }
-          }));
-          await withDbRetry(() => prisma.payment.update({
-            where: { id: currentFee.id },
-            data: { balanceCarriedForward: true }
-          }));
-        }
+      } catch (err) {
+        console.error('Failed to send notification to student:', err);
       }
-
-      if (finalStatus === 'VERIFIED' || finalStatus === 'PAID') {
-        try {
-          await withDbRetry(() => prisma.notification.create({
-            data: {
-              userId: currentFee.studentId,
-              title: '✅ Fee Payment Verified',
-              message: `Your payment of ₹${newTotalPaidAmount.toFixed(0)} for ${currentFee.title} (${currentFee.billingMonth}) has been verified. Carried forward balance: ₹${Math.max(0, remainingBalance).toFixed(0)}.`,
-              type: 'FEE',
-              isRead: false
-            }
-          }));
-        } catch (err) {
-          console.error('Failed to send notification to student:', err);
-        }
-      }
-
-      updatedPayments.push(updated);
     }
 
     await logActivity(
       session.user.id,
       'UPDATE_FEE_STATUS',
-      `Updated fee status for ${targetIds.length} records. Paid amount: ₹${paidAmount ?? 'Full'}`
+      `Updated fee status for record ${id} to ${status}. Paid amount: ₹${updated.paidAmount}`
     );
 
-    return NextResponse.json({ success: true, payments: updatedPayments });
+    return NextResponse.json({ success: true, payment: updated });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to update fee status' }, { status: 500 });
@@ -581,19 +446,6 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { id, title, billingMonth, amount, discount, lateFine, status, dueDate, remarks, paidAmount } = body;
     if (!id) return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
-
-    if (amount !== undefined && (isNaN(parseFloat(String(amount))) || parseFloat(String(amount)) < 0)) {
-      return NextResponse.json({ error: 'Amount cannot be negative' }, { status: 400 });
-    }
-    if (discount !== undefined && (isNaN(parseFloat(String(discount))) || parseFloat(String(discount)) < 0)) {
-      return NextResponse.json({ error: 'Discount cannot be negative' }, { status: 400 });
-    }
-    if (lateFine !== undefined && (isNaN(parseFloat(String(lateFine))) || parseFloat(String(lateFine)) < 0)) {
-      return NextResponse.json({ error: 'Late fine cannot be negative' }, { status: 400 });
-    }
-    if (paidAmount !== undefined && (isNaN(parseFloat(String(paidAmount))) || parseFloat(String(paidAmount)) < 0)) {
-      return NextResponse.json({ error: 'Paid amount cannot be negative' }, { status: 400 });
-    }
 
     const existing = await withDbRetry(() => prisma.payment.findUnique({ 
       where: { id },
@@ -658,31 +510,6 @@ export async function PUT(req: Request) {
       where: { id },
       data: updateData,
     }));
-
-    // Carry forward logic: if verified/paid and there is a remaining balance, push to next month
-    const remainingBalance = (updated.amount + (updated.lateFine || 0) - (updated.discount || 0) + (updated.previousBalance || 0)) - (updated.paidAmount || 0);
-    if ((updated.status === 'PAID' || updated.status === 'VERIFIED') && remainingBalance > 0.01 && !updated.balanceCarriedForward) {
-      const nextMonthStr = getNextBillingMonth(updated.billingMonth);
-      const nextFee = await withDbRetry(() => prisma.payment.findFirst({
-        where: {
-          studentId: updated.studentId,
-          billingMonth: nextMonthStr
-        }
-      }));
-
-      if (nextFee) {
-        await withDbRetry(() => prisma.payment.update({
-          where: { id: nextFee.id },
-          data: {
-            previousBalance: nextFee.previousBalance + remainingBalance
-          }
-        }));
-        await withDbRetry(() => prisma.payment.update({
-          where: { id: updated.id },
-          data: { balanceCarriedForward: true }
-          }));
-      }
-    }
 
     await logActivity(
       session.user.id,
