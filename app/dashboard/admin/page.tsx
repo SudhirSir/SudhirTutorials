@@ -4198,54 +4198,6 @@ function AdminDashboardContent() {
                  ))}
               </div>
 
-              {/* Submenu Shortcuts Grid */}
-              <div className="glass-card animate-scale-up" style={{ padding: '1.5rem' }}>
-                 <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                   ⚡ Finance Hub Shortcuts
-                 </h4>
-                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 1rem 0' }}>Instant shortcuts to ledger database, assign forms, billing engines, and expense panels.</p>
-                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                   {[
-                     { id: 'LEDGER', label: 'Fee Ledger & Collections', desc: 'Track, collect & delete student invoices', icon: '💰' },
-                     { id: 'ASSIGN', label: 'Assign Fee', desc: 'Charge single or multiple students', icon: '✍️' },
-                     { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Record administrative outflows', icon: '📊' },
-                     { id: 'BILLING_ENGINE', label: 'Billing Engine', desc: 'Generate monthly automated bills', icon: '⚙️' }
-                   ].map(shortcut => (
-                     <div
-                       key={shortcut.id}
-                       onClick={() => setFinanceSubTab(shortcut.id as any)}
-                       style={{
-                         padding: '1rem 1.25rem',
-                         background: 'var(--card-bg)',
-                         border: '1px solid var(--border)',
-                         borderRadius: '16px',
-                         cursor: 'pointer',
-                         transition: 'all 0.2s',
-                         display: 'flex',
-                         alignItems: 'center',
-                         gap: '0.75rem'
-                       }}
-                       onMouseEnter={e => {
-                         e.currentTarget.style.borderColor = 'var(--primary)';
-                         e.currentTarget.style.transform = 'translateY(-2px)';
-                         e.currentTarget.style.background = 'rgba(99,102,241,0.05)';
-                       }}
-                       onMouseLeave={e => {
-                         e.currentTarget.style.borderColor = 'var(--border)';
-                         e.currentTarget.style.transform = 'translateY(0)';
-                         e.currentTarget.style.background = 'var(--card-bg)';
-                       }}
-                     >
-                       <div style={{ fontSize: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{shortcut.icon}</div>
-                       <div>
-                         <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text)' }}>{shortcut.label}</div>
-                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{shortcut.desc}</div>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-              </div>
-
               {/* Two Column Grid under Overview */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
                 
