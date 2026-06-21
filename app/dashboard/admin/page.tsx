@@ -117,7 +117,7 @@ function AdminDashboardContent() {
     router.push(pathname + '?' + params.toString());
   };
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
-  const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
+  const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('LEDGER');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions'>('menu');
   const [lectureSubTab, setLectureSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES' | 'PENDING_FEES'>('ALL');
@@ -4147,7 +4147,6 @@ function AdminDashboardContent() {
           {/* Sub-Tab Navigation Header */}
           <div className="subtab-nav no-scrollbar">
             {[
-              { id: 'OVERVIEW', label: 'Finance Hub', desc: 'Overview & Stats' },
               { id: 'LEDGER', label: 'Fee Ledger', desc: 'Accounts & Dues' },
               { id: 'ASSIGN', label: 'Assign Fee', desc: 'Assign Custom/Batch' },
               { id: 'EXPENSES', label: 'Expense Tracker', desc: 'Outflows & Claims' },
@@ -4179,79 +4178,7 @@ function AdminDashboardContent() {
             ))}
           </div>
 
-          {financeSubTab === 'OVERVIEW' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
-              {/* ── Top Level Stats Grid ── */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-                 {[
-                   { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Received student dues (All Time)' },
-                   { label: 'Current Month Pending', value: `₹${currentMonthPending.toLocaleString()}`, color: 'var(--primary)', desc: 'Pending dues this month' },
-                   { label: 'Current Month Collected', value: `₹${currentMonthCollected.toLocaleString()}`, color: 'var(--secondary)', desc: 'Collected fees this month' },
-                   { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outstanding invoices (All Time)' }
-                 ].map((s, i) => (
-                   <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ width: '100%' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          {s.value}
-                          {isLoadingFinSummary && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: s.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{s.desc}</div>
-                      </div>
-                   </div>
-                 ))}
-              </div>
-
-              {/* Two Column Grid under Overview */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                
-                {/* Billing Summary Box / Chart */}
-                <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '260px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>Billing Overview</h3>
-                  </div>
-
-                  {/* Visual Progress Bar */}
-                  <div style={{ margin: '1.5rem 0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                      <span>Collection Efficiency</span>
-                      {(() => {
-                        const total = (finSummary?.totalRevenue || 0) + (finSummary?.totalPending || 0);
-                        const percent = total > 0 ? ((finSummary?.totalRevenue || 0) / total) * 100 : 0;
-                        return <span style={{ color: 'var(--secondary)' }}>{percent.toFixed(1)}%</span>;
-                      })()}
-                    </div>
-                    <div style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
-                      {(() => {
-                        const total = (finSummary?.totalRevenue || 0) + (finSummary?.totalPending || 0);
-                        const revPercent = total > 0 ? ((finSummary?.totalRevenue || 0) / total) * 100 : 0;
-                        const pendPercent = total > 0 ? ((finSummary?.totalPending || 0) / total) * 100 : 0;
-                        return (
-                          <>
-                            <div style={{ width: `${revPercent}%`, background: 'var(--secondary)', height: '100%' }} />
-                            <div style={{ width: `${pendPercent}%`, background: 'var(--primary)', height: '100%' }} />
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div style={{ padding: '0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.2)' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--secondary)', fontWeight: 600 }}>Collected</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalRevenue || 0).toLocaleString()}</div>
-                    </div>
-                    <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.05)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Uncollected Dues</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>₹{(finSummary?.totalPending || 0).toLocaleString()}</div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
+          {/* Overview tab removed */}
 
           {financeSubTab === 'LEDGER' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

@@ -21,7 +21,6 @@ const SERVICE_OPTIONS: Record<string, ServiceOption[]> = {
     { id: 'notifications', label: 'Notice Board', icon: '📢', tab: 'notifications' },
     { id: 'profile', label: 'My Profile', icon: '👤', tab: 'profile' },
     // Finances submenus
-    { id: 'finance_overview', label: 'Finance Hub Overview', icon: '🏦', tab: 'finances', subTab: 'OVERVIEW' },
     { id: 'finance_ledger', label: 'Fee Ledger & Collections', icon: '💰', tab: 'finances', subTab: 'LEDGER' },
     { id: 'finance_assign', label: 'Assign Fee / Charge', icon: '✍️', tab: 'finances', subTab: 'ASSIGN' },
     { id: 'finance_expenses', label: 'Expense Tracker', icon: '📊', tab: 'finances', subTab: 'EXPENSES' },

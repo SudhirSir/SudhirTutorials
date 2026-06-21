@@ -131,6 +131,22 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFetchingRef = useRef(false);
 
+  const longPressTimerRef = useRef<any>(null);
+
+  const startLongPress = (messageId: string) => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      setActiveMenuMessageId(messageId);
+    }, 2000); // 2 seconds
+  };
+
+  const endLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   // Keep selectedUserRef in sync
   useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
 
@@ -1445,21 +1461,29 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                             )}
                           </div>
                         )}
-                        <div style={{
-                          padding: '0.55rem 0.9rem',
-                          borderRadius: isMe
-                            ? (isConsecutive ? '16px 4px 16px 16px' : '16px 16px 4px 16px')
-                            : (isConsecutive ? '4px 16px 16px 16px' : '16px 16px 16px 4px'),
-                          background: isMe ? '#10b981' : '#27272a',
-                          color: isMe ? '#fff' : '#e4e4e7',
-                          fontSize: '0.9rem',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
-                          lineHeight: 1.45,
-                          wordBreak: 'break-word',
-                          overflowWrap: 'break-word',
-                          border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)',
-                          transition: 'opacity 0.2s',
-                        }}>
+                        <div 
+                          onMouseDown={() => !multiSelectMode && startLongPress(m.id)}
+                          onMouseUp={endLongPress}
+                          onMouseLeave={endLongPress}
+                          onTouchStart={() => !multiSelectMode && startLongPress(m.id)}
+                          onTouchEnd={endLongPress}
+                          style={{
+                            padding: '0.55rem 0.9rem',
+                            borderRadius: isMe
+                              ? (isConsecutive ? '16px 4px 16px 16px' : '16px 16px 4px 16px')
+                              : (isConsecutive ? '4px 16px 16px 16px' : '16px 16px 16px 4px'),
+                            background: isMe ? '#10b981' : '#27272a',
+                            color: isMe ? '#fff' : '#e4e4e7',
+                            fontSize: '0.9rem',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                            lineHeight: 1.45,
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            border: isMe ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                            transition: 'opacity 0.2s',
+                            cursor: 'pointer',
+                          }}
+                        >
                           {selectedUser.role === 'GROUP' && !isMe && m.sender && (
                             <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', marginBottom: 2 }}>
                               {m.sender.name}
