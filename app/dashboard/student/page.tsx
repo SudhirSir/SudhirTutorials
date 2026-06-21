@@ -1410,7 +1410,7 @@ function StudentDashboardContent() {
                 )}
                 {receiptData.previousBalance > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
-                    <span>Previous Balance</span>
+                    <span>Prev. Balance</span>
                     <span style={{ fontWeight: 700 }}>+₹{receiptData.previousBalance.toFixed(2)}</span>
                   </div>
                 )}

@@ -285,7 +285,7 @@ export function StudentLedger({
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(107, 114, 128); // Gray
-      doc.text('Official Student Fee Statement', logoOffset, 17);
+      doc.text('Empowering Minds, Shaping Futures', logoOffset, 17);
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
@@ -790,7 +790,7 @@ export function StudentLedger({
                             </div>
                             {record.previousBalance > 0 && (
                               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', fontWeight: 600 }}>
-                                <span>Prev. Balance (Dr)</span>
+                                <span>Prev. Balance</span>
                                 <span>+₹{record.previousBalance}</span>
                               </div>
                             )}
@@ -991,31 +991,48 @@ export function StudentLedger({
             </div>
 
             <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', border: '1px solid var(--border)', borderRadius: '14px', background: 'var(--surface-light)', width: '100%', maxWidth: '100%' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
-                    <th style={{ padding: '1.1rem 1.5rem' }}>Date</th>
-                    <th>Receipt No.</th>
+                    <th style={{ width: '45px' }}></th>
+                    <th style={{ width: '110px' }}>Date</th>
+                    <th style={{ width: '130px' }}>Receipt No.</th>
                     <th>Description</th>
-                    <th style={{ textAlign: 'right' }}>Debit (Dr)</th>
-                    <th style={{ textAlign: 'right' }}>Credit (Cr)</th>
-                    <th style={{ textAlign: 'right', paddingRight: '1.5rem', whiteSpace: 'nowrap' }}>Balance</th>
-                    {(isAdmin || !!onViewReceipt) && <th style={{ textAlign: 'center', paddingLeft: '1rem', paddingRight: '1.5rem' }}>Actions</th>}
+                    <th style={{ textAlign: 'right', width: '110px' }}>Debit (Dr)</th>
+                    <th style={{ textAlign: 'right', width: '110px' }}>Credit (Cr)</th>
+                    <th style={{ textAlign: 'right', whiteSpace: 'nowrap', width: '140px' }}>Balance</th>
+                    {(isAdmin || !!onViewReceipt) && <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {postings.map((p, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.88rem' }}>
-                      <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{new Date(p.date).toLocaleDateString('en-GB')}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        {p.type === 'DEBIT' && p.fee && p.fee.status === 'PENDING' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedFeeIds.includes(p.fee.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedFeeIds(prev => [...prev, p.fee.id]);
+                              } else {
+                                setSelectedFeeIds(prev => prev.filter(id => id !== p.fee.id));
+                              }
+                            }}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                          />
+                        )}
+                      </td>
+                      <td style={{ color: 'var(--text)' }}>{new Date(p.date).toLocaleDateString('en-GB')}</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{p.reference}</td>
                       <td style={{ color: 'var(--text)', fontWeight: 600 }}>{p.description}</td>
                       <td style={{ textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{p.debit > 0 ? `₹${p.debit.toFixed(2)}` : '–'}</td>
                       <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{p.credit > 0 ? `₹${p.credit.toFixed(2)}` : '–'}</td>
-                      <td style={{ textAlign: 'right', paddingRight: '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444', whiteSpace: 'nowrap' }}>
+                      <td style={{ textAlign: 'right', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444', whiteSpace: 'nowrap' }}>
                         {p.balance >= 0 ? `₹${p.balance.toFixed(2)} Cr` : `₹${Math.abs(p.balance).toFixed(2)} Dr`}
                       </td>
                       {(isAdmin || !!onViewReceipt) && (
-                        <td style={{ textAlign: 'center', paddingRight: '1.5rem' }}>
+                        <td style={{ textAlign: 'center' }}>
                           {p.fee ? (
                             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                               {isAdmin && p.fee.status === 'PENDING' && onCollect && (
@@ -1056,7 +1073,7 @@ export function StudentLedger({
                     </tr>
                   ))}
                   {postings.length === 0 && (
-                    <tr><td colSpan={isAdmin ? 7 : 6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transactions recorded.</td></tr>
+                    <tr><td colSpan={isAdmin ? 8 : 7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transactions recorded.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1076,18 +1093,18 @@ export function StudentLedger({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '680px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800 }}>
-                  <th style={{ padding: '1.1rem 1.5rem' }}>Date</th>
-                  <th>Receipt No.</th>
+                  <th style={{ width: '110px' }}>Date</th>
+                  <th style={{ width: '130px' }}>Receipt No.</th>
                   <th>Fee Details</th>
-                  <th style={{ textAlign: 'right' }}>Amount</th>
-                  <th>Method</th>
-                  <th style={{ textAlign: 'center', paddingRight: '1.5rem' }}>Actions</th>
+                  <th style={{ textAlign: 'right', width: '110px' }}>Amount</th>
+                  <th style={{ width: '100px' }}>Method</th>
+                  <th style={{ textAlign: 'center', width: '160px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paidPayments.map((p, idx) => (
                   <tr key={p.id || idx} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.88rem' }}>
-                    <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)', fontWeight: 600 }}>
+                    <td style={{ color: 'var(--text)', fontWeight: 600 }}>
                       {new Date(p.paidAt || p.createdAt).toLocaleDateString('en-GB')}
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 700 }}>
@@ -1106,7 +1123,7 @@ export function StudentLedger({
                         {p.paymentMethod || 'ONLINE'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'center', paddingRight: '1.5rem' }}>
+                    <td style={{ textAlign: 'center' }}>
                       {onViewReceipt ? (
                         <button type="button" onClick={() => onViewReceipt(p.id)}
                           style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, transition: 'all 0.2s' }}>
@@ -1136,6 +1153,37 @@ export function StudentLedger({
         }
         th {
           color: var(--text-muted) !important;
+        }
+        .student-ledger-main-card table {
+          display: table !important;
+          width: 100% !important;
+        }
+        .student-ledger-main-card th,
+        .student-ledger-main-card td {
+          padding: 1rem 1.25rem;
+          vertical-align: middle;
+        }
+        .student-ledger-main-card th:first-child,
+        .student-ledger-main-card td:first-child {
+          padding-left: 1.5rem;
+        }
+        .student-ledger-main-card th:last-child,
+        .student-ledger-main-card td:last-child {
+          padding-right: 1.5rem;
+        }
+        @media (max-width: 1024px) {
+          .student-ledger-main-card th,
+          .student-ledger-main-card td {
+            padding: 0.75rem 0.5rem !important;
+          }
+          .student-ledger-main-card th:first-child,
+          .student-ledger-main-card td:first-child {
+            padding-left: 0.75rem !important;
+          }
+          .student-ledger-main-card th:last-child,
+          .student-ledger-main-card td:last-child {
+            padding-right: 0.75rem !important;
+          }
         }
       `}</style>
     </div>
