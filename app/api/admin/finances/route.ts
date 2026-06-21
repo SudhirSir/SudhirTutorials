@@ -114,8 +114,7 @@ export async function GET(req: Request) {
       const serial = 1000 + count;
       const receiptNo = generateReceiptNo(fee, serial);
 
-      const scholarship = fee.student?.studentProfile?.scholarship || 0;
-      const effectiveDiscount = Math.max(fee.discount, scholarship);
+      const effectiveDiscount = fee.discount;
 
       return {
         ...fee,
@@ -298,16 +297,7 @@ export async function PATCH(req: Request) {
     const { id, status, paymentMethod, transactionId, discount, remarks, paidAmount, paidAt } = validation.data;
 
     const currentFee = await withDbRetry(() => prisma.payment.findUnique({ 
-      where: { id },
-      include: {
-        student: {
-          select: {
-            studentProfile: {
-              select: { scholarship: true }
-            }
-          }
-        }
-      }
+      where: { id }
     }));
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 

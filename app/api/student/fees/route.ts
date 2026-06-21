@@ -68,8 +68,7 @@ export async function GET() {
         ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days)
         : fee.lateFine;
 
-      const scholarship = fee.student?.studentProfile?.scholarship || 0;
-      const effectiveDiscount = Math.max(fee.discount, scholarship);
+      const effectiveDiscount = fee.discount;
       
       // Compute actual sequential receipt number matched with receipt page
       const count = paymentIndexMap.get(fee.id) || 1;

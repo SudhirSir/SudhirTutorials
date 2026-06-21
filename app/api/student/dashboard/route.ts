@@ -111,7 +111,6 @@ export async function GET() {
     let feeHighlight = null;
     if (user.payments.length > 0) {
       const { perDayFine, flatFineAfter10Days } = feeSettings;
-      const scholarship = user.studentProfile?.scholarship || 0;
       
       let totalAmountSum = 0;
       let oldestDueDate = user.payments[0].dueDate;
@@ -120,14 +119,14 @@ export async function GET() {
       for (const pendingPayment of user.payments) {
         const effectiveDueDate = pendingPayment.dueDate;
         const lateFine = calculateLateFine(effectiveDueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
-        const effectiveDiscount = Math.max(pendingPayment.discount ?? 0, scholarship);
+        const effectiveDiscount = pendingPayment.discount ?? 0;
         const totalDueForThisMonth = pendingPayment.amount + lateFine - effectiveDiscount - (pendingPayment.paidAmount || 0);
         totalAmountSum += Math.max(0, totalDueForThisMonth);
         billingMonths.push(pendingPayment.billingMonth);
       }
 
       const oldestPayment = user.payments[0];
-      const oldestDiscount = Math.max(oldestPayment.discount ?? 0, scholarship);
+      const oldestDiscount = oldestPayment.discount ?? 0;
 
       feeHighlight = {
         id: oldestPayment.id,

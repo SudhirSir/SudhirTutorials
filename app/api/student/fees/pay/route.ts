@@ -38,10 +38,9 @@ export async function POST(req: Request) {
         orderBy: { dueDate: 'asc' },
         include: {
           student: {
-            include: {
-              studentProfile: {
-                select: { scholarship: true }
-              }
+            select: {
+              name: true,
+              username: true
             }
           }
         }
@@ -59,8 +58,7 @@ export async function POST(req: Request) {
         const effectiveDueDate = fee.dueDate;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
-        const scholarship = fee.student?.studentProfile?.scholarship || 0;
-        const effectiveDiscount = Math.max(fee.discount, scholarship);
+        const effectiveDiscount = fee.discount;
         const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
         return pendingInvoiceDue > 0;
@@ -76,8 +74,7 @@ export async function POST(req: Request) {
         const effectiveDueDate = fee.dueDate;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
-        const scholarship = fee.student?.studentProfile?.scholarship || 0;
-        const effectiveDiscount = Math.max(fee.discount, scholarship);
+        const effectiveDiscount = fee.discount;
         const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
 
@@ -117,8 +114,7 @@ export async function POST(req: Request) {
         const effectiveDueDate = fee.dueDate;
         const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
         const activeFine = Math.max(storedFine, realTimeFine);
-        const scholarship = fee.student?.studentProfile?.scholarship || 0;
-        const effectiveDiscount = Math.max(fee.discount, scholarship);
+        const effectiveDiscount = fee.discount;
         const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
         const pendingInvoiceDue = totalInvoiceAmount - (fee.paidAmount || 0);
         return sum + pendingInvoiceDue;
@@ -133,10 +129,9 @@ export async function POST(req: Request) {
         where: { id: feeId },
         include: {
           student: {
-            include: {
-              studentProfile: {
-                select: { scholarship: true }
-              }
+            select: {
+              name: true,
+              username: true
             }
           }
         }
@@ -170,8 +165,7 @@ export async function POST(req: Request) {
       const effectiveDueDate = fee.dueDate;
       const realTimeFine = fee.status === 'PENDING' ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days) : 0;
       const activeFine = Math.max(storedFine, realTimeFine);
-      const scholarship = fee.student?.studentProfile?.scholarship || 0;
-      const effectiveDiscount = Math.max(fee.discount, scholarship);
+      const effectiveDiscount = fee.discount;
       const totalInvoiceAmount = fee.amount + activeFine - effectiveDiscount;
       const pendingInvoiceDue = Math.max(0, totalInvoiceAmount - (fee.paidAmount || 0));
 
