@@ -634,7 +634,7 @@ function StudentDashboardContent() {
     return fees.reduce((sum, fee) => {
       if (fee.status === 'PAID_ONLINE' || fee.status === 'VERIFIED' || fee.status === 'PAID') return sum;
       const fineVal = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
-      const remainingDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) - (fee.paidAmount || 0));
+      const remainingDue = Math.max(0, fee.amount + fineVal - (fee.discount || 0) + (fee.previousBalance || 0) - (fee.paidAmount || 0));
       return sum + remainingDue;
     }, 0);
   }, [fees]);

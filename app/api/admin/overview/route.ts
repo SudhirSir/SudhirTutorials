@@ -5,6 +5,8 @@ import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { calculateLateFine } from '@/lib/feeUtils';
+import { getLateFineSettings } from '@/lib/feeSettings';
 
 export async function GET() {
   try {
@@ -30,11 +32,14 @@ export async function GET() {
       });
       const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
 
-      const pendingPayments = await prisma.payment.aggregate({
-        _sum: { amount: true },
+      const pendingPaymentsList = await prisma.payment.findMany({
         where: { status: 'PENDING' }
       });
-      const pendingDues = pendingPayments._sum.amount || 0;
+      const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
+      const pendingDues = pendingPaymentsList.reduce((sum, p) => {
+        const fine = calculateLateFine(p.dueDate, p.status, perDayFine, flatFineAfter10Days);
+        return sum + Math.max(0, p.amount + fine - (p.discount || 0) + (p.previousBalance || 0) - (p.paidAmount || 0));
+      }, 0);
 
       const classGroups = await prisma.studentProfile.groupBy({
         by: ['className'],

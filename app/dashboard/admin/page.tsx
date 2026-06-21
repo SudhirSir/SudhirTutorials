@@ -4819,7 +4819,7 @@ function AdminDashboardContent() {
                                 .filter(f => f.status === 'PENDING')
                                 .reduce((acc, f) => {
                                   const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                                  return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+                                  return acc + Math.max(0, f.amount + fine - f.discount + (f.previousBalance || 0) - (f.paidAmount || 0));
                                 }, 0);
                               
                               const outstanding = Math.max(0, pendingDues - excessPaid);

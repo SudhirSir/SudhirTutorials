@@ -71,6 +71,7 @@ export async function GET() {
               paidAmount: true,
               lateFine: true,
               billingMonth: true,
+              previousBalance: true,
             }
           }
         }
@@ -121,7 +122,7 @@ export async function GET() {
         const effectiveDueDate = pendingPayment.dueDate;
         const lateFine = calculateLateFine(effectiveDueDate, pendingPayment.status, perDayFine, flatFineAfter10Days);
         const effectiveDiscount = Math.max(pendingPayment.discount ?? 0, scholarship);
-        const totalDueForThisMonth = pendingPayment.amount + lateFine - effectiveDiscount - (pendingPayment.paidAmount || 0);
+        const totalDueForThisMonth = pendingPayment.amount + lateFine - effectiveDiscount + (pendingPayment.previousBalance || 0) - (pendingPayment.paidAmount || 0);
         totalAmountSum += Math.max(0, totalDueForThisMonth);
         billingMonths.push(pendingPayment.billingMonth);
       }
