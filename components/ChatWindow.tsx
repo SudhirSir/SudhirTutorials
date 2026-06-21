@@ -132,11 +132,14 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const isFetchingRef = useRef(false);
 
   const longPressTimerRef = useRef<any>(null);
+  const longPressedRef = useRef<boolean>(false);
 
   const startLongPress = (messageId: string) => {
+    longPressedRef.current = false;
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = setTimeout(() => {
       setActiveMenuMessageId(messageId);
+      longPressedRef.current = true;
     }, 2000); // 2 seconds
   };
 
@@ -1339,6 +1342,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                               prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
                             );
                           } else {
+                            if (longPressedRef.current) {
+                              longPressedRef.current = false;
+                              return;
+                            }
                             setActiveMenuMessageId(prev => prev === m.id ? null : m.id);
                           }
                         }}
