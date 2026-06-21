@@ -34,6 +34,7 @@ export function StudentLedger({
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(true);
   const [downloadingStatement, setDownloadingStatement] = useState(false);
+  const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchLedger();
@@ -49,6 +50,7 @@ export function StudentLedger({
       if (res.ok) {
         const data = await res.json();
         setFees(data.fees || []);
+        setSelectedFeeIds([]);
         setLoading(false);
       } else if (res.status === 401 && retryCount < 3) {
         // Session may not be ready yet after tab navigation — retry with backoff
@@ -137,7 +139,7 @@ export function StudentLedger({
         postings.push({
           date: new Date(fee.paidAt || fee.createdAt),
           description: `Payment Received – ${fee.paymentMethod || 'Online'}`,
-          reference: fee.receiptNo || '–',
+          reference: (fee.receiptNo && fee.receiptNo !== '-') ? fee.receiptNo : `REC-${fee.id.slice(-6).toUpperCase()}`,
           type: 'CREDIT',
           debit: 0,
           credit: creditAmt,
@@ -169,16 +171,40 @@ export function StudentLedger({
 
   const isBlockedByPrevious = useMemo(() => {
     return (record: any) => {
+      if (record.isUnlocked === true) return false;
       if (!record.dueDate) return false;
       const currentDueTime = new Date(record.dueDate).getTime();
       return fees.some(f => 
         f.status === 'PENDING' && 
         f.id !== record.id && 
+        f.isUnlocked !== true &&
         f.dueDate && 
         new Date(f.dueDate).getTime() < currentDueTime
       );
     };
   }, [fees]);
+
+  const handleToggleUnlock = async (record: any) => {
+    try {
+      const res = await fetch('/api/admin/finances', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: record.id,
+          isUnlocked: !record.isUnlocked
+        })
+      });
+      if (res.ok) {
+        fetchLedger();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to toggle lock status');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error. Failed to toggle lock status.');
+    }
+  };
 
   const handlePrintStatement = async () => {
     setDownloadingStatement(true);
@@ -622,6 +648,76 @@ export function StudentLedger({
                   📁 Hide Monthly Details
                 </button>
               </div>
+
+              {selectedFeeIds.length > 0 && (
+                <div style={{
+                  background: 'var(--surface-light)',
+                  border: '2px solid var(--primary)',
+                  borderRadius: '16px',
+                  padding: '1.25rem 1.5rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
+                }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>
+                      Selected {selectedFeeIds.length} Month{selectedFeeIds.length > 1 ? 's' : ''}
+                    </h4>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Total Selected Payable: <strong style={{ color: 'var(--primary)' }}>₹{
+                        selectedFeeIds.reduce((sum, id) => {
+                          const r = fees.find(f => f.id === id);
+                          if (!r) return sum;
+                          const fine = Math.max(r.lateFine || 0, r.currentLateFine || 0);
+                          return sum + Math.max(0, r.amount + fine - (r.discount || 0) + (r.previousBalance || 0) - (r.paidAmount || 0));
+                        }, 0)
+                      }</strong>
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFeeIds([])}
+                      className="btn-secondary"
+                      style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700 }}
+                    >
+                      Cancel
+                    </button>
+                    {isAdmin ? (
+                      onCollect && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const selectedRecords = fees.filter(f => selectedFeeIds.includes(f.id));
+                            onCollect(selectedRecords);
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '8px 20px', fontSize: '0.85rem', fontWeight: 700 }}
+                        >
+                          💵 Collect Selected ({selectedFeeIds.length})
+                        </button>
+                      )
+                    ) : (
+                      onPayOnline && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const selectedRecords = fees.filter(f => selectedFeeIds.includes(f.id));
+                            onPayOnline(selectedRecords);
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '8px 20px', fontSize: '0.85rem', fontWeight: 700 }}
+                        >
+                          💳 Pay Selected ({selectedFeeIds.length})
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="monthly-fee-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
                 {monthlyLedger.map(({ month, record }) => {
                   const hasRecord = !!record;
@@ -662,8 +758,29 @@ export function StudentLedger({
                     >
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>{month}</span>
-                          <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{statusText}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {hasRecord && status === 'PENDING' && (
+                              <input
+                                type="checkbox"
+                                checked={selectedFeeIds.includes(record.id)}
+                                onChange={e => {
+                                  if (e.target.checked) {
+                                    setSelectedFeeIds(prev => [...prev, record.id]);
+                                  } else {
+                                    setSelectedFeeIds(prev => prev.filter(id => id !== record.id));
+                                  }
+                                }}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              />
+                            )}
+                            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>{month}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {hasRecord && record.isUnlocked && (
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 800, background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>UNLOCKED</span>
+                            )}
+                            <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{statusText}</span>
+                          </div>
                         </div>
                         {hasRecord ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
@@ -671,6 +788,12 @@ export function StudentLedger({
                               <span>Base Fee</span>
                               <span style={{ fontWeight: 600, color: 'var(--text)' }}>₹{record.amount}</span>
                             </div>
+                            {record.previousBalance > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', fontWeight: 600 }}>
+                                <span>Prev. Balance (Dr)</span>
+                                <span>+₹{record.previousBalance}</span>
+                              </div>
+                            )}
                             {record.discount > 0 && (
                               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary)', fontWeight: 600 }}>
                                 <span>Discount (Cr)</span>
@@ -707,17 +830,37 @@ export function StudentLedger({
                             <div>
                               <span style={{ fontSize: '0.7rem', color: status === 'PENDING' ? '#ef4444' : 'var(--text-muted)', display: 'block', fontWeight: status === 'PENDING' ? 700 : 500 }}>Net Amount Due</span>
                               <span style={{ fontSize: '1.15rem', fontWeight: 800, color: status === 'PENDING' ? '#ef4444' : 'var(--text)' }}>
-                                ₹{Math.max(0, record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0))}
+                                ₹{Math.max(0, record.amount + fineVal - (record.discount || 0) + (record.previousBalance || 0) - (record.paidAmount || 0))}
                               </span>
                             </div>
                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                               {isAdmin && (
                                 <>
-                                  {status === 'PENDING' && onCollect && (
-                                    <button type="button" onClick={() => onCollect(record)}
-                                      className="btn-primary"
-                                      style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}>
-                                      💵 Collect
+                                  {status === 'PENDING' && onCollect && (() => {
+                                    const blocked = isBlockedByPrevious(record);
+                                    return (
+                                      <button type="button" 
+                                        onClick={() => !blocked && onCollect(record)}
+                                        disabled={blocked}
+                                        className={blocked ? "" : "btn-primary"}
+                                        style={{ 
+                                          padding: '6px 12px', 
+                                          fontSize: '0.75rem', 
+                                          fontWeight: 700, 
+                                          borderRadius: '8px', 
+                                          cursor: blocked ? 'not-allowed' : 'pointer',
+                                          background: blocked ? 'rgba(255,255,255,0.05)' : undefined,
+                                          color: blocked ? 'var(--text-muted)' : undefined,
+                                          border: blocked ? '1px solid var(--border)' : undefined,
+                                        }}>
+                                        💵 Collect
+                                      </button>
+                                    );
+                                  })()}
+                                  {status === 'PENDING' && (
+                                    <button type="button" onClick={() => handleToggleUnlock(record)}
+                                      style={{ padding: '6px 12px', background: record.isUnlocked ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.12)', color: record.isUnlocked ? '#3b82f6' : '#10b981', border: `1px solid ${record.isUnlocked ? 'rgba(59,130,246,0.25)' : 'rgba(16,185,129,0.25)'}`, borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                                      {record.isUnlocked ? '🔒 Lock' : '🔓 Unlock'}
                                     </button>
                                   )}
                                   {onEdit && (
@@ -735,7 +878,7 @@ export function StudentLedger({
                                 </>
                               )}
                               
-                              {!isAdmin && ['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (() => {
+                              {!isAdmin && ['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) + (record.previousBalance || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (() => {
                                 const blocked = isBlockedByPrevious(record);
                                 return (
                                   <button type="button" 
@@ -856,7 +999,7 @@ export function StudentLedger({
                     <th>Description</th>
                     <th style={{ textAlign: 'right' }}>Debit (Dr)</th>
                     <th style={{ textAlign: 'right' }}>Credit (Cr)</th>
-                    <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Balance</th>
+                    <th style={{ textAlign: 'right', paddingRight: '1.5rem', whiteSpace: 'nowrap' }}>Balance</th>
                     {(isAdmin || !!onViewReceipt) && <th style={{ textAlign: 'center', paddingLeft: '1rem', paddingRight: '1.5rem' }}>Actions</th>}
                   </tr>
                 </thead>
@@ -868,7 +1011,7 @@ export function StudentLedger({
                       <td style={{ color: 'var(--text)', fontWeight: 600 }}>{p.description}</td>
                       <td style={{ textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{p.debit > 0 ? `₹${p.debit.toFixed(2)}` : '–'}</td>
                       <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{p.credit > 0 ? `₹${p.credit.toFixed(2)}` : '–'}</td>
-                      <td style={{ textAlign: 'right', paddingRight: '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444', whiteSpace: 'nowrap' }}>
                         {p.balance >= 0 ? `₹${p.balance.toFixed(2)} Cr` : `₹${Math.abs(p.balance).toFixed(2)} Dr`}
                       </td>
                       {(isAdmin || !!onViewReceipt) && (
