@@ -4582,7 +4582,7 @@ function AdminDashboardContent() {
                                             setAddFeeMode('INDIVIDUAL');
                                             setFeeStudentId(s.username);
                                             setFeeStudentSearch(`${s.name} (${s.username})`);
-                                            setFeeAmount(String(baseFee));
+                                            setFeeAmount(String(finalBase));
                                             setFinanceSubTab('ASSIGN');
                                           }}
                                           style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
@@ -4637,9 +4637,9 @@ function AdminDashboardContent() {
                                       {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
                                     </td>
                                     <td style={{ fontSize: '0.8rem' }}>
-                                       <div>Base: ₹{fee.amount}</div>
+                                       <div>Base: ₹{fee.amount - fee.discount}</div>
                                        {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
-                                       {fee.discount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{fee.discount}</div>}
+                                       {fee.discount > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Scholarship: ₹{fee.discount} (deducted)</div>}
                                     </td>
                                     <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
                                     <td>
@@ -4712,9 +4712,9 @@ function AdminDashboardContent() {
                                     )}
                                   </td>
                                   <td style={{ fontSize: '0.8rem' }}>
-                                     <div>Base: ₹{totalBase}</div>
+                                     <div>Base: ₹{totalBase - totalDiscount}</div>
                                      {totalFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{totalFine}</div>}
-                                     {totalDiscount > 0 && <div style={{ color: '#10b981' }}>Disc: -₹{totalDiscount}</div>}
+                                     {totalDiscount > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Scholarship: ₹{totalDiscount} (deducted)</div>}
                                      {totalPaid > 0 && <div style={{ color: 'var(--primary)' }}>Paid: -₹{totalPaid}</div>}
                                   </td>
                                   <td style={{ fontWeight: 700 }}>₹{outstanding.toFixed(0)}</td>
@@ -4745,7 +4745,9 @@ function AdminDashboardContent() {
                                           setFeeStudentId(s.username);
                                           setFeeStudentSearch(`${s.name} (${s.username})`);
                                           const base = s.studentProfile?.baseFee || 0;
-                                          setFeeAmount(String(base));
+                                          const scholarship = s.studentProfile?.scholarship || 0;
+                                          const finalBase = Math.max(0, base - scholarship);
+                                          setFeeAmount(String(finalBase));
                                           setFinanceSubTab('ASSIGN');
                                         }}
                                         style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
@@ -4860,6 +4862,8 @@ function AdminDashboardContent() {
                               const outstanding = Math.max(0, pendingDues - excessPaid);
                               const creditBalance = Math.max(0, excessPaid - pendingDues);
                               const baseFee = s.studentProfile?.baseFee || 0;
+                              const scholarship = s.studentProfile?.scholarship || 0;
+                              const finalBase = Math.max(0, baseFee - scholarship);
                               const pendingCount = studentInvoices.filter(f => f.status === 'PENDING').length;
 
                               return (
@@ -4875,7 +4879,8 @@ function AdminDashboardContent() {
                                     <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
                                   </td>
                                   <td style={{ fontWeight: 700, color: 'var(--text)' }}>
-                                    ₹{baseFee.toLocaleString()}
+                                    ₹{finalBase.toLocaleString()}
+                                    {scholarship > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Discounted</div>}
                                   </td>
                                   <td style={{ fontWeight: 700, color: '#10b981' }}>
                                     ₹{totalPaid.toLocaleString()}
@@ -4915,7 +4920,7 @@ function AdminDashboardContent() {
                                           setAddFeeMode('INDIVIDUAL');
                                           setFeeStudentId(s.username);
                                           setFeeStudentSearch(`${s.name} (${s.username})`);
-                                          setFeeAmount(String(baseFee));
+                                          setFeeAmount(String(finalBase));
                                           setFinanceSubTab('ASSIGN');
                                         }}
                                         style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
@@ -4978,8 +4983,10 @@ function AdminDashboardContent() {
                           if (matched) {
                             setFeeStudentId(matched.username);
                             const base = matched.studentProfile?.baseFee || 0;
+                            const scholarship = matched.studentProfile?.scholarship || 0;
+                            const finalBase = Math.max(0, base - scholarship);
                             if (base > 0) {
-                              setFeeAmount(String(base));
+                              setFeeAmount(String(finalBase));
                             }
                           } else {
                             setFeeStudentId('');
@@ -5030,10 +5037,11 @@ function AdminDashboardContent() {
                       const stud = allStudents.find(u => u.username === feeStudentId);
                       const base = stud?.studentProfile?.baseFee || 0;
                       const scholarship = stud?.studentProfile?.scholarship || 0;
+                      const netBase = Math.max(0, base - scholarship);
                       if (base > 0) {
                         return (
                           <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
-                            Base: ₹{base} {scholarship > 0 ? `(-₹${scholarship} Scholarship)` : ''} (auto-filled)
+                            Net base fee: ₹{netBase} {scholarship > 0 ? `(₹${base} base minus ₹${scholarship} scholarship)` : ''} (auto-filled)
                           </span>
                         );
                       }
@@ -8592,9 +8600,15 @@ function AdminDashboardContent() {
             
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span>Base Fee:</span>
-                  <span>₹{payingFee.amount}</span>
+                  <span>Base Fee (after scholarship):</span>
+                  <span>₹{payingFee.amount - payingFee.discount}</span>
                </div>
+               {payingFee.discount > 0 && (
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#10b981', fontSize: '0.85rem' }}>
+                    <span>Scholarship (already deducted):</span>
+                    <span>₹{payingFee.discount}</span>
+                 </div>
+               )}
                {(() => {
                  const liveFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
                  return liveFine > 0 && (
@@ -8607,28 +8621,10 @@ function AdminDashboardContent() {
                {payingFee.paidAmount > 0 && (
                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#3b82f6' }}>
                       <span>Previously Paid:</span>
-                      <span>-₹{payingFee.paidAmount}</span>
-                   </div>
-               )}
-               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981' }}>
-                  <span>Discount:</span>
-                  <input 
-                    type="number" 
-                    value={paymentDetails.discount} 
-                    onChange={e => {
-                      const newDiscount = parseFloat(e.target.value || '0');
-                      const currentFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
-                      const newTotal = Math.max(0, payingFee.amount + currentFine - newDiscount - (payingFee.paidAmount || 0));
-                      setPaymentDetails({
-                        ...paymentDetails,
-                        discount: newDiscount,
-                        paidAmount: newTotal.toString()
-                      });
-                    }}
-                    style={{ width: '80px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: '#10b981', textAlign: 'right' }}
-                  />
-               </div>
-               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
+                       <span>-₹{payingFee.paidAmount}</span>
+                    </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
                   <span>Total Payable:</span>
                   <span>₹{Math.max(0, payingFee.amount + calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
                </div>

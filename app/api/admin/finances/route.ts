@@ -237,18 +237,30 @@ export async function POST(req: Request) {
       if (existing) return NextResponse.json({ error: 'Fee already assigned for this month' }, { status: 400 });
 
       const sScholarship = student.studentProfile?.scholarship || 0;
-      const sDiscount = Math.max(discount || 0, sScholarship);
-      const finalAssignedAmount = amount || student.studentProfile?.baseFee || 0;
+      const sBaseFee = student.studentProfile?.baseFee || 0;
+
+      // The UI shows and submits the net fee (after scholarship).
+      // If amount is provided, we treat it as net amount, so database amount = entered_amount + scholarship.
+      // If amount is not provided, we default to baseFee, and discount is sScholarship.
+      let finalAmount = sBaseFee;
+      let finalDiscount = sScholarship;
+
+      if (amount !== undefined && amount !== null && typeof amount === 'number' && !isNaN(amount)) {
+        const enteredAmount = amount;
+        finalAmount = enteredAmount + sScholarship;
+        finalDiscount = sScholarship;
+      }
+
       const payment = await withDbRetry(() => prisma.payment.create({
         data: {
           studentId: student.id,
-          amount: finalAssignedAmount,
+          amount: finalAmount,
           billingMonth,
           dueDate: finalDueDate,
           createdAt: finalCreatedAt,
           title: title || 'Monthly Fee',
           status: 'PENDING',
-          discount: sDiscount,
+          discount: finalDiscount,
           remarks
         },
       }));
@@ -259,7 +271,7 @@ export async function POST(req: Request) {
           data: {
             userId: student.id,
             title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
-            message: `A new individual fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
+            message: `A new individual fee of ₹${(finalAmount - finalDiscount).toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
             type: 'FEE',
             isRead: false
           }
@@ -271,7 +283,7 @@ export async function POST(req: Request) {
       await logActivity(
         session.user.id,
         'ASSIGN_FEE_INDIVIDUAL',
-        `Assigned fee of ₹${finalAssignedAmount} to student ${studentId} for month ${billingMonth} (${title})`
+        `Assigned fee of ₹${finalAmount} (Net: ₹${finalAmount - finalDiscount}) to student ${studentId} for month ${billingMonth} (${title})`
       );
 
       return NextResponse.json({ success: true, payment });
