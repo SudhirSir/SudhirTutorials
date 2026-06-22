@@ -239,16 +239,15 @@ export async function POST(req: Request) {
       const sScholarship = student.studentProfile?.scholarship || 0;
       const sBaseFee = student.studentProfile?.baseFee || 0;
 
-      // The UI shows and submits the net fee (after scholarship).
-      // If amount is provided, we treat it as net amount, so database amount = entered_amount + scholarship.
-      // If amount is not provided, we default to baseFee, and discount is sScholarship.
+      // The UI submits both the base fee (amount) and discount directly.
       let finalAmount = sBaseFee;
       let finalDiscount = sScholarship;
 
       if (amount !== undefined && amount !== null && typeof amount === 'number' && !isNaN(amount)) {
-        const enteredAmount = amount;
-        finalAmount = enteredAmount + sScholarship;
-        finalDiscount = sScholarship;
+        finalAmount = amount;
+      }
+      if (discount !== undefined && discount !== null && typeof discount === 'number' && !isNaN(discount)) {
+        finalDiscount = discount;
       }
 
       const payment = await withDbRetry(() => prisma.payment.create({

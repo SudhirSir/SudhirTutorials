@@ -1405,6 +1405,7 @@ function AdminDashboardContent() {
   const [feeStudentId, setFeeStudentId] = useState('');
   const [feeStudentSearch, setFeeStudentSearch] = useState(''); // for combobox display text
   const [feeAmount, setFeeAmount] = useState('');
+  const [feeDiscount, setFeeDiscount] = useState('');
   const [feeBillingMonth, setFeeBillingMonth] = useState(() => {
     const d = new Date();
     return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -1760,6 +1761,7 @@ function AdminDashboardContent() {
 
       if (addFeeMode === 'INDIVIDUAL') {
         payload.studentId = feeStudentId; // username
+        payload.discount = parseFloat(feeDiscount || '0');
       } else {
         payload.batchId = feeStudentId; // batch id
       }
@@ -1773,6 +1775,7 @@ function AdminDashboardContent() {
         setFeeStudentId('');
         setFeeStudentSearch('');
         setFeeAmount('');
+        setFeeDiscount('');
         fetchFinances();
         alert('Fee(s) successfully assigned!');
       } else {
@@ -4582,7 +4585,8 @@ function AdminDashboardContent() {
                                             setAddFeeMode('INDIVIDUAL');
                                             setFeeStudentId(s.username);
                                             setFeeStudentSearch(`${s.name} (${s.username})`);
-                                            setFeeAmount(String(finalBase));
+                                            setFeeAmount(String(baseFee));
+                                            setFeeDiscount(String(scholarship));
                                             setFinanceSubTab('ASSIGN');
                                           }}
                                           style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
@@ -4747,7 +4751,8 @@ function AdminDashboardContent() {
                                           const base = s.studentProfile?.baseFee || 0;
                                           const scholarship = s.studentProfile?.scholarship || 0;
                                           const finalBase = Math.max(0, base - scholarship);
-                                          setFeeAmount(String(finalBase));
+                                          setFeeAmount(String(base));
+                                          setFeeDiscount(String(scholarship));
                                           setFinanceSubTab('ASSIGN');
                                         }}
                                         style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
@@ -4920,7 +4925,8 @@ function AdminDashboardContent() {
                                           setAddFeeMode('INDIVIDUAL');
                                           setFeeStudentId(s.username);
                                           setFeeStudentSearch(`${s.name} (${s.username})`);
-                                          setFeeAmount(String(finalBase));
+                                            setFeeAmount(String(baseFee));
+                                            setFeeDiscount(String(scholarship));
                                           setFinanceSubTab('ASSIGN');
                                         }}
                                         style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
@@ -4986,7 +4992,8 @@ function AdminDashboardContent() {
                             const scholarship = matched.studentProfile?.scholarship || 0;
                             const finalBase = Math.max(0, base - scholarship);
                             if (base > 0) {
-                              setFeeAmount(String(finalBase));
+                              setFeeAmount(String(base));
+                              setFeeDiscount(String(scholarship));
                             }
                           } else {
                             setFeeStudentId('');
@@ -5030,32 +5037,41 @@ function AdminDashboardContent() {
                   </div>
                 )}
 
-                <div className="input-group">
-                  <label>
-                    Amount (₹)
-                    {feeStudentId && (() => {
-                      const stud = allStudents.find(u => u.username === feeStudentId);
-                      const base = stud?.studentProfile?.baseFee || 0;
-                      const scholarship = stud?.studentProfile?.scholarship || 0;
-                      const netBase = Math.max(0, base - scholarship);
-                      if (base > 0) {
-                        return (
-                          <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
-                            Net base fee: ₹{netBase} {scholarship > 0 ? `(₹${base} base minus ₹${scholarship} scholarship)` : ''} (auto-filled)
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="Enter amount or auto-filled from base fee"
-                    value={feeAmount}
-                    onChange={e => setFeeAmount(e.target.value)}
-                  />
-                </div>
+                {addFeeMode === 'INDIVIDUAL' ? (
+                  <>
+                    <div className="input-group">
+                      <label>Base Fee (₹)</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="Enter base fee"
+                        value={feeAmount}
+                        onChange={e => setFeeAmount(e.target.value)}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label>Discount (₹)</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="Enter discount amount"
+                        value={feeDiscount}
+                        onChange={e => setFeeDiscount(e.target.value)}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="input-group">
+                    <label>Amount (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="Enter amount"
+                      value={feeAmount}
+                      onChange={e => setFeeAmount(e.target.value)}
+                    />
+                  </div>
+                )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div className="input-group">
