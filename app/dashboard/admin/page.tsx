@@ -7789,9 +7789,6 @@ function AdminDashboardContent() {
                    </div>
                    <div className="input-group">
                      <label>Scholarship Amount (₹)</label>
-                     <input type="number" value={editingProfile.scholarship !== undefined && editingProfile.scholarship !== null ? editingProfile.scholarship : ''} onChange={e => setEditingProfile({...editingProfile, scholarship: parseFloat(e.target.value) || 0})} placeholder="e.g. 1000" />
-                   </div>
-                   <div className="input-group">
                      <label>Batch Name</label>
                      <select 
                        value={editingProfile.batch || ''} 
@@ -8600,15 +8597,9 @@ function AdminDashboardContent() {
             
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span>Base Fee (after scholarship):</span>
-                  <span>₹{payingFee.amount - payingFee.discount}</span>
+                  <span>Base Fee:</span>
+                  <span>₹{payingFee.amount}</span>
                </div>
-               {payingFee.discount > 0 && (
-                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#10b981', fontSize: '0.85rem' }}>
-                    <span>Scholarship (already deducted):</span>
-                    <span>₹{payingFee.discount}</span>
-                 </div>
-               )}
                {(() => {
                  const liveFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
                  return liveFine > 0 && (
@@ -8624,6 +8615,25 @@ function AdminDashboardContent() {
                        <span>-₹{payingFee.paidAmount}</span>
                     </div>
                 )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: '#10b981', alignItems: 'center' }}>
+                   <span>Discount:</span>
+                   <input 
+                     type="number" 
+                     required
+                     value={paymentDetails.discount} 
+                     onChange={e => {
+                       const newDiscount = parseFloat(e.target.value || '0');
+                       const currentFine = calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth);
+                       const newTotal = Math.max(0, payingFee.amount + currentFine - newDiscount - (payingFee.paidAmount || 0));
+                       setPaymentDetails({
+                         ...paymentDetails,
+                         discount: newDiscount,
+                         paidAmount: newTotal.toString()
+                       });
+                     }}
+                     style={{ width: '80px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: '#10b981', textAlign: 'right' }}
+                   />
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontWeight: 800, fontSize: '1.2rem' }}>
                   <span>Total Payable:</span>
                   <span>₹{Math.max(0, payingFee.amount + calculateLiveLateFine(payingFee.dueDate, paymentDetails.paidAt, payingFee.billingMonth) - paymentDetails.discount - (payingFee.paidAmount || 0))}</span>
