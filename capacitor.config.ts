@@ -7,7 +7,8 @@ const config: CapacitorConfig = {
   server: {
     // Points to the live production server hosted on Vercel
     url: 'https://sudhirtutorials.vercel.app/',
-    cleartext: true
+    cleartext: true,
+    errorPath: '/offline.html'
   },
   plugins: {
     CapacitorCookies: {
