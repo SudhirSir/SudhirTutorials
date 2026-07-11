@@ -29,9 +29,8 @@ export function calculateLateFine(
   if (daysLate <= 0) return 0;          // Not yet overdue
   if (daysLate <= 10) return daysLate * perDayFine;  // Configurable per-day fine
   
-  // If > 10 days, it's configurable cap per month (30-day buckets).
-  const monthsLate = Math.floor((daysLate - 1) / 30) + 1;
-  return monthsLate * flatFineAfter10Days;
+  // If > 10 days, cap at flat 100.
+  return flatFineAfter10Days;
 }
 
 export function formatDate(dateVal: any): string {

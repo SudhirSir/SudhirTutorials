@@ -21,7 +21,7 @@ export default function OnboardingPage() {
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState((session?.user as any)?.email || "");
   const [phone, setPhone] = useState("");
   const [parentName, setParentName] = useState(""); // Only for students
   const [parentContact, setParentContact] = useState(""); // Only for students
@@ -103,11 +103,13 @@ export default function OnboardingPage() {
     if (phone && !/^\d{10}$/.test(phone.trim())) {
       return setError("Phone number must be exactly 10 digits.");
     }
-    if (!otpSent) {
-      return setError("Please verify your email address by sending and entering the OTP first.");
-    }
-    if (!otp || otp.length !== 6 || isNaN(Number(otp))) {
-      return setError("Verification OTP must be exactly 6 digits");
+    if (!(session?.user as any)?.email) {
+      if (!otpSent) {
+        return setError("Please verify your email address by sending and entering the OTP first.");
+      }
+      if (!otp || otp.length !== 6 || isNaN(Number(otp))) {
+        return setError("Verification OTP must be exactly 6 digits");
+      }
     }
 
     setLoading(true);
@@ -208,10 +210,10 @@ export default function OnboardingPage() {
                   placeholder="e.g. email@example.com" 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
-                  disabled={otpSent}
+                  disabled={otpSent || !!(session.user as any)?.email}
                   style={{ flex: 1, minWidth: 0, padding: '0.85rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
-                {!otpSent ? (
+                {(!(session.user as any)?.email && !otpSent) ? (
                   <button 
                     type="button" 
                     onClick={sendOtp} 
@@ -220,7 +222,7 @@ export default function OnboardingPage() {
                   >
                     {sendingOtp ? 'Sending...' : 'Send OTP'}
                   </button>
-                ) : (
+                ) : (!(session.user as any)?.email && otpSent) ? (
                   <button 
                     type="button" 
                     onClick={() => { setOtpSent(false); setOtp(''); setMockOtpMessage(''); }} 
@@ -228,11 +230,13 @@ export default function OnboardingPage() {
                   >
                     Change
                   </button>
+                ) : (
+                  <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>✅ Verified by Google</span>
                 )}
               </div>
             </div>
 
-            {otpSent && (
+            {(!(session.user as any)?.email && otpSent) && (
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label style={{ marginTop: '0.5rem' }}>6-Digit Verification OTP</label>
                 <input 

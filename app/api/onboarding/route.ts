@@ -28,27 +28,31 @@ export async function POST(req: Request) {
     if (!email) {
       return NextResponse.json({ error: 'Email address is required for verification.' }, { status: 400 });
     }
-    if (!otp) {
-      return NextResponse.json({ error: 'Verification OTP code is required.' }, { status: 400 });
+    const isOAuthNewUser = user.passwordHash === 'OAUTH_PENDING_PASSWORD';
+
+    if (!isOAuthNewUser) {
+      if (!otp) {
+        return NextResponse.json({ error: 'Verification OTP code is required.' }, { status: 400 });
+      }
+
+      // Verify the OTP
+      const otpRecord = await withDbRetry(() => prisma.otpVerification.findUnique({
+        where: { email },
+      }));
+
+      if (!otpRecord || otpRecord.otp !== otp) {
+        return NextResponse.json({ error: 'Invalid verification code.' }, { status: 400 });
+      }
+
+      if (new Date() > otpRecord.expiresAt) {
+        return NextResponse.json({ error: 'Verification code has expired.' }, { status: 400 });
+      }
+
+      // Delete the verified OTP
+      await withDbRetry(() => prisma.otpVerification.delete({
+        where: { email },
+      }));
     }
-
-    // Verify the OTP
-    const otpRecord = await withDbRetry(() => prisma.otpVerification.findUnique({
-      where: { email },
-    }));
-
-    if (!otpRecord || otpRecord.otp !== otp) {
-      return NextResponse.json({ error: 'Invalid verification code.' }, { status: 400 });
-    }
-
-    if (new Date() > otpRecord.expiresAt) {
-      return NextResponse.json({ error: 'Verification code has expired.' }, { status: 400 });
-    }
-
-    // Delete the verified OTP
-    await withDbRetry(() => prisma.otpVerification.delete({
-      where: { email },
-    }));
 
     if (password && user.mustChangePassword) {
       if (password.length < 8 ||

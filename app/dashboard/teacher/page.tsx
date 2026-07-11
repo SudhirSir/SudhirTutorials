@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
@@ -144,6 +144,8 @@ function TeacherDashboardContent() {
   const [salaries, setSalaries] = useState<any[]>([]);
   const [fetchingSalaries, setFetchingSalaries] = useState(false);
   const [materials, setMaterials] = useState<any[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const materialsFetchedRef = useRef(false);
   const [students, setStudents] = useState<any[]>([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [studentBatchQuery, setStudentBatchQuery] = useState('');
@@ -161,6 +163,8 @@ function TeacherDashboardContent() {
   const [matUrl, setMatUrl] = useState('');
   const [matCourseId, setMatCourseId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [matIsAssignment, setMatIsAssignment] = useState(false);
+  const [matDeadline, setMatDeadline] = useState('');
   
   // Custom File Uploader helper states
   const [uploadMode, setUploadMode] = useState<'FILE' | 'URL'>('FILE');
@@ -955,14 +959,19 @@ function TeacherDashboardContent() {
   };
 
   const fetchMaterials = async () => {
+    if (materialsFetchedRef.current) return;
+    setMaterialsLoading(true);
     try {
       const res = await fetch('/api/teacher/materials');
       if (res.ok) {
         const data = await res.json();
         setMaterials(data.materials || []);
+        materialsFetchedRef.current = true;
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setMaterialsLoading(false);
     }
   };
 
@@ -1139,7 +1148,9 @@ function TeacherDashboardContent() {
           title: matTitle,
           type: matType,
           url: matUrl,
-          courseId: matCourseId
+          courseId: matCourseId,
+          isAssignment: matIsAssignment,
+          deadline: matIsAssignment ? (matDeadline ? new Date(matDeadline).toISOString() : null) : null
         })
       });
 
@@ -1149,6 +1160,8 @@ function TeacherDashboardContent() {
         setSelectedFileName('');
         setSelectedFileSize('');
         setFilePreview('');
+        setMatIsAssignment(false);
+        setMatDeadline('');
         fetchMaterials();
         alert('Material uploaded successfully!');
       } else {
@@ -1504,7 +1517,12 @@ function TeacherDashboardContent() {
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Uploaded Materials</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {materials.length === 0 ? (
+              {materialsLoading ? (
+                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <div>Loading materials...</div>
+                </div>
+              ) : materials.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)' }}>You haven't uploaded any materials yet.</p>
               ) : (
                 materials.map(mat => (
@@ -1567,6 +1585,18 @@ function TeacherDashboardContent() {
                 </select>
                 {classes.length === 0 && <span style={{fontSize: '0.75rem', color: '#ef4444'}}>You must be assigned to a batch first.</span>}
               </div>
+
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.75rem', background: 'var(--input-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <input type="checkbox" id="matIsAssignment" checked={matIsAssignment} onChange={e => setMatIsAssignment(e.target.checked)} style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer' }} />
+                <label htmlFor="matIsAssignment" style={{ margin: 0, cursor: 'pointer', flex: 1, fontWeight: 700 }}>This is an Assignment</label>
+              </div>
+
+              {matIsAssignment && (
+                <div className="input-group">
+                  <label>Submission Deadline (Optional)</label>
+                  <input type="datetime-local" value={matDeadline} onChange={e => setMatDeadline(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+                </div>
+              )}
 
               <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.5rem' }}>
                 <button

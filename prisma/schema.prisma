@@ -46,6 +46,11 @@ model User {
   salaryRecords      SalaryRecord[]
   doubtHistory       DoubtHistory[]
 
+  // E-commerce & Online Tests
+  storePurchases        StorePurchase[]
+  assignmentSubmissions AssignmentSubmission[]
+  onlineTestSubmissions OnlineTestSubmission[]
+
   @@index([role])
   @@index([isActive])
 }
@@ -234,6 +239,10 @@ model Material {
   teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
+  isAssignment Boolean @default(false)
+  deadline     DateTime?
+  submissions  AssignmentSubmission[]
+
   @@index([courseId])
   @@index([teacherId])
 }
@@ -398,3 +407,93 @@ model OtpVerification {
   expiresAt DateTime
 }
 
+// ------------------------------------------------------
+// NEW MODELS: E-Commerce & Online Anti-Cheat Testing
+// ------------------------------------------------------
+
+model AssignmentSubmission {
+  id         String   @id @default(cuid())
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  url        String   // PDF URL
+  createdAt  DateTime @default(now())
+
+  @@index([materialId])
+  @@index([studentId])
+}
+
+model StoreItem {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   // TEST_SERIES, NOTES
+  price       Float
+  className   String?
+  board       String?
+  description String?
+  fileUrl     String?  // for notes
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  purchases   StorePurchase[]
+  onlineTests OnlineTest[]    // Relation if it's a test series
+}
+
+model StorePurchase {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        StoreItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  paymentId   String?   // Razorpay payment ID
+  status      String    @default("PENDING") // SUCCESS, PENDING, FAILED
+  amount      Float
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@index([itemId])
+}
+
+model OnlineTest {
+  id              String   @id @default(cuid())
+  title           String
+  storeItemId     String
+  storeItem       StoreItem @relation(fields: [storeItemId], references: [id], onDelete: Cascade)
+  durationMinutes Int
+  totalMarks      Float
+  createdAt       DateTime @default(now())
+
+  questions       OnlineTestQuestion[]
+  submissions     OnlineTestSubmission[]
+  
+  @@index([storeItemId])
+}
+
+model OnlineTestQuestion {
+  id            String   @id @default(cuid())
+  onlineTestId  String
+  onlineTest    OnlineTest @relation(fields: [onlineTestId], references: [id], onDelete: Cascade)
+  questionText  String   @db.Text
+  options       String   // JSON string of options array
+  correctOption Int      // Index of correct option (0, 1, 2, 3)
+  marks         Float    @default(1)
+  explanation   String?  @db.Text
+
+  @@index([onlineTestId])
+}
+
+model OnlineTestSubmission {
+  id            String   @id @default(cuid())
+  onlineTestId  String
+  onlineTest    OnlineTest @relation(fields: [onlineTestId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  score         Float
+  timeTaken     Int      // seconds
+  autoSubmitted Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@unique([onlineTestId, studentId])
+  @@index([studentId])
+}

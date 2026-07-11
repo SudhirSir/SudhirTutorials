@@ -26,6 +26,9 @@ interface LecturesSectionProps {
   setSubTab?: (tab: 'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN') => void;
 }
 
+let globalCachedLectures: Lecture[] | null = null;
+let globalCachedBatches: any[] | null = null;
+
 export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}) {
   const { data: session } = useSession();
   const role = (session?.user as any)?.role || 'STUDENT';
@@ -156,12 +159,28 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
   }, [role]);
 
   const fetchLectures = async () => {
+    if (globalCachedLectures) {
+      setLectures(globalCachedLectures);
+      setLoading(false);
+      const liveLectures = globalCachedLectures.filter((l: Lecture) => l.type === 'LIVE');
+      if (liveLectures.length > 0) setActiveLecture(liveLectures[0]);
+      else if (globalCachedLectures.length > 0) setActiveLecture(globalCachedLectures[0]);
+      
+      // Fetch silently in background to update cache
+      fetch('/api/lectures').then(r => r.json()).then(data => {
+        globalCachedLectures = data.lectures || [];
+        setLectures(globalCachedLectures || []);
+      }).catch(e => console.error(e));
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/lectures');
       if (res.ok) {
         const data = await res.json();
-        setLectures(data.lectures || []);
+        globalCachedLectures = data.lectures || [];
+        setLectures(globalCachedLectures || []);
         
         // Auto-play first live lecture if available
         const liveLectures = (data.lectures || []).filter((l: Lecture) => l.type === 'LIVE');
@@ -179,11 +198,29 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
   };
 
   const fetchBatches = async () => {
+    if (globalCachedBatches) {
+      processBatches(globalCachedBatches);
+      // Background update
+      fetch('/api/admin/batches').then(r => r.json()).then(data => {
+        globalCachedBatches = data.batches || [];
+        processBatches(globalCachedBatches || []);
+      }).catch(e => console.error(e));
+      return;
+    }
+
     try {
       const res = await fetch('/api/admin/batches');
       if (res.ok) {
         const data = await res.json();
-        const allBatches = data.batches || [];
+        globalCachedBatches = data.batches || [];
+        processBatches(globalCachedBatches || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const processBatches = (allBatches: any[]) => {
         
         if (role === 'TEACHER') {
           // Filter batches where teacher teaches
@@ -194,15 +231,11 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
           if (teacherBatches.length > 0) {
             setAssignForm(prev => ({ ...prev, batchId: teacherBatches[0].id }));
           }
-        } else {
-          setBatches(allBatches);
-          if (allBatches.length > 0) {
-            setAssignForm(prev => ({ ...prev, batchId: allBatches[0].id }));
-          }
-        }
+    } else {
+      setBatches(allBatches);
+      if (allBatches.length > 0) {
+        setAssignForm(prev => ({ ...prev, batchId: allBatches[0].id }));
       }
-    } catch (e) {
-      console.error(e);
     }
   };
 
@@ -424,7 +457,7 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
           {/* Grid of LIVE lectures only */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-              <div className="spinner" style={{ margin: '0 auto 1rem' }} />
+              <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <div>Loading active stream listings...</div>
             </div>
           ) : filteredLectures.filter(l => l.type === 'LIVE').length === 0 ? (
@@ -544,7 +577,7 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
           {/* Grid of RECORDED lectures only */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-              <div className="spinner" style={{ margin: '0 auto 1rem' }} />
+              <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <div>Loading recorded library archive...</div>
             </div>
           ) : filteredLectures.filter(l => l.type === 'RECORDED').length === 0 ? (

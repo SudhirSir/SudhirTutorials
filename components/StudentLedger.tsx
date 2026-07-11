@@ -11,6 +11,7 @@ interface StudentLedgerProps {
   onCollect?: (fee: any) => void;
   onEdit?: (fee: any) => void;
   onDelete?: (feeId: string) => void;
+  onVerify?: (feeId: string) => void;
 }
 
 const MONTHS_LIST = [
@@ -26,7 +27,8 @@ export function StudentLedger({
   isAdmin = false,
   onCollect,
   onEdit,
-  onDelete
+  onDelete,
+  onVerify
 }: StudentLedgerProps) {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -732,6 +734,12 @@ export function StudentLedger({
                                       🗑️ Delete
                                     </button>
                                   )}
+                                  {(status === 'PAID' || status === 'PAID_ONLINE') && onVerify && (
+                                    <button type="button" onClick={() => onVerify(record.id)}
+                                      style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                                      ✅ Verify
+                                    </button>
+                                  )}
                                 </>
                               )}
                               
@@ -895,6 +903,13 @@ export function StudentLedger({
                                   🗑️ Delete
                                 </button>
                               )}
+                              {isAdmin && (p.fee.status === 'PAID' || p.fee.status === 'PAID_ONLINE') && onVerify && (
+                                <button type="button" onClick={() => onVerify(p.fee.id)}
+                                  style={{ padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                                  title="Verify Fee">
+                                  ✅ Verify
+                                </button>
+                              )}
                               {p.type === 'CREDIT' && onViewReceipt && (
                                 <button type="button" onClick={() => onViewReceipt(p.fee.id)}
                                   style={{ padding: '4px 8px', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
@@ -962,14 +977,22 @@ export function StudentLedger({
                       </span>
                     </td>
                     <td style={{ textAlign: 'center', paddingRight: '1.5rem' }}>
-                      {onViewReceipt ? (
-                        <button type="button" onClick={() => onViewReceipt(p.id)}
-                          style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, transition: 'all 0.2s' }}>
-                          View Receipt
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>N/A</span>
-                      )}
+                      <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                        {isAdmin && (p.status === 'PAID' || p.status === 'PAID_ONLINE') && onVerify && (
+                          <button type="button" onClick={() => onVerify(p.id)}
+                            style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, transition: 'all 0.2s' }}>
+                            ✅ Verify
+                          </button>
+                        )}
+                        {onViewReceipt ? (
+                          <button type="button" onClick={() => onViewReceipt(p.id)}
+                            style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, transition: 'all 0.2s' }}>
+                            View Receipt
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>N/A</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

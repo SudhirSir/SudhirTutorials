@@ -19,6 +19,17 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Registration State
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regOtp, setRegOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [regError, setRegError] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       const role = (session.user as any).role || "STUDENT";
@@ -30,10 +41,17 @@ export default function LoginPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const err = params.get("error");
+      const isReg = params.get("register");
+      
       if (err === "concurrent_login") {
         setError("You have been signed out because your account was logged in from another device/browser.");
       } else if (err === "session_expired") {
         setError("Your session has expired. Please sign in again.");
+      }
+
+      if (isReg === "true") {
+        setIsRegistering(true);
+        setActiveTab("student");
       }
     }
   }, []);
@@ -145,6 +163,73 @@ export default function LoginPage() {
     }
   };
 
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError("");
+    setRegLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: regEmail, type: 'EMAIL_VERIFICATION' })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRegError(data.error || "Failed to send OTP.");
+      } else {
+        setOtpSent(true);
+        if (data.isMock) {
+          console.log("MOCK OTP:", data.mockOtp);
+        }
+      }
+    } catch (err) {
+      setRegError("Network error. Please try again.");
+    }
+    setRegLoading(false);
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError("");
+    setRegLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: regName, email: regEmail, phone: regPhone, password: regPassword, otp: regOtp })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setRegError(data.error || "Failed to register.");
+        setRegLoading(false);
+      } else {
+        // Log them in immediately
+        sessionStorage.setItem('tabSessionActive', 'true');
+        const loginRes = await signIn("credentials", {
+          redirect: false,
+          username: regEmail,
+          password: regPassword,
+          role: "student",
+          isApp: Capacitor.isNativePlatform().toString()
+        });
+
+        if (loginRes?.error) {
+          setRegError("Account created, but failed to log in automatically. Please go back to login.");
+          setRegLoading(false);
+        } else {
+          sessionStorage.setItem('onboarding_allowed', 'true');
+          router.push('/dashboard/student');
+        }
+      }
+    } catch (err) {
+      setRegError("Network error. Please try again.");
+      setRegLoading(false);
+    }
+  };
+
   const tabs = [
     { id: "student", label: "Student", icon: "🎓", color: "#2563eb" },
     { id: "teacher", label: "Teacher", icon: "👨‍🏫", color: "#10b981" },
@@ -167,12 +252,17 @@ export default function LoginPage() {
 
         <div style={{ maxWidth: '420px', width: '100%', margin: '0' }}>
           <div style={{ marginBottom: '2.5rem' }}>
-            <h1 className="login-title-h1" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>Welcome Back</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Enter your credentials to access your account.</p>
+            <h1 className="login-title-h1" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
+              {isRegistering ? 'Create Account' : 'Welcome Back'}
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+              {isRegistering ? 'Sign up to access Notes and Test Series.' : 'Enter your credentials to access your account.'}
+            </p>
           </div>
 
-          {/* Role Selection */}
-          <div className="login-tabs-header" style={{ display: 'flex', background: 'var(--card-bg-alt)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
+          {/* Role Selection (Only if not registering) */}
+          {!isRegistering && (
+            <div className="login-tabs-header" style={{ display: 'flex', background: 'var(--card-bg-alt)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
             {tabs.map(tab => (
               <button
                 key={tab.id}
@@ -199,15 +289,23 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
+          )}
 
-          {error && (
+          {!isRegistering && error && (
             <div className="animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', padding: '1rem', borderRadius: '12px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               ⚠️ {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div>
+          {isRegistering && regError && (
+            <div className="animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', padding: '1rem', borderRadius: '12px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚠️ {regError}
+            </div>
+          )}
+
+          {!isRegistering ? (
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Username / ID</label>
               <input
                 type="text"
@@ -302,31 +400,90 @@ export default function LoginPage() {
             </div>
 
             <button 
-              type="submit" 
-              disabled={loading}
-              style={{ 
-                width: '100%', 
-                padding: '1.2rem', 
-                background: activeColor,
-                color: '#fff',
-                border: 'none',
-                borderRadius: '12px',
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
-                boxShadow: `0 4px 20px -5px ${activeColor}80`,
-                marginTop: '1rem',
-                transition: 'transform 0.2s'
-              }}
-              onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              {loading ? "Authenticating..." : `Sign In as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
-            </button>
-          </form>
+                type="submit" 
+                disabled={loading}
+                style={{ 
+                  width: '100%', 
+                  padding: '1.2rem', 
+                  background: activeColor,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  boxShadow: `0 4px 20px -5px ${activeColor}80`,
+                  marginTop: '1rem',
+                  transition: 'transform 0.2s'
+                }}
+                onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                {loading ? "Authenticating..." : `Sign In as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={otpSent ? handleRegister : handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {!otpSent ? (
+                <>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Full Name</label>
+                    <input type="text" placeholder="Your Name" value={regName} onChange={(e) => setRegName(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Email Address</label>
+                    <input type="email" placeholder="student@example.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Phone Number (Optional)</label>
+                    <input type="tel" placeholder="1234567890" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Create a Password</label>
+                    <input type="password" placeholder="••••••••" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                  </div>
+                  <button type="submit" disabled={regLoading} style={{ width: '100%', padding: '1.2rem', background: activeColor, color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '1.1rem', cursor: regLoading ? 'not-allowed' : 'pointer', opacity: regLoading ? 0.7 : 1, marginTop: '1rem' }}>
+                    {regLoading ? "Sending Code..." : "Send Verification Code"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontSize: '0.9rem', border: '1px solid rgba(16,185,129,0.2)', textAlign: 'center' }}>
+                    Verification code sent to <strong>{regEmail}</strong>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Enter 6-digit Code</label>
+                    <input type="text" placeholder="123456" value={regOtp} onChange={(e) => setRegOtp(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1.2rem', textAlign: 'center', letterSpacing: '4px', fontWeight: 'bold' }} maxLength={6} />
+                  </div>
+                  <button type="submit" disabled={regLoading} style={{ width: '100%', padding: '1.2rem', background: activeColor, color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '1.1rem', cursor: regLoading ? 'not-allowed' : 'pointer', opacity: regLoading ? 0.7 : 1, marginTop: '1rem' }}>
+                    {regLoading ? "Verifying..." : "Verify & Register"}
+                  </button>
+                  <button type="button" onClick={() => setOtpSent(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Change email address
+                  </button>
+                </>
+              )}
+            </form>
+          )}
 
-          {activeTab !== 'admin' && (
+          {!isRegistering ? (
+            <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+              New Student?{' '}
+              <button onClick={() => { setIsRegistering(true); setError(""); }} style={{ background: 'none', border: 'none', color: activeColor, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                Create an Account
+              </button>
+            </p>
+          ) : (
+            <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+              Already have an account?{' '}
+              <button onClick={() => { setIsRegistering(false); setRegError(""); }} style={{ background: 'none', border: 'none', color: activeColor, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                Sign In
+              </button>
+            </p>
+          )}
+
+          {activeTab !== 'admin' && !isRegistering && (
              <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                 First time login? Please use the default credentials provided by the institute administration.
              </p>

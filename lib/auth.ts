@@ -1,11 +1,16 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { prisma, withDbRetry } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "placeholder-client-id",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "placeholder-client-secret",
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -21,8 +26,13 @@ export const authOptions: NextAuthOptions = {
         try {
           // Fetch the user with robust database retries (handles cold starts and network drops)
           const user = await withDbRetry(
-            () => prisma.user.findUnique({
-              where: { username: credentials.username },
+            () => prisma.user.findFirst({
+              where: {
+                OR: [
+                  { username: credentials.username },
+                  { studentProfile: { email: credentials.username } }
+                ]
+              },
               select: {
                 id: true,
                 username: true,
@@ -155,19 +165,60 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.role = (user as any).role;
-        token.username = (user as any).username;
-        token.id = user.id;
-        token.mustChangePassword = (user as any).mustChangePassword;
-        token.onboardingCompleted = (user as any).onboardingCompleted;
-        token.isProfileVerified = (user as any).isProfileVerified;
-        token.activeToken = (user as any).activeToken;
+        if (trigger === 'signIn' && token.email && !token.id) {
+          // This is an OAuth sign in (Google)
+          let dbUser = await withDbRetry(() => prisma.user.findFirst({ where: { studentProfile: { email: token.email as string } } }));
+          if (!dbUser) {
+            // Create user
+            const baseUsername = token.email.split('@')[0];
+            let uniqueUsername = baseUsername;
+            let counter = 1;
+            while (await withDbRetry(() => prisma.user.findUnique({ where: { username: uniqueUsername } }))) {
+              uniqueUsername = `${baseUsername}${counter}`;
+              counter++;
+            }
+            dbUser = await withDbRetry(() => prisma.user.create({
+              data: {
+                username: uniqueUsername,
+                name: token.name || uniqueUsername,
+                passwordHash: 'OAUTH_PENDING_PASSWORD',
+                role: 'STUDENT',
+                mustChangePassword: true,
+                onboardingCompleted: false,
+                isProfileVerified: false,
+                studentProfile: {
+                  create: {
+                    email: token.email as string
+                  }
+                }
+              }
+            }));
+          }
+          token.role = dbUser.role;
+          token.username = dbUser.username;
+          token.id = dbUser.id;
+          token.mustChangePassword = dbUser.mustChangePassword;
+          token.onboardingCompleted = dbUser.onboardingCompleted;
+          token.isProfileVerified = dbUser.isProfileVerified;
+          token.activeToken = dbUser.activeToken;
+        } else {
+          // Credentials login
+          token.role = (user as any).role;
+          token.username = (user as any).username;
+          token.id = user.id;
+          token.email = (user as any).email;
+          token.mustChangePassword = (user as any).mustChangePassword;
+          token.onboardingCompleted = (user as any).onboardingCompleted;
+          token.isProfileVerified = (user as any).isProfileVerified;
+          token.activeToken = (user as any).activeToken;
+        }
       }
       if (trigger === 'update' && session) {
         if (session.mustChangePassword !== undefined) token.mustChangePassword = session.mustChangePassword;
         if (session.onboardingCompleted !== undefined) token.onboardingCompleted = session.onboardingCompleted;
         if (session.isProfileVerified !== undefined) token.isProfileVerified = session.isProfileVerified;
         if (session.activeToken !== undefined) token.activeToken = session.activeToken;
+        if (session.email !== undefined) token.email = session.email;
       }
       return token;
     },
@@ -176,6 +227,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).username = token.username;
         (session.user as any).id = token.id;
+        (session.user as any).email = token.email;
         (session.user as any).mustChangePassword = token.mustChangePassword;
         (session.user as any).onboardingCompleted = token.onboardingCompleted;
         (session.user as any).isProfileVerified = token.isProfileVerified;

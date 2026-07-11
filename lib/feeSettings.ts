@@ -24,7 +24,7 @@ export async function getLateFineSettings() {
     
     let perDayFine = 10;
     let flatFineAfter10Days = 100;
-    let feeDueDay = 12;
+    let feeDueDay = 15;
     
     for (const s of settings) {
       if (s.key === 'perDayFine') {
@@ -37,7 +37,7 @@ export async function getLateFineSettings() {
       }
       if (s.key === 'feeDueDay') {
         feeDueDay = parseInt(s.value, 10);
-        if (isNaN(feeDueDay) || feeDueDay < 1 || feeDueDay > 31) feeDueDay = 12;
+        if (isNaN(feeDueDay) || feeDueDay < 1 || feeDueDay > 31) feeDueDay = 15;
       }
     }
     
@@ -46,6 +46,6 @@ export async function getLateFineSettings() {
     return cachedLateFineSettings;
   } catch (err) {
     console.warn("Failed to fetch late fine settings from DB, using default values:", err);
-    return { perDayFine: 10, flatFineAfter10Days: 100, feeDueDay: 12 };
+    return { perDayFine: 10, flatFineAfter10Days: 100, feeDueDay: 15 };
   }
 }

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Storefront } from '@/components/Storefront';
 // Removed ScholarshipPredictor3D import
 
 // Math/science formulas for the floating background animation
@@ -56,6 +57,16 @@ export default function Home() {
   const [doubtText, setDoubtText] = useState<string>("");
   const [doubtResponse, setDoubtResponse] = useState<string>("");
   const [typingDoubt, setTypingDoubt] = useState<boolean>(false);
+  const [aiQuestionsAsked, setAiQuestionsAsked] = useState<number>(0);
+  const [aiLimitReached, setAiLimitReached] = useState<boolean>(false);
+
+  useEffect(() => {
+    const asked = parseInt(localStorage.getItem('st_guru_ji_asked') || '0', 10);
+    setAiQuestionsAsked(asked);
+    if (asked >= 2) {
+      setAiLimitReached(true);
+    }
+  }, []);
 
   // Math problems rotating daily (Index 0-6 corresponding to new Date().getDay())
   const mathQuestions = [
@@ -202,6 +213,20 @@ export default function Home() {
   const handleSolveDoubt = (e: React.FormEvent) => {
     e.preventDefault();
     if (!doubtText.trim()) return;
+
+    if (aiLimitReached) {
+      return;
+    }
+
+    const newCount = aiQuestionsAsked + 1;
+    setAiQuestionsAsked(newCount);
+    localStorage.setItem('st_guru_ji_asked', newCount.toString());
+
+    if (newCount > 2) {
+      setAiLimitReached(true);
+      return;
+    }
+
     setTypingDoubt(true);
     setDoubtResponse("");
 
@@ -269,6 +294,7 @@ export default function Home() {
         <nav className="navbar-links">
           <Link href="#programs" className="nav-link">Flagship Programs</Link>
           <Link href="/admissions" className="nav-link">Admissions</Link>
+          <Link href="#storefront" className="nav-link">Notes/Test Series</Link>
           <Link href="#about" className="nav-link">Why Us</Link>
           <Link href="/careers" className="nav-link">Careers</Link>
           <Link href="/login" className="login-portal-btn">
@@ -297,13 +323,13 @@ export default function Home() {
             fontFamily: 'var(--font-poppins)',
             textShadow: '0 2px 10px rgba(59, 130, 246, 0.15)',
           }} className="hero-tagline-quote">
-            “Sahab Hum Jabardasti nhi, Zabardast padhate hai”
+            “साहब हम जबरदस्ती नहीं, जबरदस्त पढ़ाते हैं”
           </div>
           <p className="hero-subtitle">
             Empowering every student with AI-driven intelligence. A premium digital learning ecosystem designed to personalize education, boost confidence, and drive academic success.
           </p>
           <div className="hero-cta-buttons">
-            <Link href="/login" className="btn-primary-hero">Student Login</Link>
+            <Link href="/login" className="btn-primary-hero">Login Now</Link>
             <Link href="/admissions" className="btn-secondary-hero" style={{ border: '1.5px solid var(--border)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
               Admission Form
             </Link>
@@ -315,36 +341,44 @@ export default function Home() {
           <div className="glass-card widget-card">
             <div className="widget-header">
               <span className="widget-badge">LIVE DEMO</span>
-              <h3>Digital Guru Ji – AI Assistant</h3>
+              <h3>ST Guru Ji</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>24/7 AI assistant and doubt solver in human voice</p>
             </div>
-            <p className="widget-intro">Type a question below to test our integrated AI Study Companion:</p>
             
-            <form onSubmit={handleSolveDoubt} className="widget-form">
-              <input 
-                type="text" 
-                placeholder="e.g. Explain Newton's laws or quadratic formula" 
-                value={doubtText}
-                onChange={e => setDoubtText(e.target.value)}
-                className="widget-input"
-                disabled={typingDoubt}
-              />
-              <button type="submit" className="widget-submit" disabled={typingDoubt}>
-                {typingDoubt ? 'Solving...' : 'Ask Guru Ji'}
-              </button>
-            </form>
+            <form onSubmit={handleSolveDoubt} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: 'auto' }}>
+                {aiLimitReached ? (
+                  <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '12px', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--text)', marginBottom: '0.5rem', fontSize: '0.95rem', fontWeight: 600 }}>ST Guru Ji trial limit reached! (2/2 questions)</p>
+                    <button type="button" onClick={() => window.location.href = '/login'} style={{ padding: '0.5rem 1rem', background: '#ef4444', color: '#fff', borderRadius: '8px', border: 'none', fontWeight: 700, cursor: 'pointer' }}>
+                      Join Sudhir Tutorials to Unlock
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input 
+                      type="text" 
+                      value={doubtText}
+                      onChange={e => setDoubtText(e.target.value)}
+                      placeholder="Type your question here..." 
+                      className="auth-input"
+                      style={{ padding: '1rem', fontSize: '1rem', background: 'rgba(0,0,0,0.2)' }}
+                    />
+                    <button type="submit" disabled={typingDoubt || !doubtText.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem' }}>
+                      <span style={{ fontSize: '1.2rem' }}>✨</span>
+                      {typingDoubt ? 'Solving...' : 'Ask ST Guru Ji'}
+                    </button>
+                  </>
+                )}
+              </form>
 
-            <div className="widget-response-box">
-              {doubtResponse ? (
+            {doubtResponse && (
+              <div className="widget-response-box">
                 <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.85rem', color: 'var(--text)', margin: 0 }}>
                   {doubtResponse}
                   {typingDoubt && <span className="typing-cursor">|</span>}
                 </pre>
-              ) : (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Tip: Ask "What is Photosynthesis?" or "Newton's laws" to get instant answers.
-                </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -448,7 +482,7 @@ export default function Home() {
                   transition: 'all 0.2s ease'
                 }}
               >
-                🤖 Download for Android (APK)
+                🤖 Download Mobile App
               </a>
             </div>
           </div>
@@ -793,11 +827,12 @@ export default function Home() {
               "At <span style={{ fontWeight: 800, color: 'var(--primary)' }}>SUDHIR</span> <span style={{ fontWeight: 800, color: 'var(--secondary)' }}>TUTORIALS</span>, we believe that education is not merely the transmission of textbook knowledge, but the ignition of a lifelong passion for critical thinking."
             </p>
             <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
-              Over the last decade, we have watched thousands of students walk through our doors, overcome their academic anxieties, and secure premium ranks in IITs, AIIMS, and state boards. Our pedagogy is built strictly on three core pillars: structured offline practice, transparent cognitive tracking, and empathetic personal mentorship. We don't just prepare you for examinations; we teach you how to think, learn, and conquer any analytical hurdle. Welcome to your bridge to academic excellence.
+              Over the last decade, we have watched thousands of students walk through our doors, overcome their academic anxieties, and secure premium results in their respective board and competitive examinations. Our pedagogy is built strictly on three core pillars: structured offline practice, transparent cognitive tracking, and empathetic personal mentorship. We don't just prepare you for examinations; we teach you how to think, learn, and conquer any analytical hurdle. Welcome to your bridge to academic excellence.
             </p>
             <div style={{ marginTop: '1rem' }}>
-              <strong style={{ fontSize: '1.25rem', color: 'var(--text-heading)', display: 'block' }}>Sudhir Singh</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 650 }}>Founder & Maths Educator, <span style={{ color: 'var(--primary)', fontWeight: 800 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>TUTORIALS</span></span>
+              <strong style={{ fontSize: '1.25rem', color: 'var(--text-heading)', display: 'block' }}>Sudhir Singh,</strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 650, display: 'block' }}>Founder & Educator,</span>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 800 }}><span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span></span>
             </div>
           </div>
         </div>
@@ -816,8 +851,8 @@ export default function Home() {
           <div className="features-left">
             {[
               { 
-                title: 'Elite IITian & Doctor Mentorship', 
-                desc: 'Learn directly from battle-tested educators who have cleared these elite exams themselves. Our faculty focuses on cognitive concept building rather than rote learning, bridging the gap between effort and high rank results.', 
+                title: 'Expert Faculty Mentorship', 
+                desc: 'Learn directly from battle-tested educators who have years of teaching experience. Our faculty focuses on cognitive concept building rather than rote learning, bridging the gap between effort and high academic results.', 
                 icon: (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
@@ -889,6 +924,9 @@ export default function Home() {
       </section>
 
       {/* Footer */}
+      {/* Premium Storefront Section */}
+      <Storefront />
+
       <footer className="footer-container">
         <div className="footer-grid">
           <div className="footer-brand-col">

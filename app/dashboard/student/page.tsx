@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
+import { StudentPurchases } from '@/components/StudentPurchases';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
@@ -159,6 +160,7 @@ function StudentDashboardContent() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [materials, setMaterials] = useState<any[]>([]);
   const [materialsLoading, setMaterialsLoading] = useState(false);
+  const materialsFetchedRef = useRef(false);
   const [fees, setFees] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
 
@@ -524,13 +526,15 @@ function StudentDashboardContent() {
   };
 
   const fetchMaterials = async () => {
+    if (materialsFetchedRef.current) return;
     setMaterialsLoading(true);
     try {
-       const res = await fetch('/api/student/materials');
-       if (res.ok) {
-         const data = await res.json();
-         setMaterials(data.materials || []);
-       }
+      const res = await fetch('/api/student/materials');
+      if (res.ok) {
+        const data = await res.json();
+        setMaterials(data.materials || []);
+        materialsFetchedRef.current = true;
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -868,7 +872,7 @@ function StudentDashboardContent() {
 
       {/* Tabs */}
       <div className="dashboard-tab-bar no-scrollbar no-print">
-        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
+        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'purchases', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => handleTabChange(tab)}
@@ -886,6 +890,7 @@ function StudentDashboardContent() {
              tab === 'materials' ? 'Study Materials' :
              tab === 'tests' ? 'Tests & Marks' :
              tab === 'fees' ? 'Pay/View fees' :
+             tab === 'purchases' ? 'My Purchases' :
              tab === 'lectures' ? 'Lectures/Classes' :
              tab === 'guru-ji' ? 'ST Guru ji' :
              tab === 'messages' ? 'My Chats' :
@@ -1187,9 +1192,9 @@ function StudentDashboardContent() {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Course Materials</h2>
           <div style={{ display: 'grid', gap: '1rem' }}>
             {materialsLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem' }}>
-                <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid #f3f3f3', borderTop: '2px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading study materials...</span>
+              <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+                <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <div>Loading study materials...</div>
               </div>
             ) : materials.length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No materials have been uploaded for your courses yet.</p>
@@ -1253,6 +1258,12 @@ function StudentDashboardContent() {
           )}
           
           <StudentLedger onPayOnline={handlePayOnline} onViewReceipt={viewReceipt} />
+        </div>
+      )}
+
+      {activeTab === 'purchases' && (
+        <div className="fade-in">
+          <StudentPurchases />
         </div>
       )}
 

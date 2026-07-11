@@ -21,7 +21,7 @@ export async function GET() {
     sixMonthsAgo.setDate(1);
 
     // Parallelize all financial queries to drastically minimize database round-trip times
-    const [payments, expenses, pendingAggregate] = await Promise.all([
+    const [payments, expenses, pendingAggregate, currentMonthFees] = await Promise.all([
       withDbRetry(() => prisma.payment.findMany({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
@@ -35,11 +35,26 @@ export async function GET() {
       })),
       withDbRetry(() => prisma.payment.findMany({
         select: { amount: true, paidAmount: true, lateFine: true, discount: true }
+      })),
+      withDbRetry(() => prisma.payment.findMany({
+        where: { billingMonth: currentMonth },
+        select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true }
       }))
     ]);
 
     const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
     const totalExpenses = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
+
+    const currentMonthCollected = currentMonthFees.reduce((acc: number, f: any) => {
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
+        return acc + (f.paidAmount || (f.amount + (f.lateFine || 0) - (f.discount || 0)));
+      }
+      return acc + (f.paidAmount || 0);
+    }, 0);
+
+    const currentMonthPending = currentMonthFees.reduce((acc: number, f: any) => {
+      return acc + Math.max(0, f.amount + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0));
+    }, 0);
 
     // Sum the actual outstanding balance of all pending/partially paid payments
     const totalPending = pendingAggregate.reduce((acc: number, p: any) => {
@@ -75,6 +90,8 @@ export async function GET() {
       totalRevenue,
       totalExpenses,
       totalPending,
+      currentMonthCollected,
+      currentMonthPending,
       netProfit: totalRevenue - totalExpenses,
       monthlyData
     });

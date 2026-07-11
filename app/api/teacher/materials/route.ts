@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { title, type, url, courseId } = await req.json();
+    const { title, type, url, courseId, isAssignment, deadline } = await req.json();
 
     if (!title || !type || !url || !courseId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -74,7 +74,9 @@ export async function POST(req: Request) {
         type,
         url,
         courseId,
-        teacherId: session.user.id
+        teacherId: session.user.id,
+        isAssignment: isAssignment === true,
+        deadline: deadline ? new Date(deadline) : null
       },
       include: {
         course: { select: { name: true } }

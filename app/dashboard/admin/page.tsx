@@ -14,6 +14,7 @@ import { StudentLedger } from '@/components/StudentLedger';
 import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { AdmissionsSection } from '@/components/AdmissionsSection';
+import { AdminStoreManager } from '@/components/AdminStoreManager';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 
 function formatDobDisplay(dobStr: string | null | undefined): string {
@@ -1371,27 +1372,6 @@ function AdminDashboardContent() {
     handleTabChange(tab);
   };
 
-  const currentMonthFees = useMemo(() => {
-    const currentMonthYear = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    return fees.filter(f => f.billingMonth === currentMonthYear);
-  }, [fees]);
-
-  const currentMonthCollected = useMemo(() => {
-    return currentMonthFees.reduce((acc, f) => {
-      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
-        const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-        return acc + (f.paidAmount || (f.amount + fineVal - f.discount));
-      }
-      return acc + (f.paidAmount || 0);
-    }, 0);
-  }, [currentMonthFees]);
-
-  const currentMonthPending = useMemo(() => {
-    return currentMonthFees.reduce((acc, f) => {
-      const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-      return acc + Math.max(0, f.amount + fineVal - f.discount - (f.paidAmount || 0));
-    }, 0);
-  }, [currentMonthFees]);
   const [feeSearchQuery, setFeeSearchQuery] = useState('');
   const [showLedgerSuggestions, setShowLedgerSuggestions] = useState(false);
   const [showDirSuggestions, setShowDirSuggestions] = useState(false);
@@ -1482,6 +1462,8 @@ function AdminDashboardContent() {
     totalRevenue: number;
     totalExpenses: number;
     totalPending: number;
+    currentMonthCollected?: number;
+    currentMonthPending?: number;
     netProfit: number;
     monthlyData: any[];
   }>({
@@ -1491,6 +1473,9 @@ function AdminDashboardContent() {
     netProfit: 0,
     monthlyData: []
   });
+  const currentMonthCollected = finSummary?.currentMonthCollected || 0;
+  const currentMonthPending = finSummary?.currentMonthPending || 0;
+
   const [isLoadingFinSummary, setIsLoadingFinSummary] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [isLoadingFees, setIsLoadingFees] = useState(false);
@@ -3189,7 +3174,7 @@ function AdminDashboardContent() {
 
       {/* Tabs */}
       <div className="dashboard-tab-bar no-scrollbar no-print">
-        {['overview', 'users', 'verifications', 'finances', 'salary', 'academics', 'guru-ai', 'messages', 'notifications', 'profile', 'settings'].map(tab => (
+        {['overview', 'users', 'verifications', 'finances', 'salary', 'academics', 'store-manager', 'guru-ai', 'messages', 'notifications', 'profile', 'settings'].map(tab => (
           <button 
             key={tab}
             onClick={() => {
@@ -3214,6 +3199,7 @@ function AdminDashboardContent() {
              tab === 'finances' ? 'Finances & Fees' :
              tab === 'salary' ? 'Staff Salaries' :
              tab === 'academics' ? 'Academic Services' :
+             tab === 'store-manager' ? 'Store Manager' :
              tab === 'guru-ai' ? 'ST Guru ji' :
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
@@ -3793,7 +3779,7 @@ function AdminDashboardContent() {
               <div style={{ position: 'relative', width: '100%', maxWidth: '850px', marginBottom: '2rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Search by Name or ID (e.g. Rahul, STU12345)..." 
+                  placeholder="Search by Name or ID..." 
                   value={searchQuery}
                   onChange={e => {
                     setSearchQuery(e.target.value);
@@ -6480,6 +6466,12 @@ function AdminDashboardContent() {
         </div>
       )}
 
+      {activeTab === 'store-manager' && (
+        <div className="fade-in">
+          <AdminStoreManager />
+        </div>
+      )}
+
       {activeTab === 'guru-ai' && (
         <div 
           className="animate-scale-up" 
@@ -7754,6 +7746,19 @@ function AdminDashboardContent() {
                      </select>
                    </div>
                    <div className="input-group">
+                     <label>Gender</label>
+                     <select 
+                       value={editingProfile.gender || ''}
+                       onChange={e => setEditingProfile({...editingProfile, gender: e.target.value})}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                     >
+                       <option value="">Select Gender...</option>
+                       <option value="Male">Male</option>
+                       <option value="Female">Female</option>
+                       <option value="Other">Other</option>
+                     </select>
+                   </div>
+                   <div className="input-group">
                      <label>Father's Name</label>
                      <input type="text" value={editingProfile.fatherName || ''} maxLength={150} onChange={e => {
                         const val = e.target.value;
@@ -7761,18 +7766,6 @@ function AdminDashboardContent() {
                           setEditingProfile({...editingProfile, fatherName: val});
                         }
                       }} placeholder="Full Name" />
-                   </div>
-                   <div className="input-group">
-                     <label>Parent Contact</label>
-                     <input type="text" value={editingProfile.parentContact || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, parentContact: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
-                   </div>
-                   <div className="input-group">
-                     <label>Student ID / Roll No</label>
-                     <input type="text" value={editingProfile.rollNumber || ''} onChange={e => setEditingProfile({...editingProfile, rollNumber: e.target.value})} placeholder="STU-001" />
-                   </div>
-                   <div className="input-group">
-                     <label>Monthly Fee (Base ₹)</label>
-                     <input type="number" value={editingProfile.baseFee || ''} onChange={e => setEditingProfile({...editingProfile, baseFee: parseFloat(e.target.value)})} placeholder="e.g. 2500" />
                    </div>
                    <div className="input-group">
                      <label>Class / Grade</label>
@@ -7800,11 +7793,26 @@ function AdminDashboardContent() {
                      <input type="text" value={editingProfile.board || ''} onChange={e => setEditingProfile({...editingProfile, board: e.target.value})} placeholder="e.g. CBSE / ICSE" />
                    </div>
                    <div className="input-group">
+                     <label>Monthly Fee (Base ₹)</label>
+                     <input type="number" value={editingProfile.baseFee || ''} onChange={e => setEditingProfile({...editingProfile, baseFee: parseFloat(e.target.value)})} placeholder="e.g. 2500" />
+                   </div>
+                   <div className="input-group">
+                     <label>Scholarship Amount (₹)</label>
+                     <input type="number" value={editingProfile.scholarship || ''} onChange={e => setEditingProfile({...editingProfile, scholarship: parseFloat(e.target.value)})} placeholder="e.g. 500" />
+                   </div>
+                   <div className="input-group">
                      <label>Aadhaar Number</label>
                      <input type="text" value={editingProfile.aadhaarNumber || ''} onChange={e => setEditingProfile({...editingProfile, aadhaarNumber: e.target.value})} placeholder="12-digit Aadhaar" />
                    </div>
                    <div className="input-group">
-                     <label>Scholarship Amount (₹)</label>
+                     <label>Parent Contact</label>
+                     <input type="text" value={editingProfile.parentContact || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, parentContact: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
+                   </div>
+                   <div className="input-group">
+                     <label>Student ID / Roll No</label>
+                     <input type="text" value={editingProfile.rollNumber || ''} onChange={e => setEditingProfile({...editingProfile, rollNumber: e.target.value})} placeholder="STU-001" />
+                   </div>
+                   <div className="input-group">
                      <label>Batch Name</label>
                      <select 
                        value={editingProfile.batch || ''} 
@@ -7817,40 +7825,27 @@ function AdminDashboardContent() {
                        ))}
                      </select>
                    </div>
+                   <div className="input-group">
+                     <label>Religion</label>
+                     <select 
+                       value={editingProfile.religion || ''}
+                       onChange={e => setEditingProfile({...editingProfile, religion: e.target.value})}
+                       style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
+                     >
+                       <option value="">Select Religion...</option>
+                       <option value="Hinduism">Hinduism</option>
+                       <option value="Islam">Islam</option>
+                       <option value="Christianity">Christianity</option>
+                       <option value="Sikhism">Sikhism</option>
+                       <option value="Buddhism">Buddhism</option>
+                       <option value="Jainism">Jainism</option>
+                       <option value="Other">Other</option>
+                     </select>
+                   </div>
                    <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                      <label>School Name</label>
                      <input type="text" value={editingProfile.school || ''} onChange={e => setEditingProfile({...editingProfile, school: e.target.value})} placeholder="e.g. KV School" />
-                    </div>
-                    <div className="input-group">
-                      <label>Gender</label>
-                      <select 
-                        value={editingProfile.gender || ''}
-                        onChange={e => setEditingProfile({...editingProfile, gender: e.target.value})}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                      >
-                        <option value="">Select Gender...</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    <div className="input-group">
-                       <label>Religion</label>
-                       <select 
-                         value={editingProfile.religion || ''}
-                         onChange={e => setEditingProfile({...editingProfile, religion: e.target.value})}
-                         style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' }}
-                       >
-                         <option value="">Select Religion...</option>
-                         <option value="Hinduism">Hinduism</option>
-                         <option value="Islam">Islam</option>
-                         <option value="Christianity">Christianity</option>
-                         <option value="Sikhism">Sikhism</option>
-                         <option value="Buddhism">Buddhism</option>
-                         <option value="Jainism">Jainism</option>
-                         <option value="Other">Other</option>
-                       </select>
-                     </div>
+                   </div>
 
 
                    <div className="input-group" style={{ gridColumn: '1 / -1', marginTop: '0.75rem', background: 'rgba(245,158,11,0.05)', padding: '1.25rem', borderRadius: '12px', border: '1px dashed rgba(245,158,11,0.3)' }}>
@@ -10150,6 +10145,9 @@ function AdminDashboardContent() {
                           console.error(e);
                           alert('Network error. Failed to load receipt.');
                         }
+                      }}
+                      onVerify={async (feeId) => {
+                        await updateFeeStatus(feeId, 'VERIFIED');
                       }}
                     />
                   </div>
