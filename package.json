@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "mobile:sync": "npm run build && npx cap sync",
+    "mobile:sync": "npm run build && node -e \"const fs = require('fs'); fs.mkdirSync('out', { recursive: true }); fs.copyFileSync('public/offline.html', 'out/offline.html'); fs.copyFileSync('public/logo.png', 'out/logo.png');\" && npx cap sync",
     "mobile:open": "npx cap open android",
     "mobile:open-ios": "npx cap open ios"
   },
