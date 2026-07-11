@@ -227,19 +227,6 @@ export function AppUpdateChecker() {
             Update Later
           </button>
           
-          <div style={{
-            fontSize: '0.72rem',
-            color: '#fbbf24',
-            marginTop: '0.5rem',
-            lineHeight: '1.4',
-            textAlign: 'center',
-            background: 'rgba(251, 191, 36, 0.05)',
-            border: '1px dashed rgba(251, 191, 36, 0.2)',
-            borderRadius: '12px',
-            padding: '0.75rem 0.65rem'
-          }}>
-            ⚠️ <strong>Already updated?</strong> If the app still asks for an update after installing the new APK, please <strong>uninstall the old app first</strong>, then install the new one. (Android blocks signature updates on top of old builds).
-          </div>
         </div>
       </div>
     </div>
