@@ -235,6 +235,14 @@ export default function StoreLoginPage() {
                   required 
                   style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} 
                 />
+                <div style={{ textAlign: 'right', marginTop: '6px' }}>
+                  <Link 
+                    href="/forgot-password" 
+                    style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
               </div>
 
               <button 
@@ -359,7 +367,7 @@ export default function StoreLoginPage() {
           <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
             {!isRegistering ? (
               <>
-                New customer?{' '}
+                New user?{' '}
                 <button onClick={() => { setIsRegistering(true); setRegError(""); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', padding: 0 }}>
                   Create Account
                 </button>

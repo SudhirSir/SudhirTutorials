@@ -148,6 +148,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name || user.username, 
             username: user.username, 
             role: sessionRole,
+            isStoreUser: user.isStoreUser,
             mustChangePassword: user.mustChangePassword,
             onboardingCompleted: user.onboardingCompleted,
             isProfileVerified: user.isProfileVerified,
