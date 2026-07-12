@@ -38,6 +38,84 @@ export function AdminStoreManager() {
   const [marks, setMarks] = useState('1');
   const [explanation, setExplanation] = useState('');
 
+  // Customer Edit/Delete state
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [custName, setCustName] = useState('');
+  const [custEmail, setCustEmail] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+  const [savingCust, setSavingCust] = useState(false);
+  const [deletingCust, setDeletingCust] = useState(false);
+  const [custError, setCustError] = useState('');
+
+  const handleSelectCustomer = (cust: any) => {
+    setSelectedCustomer(cust);
+    setCustName(cust.name || '');
+    setCustEmail(cust.studentProfile?.email || '');
+    setCustPhone(cust.studentProfile?.phone || '');
+    setCustError('');
+  };
+
+  const handleSaveCustomer = async () => {
+    if (!custName.trim()) {
+      setCustError('Name is required');
+      return;
+    }
+    if (custPhone && !/^\d{10}$/.test(custPhone)) {
+      setCustError('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    setSavingCust(true);
+    setCustError('');
+    try {
+      const res = await fetch(`/api/admin/students/${selectedCustomer.username}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: custName,
+          email: custEmail || null,
+          phone: custPhone || null
+        })
+      });
+      if (res.ok) {
+        await fetchCustomers();
+        setSelectedCustomer(null);
+      } else {
+        const err = await res.json();
+        setCustError(err.error || 'Failed to save customer');
+      }
+    } catch (e: any) {
+      setCustError(e.message || 'Error saving changes');
+    } finally {
+      setSavingCust(false);
+    }
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!confirm('Are you sure you want to permanently delete this storefront customer account? This will cascade delete all their purchases, test submissions, and profile details.')) {
+      return;
+    }
+
+    setDeletingCust(true);
+    setCustError('');
+    try {
+      const res = await fetch(`/api/admin/students/${selectedCustomer.username}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        await fetchCustomers();
+        setSelectedCustomer(null);
+      } else {
+        const err = await res.json();
+        setCustError(err.error || 'Failed to delete customer');
+      }
+    } catch (e: any) {
+      setCustError(e.message || 'Error deleting customer');
+    } finally {
+      setDeletingCust(false);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
     fetchSales();
@@ -417,7 +495,13 @@ export function AdminStoreManager() {
                 {customers.map((cust) => {
                   const totalSpent = cust.storePurchases?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
                   return (
-                    <tr key={cust.id}>
+                    <tr 
+                      key={cust.id} 
+                      onClick={() => handleSelectCustomer(cust)}
+                      style={{ cursor: 'pointer', transition: 'background 0.2s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
                       <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>{new Date(cust.createdAt).toLocaleDateString()}</td>
                       <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontWeight: 600 }}>{cust.name || 'N/A'}</td>
                       <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem' }}>{cust.username}</td>
@@ -606,6 +690,73 @@ export function AdminStoreManager() {
           {items.length === 0 && <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '2rem' }}>No store items found.</div>}
         </div>
       ))}
+      {selectedCustomer && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '500px', padding: '2rem', borderRadius: '24px', background: 'rgba(20, 20, 25, 0.95)', border: '1px solid var(--glass-border)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', animation: 'scaleUp 0.3s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Customer Profile & Settings</h3>
+              <button onClick={() => setSelectedCustomer(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer', padding: '4px' }}>&times;</button>
+            </div>
+            
+            {custError && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '0.75rem 1rem', borderRadius: '12px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                {custError}
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Username (Read Only)</label>
+                <input type="text" readOnly value={selectedCustomer.username} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'not-allowed', fontFamily: 'monospace' }} />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Name</label>
+                <input type="text" value={custName} onChange={e => setCustName(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} placeholder="Enter name" />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Email</label>
+                <input type="email" value={custEmail} onChange={e => setCustEmail(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} placeholder="email@example.com" />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Phone Number (10 digits)</label>
+                <input type="text" value={custPhone} onChange={e => setCustPhone(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} placeholder="10-digit number" />
+              </div>
+
+              <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Joined Date:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>{new Date(selectedCustomer.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Total Purchases:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedCustomer.storePurchases?.length || 0}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button 
+                  onClick={handleDeleteCustomer}
+                  disabled={deletingCust}
+                  style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontWeight: 700, cursor: 'pointer', flex: 1 }}
+                >
+                  {deletingCust ? 'Deleting...' : 'Delete Account'}
+                </button>
+                
+                <button 
+                  onClick={handleSaveCustomer}
+                  disabled={savingCust}
+                  style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 700, cursor: 'pointer', flex: 1 }}
+                >
+                  {savingCust ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

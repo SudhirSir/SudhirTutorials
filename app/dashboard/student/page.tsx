@@ -8,6 +8,7 @@ import { ChatWindow } from '@/components/ChatWindow';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
 import { StudentPurchases } from '@/components/StudentPurchases';
+import { StudentTakeTest } from '@/components/StudentTakeTest';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
@@ -145,7 +146,7 @@ function StudentDashboardContent() {
     const isStoreUser = (session.user as any).isStoreUser;
     const tab = searchParams.get('tab');
     if (isStoreUser) {
-      if (!tab || !['store', 'purchases', 'profile'].includes(tab)) {
+      if (!tab || !['store', 'purchases', 'take-test', 'profile'].includes(tab)) {
         setActiveTab('store');
         const params = new URLSearchParams(searchParams.toString());
         params.set('tab', 'store');
@@ -885,7 +886,7 @@ function StudentDashboardContent() {
       {/* Tabs */}
       <div className="dashboard-tab-bar no-scrollbar no-print">
         {(isStoreUser
-          ? ['store', 'purchases', 'profile']
+          ? ['store', 'purchases', 'take-test', 'profile']
           : ['dashboard', 'attendance', 'materials', 'tests', 'fees', 'purchases', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile']
         ).map(tab => (
           <button 
@@ -905,7 +906,8 @@ function StudentDashboardContent() {
              tab === 'materials' ? 'Study Materials' :
              tab === 'tests' ? 'Tests & Marks' :
              tab === 'fees' ? 'Pay/View fees' :
-             tab === 'purchases' ? 'My Purchases' :
+             tab === 'purchases' ? (isStoreUser ? 'Purchased Tests/Notes' : 'My Purchases') :
+             tab === 'take-test' ? 'Take Test' :
              tab === 'lectures' ? 'Lectures/Classes' :
              tab === 'guru-ji' ? 'ST Guru ji' :
              tab === 'messages' ? 'My Chats' :
@@ -1286,6 +1288,12 @@ function StudentDashboardContent() {
       {activeTab === 'purchases' && (
         <div className="fade-in">
           <StudentPurchases />
+        </div>
+      )}
+
+      {activeTab === 'take-test' && (
+        <div className="fade-in">
+          <StudentTakeTest />
         </div>
       )}
 
