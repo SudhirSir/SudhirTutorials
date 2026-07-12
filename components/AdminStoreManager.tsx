@@ -178,7 +178,8 @@ export function AdminStoreManager() {
           const data = await uploadRes.json();
           finalFileUrl = data.fileUrl;
         } else {
-          alert('Failed to upload file');
+          const errData = await uploadRes.json().catch(() => ({}));
+          alert(errData.error || 'Failed to upload file');
           setUploadingFile(false);
           return;
         }

@@ -15,10 +15,15 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as any;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    if (!file || typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
+      return NextResponse.json({ error: 'No file uploaded or invalid file format' }, { status: 400 });
+    }
+
+    // Set a generous 50MB limit for textbook notes PDF uploads
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File size exceeds the 50MB limit.' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
@@ -26,7 +31,8 @@ export async function POST(req: Request) {
 
     // Create a unique filename
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const filename = `${uniqueSuffix}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const rawName = file.name || 'uploaded_notes.pdf';
+    const filename = `${uniqueSuffix}-${rawName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
     // Save to public/uploads
     const uploadDir = join(process.cwd(), 'public', 'uploads');
@@ -43,8 +49,8 @@ export async function POST(req: Request) {
       fileUrl: `/uploads/${filename}` 
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload Error:', error);
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to upload file: ' + (error.message || error) }, { status: 500 });
   }
 }
