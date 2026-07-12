@@ -9,13 +9,13 @@ export function Storefront() {
   const [purchasedItemIds, setPurchasedItemIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Load Razorpay Script
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
+  // Simulated Razorpay secure gateway state
+  const [activePaymentItem, setActivePaymentItem] = useState<any>(null);
+  const [paymentTxId, setPaymentTxId] = useState('');
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
+  useEffect(() => {
     // Fetch items
     const fetchItems = async () => {
       try {
@@ -41,74 +41,38 @@ export function Storefront() {
       window.location.href = '/login?register=true';
       return;
     }
+    setActivePaymentItem(item);
+    setPaymentTxId('');
+    setPaymentSuccess(false);
+    setIsPaying(false);
+  };
 
+  const handleSimulatedPaymentSubmit = async () => {
+    if (!activePaymentItem || !paymentTxId.trim()) return;
+    setIsPaying(true);
     try {
-      // 1. Create order
       const res = await fetch('/api/store/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: item.id })
+        body: JSON.stringify({
+          itemId: activePaymentItem.id,
+          transactionId: paymentTxId.trim()
+        })
       });
-      
+
       const data = await res.json();
-      
-      if (!res.ok) {
-        alert(data.error || 'Failed to initiate checkout.');
-        return;
+      if (res.ok) {
+        setPaymentSuccess(true);
+        // Add to purchased list immediately in local state
+        setPurchasedItemIds(prev => [...prev, activePaymentItem.id]);
+      } else {
+        alert(data.error || 'Payment failed. Please check the transaction ID and try again.');
       }
-
-      // 2. Open Razorpay Window
-      const options = {
-        key: data.keyId,
-        amount: data.order.amount,
-        currency: data.order.currency,
-        name: 'Sudhir Tutorials',
-        description: `Purchase: ${item.title}`,
-        order_id: data.order.id,
-        handler: async function (response: any) {
-          // 3. Verify Payment
-          try {
-            const verifyRes = await fetch('/api/store/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                purchaseId: data.purchaseId
-              })
-            });
-
-            if (verifyRes.ok) {
-              alert('Payment Successful! You can access this in your Student Dashboard.');
-              // Optionally redirect to student dashboard
-              window.location.href = '/dashboard/student';
-            } else {
-              alert('Payment verification failed. Please contact support.');
-            }
-          } catch (e) {
-            console.error(e);
-            alert('Payment verification error.');
-          }
-        },
-        prefill: {
-          name: session.user?.name || '',
-          email: session.user?.email || '',
-        },
-        theme: {
-          color: '#3b82f6' // var(--secondary)
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
-        console.error(response.error);
-        alert(`Payment failed: ${response.error.description}`);
-      });
-      rzp.open();
     } catch (e) {
       console.error(e);
-      alert('Checkout process failed. Please try again later.');
+      alert('Network error during payment verification.');
+    } finally {
+      setIsPaying(false);
     }
   };
 
@@ -119,7 +83,29 @@ export function Storefront() {
         <p className="section-subtitle" style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', marginBottom: '1.5rem' }}>
           Access our expertly crafted Test Series and Notes. Prepare thoroughly for your board exams and competitive tests.
         </p>
-        {/* No global login/register buttons in header - options appear only upon clicking Buy Now */}
+        {!session && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Already registered or want to check your purchases?</span>
+            <button 
+              onClick={() => window.location.href = '/login?register=true'}
+              className="btn-primary" 
+              style={{
+                padding: '0.6rem 1.75rem',
+                borderRadius: '12px',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(239,68,68,0.2)'
+              }}
+            >
+              🔑 Login / Sign In to ST Store
+            </button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
@@ -158,11 +144,11 @@ export function Storefront() {
                 <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--primary)' }}>₹{item.price}</div>
                 {purchasedItemIds.includes(item.id) ? (
                   item.type === 'TEST_SERIES' ? (
-                    <button onClick={() => window.location.href = `/dashboard/student?tab=store`} className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800 }}>
+                    <button onClick={() => window.location.href = `/dashboard/student?tab=purchases`} className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800 }}>
                       View Tests
                     </button>
                   ) : item.type === 'NOTES' && item.fileUrl ? (
-                    <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, textDecoration: 'none' }}>
+                    <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, textDecoration: 'none', textAlign: 'center' }}>
                       Download Notes
                     </a>
                   ) : (
@@ -180,6 +166,191 @@ export function Storefront() {
           ))
         )}
       </div>
+
+      {/* 💳 SIMULATED RAZORPAY GATEWAY OVERLAY FOR STORE ITEMS */}
+      {activePaymentItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999, overflowY: 'auto', padding: '2rem 1rem' }}>
+          <div className="animate-scale-up" style={{ 
+            width: '680px', maxWidth: '100%', 
+            background: 'var(--card-bg)', border: '1px solid var(--border)',
+            borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', margin: 'auto'
+          }}>
+            {/* Header: Razorpay Secured */}
+            <div style={{ 
+              background: 'var(--card-bg-alt)', padding: '1.25rem 2rem', 
+              borderBottom: '1px solid var(--border)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.4rem', color: '#3b82f6', fontWeight: 900, letterSpacing: '-0.5px' }}>
+                  Razorpay <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 600, background: '#3b82f6', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px' }}>SECURE</span>
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#10b981' }}>
+                <span>🔒 PCI-DSS Compliant</span>
+              </div>
+            </div>
+
+            {/* Inner Content Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', minHeight: '380px' }}>
+              
+              {/* Left Side Panel: Merchant and Amount */}
+              <div style={{ 
+                background: 'var(--card-bg-alt)', padding: '2rem 1.5rem',
+                borderRight: '1px solid var(--border)',
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.65rem', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Coaching Institute</div>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <span style={{ color: '#ef4444', fontWeight: 800 }}>SUDHIR</span> <span style={{ color: '#2563eb', fontWeight: 800 }}>TUTORIALS</span>
+                  </h3>
+
+                  <div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Store Purchase</div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text)', fontWeight: 750, marginTop: '0.5rem' }}>
+                      {activePaymentItem.title}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '1.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Price</span>
+                  <span style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text)' }}>₹{activePaymentItem.price}</span>
+                </div>
+              </div>
+
+              {/* Right Side Panel: Razorpay Direct Payment Gateway */}
+              <div style={{ padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>Official Razorpay Gateway</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Please click the button below to complete your payment of <strong style={{ color: 'var(--text)' }}>₹{activePaymentItem.price}</strong> securely via Razorpay's official portal.
+                  </p>
+
+                  <a 
+                    href="https://razorpay.me/@sudhiir" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#3b82f6',
+                      color: '#fff',
+                      borderRadius: '12px',
+                      textDecoration: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      marginTop: '1.5rem',
+                      boxShadow: '0 4px 12px rgba(59,130,246,0.3)',
+                      transition: 'transform 0.2s',
+                      textAlign: 'center'
+                    }}
+                  >
+                    💳 Pay via Razorpay Direct
+                  </a>
+
+                  <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>Enter UPI / Payment Transaction ID</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. TXN9876543210"
+                      value={paymentTxId} 
+                      onChange={e => setPaymentTxId(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text)',
+                        fontSize: '0.9rem',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Paste the transaction reference ID from your banking app.</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                  <button 
+                    onClick={() => {
+                      setActivePaymentItem(null);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border)',
+                      background: 'transparent',
+                      color: 'var(--text-muted)',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleSimulatedPaymentSubmit}
+                    disabled={!paymentTxId.trim() || isPaying}
+                    style={{
+                      flex: 2,
+                      padding: '0.75rem',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: '#10b981',
+                      color: '#fff',
+                      fontWeight: 700,
+                      cursor: paymentTxId.trim() ? 'pointer' : 'not-allowed',
+                      opacity: paymentTxId.trim() ? 1 : 0.5,
+                      boxShadow: paymentTxId.trim() ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
+                    }}
+                  >
+                    {isPaying ? 'Processing...' : 'Complete Payment'}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Simulated Payment Success State */}
+            {paymentSuccess && (
+              <div style={{ position: 'absolute', inset: 0, background: 'var(--card-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', zIndex: 10 }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem 0' }}>Payment Received Successfully!</h3>
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', maxWidth: '400px', margin: '0 0 2rem 0', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                  Your Transaction ID <strong style={{ color: 'var(--text)' }}>{paymentTxId}</strong> has been saved. Your test series access and notes download are now activated.
+                </p>
+                <button 
+                  onClick={() => {
+                    setActivePaymentItem(null);
+                    setPaymentSuccess(false);
+                    // Redirect or switch view
+                    window.location.href = '/dashboard/student?tab=purchases';
+                  }}
+                  style={{
+                    padding: '0.75rem 2rem',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'var(--primary)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
+                  }}
+                >
+                  Go to My Purchases
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -146,7 +146,7 @@ function StudentDashboardContent() {
     const isStoreUser = (session.user as any).isStoreUser;
     const tab = searchParams.get('tab');
     if (isStoreUser) {
-      if (!tab || !['store', 'purchases', 'take-test', 'profile'].includes(tab)) {
+      if (!tab || !['store', 'purchases', 'profile'].includes(tab)) {
         setActiveTab('store');
         const params = new URLSearchParams(searchParams.toString());
         params.set('tab', 'store');
@@ -886,7 +886,7 @@ function StudentDashboardContent() {
       {/* Tabs */}
       <div className="dashboard-tab-bar no-scrollbar no-print">
         {(isStoreUser
-          ? ['store', 'purchases', 'take-test', 'profile']
+          ? ['store', 'purchases', 'profile']
           : ['dashboard', 'attendance', 'materials', 'tests', 'fees', 'purchases', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile']
         ).map(tab => (
           <button 

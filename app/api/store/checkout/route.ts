@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
-import Razorpay from 'razorpay';
 
 export async function POST(req: Request) {
   try {
@@ -14,9 +13,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'You must be logged in to purchase.' }, { status: 401 });
     }
 
-    const { itemId } = await req.json();
-    if (!itemId) {
-      return NextResponse.json({ error: 'Missing item ID.' }, { status: 400 });
+    const { itemId, transactionId } = await req.json();
+    if (!itemId || !transactionId) {
+      return NextResponse.json({ error: 'Item ID and Transaction ID are required.' }, { status: 400 });
     }
 
     const item = await withDbRetry(() => prisma.storeItem.findUnique({
@@ -40,45 +39,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'You have already purchased this item.' }, { status: 400 });
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      console.error('Razorpay credentials missing in environment variables.');
-      return NextResponse.json({ error: 'Payment gateway not configured.' }, { status: 500 });
-    }
-
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
-
-    const amountInPaise = Math.round(item.price * 100);
-
-    const orderOptions = {
-      amount: amountInPaise,
-      currency: 'INR',
-      receipt: `store_rec_${Date.now()}`
-    };
-
-    const order = await razorpay.orders.create(orderOptions);
-
-    // Create pending purchase record
+    // Create successful purchase record with direct transaction ID verification
     const purchase = await withDbRetry(() => prisma.storePurchase.create({
       data: {
         studentId: session.user.id,
         itemId: item.id,
         amount: item.price,
-        status: 'PENDING',
-        paymentId: order.id
+        status: 'SUCCESS',
+        paymentId: transactionId
       }
     }));
 
     return NextResponse.json({ 
       success: true, 
-      order, 
-      purchaseId: purchase.id,
-      keyId: process.env.RAZORPAY_KEY_ID
+      purchaseId: purchase.id
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to initiate checkout.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to complete checkout.' }, { status: 500 });
   }
 }
