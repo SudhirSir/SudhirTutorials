@@ -467,14 +467,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {!isRegistering ? (
-            <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-              New Student?{' '}
-              <button onClick={() => { setIsRegistering(true); setError(""); }} style={{ background: 'none', border: 'none', color: activeColor, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
-                Create an Account
-              </button>
-            </p>
-          ) : (
+          {isRegistering && (
             <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
               Already have an account?{' '}
               <button onClick={() => { setIsRegistering(false); setRegError(""); }} style={{ background: 'none', border: 'none', color: activeColor, fontWeight: 700, cursor: 'pointer', padding: 0 }}>

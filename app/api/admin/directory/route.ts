@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       teacherProfile: true,
     };
 
-    const where: any = {};
+    const where: any = { isStoreUser: false };
     if (role) {
       if (role === 'TEACHER_OR_ADMIN') {
         where.role = { in: ['TEACHER', 'ADMIN'] };

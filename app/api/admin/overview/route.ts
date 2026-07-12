@@ -16,8 +16,8 @@ export async function GET() {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     const statsResult = await withDbRetry(async () => {
-      const totalStudents = await prisma.user.count({ where: { role: 'STUDENT' } });
-      const totalTeachers = await prisma.user.count({ where: { role: 'TEACHER' } });
+      const totalStudents = await prisma.user.count({ where: { role: 'STUDENT', isStoreUser: false } });
+      const totalTeachers = await prisma.user.count({ where: { role: 'TEACHER', isStoreUser: false } });
       const totalBatches = await prisma.batch.count();
       const totalCourses = await prisma.course.count();
       
@@ -31,6 +31,11 @@ export async function GET() {
       const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
 
       const pendingPayments = await prisma.payment.findMany({
+        where: {
+          NOT: {
+            status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
+          }
+        },
         select: { amount: true, paidAmount: true, lateFine: true, discount: true }
       });
       const pendingDues = pendingPayments.reduce((acc: number, p: any) => {

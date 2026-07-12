@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
                 name: true,
                 passwordHash: true,
                 role: true,
+                isStoreUser: true,
                 mustChangePassword: true,
                 onboardingCompleted: true,
                 isProfileVerified: true,
@@ -183,6 +184,7 @@ export const authOptions: NextAuthOptions = {
                 name: token.name || uniqueUsername,
                 passwordHash: 'OAUTH_PENDING_PASSWORD',
                 role: 'STUDENT',
+                isStoreUser: true, // Self-created accounts via OAuth are external/store users
                 mustChangePassword: true,
                 onboardingCompleted: false,
                 isProfileVerified: false,
@@ -197,6 +199,7 @@ export const authOptions: NextAuthOptions = {
           token.role = dbUser.role;
           token.username = dbUser.username;
           token.id = dbUser.id;
+          token.isStoreUser = dbUser.isStoreUser;
           token.mustChangePassword = dbUser.mustChangePassword;
           token.onboardingCompleted = dbUser.onboardingCompleted;
           token.isProfileVerified = dbUser.isProfileVerified;
@@ -207,6 +210,7 @@ export const authOptions: NextAuthOptions = {
           token.username = (user as any).username;
           token.id = user.id;
           token.email = (user as any).email;
+          token.isStoreUser = (user as any).isStoreUser;
           token.mustChangePassword = (user as any).mustChangePassword;
           token.onboardingCompleted = (user as any).onboardingCompleted;
           token.isProfileVerified = (user as any).isProfileVerified;
@@ -228,6 +232,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).username = token.username;
         (session.user as any).id = token.id;
         (session.user as any).email = token.email;
+        (session.user as any).isStoreUser = token.isStoreUser;
         (session.user as any).mustChangePassword = token.mustChangePassword;
         (session.user as any).onboardingCompleted = token.onboardingCompleted;
         (session.user as any).isProfileVerified = token.isProfileVerified;

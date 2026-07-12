@@ -87,14 +87,21 @@ export async function GET(req: Request) {
 
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
 
-    // Fetch all payments sorted by createdAt to determine chronological serial number
-    const allPaymentsSorted = await withDbRetry(() => prisma.payment.findMany({
-      select: { id: true, createdAt: true },
-      orderBy: { createdAt: 'asc' }
-    }));
-    
-    // Map payment ID to its 1-based chronological index
-    const paymentIndexMap = new Map(allPaymentsSorted.map((p, idx) => [p.id, idx + 1]));
+    const feeIds = fees.map(f => f.id);
+    const paymentIndexMap = new Map<string, number>();
+
+    if (feeIds.length > 0) {
+      const rowNumbers = await withDbRetry(() => prisma.$queryRaw<Array<{ id: string; rn: bigint | number }>>`
+        WITH ordered_payments AS (
+          SELECT id, ROW_NUMBER() OVER (ORDER BY "createdAt" ASC) as rn
+          FROM "Payment"
+        )
+        SELECT id, rn FROM ordered_payments WHERE id = ANY(${feeIds})
+      `);
+      rowNumbers.forEach(r => {
+        paymentIndexMap.set(r.id, Number(r.rn));
+      });
+    }
 
     const enrichedFees = fees.map((fee: any) => {
       const effectiveDueDate = fee.dueDate;

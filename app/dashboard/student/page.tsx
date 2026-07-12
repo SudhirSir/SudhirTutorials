@@ -140,9 +140,19 @@ function StudentDashboardContent() {
   
   useEffect(() => {
     if (!session?.user) return;
+    const isStoreUser = (session.user as any).isStoreUser;
     const tab = searchParams.get('tab');
+    if (isStoreUser) {
+      if (!tab || tab === 'dashboard' || tab === 'fees' || tab === 'messages' || tab === 'notifications') {
+        setActiveTab('materials');
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', 'materials');
+        router.replace(pathname + '?' + params.toString());
+        return;
+      }
+    }
     if (tab) setActiveTab(tab);
-  }, [searchParams, session]);
+  }, [searchParams, session, router, pathname]);
 
   const [dashboard, setDashboard] = useState<{
     name: string;

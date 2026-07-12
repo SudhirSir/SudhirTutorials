@@ -19,6 +19,7 @@ model User {
   photoUrl           String?
 
   role               String   @default("STUDENT")
+  isStoreUser        Boolean  @default(false)
 
   mustChangePassword Boolean  @default(true)
   onboardingCompleted Boolean  @default(false)

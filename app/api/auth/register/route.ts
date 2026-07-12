@@ -49,6 +49,7 @@ export async function POST(req: Request) {
         username,
         passwordHash,
         role: 'STUDENT',
+        isStoreUser: true,
         mustChangePassword: false, // They just created it, no need to change
         onboardingCompleted: true, // They completed the onboarding via this form
         studentProfile: {

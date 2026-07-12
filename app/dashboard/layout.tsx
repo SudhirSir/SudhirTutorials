@@ -78,6 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const role = pathname.includes("admin") ? "Admin" : pathname.includes("teacher") ? "Teacher" : "Student";
   const isVerified = (session?.user as any)?.isProfileVerified;
+  const isStoreUser = (session?.user as any)?.isStoreUser;
 
   const [badges, setBadges] = useState({ unreadMessages: 0, unreadNotifications: 0 });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -263,13 +264,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <nav className="sidebar-nav">
-            <div className="nav-group">
-              <div className="nav-label">Main Menu</div>
-              <Link href={`/dashboard/${role.toLowerCase()}?tab=${role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard'}`} className="nav-link-modern" onClick={handleNavLinkClick}>
-                <span className="icon">{icons.home}</span>
-                Dashboard Home
-              </Link>
-            </div>
+            {(!isStoreUser || role !== "Student") && (
+              <div className="nav-group">
+                <div className="nav-label">Main Menu</div>
+                <Link href={`/dashboard/${role.toLowerCase()}?tab=${role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard'}`} className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.home}</span>
+                  Dashboard Home
+                </Link>
+              </div>
+            )}
 
             {role === "Admin" && (
               <div className="nav-group">
@@ -326,10 +329,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <span className="icon">{icons.materials}</span>
                   Study Materials
                 </Link>
-                <Link href="/dashboard/student?tab=fees" className="nav-link-modern" onClick={handleNavLinkClick}>
-                  <span className="icon">{icons.finances}</span>
-                  Pay Fees
-                </Link>
+                {!isStoreUser && (
+                  <Link href="/dashboard/student?tab=fees" className="nav-link-modern" onClick={handleNavLinkClick}>
+                    <span className="icon">{icons.finances}</span>
+                    Pay Fees
+                  </Link>
+                )}
                 <Link href="/dashboard/student?tab=tests" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.tests}</span>
                   Tests
@@ -337,31 +342,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             )}
 
-            <div className="nav-group">
-              <div className="nav-label">Communication</div>
-              <Link href={`/dashboard/${role.toLowerCase()}?tab=messages`} className="nav-link-modern" onClick={handleNavLinkClick}>
-                <span className="icon" style={{ position: 'relative' }}>
-                  {icons.messages}
-                  {badges.unreadMessages > 0 && (
-                    <span style={{ position: 'absolute', top: '-6px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {badges.unreadMessages}
-                    </span>
-                  )}
-                </span>
-                Messages
-              </Link>
-              <Link href={`/dashboard/${role.toLowerCase()}?tab=notifications`} className="nav-link-modern" onClick={handleNavLinkClick}>
-                <span className="icon" style={{ position: 'relative' }}>
-                  {icons.notifications}
-                  {badges.unreadNotifications > 0 && (
-                    <span style={{ position: 'absolute', top: '-6px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {badges.unreadNotifications}
-                    </span>
-                  )}
-                </span>
-                Notifications
-              </Link>
-            </div>
+            {(!isStoreUser || role !== "Student") && (
+              <div className="nav-group">
+                <div className="nav-label">Communication</div>
+                <Link href={`/dashboard/${role.toLowerCase()}?tab=messages`} className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon" style={{ position: 'relative' }}>
+                    {icons.messages}
+                    {badges.unreadMessages > 0 && (
+                      <span style={{ position: 'absolute', top: '-6px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {badges.unreadMessages}
+                      </span>
+                    )}
+                  </span>
+                  Messages
+                </Link>
+                <Link href={`/dashboard/${role.toLowerCase()}?tab=notifications`} className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon" style={{ position: 'relative' }}>
+                    {icons.notifications}
+                    {badges.unreadNotifications > 0 && (
+                      <span style={{ position: 'absolute', top: '-6px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {badges.unreadNotifications}
+                      </span>
+                    )}
+                  </span>
+                  Notifications
+                </Link>
+              </div>
+            )}
 
             <div className="nav-group">
               <div className="nav-label">Account</div>

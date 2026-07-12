@@ -34,6 +34,11 @@ export async function GET() {
         select: { amount: true, date: true } // Avoid retrieving unnecessary large columns like remarks
       })),
       withDbRetry(() => prisma.payment.findMany({
+        where: {
+          NOT: {
+            status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
+          }
+        },
         select: { amount: true, paidAmount: true, lateFine: true, discount: true }
       })),
       withDbRetry(() => prisma.payment.findMany({
