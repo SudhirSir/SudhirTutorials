@@ -91,15 +91,12 @@ export async function GET(req: Request) {
     const paymentIndexMap = new Map<string, number>();
 
     if (feeIds.length > 0) {
-      const rowNumbers = await withDbRetry(() => prisma.$queryRaw<Array<{ id: string; rn: bigint | number }>>`
-        WITH ordered_payments AS (
-          SELECT id, ROW_NUMBER() OVER (ORDER BY "createdAt" ASC) as rn
-          FROM "Payment"
-        )
-        SELECT id, rn FROM ordered_payments WHERE id = ANY(${feeIds})
-      `);
-      rowNumbers.forEach(r => {
-        paymentIndexMap.set(r.id, Number(r.rn));
+      const allPayments = await withDbRetry(() => prisma.payment.findMany({
+        select: { id: true },
+        orderBy: { createdAt: 'asc' }
+      }));
+      allPayments.forEach((p, idx) => {
+        paymentIndexMap.set(p.id, idx + 1);
       });
     }
 

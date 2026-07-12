@@ -210,6 +210,19 @@ export const authOptions: NextAuthOptions = {
           token.isProfileVerified = (user as any).isProfileVerified;
           token.activeToken = (user as any).activeToken;
         }
+      } else if (token?.id && (!token.isProfileVerified || !token.onboardingCompleted)) {
+        try {
+          const dbUser = await withDbRetry(() => prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { isProfileVerified: true, onboardingCompleted: true }
+          }), 2, 100);
+          if (dbUser) {
+            token.isProfileVerified = dbUser.isProfileVerified;
+            token.onboardingCompleted = dbUser.onboardingCompleted;
+          }
+        } catch (e) {
+          console.error("Error refreshing session status in jwt callback:", e);
+        }
       }
       if (trigger === 'update' && session) {
         if (session.mustChangePassword !== undefined) token.mustChangePassword = session.mustChangePassword;
