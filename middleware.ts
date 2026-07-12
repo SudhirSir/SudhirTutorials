@@ -35,8 +35,19 @@ export default withAuth(
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    if (path.startsWith("/dashboard/student") && token?.role !== "STUDENT") {
-      return NextResponse.redirect(new URL("/login", req.url));
+    if (path.startsWith("/dashboard/student")) {
+      if (token?.role !== "STUDENT") {
+        return NextResponse.redirect(new URL("/login", req.url));
+      }
+      if (token?.isStoreUser) {
+        return NextResponse.redirect(new URL("/dashboard/store", req.url));
+      }
+    }
+
+    if (path.startsWith("/dashboard/store")) {
+      if (!token?.isStoreUser) {
+        return NextResponse.redirect(new URL("/store-login", req.url));
+      }
     }
 
     // Protect Admin API routes

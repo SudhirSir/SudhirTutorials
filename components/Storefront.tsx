@@ -38,7 +38,7 @@ export function Storefront() {
 
   const handleBuy = async (item: any) => {
     if (!session) {
-      window.location.href = '/login?register=true';
+      window.location.href = '/store-login';
       return;
     }
     setActivePaymentItem(item);
@@ -87,7 +87,7 @@ export function Storefront() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem' }}>
             <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Already registered or want to check your purchases?</span>
             <button 
-              onClick={() => window.location.href = '/login?register=true'}
+              onClick={() => window.location.href = '/store-login'}
               className="btn-primary" 
               style={{
                 padding: '0.6rem 1.75rem',

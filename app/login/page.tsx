@@ -32,8 +32,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      const role = (session.user as any).role || "STUDENT";
-      router.push(`/dashboard/${role.toLowerCase()}`);
+      const isStoreUser = (session.user as any).isStoreUser;
+      if (isStoreUser) {
+        router.push('/dashboard/store');
+      } else {
+        const role = (session.user as any).role || "STUDENT";
+        router.push(`/dashboard/${role.toLowerCase()}`);
+      }
     }
   }, [status, session, router]);
 
@@ -221,7 +226,7 @@ export default function LoginPage() {
           setRegLoading(false);
         } else {
           sessionStorage.setItem('onboarding_allowed', 'true');
-          router.push('/dashboard/student');
+          router.push('/dashboard/store');
         }
       }
     } catch (err) {
