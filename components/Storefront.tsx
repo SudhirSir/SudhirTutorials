@@ -112,8 +112,6 @@ export function Storefront() {
     }
   };
 
-  if (loading) return null; // Or a skeleton loader
-
   return (
     <section id="storefront" className="storefront-section" style={{ padding: '6rem 6%', position: 'relative', zIndex: 2, background: 'var(--background)' }}>
       <div className="section-header" style={{ textAlign: 'center', marginBottom: '4rem' }}>
@@ -125,7 +123,12 @@ export function Storefront() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
-        {items.length === 0 ? (
+        {loading ? (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+            <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div>Loading storefront items...</div>
+          </div>
+        ) : items.length === 0 ? (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', borderRadius: '24px', border: '1px dashed var(--glass-border)', color: 'var(--text-muted)' }}>
             <h3>No Premium Materials Available Yet</h3>
             <p>Admin is currently preparing high-quality Notes and Test Series. Check back soon!</p>
