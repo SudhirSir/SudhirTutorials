@@ -1431,8 +1431,7 @@ function AdminDashboardContent() {
 
     if (daysLate <= 0) return 0;
     if (daysLate <= 10) return daysLate * perDayFine;
-    const monthsLate = Math.floor((daysLate - 1) / 30) + 1;
-    return monthsLate * flatFineAfter10Days;
+    return flatFineAfter10Days;
   };
 
   // Extract unique months from fees array
