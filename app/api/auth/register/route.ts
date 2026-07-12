@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, withDbRetry } from '@/lib/prisma';
+import { prisma, withDbRetry, getNextStoreUsername } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
@@ -39,8 +39,8 @@ export async function POST(req: Request) {
     }
 
     // 3. Create the user
-    // Generate a unique system username
-    const username = `st_${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
+    // Generate sequential username matching STS00101 pattern
+    const username = await getNextStoreUsername();
     const passwordHash = await bcrypt.hash(password, 10);
 
     const newUser = await withDbRetry(() => prisma.user.create({

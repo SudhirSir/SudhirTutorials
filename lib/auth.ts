@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { prisma, withDbRetry } from "@/lib/prisma";
+import { prisma, withDbRetry, getNextStoreUsername } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -171,13 +171,7 @@ export const authOptions: NextAuthOptions = {
           let dbUser = await withDbRetry(() => prisma.user.findFirst({ where: { studentProfile: { email: token.email as string } } }));
           if (!dbUser) {
             // Create user
-            const baseUsername = token.email.split('@')[0];
-            let uniqueUsername = baseUsername;
-            let counter = 1;
-            while (await withDbRetry(() => prisma.user.findUnique({ where: { username: uniqueUsername } }))) {
-              uniqueUsername = `${baseUsername}${counter}`;
-              counter++;
-            }
+            const uniqueUsername = await getNextStoreUsername();
             dbUser = await withDbRetry(() => prisma.user.create({
               data: {
                 username: uniqueUsername,

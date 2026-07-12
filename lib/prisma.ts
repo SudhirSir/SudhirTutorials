@@ -128,3 +128,36 @@ export async function withDbRetry<T>(
     }
   }
 }
+
+/**
+ * Generates the next sequential store username matching the pattern: STSxxxxx (starting from STS00101).
+ */
+export async function getNextStoreUsername(): Promise<string> {
+  const lastUser = await prisma.user.findFirst({
+    where: {
+      username: {
+        startsWith: 'STS',
+      },
+    },
+    orderBy: {
+      username: 'desc',
+    },
+  });
+
+  if (!lastUser) {
+    return 'STS00101';
+  }
+
+  // Extract the number part
+  const lastNumberStr = lastUser.username.replace('STS', '');
+  const lastNumber = parseInt(lastNumberStr, 10);
+  
+  if (isNaN(lastNumber)) {
+    return 'STS00101';
+  }
+
+  const nextNumber = lastNumber + 1;
+  const nextNumberStr = String(nextNumber).padStart(5, '0');
+  
+  return `STS${nextNumberStr}`;
+}

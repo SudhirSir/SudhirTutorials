@@ -16,6 +16,7 @@ import { LecturesSection } from '@/components/LecturesSection';
 import { useTheme } from '@/components/ThemeProvider';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
+import { Storefront } from '@/components/Storefront';
 
 function formatDateDisplay(dateInput: any): string {
   if (!dateInput) return 'N/A';
@@ -86,6 +87,7 @@ function StudentDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const isStoreUser = (session?.user as any)?.isStoreUser || false;
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
@@ -143,10 +145,10 @@ function StudentDashboardContent() {
     const isStoreUser = (session.user as any).isStoreUser;
     const tab = searchParams.get('tab');
     if (isStoreUser) {
-      if (!tab || tab === 'dashboard' || tab === 'fees' || tab === 'messages' || tab === 'notifications') {
-        setActiveTab('materials');
+      if (!tab || !['store', 'purchases', 'profile'].includes(tab)) {
+        setActiveTab('store');
         const params = new URLSearchParams(searchParams.toString());
-        params.set('tab', 'materials');
+        params.set('tab', 'store');
         router.replace(pathname + '?' + params.toString());
         return;
       }
@@ -882,7 +884,10 @@ function StudentDashboardContent() {
 
       {/* Tabs */}
       <div className="dashboard-tab-bar no-scrollbar no-print">
-        {['dashboard', 'attendance', 'materials', 'tests', 'fees', 'purchases', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile'].map(tab => (
+        {(isStoreUser
+          ? ['store', 'purchases', 'profile']
+          : ['dashboard', 'attendance', 'materials', 'tests', 'fees', 'purchases', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile']
+        ).map(tab => (
           <button 
             key={tab}
             onClick={() => handleTabChange(tab)}
@@ -906,6 +911,7 @@ function StudentDashboardContent() {
              tab === 'messages' ? 'My Chats' :
              tab === 'notifications' ? 'Notifications' :
              tab === 'profile' ? 'My Profile' :
+             tab === 'store' ? 'Notes & Tests Store' :
              tab}
           </button>
         ))}
@@ -1268,6 +1274,12 @@ function StudentDashboardContent() {
           )}
           
           <StudentLedger onPayOnline={handlePayOnline} onViewReceipt={viewReceipt} />
+        </div>
+      )}
+
+      {activeTab === 'store' && (
+        <div className="fade-in">
+          <Storefront />
         </div>
       )}
 
