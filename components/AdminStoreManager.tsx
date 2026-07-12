@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 
 export function AdminStoreManager() {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'sales'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'sales' | 'customers'>('inventory');
   const [items, setItems] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -40,7 +41,20 @@ export function AdminStoreManager() {
   useEffect(() => {
     fetchItems();
     fetchSales();
+    fetchCustomers();
   }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      const res = await fetch('/api/admin/store/sales?mode=customers');
+      if (res.ok) {
+        const data = await res.json();
+        setCustomers(data.customers);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -54,6 +68,7 @@ export function AdminStoreManager() {
       console.error(e);
     }
     setLoading(false);
+    fetchCustomers();
   };
 
   const fetchSales = async () => {
@@ -331,6 +346,12 @@ export function AdminStoreManager() {
             >
               Sales & Purchases
             </button>
+            <button 
+              onClick={() => setActiveTab('customers')}
+              style={{ padding: '0.6rem 1.25rem', background: activeTab === 'customers' ? 'var(--primary)' : 'transparent', color: activeTab === 'customers' ? '#fff' : 'var(--text)', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Store Customers
+            </button>
           </div>
           {activeTab === 'inventory' && (
             <button className="btn-primary" onClick={() => { resetForm(); setEditingItem(null); setIsFormOpen(!isFormOpen); }}>
@@ -370,6 +391,47 @@ export function AdminStoreManager() {
                 {sales.length === 0 && (
                   <tr>
                     <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No sales recorded yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'customers' && (
+        <div className="glass-card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Registered Storefront Customers</h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>Date Joined</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>Name</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>Username</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>Contact</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--border)', textAlign: 'right' }}>Total Spent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((cust) => {
+                  const totalSpent = cust.storePurchases?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+                  return (
+                    <tr key={cust.id}>
+                      <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>{new Date(cust.createdAt).toLocaleDateString()}</td>
+                      <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontWeight: 600 }}>{cust.name || 'N/A'}</td>
+                      <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem' }}>{cust.username}</td>
+                      <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
+                        <div>{cust.studentProfile?.email}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cust.studentProfile?.phone || 'No phone'}</div>
+                      </td>
+                      <td style={{ padding: '1rem', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>₹{totalSpent}</td>
+                    </tr>
+                  );
+                })}
+                {customers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No storefront customers registered yet.</td>
                   </tr>
                 )}
               </tbody>

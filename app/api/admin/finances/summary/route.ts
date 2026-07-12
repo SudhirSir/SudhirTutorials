@@ -17,11 +17,12 @@ export async function GET() {
     const currentMonth = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
     const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 11); // Get last 12 months for better trend
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
 
     // Parallelize all financial queries to drastically minimize database round-trip times
-    const [payments, expenses, pendingAggregate, currentMonthFees] = await Promise.all([
+    const [payments, expenses, pendingAggregateResult, currentMonthFees] = await Promise.all([
       withDbRetry(() => prisma.payment.findMany({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
@@ -33,13 +34,18 @@ export async function GET() {
         where: { date: { gte: sixMonthsAgo } },
         select: { amount: true, date: true } // Avoid retrieving unnecessary large columns like remarks
       })),
-      withDbRetry(() => prisma.payment.findMany({
+      withDbRetry(() => prisma.payment.aggregate({
+        _sum: {
+          amount: true,
+          paidAmount: true,
+          lateFine: true,
+          discount: true
+        },
         where: {
           NOT: {
             status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
           }
-        },
-        select: { amount: true, paidAmount: true, lateFine: true, discount: true }
+        }
       })),
       withDbRetry(() => prisma.payment.findMany({
         where: { billingMonth: currentMonth },
@@ -62,12 +68,12 @@ export async function GET() {
     }, 0);
 
     // Sum the actual outstanding balance of all pending/partially paid payments
-    const totalPending = pendingAggregate.reduce((acc: number, p: any) => {
-      const fine = p.lateFine || 0;
-      const discount = p.discount || 0;
-      const paid = p.paidAmount || 0;
-      return acc + Math.max(0, p.amount + fine - discount - paid);
-    }, 0);
+    const totalPending = Math.max(0,
+      (pendingAggregateResult._sum.amount || 0) +
+      (pendingAggregateResult._sum.lateFine || 0) -
+      (pendingAggregateResult._sum.discount || 0) -
+      (pendingAggregateResult._sum.paidAmount || 0)
+    );
 
     // Monthly breakdown (last 6 months)
     const monthlyData = [];

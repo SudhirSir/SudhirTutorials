@@ -121,16 +121,7 @@ export function Storefront() {
         <p className="section-subtitle" style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', marginBottom: '1.5rem' }}>
           Access our expertly crafted Test Series and Notes. Prepare thoroughly for your board exams and competitive tests.
         </p>
-        {!session && (
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
-            <button onClick={() => window.location.href = '/login?register=true'} className="btn-primary" style={{ padding: '0.6rem 1.5rem', borderRadius: '12px', fontWeight: 700 }}>
-              Create Account
-            </button>
-            <button onClick={() => window.location.href = '/login'} className="btn-secondary" style={{ padding: '0.6rem 1.5rem', borderRadius: '12px', fontWeight: 700, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}>
-              Login
-            </button>
-          </div>
-        )}
+        {/* No global login/register buttons in header - options appear only upon clicking Buy Now */}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>

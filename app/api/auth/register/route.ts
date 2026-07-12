@@ -50,6 +50,7 @@ export async function POST(req: Request) {
         passwordHash,
         role: 'STUDENT',
         isStoreUser: true,
+        isProfileVerified: true, // Auto-approve store users who register via OTP
         mustChangePassword: false, // They just created it, no need to change
         onboardingCompleted: true, // They completed the onboarding via this form
         studentProfile: {

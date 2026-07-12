@@ -185,9 +185,9 @@ export const authOptions: NextAuthOptions = {
                 passwordHash: 'OAUTH_PENDING_PASSWORD',
                 role: 'STUDENT',
                 isStoreUser: true, // Self-created accounts via OAuth are external/store users
-                mustChangePassword: true,
-                onboardingCompleted: false,
-                isProfileVerified: false,
+                mustChangePassword: false,
+                onboardingCompleted: true,
+                isProfileVerified: true,
                 studentProfile: {
                   create: {
                     email: token.email as string
