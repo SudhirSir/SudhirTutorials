@@ -27,8 +27,14 @@ export async function POST(req: Request) {
     
     // Save to public/uploads
     const uploadDir = join(process.cwd(), 'public', 'uploads');
-    const filepath = join(uploadDir, filename);
     
+    const { existsSync } = await import('fs');
+    const { mkdir } = await import('fs/promises');
+    if (!existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
+
+    const filepath = join(uploadDir, filename);
     await writeFile(filepath, buffer);
 
     return NextResponse.json({ 
