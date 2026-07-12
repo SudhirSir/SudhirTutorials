@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -28,8 +31,6 @@ export async function POST(req: Request) {
     // Save to public/uploads
     const uploadDir = join(process.cwd(), 'public', 'uploads');
     
-    const { existsSync } = await import('fs');
-    const { mkdir } = await import('fs/promises');
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }

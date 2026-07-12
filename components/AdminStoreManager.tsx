@@ -388,10 +388,48 @@ export function AdminStoreManager() {
             </div>
             <div className="input-group">
               <label>Type</label>
-              <select value={type} onChange={e => setType(e.target.value)} disabled={!!editingItem} style={{ padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)' }}>
-                <option value="NOTES">Notes (PDF)</option>
-                <option value="TEST_SERIES">Test Series</option>
-              </select>
+              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', padding: '3px', height: '48px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  disabled={!!editingItem}
+                  onClick={() => setType('NOTES')}
+                  style={{
+                    flex: 1,
+                    height: '100%',
+                    padding: '0.5rem',
+                    background: type === 'NOTES' ? 'var(--primary)' : 'transparent',
+                    color: type === 'NOTES' ? '#fff' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    cursor: editingItem ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  Notes (PDF)
+                </button>
+                <button
+                  type="button"
+                  disabled={!!editingItem}
+                  onClick={() => setType('TEST_SERIES')}
+                  style={{
+                    flex: 1,
+                    height: '100%',
+                    padding: '0.5rem',
+                    background: type === 'TEST_SERIES' ? 'var(--primary)' : 'transparent',
+                    color: type === 'TEST_SERIES' ? '#fff' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    cursor: editingItem ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  Test Series
+                </button>
+              </div>
             </div>
             <div className="input-group">
               <label>Price (₹)</label>
