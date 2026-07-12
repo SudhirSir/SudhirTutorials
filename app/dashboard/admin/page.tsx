@@ -2618,10 +2618,8 @@ function AdminDashboardContent() {
   const handleDeleteBugReport = async (reportId: string) => {
     if (!confirm("Are you sure you want to dismiss/delete this report?")) return;
     try {
-      const res = await fetch('/api/reports', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: reportId })
+      const res = await fetch(`/api/reports?id=${reportId}`, {
+        method: 'DELETE'
       });
       if (res.ok) {
         fetchBugReports();
