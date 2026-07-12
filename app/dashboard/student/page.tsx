@@ -870,7 +870,7 @@ function StudentDashboardContent() {
         }
       `}</style>
       <div className="bg-glow" style={{ top: '20%', left: '-10%', opacity: 0.5 }}></div>
-      {activeTab === 'dashboard' && (
+      {activeTab === 'dashboard' && !isStoreUser && (
         <header className="dashboard-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', fontWeight: 800 }}>
@@ -919,7 +919,7 @@ function StudentDashboardContent() {
         ))}
       </div>
 
-      {activeTab === 'dashboard' && (
+      {activeTab === 'dashboard' && !isStoreUser && (
         <>
           <QuickServicesWidget role="STUDENT" setActiveTab={handleTabChange} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '2rem', marginBottom: '2rem' }}>
@@ -1152,7 +1152,7 @@ function StudentDashboardContent() {
         </>
       )}
 
-      {activeTab === 'attendance' && (
+      {activeTab === 'attendance' && !isStoreUser && (
         <div className="glass-card animate-scale-up" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Attendance Record</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
@@ -1205,7 +1205,7 @@ function StudentDashboardContent() {
         </div>
       )}
 
-      {activeTab === 'materials' && (
+      {activeTab === 'materials' && !isStoreUser && (
         <div className="glass-card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Course Materials</h2>
           <div style={{ display: 'grid', gap: '1rem' }}>
@@ -1257,7 +1257,7 @@ function StudentDashboardContent() {
         </div>
       )}
 
-      {activeTab === 'fees' && (
+      {activeTab === 'fees' && !isStoreUser && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Beautiful warning banner if there are any pending invoices */}
           {fees.some(f => f.status === 'PENDING') && (
@@ -1297,11 +1297,11 @@ function StudentDashboardContent() {
         </div>
       )}
 
-      {activeTab === 'lectures' && (
+      {activeTab === 'lectures' && !isStoreUser && (
         <LecturesSection />
       )}
 
-      {activeTab === 'tests' && (
+      {activeTab === 'tests' && !isStoreUser && (
         <div className="glass-card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>My Test Performance</h2>
@@ -1937,7 +1937,7 @@ function StudentDashboardContent() {
           }
         }
       `}</style>
-      {activeTab === 'guru-ji' && (
+      {activeTab === 'guru-ji' && !isStoreUser && (
         <div 
           className="animate-scale-up" 
           style={{ 
@@ -2429,11 +2429,11 @@ function StudentDashboardContent() {
         </div>
       )}
 
-      {activeTab === 'messages' && session?.user && (
+      {activeTab === 'messages' && !isStoreUser && session?.user && (
         <ChatWindow currentUserId={(session.user as any).id} onMessagesRead={fetchUnreadCounts} initialSelectedUserId={chatSelectedUserId} />
       )}
 
-      {activeTab === 'notifications' && (
+      {activeTab === 'notifications' && !isStoreUser && (
         <NotificationsPanel onUnreadChange={setUnreadNotifications} />
       )}
 
