@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter, Poppins } from 'next/font/google';
+import { Inter, Poppins, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const poppins = Poppins({ weight: ['400', '500', '600', '700', '800'], subsets: ['latin'], variable: '--font-poppins' });
+const playfair = Playfair_Display({ subsets: ['latin'], style: ['italic', 'normal'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sudhirtutorials.me'),
@@ -84,7 +85,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${poppins.variable} ${playfair.variable}`} suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

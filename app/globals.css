@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "../styles/ui.css";
+
 /* Default Light Theme */
 :root {
   --primary:        hsl(0,   78%, 50%);
@@ -927,6 +929,21 @@ textarea:focus {
   box-shadow: 0 20px 45px -15px rgba(59, 130, 246, 0.14);
 }
 
+.nav-link-modern {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0.75rem !important;
+  white-space: nowrap !important;
+}
+.nav-link-modern .icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
 /* Active nav link */
 .nav-link-modern.active {
   background: linear-gradient(135deg, rgba(239,68,68,0.13) 0%, rgba(59,130,246,0.06) 100%) !important;
@@ -1347,6 +1364,349 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   .form-grid-2col {
     grid-template-columns: 1fr !important;
     gap: 1.25rem !important;
+  }
+}
+
+/* ── VRSA-STYLE HOMEPAGE AESTHETICS ────────────────────────────────────────── */
+
+/* Floating Capsule Navbar Header */
+.vrsa-floating-nav {
+  position: sticky;
+  top: 1rem;
+  z-index: 1000;
+  width: calc(100% - 2.5rem);
+  max-width: 1140px;
+  margin: 1rem auto 0 auto;
+  padding: 0.55rem 1rem 0.55rem 1.25rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+[data-theme='dark'] .vrsa-floating-nav {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.vrsa-nav-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.vrsa-nav-link {
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s;
+}
+
+[data-theme='dark'] .vrsa-nav-link {
+  color: #cbd5e1;
+}
+
+.vrsa-nav-link:hover {
+  color: #0f172a;
+}
+
+[data-theme='dark'] .vrsa-nav-link:hover {
+  color: #fff;
+}
+
+.vrsa-launch-btn {
+  background: #ff4d29;
+  color: #ffffff;
+  padding: 0.55rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 4px 14px rgba(255, 77, 41, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.vrsa-launch-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 77, 41, 0.45);
+}
+
+/* VRSA Hero Section Container */
+.vrsa-hero-container {
+  position: relative;
+  min-height: 85vh;
+  padding: 3.5rem 1.5rem 5rem;
+  background: radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.08) 0%, rgba(239, 68, 68, 0.04) 45%, var(--background) 100%);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.vrsa-top-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  padding: 0.4rem 1.1rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2rem;
+}
+
+.vrsa-top-badge .red-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: inline-block;
+  box-shadow: 0 0 8px var(--primary);
+}
+
+.vrsa-hero-title {
+  font-size: clamp(2.75rem, 5.5vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.08;
+  color: var(--text-heading);
+  letter-spacing: -1.5px;
+  margin: 0 0 1.25rem 0;
+}
+
+.vrsa-hero-title .serif-italic {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--secondary);
+  letter-spacing: -0.5px;
+}
+
+.vrsa-hero-subtitle {
+  max-width: 660px;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0 auto 2.25rem;
+  font-weight: 500;
+}
+
+/* VRSA Hero Action Buttons */
+.vrsa-hero-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 3.5rem;
+  flex-wrap: wrap;
+}
+
+.vrsa-btn-dark {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.25);
+  transition: all 0.25s ease;
+}
+
+.vrsa-btn-dark:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+  background: #1e293b;
+}
+
+.vrsa-btn-dark .btn-arrow-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.vrsa-btn-light {
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+}
+
+.vrsa-btn-light:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  background: #f8fafc;
+}
+
+.vrsa-btn-light .btn-accent-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ff4d29;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+/* VRSA Bottom Floating Dashboard Preview Card */
+.vrsa-preview-card {
+  width: calc(100% - 2rem);
+  max-width: 1080px;
+  margin: 0 auto;
+  background: #fcfbfa;
+  border-radius: 28px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(0,0,0,0.02);
+  padding: 1.75rem 2.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2rem;
+  text-align: left;
+}
+
+[data-theme='dark'] .vrsa-preview-card {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5);
+}
+
+.vrsa-widget-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.vrsa-widget-box:not(:last-child) {
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  padding-right: 2rem;
+}
+
+[data-theme='dark'] .vrsa-widget-box:not(:last-child) {
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+.vrsa-widget-label {
+  color: #ff4d29;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.vrsa-widget-meta {
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.vrsa-big-num {
+  font-size: 2.35rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+[data-theme='dark'] .vrsa-big-num {
+  color: #ffffff;
+}
+
+.vrsa-stat-badge {
+  background: #fef2f2;
+  color: #ef4444;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.vrsa-select-box {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-top: 0.35rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+}
+
+[data-theme='dark'] .vrsa-select-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+@media (max-width: 900px) {
+  .vrsa-floating-nav {
+    width: calc(100% - 1.5rem);
+    padding: 0.5rem 0.85rem;
+  }
+  .vrsa-preview-card {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+  .vrsa-widget-box:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding-right: 0;
+    padding-bottom: 1.25rem;
+  }
+  .vrsa-nav-links {
+    display: none;
+  }
+  .campus-spotlight-section > div {
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
+  }
+  .mobile-app-section .section-container {
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
   }
 }
 

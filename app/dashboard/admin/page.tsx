@@ -1378,7 +1378,7 @@ function AdminDashboardContent() {
   const [showAssignSalaryForm, setShowAssignSalaryForm] = useState(false);
   const [showCreateBatchForm, setShowCreateBatchForm] = useState(false);
   const [showUploadedMaterials, setShowUploadedMaterials] = useState(false);
-  const [showPublishMaterialForm, setShowPublishMaterialForm] = useState(false);
+  const [showPublishMaterialForm, setShowPublishMaterialForm] = useState(true);
   const [activeReceipt, setActiveReceipt] = useState<any>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [addFeeMode, setAddFeeMode] = useState<'INDIVIDUAL' | 'BATCH'>('INDIVIDUAL');
@@ -2875,6 +2875,7 @@ function AdminDashboardContent() {
 
   const fetchProfile = async (userId: string, role: string) => {
     setIsFetchingProfile(userId);
+    fetchBatches(); // Ensure available batches are loaded into dropdown
     try {
       const endpoint = role === 'STUDENT' 
         ? `/api/admin/students/${userId}` 
@@ -2896,6 +2897,7 @@ function AdminDashboardContent() {
           role,
           name: userData.name || '',
           username: userData.username,
+          isActive: userData.isActive !== undefined ? userData.isActive : true,
           ...(profileData || {}),
           dob: formattedDob,
           ...(role === 'TEACHER' && userData.teacherBatches?.length > 0 && { batch: userData.teacherBatches[0].name })
@@ -3234,20 +3236,8 @@ function AdminDashboardContent() {
             }}
             className="academic-back-btn"
           >
-            ⬅ Back to Academic Services Menu
+            ⬅ Back
           </button>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Academic Service / {
-              academicSubTab === 'courses' ? 'Courses & Batches' : 
-              academicSubTab === 'attendance' ? 'Attendance Logs' : 
-              academicSubTab === 'materials' ? 'Study Materials' : 
-              academicSubTab === 'tests' ? 'Tests & Exams' : 
-              academicSubTab === 'analytics' ? 'Performance Analytics' : 
-              academicSubTab === 'lectures' ? `Lectures/Classes${lectureSubTab !== 'DASHBOARD' ? ' / ' + (lectureSubTab === 'LIVE' ? 'Live Streams' : lectureSubTab === 'RECORDED' ? 'Video Archive' : 'Broadcast Scheduler') : ''}` : 
-              academicSubTab === 'admissions' ? 'Admissions Inquiries' : 
-              academicSubTab
-            }
-          </span>
         </div>
       )}
 
@@ -6014,23 +6004,6 @@ function AdminDashboardContent() {
           {/* Study Materials Control Header */}
           <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
             <button 
-              onClick={() => { setShowUploadedMaterials(!showUploadedMaterials); setShowPublishMaterialForm(false); }}
-              className="btn-primary"
-              style={{
-                padding: '0.85rem 1.5rem',
-                borderRadius: '12px',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: showUploadedMaterials ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                border: showUploadedMaterials ? 'none' : '1px solid var(--border)',
-                color: showUploadedMaterials ? 'white' : 'var(--text)'
-              }}
-            >
-              📚 View Uploaded Materials
-            </button>
-            <button 
               onClick={() => { setShowPublishMaterialForm(!showPublishMaterialForm); setShowUploadedMaterials(false); }}
               className="btn-primary"
               style={{
@@ -6046,6 +6019,23 @@ function AdminDashboardContent() {
               }}
             >
               ➕ Publish Study Material
+            </button>
+            <button 
+              onClick={() => { setShowUploadedMaterials(!showUploadedMaterials); setShowPublishMaterialForm(false); }}
+              className="btn-primary"
+              style={{
+                padding: '0.85rem 1.5rem',
+                borderRadius: '12px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: showUploadedMaterials ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                border: showUploadedMaterials ? 'none' : '1px solid var(--border)',
+                color: showUploadedMaterials ? 'white' : 'var(--text)'
+              }}
+            >
+              📚 View Uploaded Materials
             </button>
           </div>
 
@@ -7806,8 +7796,6 @@ function AdminDashboardContent() {
                      <input type="text" value={editingProfile.parentContact || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, parentContact: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
                    </div>
                    <div className="input-group">
-                     <label>Student ID / Roll No</label>
-                     <input type="text" value={editingProfile.rollNumber || ''} onChange={e => setEditingProfile({...editingProfile, rollNumber: e.target.value})} placeholder="STU-001" />
                    </div>
                    <div className="input-group">
                      <label>Batch Name</label>
@@ -9913,12 +9901,12 @@ function AdminDashboardContent() {
                 <>
                   <div className="user-details-modal-grid-2col">
                     <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Roll Number</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.rollNumber || 'N/A'}</div>
-                    </div>
-                    <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Registration No</div>
                       <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.registrationNo || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Grade/Class</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.className || 'N/A'}</div>
                     </div>
                   </div>
 
@@ -10103,6 +10091,110 @@ function AdminDashboardContent() {
                   
               {selectedUserDetail.role === 'STUDENT' && (
                 <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📝 Student Test & Exam Performance</h3>
+                  {selectedUserDetail.studentTestResults && selectedUserDetail.studentTestResults.length > 0 ? (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '10px', background: 'rgba(0,0,0,0.1)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                          <thead>
+                            <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                              <th style={{ padding: '8px 12px' }}>Test Title</th>
+                              <th style={{ padding: '8px 12px' }}>Subject</th>
+                              <th style={{ padding: '8px 12px' }}>Date</th>
+                              <th style={{ padding: '8px 12px' }}>Score</th>
+                              <th style={{ padding: '8px 12px' }}>Percentage</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedUserDetail.studentTestResults.map((tr: any) => {
+                              const pct = Math.round((tr.marks / (tr.totalMarks || 100)) * 100);
+                              return (
+                                <tr key={tr.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                  <td style={{ padding: '8px 12px', fontWeight: 600 }}>{tr.test?.title || 'Class Assessment'}</td>
+                                  <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>{tr.test?.subject || 'General'}</td>
+                                  <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>{tr.test?.date ? new Date(tr.test.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
+                                  <td style={{ padding: '8px 12px', fontWeight: 700 }}>{tr.marks} / {tr.totalMarks}</td>
+                                  <td style={{ padding: '8px 12px' }}>
+                                    <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 800, background: pct >= 75 ? 'rgba(16, 185, 129, 0.15)' : pct >= 50 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: pct >= 75 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>
+                                      {pct}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '1rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      No test/exam marks recorded for this student yet.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedUserDetail.role === 'STUDENT' && (
+                <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📅 Student Attendance Record</h3>
+                  {selectedUserDetail.studentAttendance && selectedUserDetail.studentAttendance.length > 0 ? (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1rem', textAlign: 'center' }}>
+                        <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981' }}>
+                            {selectedUserDetail.studentAttendance.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE').length} / {selectedUserDetail.studentAttendance.length}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Present Days</div>
+                        </div>
+                        <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ef4444' }}>
+                            {selectedUserDetail.studentAttendance.filter((a: any) => a.status === 'ABSENT').length}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Absent Days</div>
+                        </div>
+                        <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#3b82f6' }}>
+                            {Math.round((selectedUserDetail.studentAttendance.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE').length / selectedUserDetail.studentAttendance.length) * 100)}%
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Attendance %</div>
+                        </div>
+                      </div>
+
+                      <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '10px', background: 'rgba(0,0,0,0.1)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                          <thead>
+                            <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                              <th style={{ padding: '8px 12px' }}>Date</th>
+                              <th style={{ padding: '8px 12px' }}>Batch</th>
+                              <th style={{ padding: '8px 12px' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedUserDetail.studentAttendance.slice(0, 15).map((att: any) => (
+                              <tr key={att.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                <td style={{ padding: '8px 12px', fontWeight: 600 }}>{new Date(att.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>{att.batch?.name || 'Standard Batch'}</td>
+                                <td style={{ padding: '8px 12px' }}>
+                                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 800, background: att.status === 'PRESENT' ? 'rgba(16, 185, 129, 0.15)' : att.status === 'ABSENT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: att.status === 'PRESENT' ? '#10b981' : att.status === 'ABSENT' ? '#ef4444' : '#f59e0b' }}>
+                                    {att.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '1rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      No attendance logs recorded for this student yet.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedUserDetail.role === 'STUDENT' && (
+                <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏦 Complete Fee Statement Ledger</h3>
                   <div className="scrollable-ledger-container">
                     <StudentLedger 
@@ -10163,13 +10255,13 @@ function AdminDashboardContent() {
                   className="btn-primary" 
                   style={{ flex: 1, padding: '0.85rem' }}
                 >
-                  ✎ Edit User Profile
+                  ✎ Edit
                 </button>
                 <button 
                   onClick={() => setSelectedUserDetail(null)} 
                   style={{ flex: 1, padding: '0.85rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 }}
                 >
-                  Close Details
+                  Close
                 </button>
               </div>
             </div>

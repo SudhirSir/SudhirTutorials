@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Spinner } from '@/components/ui/Spinner';
 
 interface UserProfileModalProps {
   userId: string;
@@ -37,15 +40,12 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
 
   if (loading) {
     return createPortal(
-      <div style={backdropStyle} onClick={onClose}>
-        <div style={modalStyle} onClick={e => e.stopPropagation()}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
-            <div className="spinner" style={{ width: '36px', height: '36px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading profile...</p>
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-container" style={{ maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+            <Spinner size="lg" />
+            <p className="input-label" style={{ marginTop: '1rem' }}>Loading profile...</p>
           </div>
-          <style jsx>{`
-            @keyframes spin { to { transform: rotate(360deg); } }
-          `}</style>
         </div>
       </div>,
       document.body
@@ -54,13 +54,17 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
 
   if (error || !profileData) {
     return createPortal(
-      <div style={backdropStyle} onClick={onClose}>
-        <div style={modalStyle} onClick={e => e.stopPropagation()}>
-          <div style={{ position: 'relative', height: '140px', background: 'linear-gradient(135deg, var(--primary), #818cf8)' }}>
-            <button onClick={onClose} style={closeBtnStyle}>×</button>
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-container" style={{ maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3 className="modal-title">Error</h3>
+            <button onClick={onClose} className="modal-close-btn">×</button>
           </div>
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
-            <p style={{ marginTop: '0.5rem', fontWeight: 600 }}>{error || 'Profile could not be loaded'}</p>
+          <div className="modal-body" style={{ textAlign: 'center' }}>
+            <p className="input-error-msg">{error || 'Profile could not be loaded'}</p>
+          </div>
+          <div className="modal-footer">
+            <Button variant="outline" onClick={onClose}>Close</Button>
           </div>
         </div>
       </div>,
@@ -71,269 +75,155 @@ export function UserProfileModal({ userId, onClose, onStartChat }: UserProfileMo
   const { name, username, role, isProfileVerified, photoUrl, createdAt, profile } = profileData;
   const joinDate = createdAt ? new Date(createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
 
+  const badgeVariant = role === 'ADMIN' ? 'danger' : role === 'TEACHER' ? 'success' : 'info';
+
   return createPortal(
-    <div style={backdropStyle} onClick={onClose}>
-      <div className="glass-card animate-scale-up" style={modalStyle} onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} style={closeBtnStyle} title="Close Profile">×</button>
-        
-        {/* Avatar Area */}
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '4px solid var(--primary)', margin: '0 auto 1rem', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold' }}>
-            {photoUrl ? (
-              <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              (name || 'U').charAt(0).toUpperCase()
-            )}
-          </div>
-          <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            {name || 'Unnamed User'}
-            {isProfileVerified && (
-              <span title="Verified Member" style={{ fontSize: '0.9rem', color: '#3b82f6', display: 'flex', alignItems: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-              </span>
-            )}
-          </h3>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{username}</p>
-          
-          <div style={{ marginTop: '0.75rem' }}>
-            <span style={{ 
-              fontSize: '0.7rem', 
-              fontWeight: 800, 
-              padding: '4px 12px', 
-              borderRadius: '20px', 
-              background: role === 'ADMIN' ? 'rgba(239,68,68,0.15)' : role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(59,130,246,0.15)',
-              color: role === 'ADMIN' ? '#f87171' : role === 'TEACHER' ? '#34d399' : '#60a5fa',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}>
-              {role}
-            </span>
-          </div>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" style={{ maxWidth: '440px', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">User Profile</h3>
+          <button onClick={onClose} className="modal-close-btn" title="Close Profile">×</button>
         </div>
 
-        {/* Details Section */}
-        <div style={{ 
-          background: 'rgba(255,255,255,0.02)', 
-          borderRadius: '16px', 
-          padding: '1.25rem', 
-          border: '1px solid var(--border)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.85rem',
-          textAlign: 'left',
-          marginBottom: '1.5rem',
-          fontSize: '0.9rem'
-        }}>
-          <div>
-            <span style={detailLabelStyle}>Joined Since</span>
-            <span style={detailValueStyle}>{joinDate}</span>
-          </div>
-
-          {/* Student Specific Details */}
-          {role === 'STUDENT' && profile && (
-            <>
-              {profile.className && (
-                <div>
-                  <span style={detailLabelStyle}>Class / Grade</span>
-                  <span style={detailValueStyle}>{profile.className}</span>
-                </div>
-              )}
-              {profile.batch && (
-                <div>
-                  <span style={detailLabelStyle}>Batch Assigned</span>
-                  <span style={detailValueStyle}>{profile.batch}</span>
-                </div>
-              )}
-              {profile.rollNumber && (
-                <div>
-                  <span style={detailLabelStyle}>Roll Number</span>
-                  <span style={detailValueStyle}>{profile.rollNumber}</span>
-                </div>
-              )}
-              {profile.school && (
-                <div>
-                  <span style={detailLabelStyle}>School / Institution</span>
-                  <span style={detailValueStyle}>{profile.school}</span>
-                </div>
-              )}
-              {profile.fatherName && (
-                <div>
-                  <span style={detailLabelStyle}>Father's Name</span>
-                  <span style={detailValueStyle}>{profile.fatherName}</span>
-                </div>
-              )}
-              {profile.gender && (
-                <div>
-                  <span style={detailLabelStyle}>Gender</span>
-                  <span style={detailValueStyle}>{profile.gender}</span>
-                </div>
-              )}
-              {profile.religion && (
-                <div>
-                  <span style={detailLabelStyle}>Religion</span>
-                  <span style={detailValueStyle}>{profile.religion}</span>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Teacher Specific Details */}
-          {role === 'TEACHER' && profile && (
-            <>
-              {profile.subject && (
-                <div>
-                  <span style={detailLabelStyle}>Expertise / Subject</span>
-                  <span style={detailValueStyle}>{profile.subject}</span>
-                </div>
-              )}
-              {profile.qualification && (
-                <div>
-                  <span style={detailLabelStyle}>Qualification</span>
-                  <span style={detailValueStyle}>{profile.qualification}</span>
-                </div>
-              )}
-              {profile.experience && (
-                <div>
-                  <span style={detailLabelStyle}>Experience</span>
-                  <span style={detailValueStyle}>{profile.experience}</span>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Contact Details (If available or admin-viewable) */}
-          {(profile?.email || profile?.phone) && (
-            <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {profile.email && (
-                <div>
-                  <span style={detailLabelStyle}>Email Address</span>
-                  <span style={{ ...detailValueStyle, wordBreak: 'break-all' }}>{profile.email}</span>
-                </div>
-              )}
-              {profile.phone && (
-                <div>
-                  <span style={detailLabelStyle}>Phone Number</span>
-                  <span style={detailValueStyle}>{profile.phone}</span>
-                </div>
+        <div className="modal-body">
+          {/* Avatar Area */}
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary)', margin: '0 auto 1rem', overflow: 'hidden', background: 'var(--surface-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', fontWeight: 'bold', color: 'var(--text-heading)' }}>
+              {photoUrl ? (
+                <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                (name || 'U').charAt(0).toUpperCase()
               )}
             </div>
-          )}
-        </div>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              {name || 'Unnamed User'}
+              {isProfileVerified && (
+                <span title="Verified Member" style={{ fontSize: '0.9rem', color: '#3b82f6', display: 'flex', alignItems: 'center' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </span>
+              )}
+            </h3>
+            <p className="input-label" style={{ marginTop: 4 }}>{username}</p>
+            
+            <div style={{ marginTop: '0.5rem' }}>
+              <Badge variant={badgeVariant}>{role}</Badge>
+            </div>
+          </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {onStartChat && (
-            <button
-              onClick={() => {
-                onStartChat({ id: userId, name, username, role, photoUrl });
-                onClose();
-              }}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '12px',
-                background: 'var(--primary)',
-                border: 'none',
-                color: 'white',
-                fontWeight: 800,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
-              }}
-            >
-              💬 Send Direct Message
-            </button>
-          )}
-          
-          <button
-            onClick={onClose}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '12px',
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--card-bg-alt)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            Close Profile
-          </button>
+          {/* Details Section */}
+          <div className="card-ui" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <div>
+              <span className="input-label" style={{ fontSize: '0.75rem' }}>Joined Since</span>
+              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{joinDate}</div>
+            </div>
+
+            {/* Student Specific Details */}
+            {role === 'STUDENT' && profile && (
+              <>
+                {profile.className && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Class / Grade</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.className}</div>
+                  </div>
+                )}
+                {profile.batch && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Batch Assigned</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.batch}</div>
+                  </div>
+                )}
+                {profile.rollNumber && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Roll Number</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.rollNumber}</div>
+                  </div>
+                )}
+                {profile.school && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>School / Institution</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.school}</div>
+                  </div>
+                )}
+                {profile.fatherName && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Father's Name</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.fatherName}</div>
+                  </div>
+                )}
+                {profile.gender && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Gender</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.gender}</div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Teacher Specific Details */}
+            {role === 'TEACHER' && profile && (
+              <>
+                {profile.subject && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Expertise / Subject</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.subject}</div>
+                  </div>
+                )}
+                {profile.qualification && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Qualification</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.qualification}</div>
+                  </div>
+                )}
+                {profile.experience && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Experience</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.experience}</div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Contact Details */}
+            {(profile?.email || profile?.phone) && (
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {profile.email && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Email Address</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)', wordBreak: 'break-all' }}>{profile.email}</div>
+                  </div>
+                )}
+                {profile.phone && (
+                  <div>
+                    <span className="input-label" style={{ fontSize: '0.75rem' }}>Phone Number</span>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{profile.phone}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {onStartChat && (
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => {
+                  onStartChat({ id: userId, name, username, role, photoUrl });
+                  onClose();
+                }}
+              >
+                💬 Send Direct Message
+              </Button>
+            )}
+            
+            <Button variant="outline" fullWidth onClick={onClose}>
+              Close Profile
+            </Button>
+          </div>
         </div>
       </div>
     </div>,
     document.body
   );
 }
-
-// Inline styles for Modal Shell
-const backdropStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 99999,
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-  padding: '1rem',
-  overflowY: 'auto'
-};
-
-const modalStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: '420px',
-  padding: '2.25rem',
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  borderRadius: '24px',
-  position: 'relative',
-  boxShadow: 'var(--shadow-lg)',
-  margin: 'auto'
-};
-
-const closeBtnStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: '1rem',
-  right: '1rem',
-  background: 'rgba(239,68,68,0.1)',
-  border: 'none',
-  color: '#ef4444',
-  width: '32px',
-  height: '32px',
-  borderRadius: '50%',
-  fontSize: '1.1rem',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontWeight: 'bold',
-  transition: 'all 0.2s'
-};
-
-const detailLabelStyle: React.CSSProperties = {
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  color: 'var(--text-muted)',
-  display: 'block',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  marginBottom: '2px'
-};
-
-const detailValueStyle: React.CSSProperties = {
-  fontSize: '0.9rem',
-  color: 'var(--text)',
-  fontWeight: 600
-};

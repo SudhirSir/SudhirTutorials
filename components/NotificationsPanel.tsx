@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Spinner } from '@/components/ui/Spinner';
+import { Input, Textarea, Select } from '@/components/ui/Input';
 
 interface Notification {
   id: string;
@@ -11,14 +16,6 @@ interface Notification {
   isRead: boolean;
   createdAt: string;
 }
-
-const typeColors: Record<string, { bg: string; color: string }> = {
-  SYSTEM:  { bg: 'rgba(99,102,241,0.12)', color: '#818cf8' },
-  FEE:     { bg: 'rgba(239,68,68,0.12)',  color: '#f87171' },
-  ALERT:   { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24' },
-  MESSAGE: { bg: 'rgba(16,185,129,0.12)', color: '#34d399' },
-  REPORT:  { bg: 'rgba(239,68,68,0.15)',  color: '#ef4444' },
-};
 
 function getNotificationIcon(type: string) {
   switch (type) {
@@ -31,7 +28,7 @@ function getNotificationIcon(type: string) {
     case 'MESSAGE':
       return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
     case 'REPORT':
-      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18.6 18.6L16 16M5.4 5.4L8 8m10.6-2.6L16 8M5.4 18.6L8 16M2 12h3m14 0h3M12 2v3m0 14v3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>;
+      return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18.6 18.6L16 16M5.4 5.4L8 8m10.6-2.6L16 8M5.4 18.6L8 16M2 18.6L8 16M2 12h3m14 0h3M12 2v3m0 14v3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>;
     default:
       return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
   }
@@ -42,13 +39,10 @@ function timeAgo(date: string) {
   if (diff < 60) return 'Just now';
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return (() => {
-    const d = new Date(date);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  })();
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${d.getFullYear()}`;
 }
 
 function parseNotificationMessage(msg: string) {
@@ -56,14 +50,12 @@ function parseNotificationMessage(msg: string) {
   let screenshot: string | null = null;
   let email: string | null = null;
 
-  // Extract screenshot: support standard base64 URL format
   const ssMatch = cleanMessage.match(/\[Screenshot:\s*(data:image\/[^\]]+)\]/i);
   if (ssMatch) {
     screenshot = ssMatch[1];
     cleanMessage = cleanMessage.replace(ssMatch[0], '').trim();
   }
 
-  // Extract email metadata
   const emailMatch = cleanMessage.match(/\[Email:\s*([^\]]+)\]/i);
   if (emailMatch) {
     email = emailMatch[1];
@@ -92,7 +84,6 @@ export function NotificationsPanel({
     visibleCountRef.current = visibleCount;
   }, [visibleCount]);
 
-  // Admin-only broadcast form state
   const [showCompose, setShowCompose] = useState(false);
   const [composeTitle, setComposeTitle] = useState('');
   const [composeMsg, setComposeMsg] = useState('');
@@ -115,7 +106,6 @@ export function NotificationsPanel({
         const unread = data.unreadCount ?? 0;
         
         if (panelTab === 'received' && unread > 0) {
-          // Mark all read in the background
           fetch('/api/notifications', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -152,15 +142,11 @@ export function NotificationsPanel({
 
     const connectSSE = () => {
       if (panelTab !== 'received') return;
-
-      if (eventSource) {
-        eventSource.close();
-      }
+      if (eventSource) eventSource.close();
 
       eventSource = new EventSource('/api/notifications/subscribe');
 
       eventSource.onopen = () => {
-        console.log('[SSE Notifications] Connection established successfully');
         fetchNotifications();
         if (fallbackInterval) {
           clearInterval(fallbackInterval);
@@ -171,11 +157,7 @@ export function NotificationsPanel({
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          // Ignore control messages
-          if (data.type === 'connected' || data.type === 'ping') {
-            return;
-          }
-          // Real-time update signal received
+          if (data.type === 'connected' || data.type === 'ping') return;
           fetchNotifications();
         } catch (e) {
           console.error('Failed to parse SSE notification:', e);
@@ -183,60 +165,39 @@ export function NotificationsPanel({
       };
 
       eventSource.onerror = () => {
-        console.error('[SSE Notifications] Connection error. Closing stream...');
         if (eventSource) {
           eventSource.close();
           eventSource = null;
         }
-        
-        // Attempt reconnection after 30 seconds
         clearTimeout(reconnectTimeout);
         reconnectTimeout = setTimeout(connectSSE, 30000);
 
-        // Start fallback polling (once every 15s) while SSE is down
         if (!fallbackInterval) {
           fallbackInterval = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-              fetchNotifications();
-            }
+            if (document.visibilityState === 'visible') fetchNotifications();
           }, 15000);
         }
       };
     };
 
-    // Initial load
     fetchNotifications();
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        connectSSE();
-      } else {
-        if (eventSource) {
-          eventSource.close();
-          eventSource = null;
-        }
-        if (fallbackInterval) {
-          clearInterval(fallbackInterval);
-          fallbackInterval = null;
-        }
+      if (document.visibilityState === 'visible') connectSSE();
+      else {
+        if (eventSource) { eventSource.close(); eventSource = null; }
+        if (fallbackInterval) { clearInterval(fallbackInterval); fallbackInterval = null; }
       }
     };
 
-    if (document.visibilityState === 'visible') {
-      connectSSE();
-    }
-
+    if (document.visibilityState === 'visible') connectSSE();
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
-      if (eventSource) {
-        eventSource.close();
-      }
+      if (eventSource) eventSource.close();
       clearTimeout(reconnectTimeout);
-      if (fallbackInterval) {
-        clearInterval(fallbackInterval);
-      }
+      if (fallbackInterval) clearInterval(fallbackInterval);
     };
   }, [panelTab]);
 
@@ -270,221 +231,201 @@ export function NotificationsPanel({
     finally { setComposing(false); }
   };
 
-  // unreadCount is managed as a state synchronized from the fetchNotifications call
-
   return (
     <div style={{ maxWidth: '720px' }}>
-
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', margin: 0 }}>
+          <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             Notifications
             {unreadCount > 0 && (
-              <span style={{ marginLeft: '0.75rem', background: '#ef4444', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '2px 10px', borderRadius: '20px', verticalAlign: 'middle' }}>
-                {unreadCount} new
-              </span>
+              <Badge variant="danger">{unreadCount} new</Badge>
             )}
           </h2>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           {unreadCount > 0 && (
-            <button onClick={markAllRead} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '0.5rem 1rem', borderRadius: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+            <Button variant="outline" size="sm" onClick={markAllRead}>
               Mark all read
-            </button>
+            </Button>
           )}
           {(role === 'ADMIN' || role === 'TEACHER') && (
-            <button onClick={() => setShowCompose(!showCompose)} className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}>
+            <Button variant="primary" size="sm" onClick={() => setShowCompose(!showCompose)}>
               {showCompose ? 'Cancel' : 'Send Notice'}
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Compose Form (Admin/Teacher) */}
+      {/* Compose Form */}
       {showCompose && (
-        <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid rgba(99,102,241,0.3)' }}>
-          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.1rem' }}>Broadcast Notification</h3>
+        <Card variant="glass" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.1rem', color: 'var(--text-heading)' }}>Broadcast Notification</h3>
           {composeSuccess && (
-            <div style={{ background: 'rgba(16,185,129,0.1)', color: '#34d399', padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1rem', fontWeight: 600 }}>
+            <Badge variant="success" style={{ padding: '0.5rem 1rem', marginBottom: '1rem', width: '100%', justifyContent: 'center' }}>
               {composeSuccess}
-            </div>
+            </Badge>
           )}
           <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="input-group">
-                <label>Title</label>
-                <input type="text" required placeholder="e.g. Fee Reminder" value={composeTitle} onChange={e => setComposeTitle(e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label>Send To</label>
-                <select value={composeRole} onChange={e => setComposeRole(e.target.value)}>
-                  <option value="ALL">All Students & Teachers</option>
-                  <option value="STUDENT">All Students</option>
-                  <option value="TEACHER">All Teachers</option>
-                </select>
-              </div>
-            </div>
-            <div className="input-group">
-              <label>Message</label>
-              <textarea
+              <Input
+                label="Title"
                 required
-                placeholder="Write your notification message here..."
-                value={composeMsg}
-                onChange={e => setComposeMsg(e.target.value)}
-                rows={3}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.95rem', resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder="e.g. Fee Reminder"
+                value={composeTitle}
+                onChange={e => setComposeTitle(e.target.value)}
+              />
+              <Select
+                label="Send To"
+                value={composeRole}
+                onChange={e => setComposeRole(e.target.value)}
+                options={[
+                  { value: 'ALL', label: 'All Students & Teachers' },
+                  { value: 'STUDENT', label: 'All Students' },
+                  { value: 'TEACHER', label: 'All Teachers' }
+                ]}
               />
             </div>
-            <button type="submit" disabled={composing} className="btn-primary" style={{ alignSelf: 'flex-end', padding: '0.65rem 2rem' }}>
-              {composing ? 'Sending...' : 'Send Notification'}
-            </button>
+            <Textarea
+              label="Message"
+              required
+              placeholder="Write your notification message here..."
+              value={composeMsg}
+              onChange={e => setComposeMsg(e.target.value)}
+              rows={3}
+            />
+            <Button type="submit" isLoading={composing} variant="primary" style={{ alignSelf: 'flex-end' }}>
+              Send Notification
+            </Button>
           </form>
-        </div>
+        </Card>
       )}
 
-      {/* Sent / Received Tabs (Admin/Teacher only) */}
+      {/* Sent / Received Navigation */}
       {(role === 'ADMIN' || role === 'TEACHER') && (
-        <div className="dashboard-tab-bar" style={{ alignSelf: 'flex-start', maxWidth: '280px', marginBottom: '1.5rem' }}>
-          <button 
-            onClick={() => { setLoading(true); setPanelTab('received'); }}
-            className={`dashboard-tab-button ${panelTab === 'received' ? 'active' : ''}`}
-            style={{ flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.8rem' }}
-          >
-            Inbox
-          </button>
-          <button 
-            onClick={() => { setLoading(true); setPanelTab('sent'); }}
-            className={`dashboard-tab-button ${panelTab === 'sent' ? 'active' : ''}`}
-            style={{ flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.8rem' }}
-          >
-            Sent Notices
-          </button>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div className="tab-nav" style={{ maxWidth: '280px' }}>
+            <button 
+              type="button"
+              onClick={() => { setLoading(true); setPanelTab('received'); }}
+              className={`tab-btn ${panelTab === 'received' ? 'tab-btn-active' : ''}`}
+            >
+              Inbox
+            </button>
+            <button 
+              type="button"
+              onClick={() => { setLoading(true); setPanelTab('sent'); }}
+              className={`tab-btn ${panelTab === 'sent' ? 'tab-btn-active' : ''}`}
+            >
+              Sent Notices
+            </button>
+          </div>
         </div>
       )}
 
       {/* Notifications List */}
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <Card variant="glass" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+            <Spinner size="md" />
+            <span className="input-label">Loading notifications...</span>
+          </div>
         ) : notifications.length === 0 ? (
           <div style={{ padding: '4rem', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '50%', padding: '1rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div style={{ fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>
+              {panelTab === 'sent' ? 'No sent broadcasts' : 'No notifications yet'}
             </div>
-            <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>{panelTab === 'sent' ? 'No sent broadcasts' : 'No notifications yet'}</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{panelTab === 'sent' ? 'Broadcast notices to see them listed here.' : "You'll see messages from admin and teachers here."}</div>
+            <div className="input-label">
+              {panelTab === 'sent' ? 'Broadcast notices to see them listed here.' : "You'll see messages from admin and teachers here."}
+            </div>
           </div>
         ) : (
           <>
             {notifications.slice(0, visibleCount).map((n, i) => {
-              const style = typeColors[n.type] || typeColors.SYSTEM;
               const { cleanMessage, screenshot, email } = parseNotificationMessage(n.message);
-            return (
-              <div
-                key={n.id}
-                onClick={() => panelTab === 'received' && !n.isRead && markOneRead(n.id)}
-                style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  padding: '0.85rem 1.25rem',
-                  borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
-                  background: (panelTab === 'received' && !n.isRead) ? 'rgba(99,102,241,0.04)' : 'transparent',
-                  cursor: (panelTab === 'received' && !n.isRead) ? 'pointer' : 'default',
-                  transition: 'background 0.2s',
-                }}
-              >
-                {/* Icon */}
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: style.bg, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: '1rem', flexShrink: 0,
-                  color: style.color
-                }}>
-                  {getNotificationIcon(n.type)}
-                </div>
+              const badgeType = n.type === 'FEE' || n.type === 'REPORT' ? 'danger' : n.type === 'ALERT' ? 'warning' : n.type === 'MESSAGE' ? 'success' : 'info';
 
-                {/* Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                    <span style={{ fontWeight: n.isRead ? 600 : 800, color: n.isRead ? 'var(--text-muted)' : 'var(--text)', fontSize: '0.95rem' }}>
-                      {n.title}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{timeAgo(n.createdAt)}</span>
-                      {!n.isRead && (
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: style.color, flexShrink: 0 }} />
-                      )}
+              return (
+                <div
+                  key={n.id}
+                  onClick={() => panelTab === 'received' && !n.isRead && markOneRead(n.id)}
+                  style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    padding: '0.85rem 1.25rem',
+                    borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
+                    background: (panelTab === 'received' && !n.isRead) ? 'var(--surface-light)' : 'transparent',
+                    cursor: (panelTab === 'received' && !n.isRead) ? 'pointer' : 'default',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
+                    {getNotificationIcon(n.type)}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                      <span style={{ fontWeight: n.isRead ? 600 : 800, color: 'var(--text-heading)', fontSize: '0.95rem' }}>
+                        {n.title}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                        <span className="input-label" style={{ fontSize: '0.75rem' }}>{timeAgo(n.createdAt)}</span>
+                      </div>
+                    </div>
+                    <p className="input-label" style={{ margin: '0.3rem 0 0 0', fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                      {cleanMessage}
+                    </p>
+                    
+                    {email && (
+                      <div className="input-label" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                        Contact Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
+                      </div>
+                    )}
+
+                    {screenshot && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); setLightboxImg(screenshot); }}
+                        >
+                          View Attachment
+                        </Button>
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <Badge variant={badgeType}>{n.type}</Badge>
                     </div>
                   </div>
-                  <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
-                    {cleanMessage}
-                  </p>
-                  
-                  {email && (
-                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Contact Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
-                    </div>
-                  )}
-
-                  {screenshot && (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setLightboxImg(screenshot); }}
-                        style={{
-                          background: 'rgba(99,102,241,0.1)',
-                          border: '1px solid rgba(99,102,241,0.2)',
-                          color: '#818cf8',
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        View Attachment
-                      </button>
-                    </div>
-                  )}
-
-                  <span style={{
-                    display: 'inline-block', marginTop: '0.5rem', fontSize: '0.65rem',
-                    padding: '2px 8px', borderRadius: '6px',
-                    background: style.bg, color: style.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px'
-                  }}>
-                    {n.type}
-                  </span>
                 </div>
-              </div>
-            );
+              );
             })}
             {notifications.length < totalCount && (
-              <button 
-                onClick={handleLoadMore} 
-                style={{ width: '100%', padding: '1rem', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.05)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              <Button
+                variant="ghost"
+                fullWidth
+                onClick={handleLoadMore}
+                style={{ borderRadius: 0 }}
               >
                 View More Notifications
-              </button>
+              </Button>
             )}
           </>
         )}
-      </div>
+      </Card>
 
-      {/* Lightbox Modal for full-screen screenshot viewing */}
+      {/* Lightbox Modal */}
       {lightboxImg && (
         <div 
           onClick={() => setLightboxImg(null)} 
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', cursor: 'zoom-out' }}
+          className="modal-overlay"
         >
-          <img src={lightboxImg} alt="Enlarged Bug Screenshot" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }} />
+          <img src={lightboxImg} alt="Enlarged Screenshot" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain', borderRadius: '12px' }} />
           <button 
             onClick={() => setLightboxImg(null)} 
-            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="modal-close-btn"
+            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', color: '#fff' }}
           >
             ×
           </button>

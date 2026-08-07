@@ -33,24 +33,19 @@ export async function GET(req: Request) {
         name: true,
         username: true,
         role: true,
-        photoUrl: true,
-        studentProfile: { select: { photoUrl: true } },
-        teacherProfile: { select: { photoUrl: true } }
+        photoUrl: true
       },
       orderBy: { name: 'asc' },
-      take: 1000,
+      take: 150,
     }));
 
-    const mappedUsers = users.map((u: any) => {
-      const photo = u.photoUrl || (u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl);
-      return {
-        id: u.id,
-        name: u.name,
-        username: u.username,
-        role: u.role,
-        photoUrl: photo || null
-      };
-    });
+    const mappedUsers = users.map((u: any) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      role: u.role,
+      photoUrl: u.photoUrl || null
+    }));
 
     return NextResponse.json({ users: mappedUsers });
   } catch (error) {

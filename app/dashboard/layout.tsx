@@ -505,18 +505,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         .nav-link-modern {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.5rem 0.75rem;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+          gap: 0.75rem !important;
+          padding: 0.6rem 0.85rem !important;
           border-radius: 10px;
           color: var(--text-muted);
           font-weight: 600;
           font-size: 0.85rem;
+          white-space: nowrap !important;
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .nav-link-modern .icon {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          flex-shrink: 0 !important;
+          width: 20px;
+          height: 20px;
           color: var(--text-muted);
           transition: transform 0.2s;
         }

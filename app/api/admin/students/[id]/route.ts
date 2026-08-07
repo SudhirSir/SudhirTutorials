@@ -27,17 +27,34 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
       include: {
         studentProfile: true,
-        payments: {
-          orderBy: { createdAt: 'desc' },
+        attendance: {
+          include: {
+            batch: { select: { name: true } }
+          },
+          orderBy: { date: 'desc' }
         },
-      },
+        testResults: {
+          include: {
+            test: {
+              select: { title: true, subject: true, date: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
     }));
 
     if (!user) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ student: user });
+    const studentData = {
+      ...user,
+      studentAttendance: user.attendance,
+      studentTestResults: user.testResults
+    };
+
+    return NextResponse.json({ student: studentData });
   } catch (error) {
     console.error('Error fetching student profile:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

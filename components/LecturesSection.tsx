@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Spinner } from '@/components/ui/Spinner';
+import { Input, Textarea, Select } from '@/components/ui/Input';
 
 interface Lecture {
   id: string;
@@ -43,7 +48,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
   const [subjectFilter, setSubjectFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Theater Player State
   const [activeLecture, setActiveLecture] = useState<Lecture | null>(null);
   const [isCinemaMode, setIsCinemaMode] = useState(false);
 
@@ -51,9 +55,10 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
     if (!activeLecture) return null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎬 Now Watching / Selected Lecture</h4>
-        <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-          {/* Main Video Embed */}
+        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-heading)' }}>
+          🎬 Now Watching / Selected Lecture
+        </h4>
+        <Card variant="glass" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', padding: '1.5rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div 
               className="video-fullscreen-wrapper"
@@ -68,76 +73,55 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
-                type="button"
+              <Button 
+                variant="secondary"
+                size="sm"
                 onClick={() => setIsCinemaMode(true)}
-                className="btn-secondary"
-                style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
               >
                 📺 Watch Full Screen
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* Video Metadata & Theatre Info */}
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.5rem 0' }}>
             <div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ 
-                  background: activeLecture.type === 'LIVE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)', 
-                  color: activeLecture.type === 'LIVE' ? '#ef4444' : 'var(--primary)',
-                  padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px'
-                }}>
+                <Badge variant={activeLecture.type === 'LIVE' ? 'danger' : 'info'}>
                   {activeLecture.type === 'LIVE' ? '🔴 LIVE STREAM' : '🎥 RECORDED'}
-                </span>
-                <span style={{ background: 'var(--card-bg-alt)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
-                  {activeLecture.subject}
-                </span>
+                </Badge>
+                <Badge variant="neutral">{activeLecture.subject}</Badge>
               </div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0', lineHeight: 1.3 }}>{activeLecture.title}</h2>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, maxHeight: '150px', overflowY: 'auto' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.5rem 0', lineHeight: 1.3 }}>{activeLecture.title}</h2>
+              <p className="input-label" style={{ fontSize: '0.8rem', lineHeight: 1.5, margin: 0, maxHeight: '150px', overflowY: 'auto' }}>
                 {activeLecture.description || 'No descriptive details available for this lecture slot.'}
               </p>
             </div>
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block' }}>Assigned Batch:</span>
+                <span className="input-label" style={{ fontSize: '0.65rem', display: 'block' }}>Assigned Batch:</span>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)' }}>
                   {activeLecture.batch?.name || 'N/A'} ({activeLecture.batch?.className || 'N/A'})
                 </span>
               </div>
               
               {(role === 'ADMIN' || (role === 'TEACHER' && activeLecture.assignedById === currentUserId)) && (
-                <button 
+                <Button 
+                  variant="ghost"
+                  size="sm"
                   onClick={(e) => handleDeleteLecture(activeLecture.id, e)}
-                  style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ color: '#ef4444' }}
                 >
                   🗑️ Delete Slot
-                </button>
+                </Button>
               )}
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     );
   };
-  
-  const videoContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleToggleFullscreen = () => {
-    if (!videoContainerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      videoContainerRef.current.requestFullscreen().catch(err => {
-        console.error("Failed to enter fullscreen:", err);
-      });
-    }
-  };
-
-  // Assignment Modal & Form State
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [batches, setBatches] = useState<any[]>([]);
   const [assignForm, setAssignForm] = useState({
     title: '',
@@ -150,7 +134,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState('');
 
-  // Fetch batches for Admin/Teacher to assign
   useEffect(() => {
     fetchLectures();
     if (role === 'ADMIN' || role === 'TEACHER') {
@@ -166,7 +149,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
       if (liveLectures.length > 0) setActiveLecture(liveLectures[0]);
       else if (globalCachedLectures.length > 0) setActiveLecture(globalCachedLectures[0]);
       
-      // Fetch silently in background to update cache
       fetch('/api/lectures').then(r => r.json()).then(data => {
         globalCachedLectures = data.lectures || [];
         setLectures(globalCachedLectures || []);
@@ -182,7 +164,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
         globalCachedLectures = data.lectures || [];
         setLectures(globalCachedLectures || []);
         
-        // Auto-play first live lecture if available
         const liveLectures = (data.lectures || []).filter((l: Lecture) => l.type === 'LIVE');
         if (liveLectures.length > 0) {
           setActiveLecture(liveLectures[0]);
@@ -200,7 +181,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
   const fetchBatches = async () => {
     if (globalCachedBatches) {
       processBatches(globalCachedBatches);
-      // Background update
       fetch('/api/admin/batches').then(r => r.json()).then(data => {
         globalCachedBatches = data.batches || [];
         processBatches(globalCachedBatches || []);
@@ -221,16 +201,14 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
   };
 
   const processBatches = (allBatches: any[]) => {
-        
-        if (role === 'TEACHER') {
-          // Filter batches where teacher teaches
-          const teacherBatches = allBatches.filter((b: any) => 
-            b.teachers.some((t: any) => t.username === (session?.user as any)?.username)
-          );
-          setBatches(teacherBatches);
-          if (teacherBatches.length > 0) {
-            setAssignForm(prev => ({ ...prev, batchId: teacherBatches[0].id }));
-          }
+    if (role === 'TEACHER') {
+      const teacherBatches = allBatches.filter((b: any) => 
+        b.teachers.some((t: any) => t.username === (session?.user as any)?.username)
+      );
+      setBatches(teacherBatches);
+      if (teacherBatches.length > 0) {
+        setAssignForm(prev => ({ ...prev, batchId: teacherBatches[0].id }));
+      }
     } else {
       setBatches(allBatches);
       if (allBatches.length > 0) {
@@ -239,20 +217,17 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
     }
   };
 
-  // Get subjects of the selected batch
   const selectedBatch = batches.find(b => b.id === assignForm.batchId);
   const batchSubjects = selectedBatch?.subjects
     ? selectedBatch.subjects.split(',').map((s: string) => s.trim())
     : ['Mathematics', 'Science', 'Physics', 'Chemistry', 'Biology', 'English', 'SST'];
 
-  // Auto-set the first subject when selected batch changes
   useEffect(() => {
     if (batchSubjects.length > 0) {
       setAssignForm(prev => ({ ...prev, subject: batchSubjects[0] }));
     }
   }, [assignForm.batchId, selectedBatch]);
 
-  // Extract unique subjects in current lectures for filters
   const uniqueSubjects = Array.from(new Set(lectures.map(l => l.subject)));
 
   const handleAssignLecture = async (e: React.FormEvent) => {
@@ -269,7 +244,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
       const data = await res.json();
       if (res.ok && data.success) {
         alert('🎉 Lecture assigned and scheduled successfully! Students notified.');
-        setShowAssignModal(false);
         setAssignForm({
           title: '',
           description: '',
@@ -308,7 +282,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
     }
   };
 
-  // Filtering Lectures
   const filteredLectures = lectures.filter(lecture => {
     const matchesSearch = lecture.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (lecture.description || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -319,173 +292,137 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-      {/* 1. Main Header Controls */}
+      {/* Main Header Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--text)' }}>
+          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--text-heading)' }}>
             📺 Live & Recorded Lectures
           </h3>
-          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Watch live streams and review assigned batch recordings</p>
+          <p className="input-label" style={{ marginTop: 4 }}>Watch live streams and review assigned batch recordings</p>
         </div>
 
-        {/* Premium Sub-Tab Navigation Header */}
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.15)', padding: '0.4rem', borderRadius: '16px', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
+        {/* Tab Bar */}
+        <div className="tab-nav">
           {[
-            { id: 'DASHBOARD', label: '📺 Lecture Hub', desc: 'Active Player & Stats' },
-            { id: 'LIVE', label: '🔴 Live Streams', desc: 'Upcoming & Live Classes' },
-            { id: 'RECORDED', label: '🎥 Video Archive', desc: 'Lesson Video Library' },
-            ...((role === 'ADMIN' || role === 'TEACHER') ? [{ id: 'ASSIGN', label: '➕ Broadcast Scheduler', desc: 'Assign Live/Recorded' }] : [])
+            { id: 'DASHBOARD', label: '📺 Lecture Hub' },
+            { id: 'LIVE', label: '🔴 Live Streams' },
+            { id: 'RECORDED', label: '🎥 Video Archive' },
+            ...((role === 'ADMIN' || role === 'TEACHER') ? [{ id: 'ASSIGN', label: '➕ Broadcast Scheduler' }] : [])
           ].map(tab => (
             <button 
               key={tab.id}
               onClick={() => setLectureSubTab(tab.id as any)}
-              style={{
-                padding: '0.5rem 1rem',
-                border: 'none',
-                background: lectureSubTab === tab.id ? 'var(--primary)' : 'transparent',
-                color: lectureSubTab === tab.id ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.25s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '0.05rem',
-                textAlign: 'left'
-              }}
+              className={`tab-btn ${lectureSubTab === tab.id ? 'tab-btn-active' : ''}`}
             >
-              <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>{tab.label}</span>
-              <span style={{ fontSize: '0.6rem', fontWeight: 500, opacity: lectureSubTab === tab.id ? 0.9 : 0.6 }}>{tab.desc}</span>
+              {tab.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── SUB-TAB: DASHBOARD ────────────────────────────────────────────── */}
+      {/* SUB-TAB: DASHBOARD */}
       {lectureSubTab === 'DASHBOARD' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* Premium welcome banner */}
-          <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(99, 102, 241, 0.04) 100%)', border: '1px solid var(--border)', borderRadius: '20px' }}>
-            <h3 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>Welcome to your Live Classrooms & Video Library! 📺</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem', maxWidth: '700px', lineHeight: '1.4' }}>
+          <Card variant="glass">
+            <h3 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800, color: 'var(--text-heading)' }}>Welcome to your Live Classrooms & Video Library! 📺</h3>
+            <p className="input-label" style={{ marginTop: '0.4rem', maxWidth: '700px', lineHeight: '1.4' }}>
               Attend interactive live streams, catch up on syllabus recordings, and view lecture syllabus documents.
             </p>
-          </div>
+          </Card>
 
-          {/* Top Level Stats Grid */}
+          {/* Stats Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {[
-              { label: 'Total Index Lectures', value: lectures.length, color: '#8b5cf6', desc: 'Indexed batch classes', icon: '📺' },
-              { label: '🔴 Live Now', value: lectures.filter(l => l.type === 'LIVE').length, color: '#ef4444', desc: 'Active streams', icon: '🎥' },
-              { label: '🎥 Recorded Archives', value: lectures.filter(l => l.type === 'RECORDED').length, color: '#3b82f6', desc: 'Syllabus recordings', icon: '💾' },
-              { label: 'Linked Batches', value: Array.from(new Set(lectures.map(l => l.batchId))).length, color: '#10b981', desc: 'Linked student groups', icon: '👥' }
+              { label: 'Total Index Lectures', value: lectures.length, icon: '📺' },
+              { label: '🔴 Live Now', value: lectures.filter(l => l.type === 'LIVE').length, icon: '🎥' },
+              { label: '🎥 Recorded Archives', value: lectures.filter(l => l.type === 'RECORDED').length, icon: '💾' },
+              { label: 'Linked Batches', value: Array.from(new Set(lectures.map(l => l.batchId))).length, icon: '👥' }
             ].map((s, i) => (
-              <div key={i} className="glass-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)' }}>
+              <Card key={i} variant="glass" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: '0.4rem', color: 'var(--text)' }}>{s.value}</div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{s.desc}</div>
+                  <div className="input-label" style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{s.label}</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: '0.4rem', color: 'var(--text-heading)' }}>{s.value}</div>
                 </div>
                 <span style={{ fontSize: '1.75rem', opacity: 0.7 }}>{s.icon}</span>
-              </div>
+              </Card>
             ))}
           </div>
 
-          {/* Theater Player Area */}
           {activeLecture ? (
             renderTheaterPlayer()
           ) : (
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              padding: '4rem', 
-              border: '2px dashed var(--border)', 
-              borderRadius: '20px', 
-              background: 'rgba(255,255,255,0.01)', 
-              textAlign: 'center', 
-              gap: '1rem'
-            }}>
+            <Card variant="glass" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem', textAlign: 'center', gap: '1rem' }}>
               <span style={{ fontSize: '3rem' }}>📺</span>
               <div>
-                <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>No Active Lecture Selected</h4>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '500px' }}>
+                <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-heading)' }}>No Active Lecture Selected</h4>
+                <p className="input-label" style={{ marginTop: '0.25rem', maxWidth: '500px' }}>
                   Select any live class or video recording from the tabs above to launch the interactive theatre player.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button onClick={() => setLectureSubTab('LIVE')} className="btn-primary" style={{ padding: '0.65rem 1.25rem', fontWeight: 800, borderRadius: '10px', fontSize: '0.8rem' }}>
+                <Button variant="primary" onClick={() => setLectureSubTab('LIVE')}>
                   🔴 Watch Live Streams
-                </button>
-                <button onClick={() => setLectureSubTab('RECORDED')} className="btn-secondary" style={{ padding: '0.65rem 1.25rem', fontWeight: 800, borderRadius: '10px', fontSize: '0.8rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer' }}>
+                </Button>
+                <Button variant="outline" onClick={() => setLectureSubTab('RECORDED')}>
                   🎥 Browse Video Archive
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           )}
         </div>
       )}
 
-      {/* ── SUB-TAB: LIVE BROADCASTS ────────────────────────────────────── */}
+      {/* SUB-TAB: LIVE BROADCASTS */}
       {lectureSubTab === 'LIVE' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {activeLecture && renderTheaterPlayer()}
-          {/* Filter and Search controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--card-bg-alt)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>🔴 Live Timetable & Active Streams</h4>
+          
+          <Card variant="glass" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1rem 1.25rem' }}>
+            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-heading)' }}>🔴 Live Timetable & Active Streams</h4>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
+              <Select
                 value={subjectFilter}
                 onChange={e => setSubjectFilter(e.target.value)}
-                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}
-              >
-                <option value="ALL">All Subjects</option>
-                {uniqueSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <input 
-                type="text"
+                options={[
+                  { value: 'ALL', label: 'All Subjects' },
+                  ...uniqueSubjects.map(s => ({ value: s, label: s }))
+                ]}
+              />
+              <Input 
                 placeholder="Search live streams..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', width: '220px', outline: 'none' }}
+                style={{ width: '220px' }}
               />
             </div>
-          </div>
+          </Card>
 
-          {/* Grid of LIVE lectures only */}
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-              <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              <div>Loading active stream listings...</div>
+            <div style={{ textAlign: 'center', padding: '4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+              <Spinner size="md" />
+              <span className="input-label">Loading active stream listings...</span>
             </div>
           ) : filteredLectures.filter(l => l.type === 'LIVE').length === 0 ? (
-            <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+            <Card variant="glass" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔴</div>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 800 }}>No Live Streams Scheduled</h3>
-              <p style={{ margin: 0, fontSize: '0.85rem' }}>There are no scheduled live interactive streams assigned to your batch profile right now.</p>
-            </div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-heading)', fontSize: '1.1rem', fontWeight: 800 }}>No Live Streams Scheduled</h3>
+              <p className="input-label">There are no scheduled live interactive streams assigned to your batch profile right now.</p>
+            </Card>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
               {filteredLectures.filter(l => l.type === 'LIVE').map(lecture => (
-                <div 
+                <Card 
                   key={lecture.id}
+                  interactive
                   onClick={() => { setActiveLecture(lecture); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  className="lecture-grid-card"
                   style={{
-                    borderRadius: '16px',
-                    background: 'var(--card-bg)',
-                    border: activeLecture?.id === lecture.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    padding: 0,
                     overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
                     display: 'flex',
                     flexDirection: 'column',
-                    boxShadow: activeLecture?.id === lecture.id ? '0 8px 30px rgba(99, 102, 241, 0.15)' : 'none'
+                    borderColor: activeLecture?.id === lecture.id ? 'var(--primary)' : undefined
                   }}
                 >
-                  {/* Thumbnail with overlay status */}
                   <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', overflow: 'hidden' }}>
                     <img 
                       src={lecture.thumbnailUrl} 
@@ -493,119 +430,100 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
                       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
                     />
                     
-                    {/* Play Button Overlay */}
-                    <div className="play-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeLecture?.id === lecture.id ? 1 : 0, transition: '0.2s' }}>
-                      <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.2rem' }}>▶</div>
-                    </div>
-
-                    <span style={{ 
-                      position: 'absolute', top: '10px', left: '10px',
-                      background: '#ef4444', color: 'white',
-                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase'
-                    }}>
-                      🔴 LIVE
+                    <span style={{ position: 'absolute', top: '10px', left: '10px' }}>
+                      <Badge variant="danger">🔴 LIVE</Badge>
                     </span>
                     
-                    <span style={{ 
-                      position: 'absolute', bottom: '10px', right: '10px',
-                      background: 'rgba(99, 102, 241, 0.9)', color: 'white',
-                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800
-                    }}>
-                      {lecture.subject}
+                    <span style={{ position: 'absolute', bottom: '10px', right: '10px' }}>
+                      <Badge variant="info">{lecture.subject}</Badge>
                     </span>
                   </div>
 
-                  {/* Info text details */}
                   <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
                     <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3 }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text-heading)' }}>
                         {lecture.title}
                       </h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4 }}>
+                      <p className="input-label" style={{ fontSize: '0.75rem', margin: 0 }}>
                         {lecture.description || 'No stream syllabus details logged.'}
                       </p>
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      <span className="input-label" style={{ fontSize: '0.7rem' }}>
                         Batch: {lecture.batch.name}
                       </span>
                       
                       {(role === 'ADMIN' || (role === 'TEACHER' && lecture.assignedById === currentUserId)) && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => handleDeleteLecture(lecture.id, e)}
-                          style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                          style={{ color: '#ef4444' }}
                         >
                           Delete
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* ── SUB-TAB: RECORDED ARCHIVE ───────────────────────────────────── */}
+      {/* SUB-TAB: RECORDED ARCHIVE */}
       {lectureSubTab === 'RECORDED' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {activeLecture && renderTheaterPlayer()}
-          {/* Filter and Search controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--card-bg-alt)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>🎥 Recorded Session Video Library</h4>
+
+          <Card variant="glass" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1rem 1.25rem' }}>
+            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-heading)' }}>🎥 Recorded Session Video Library</h4>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
+              <Select
                 value={subjectFilter}
                 onChange={e => setSubjectFilter(e.target.value)}
-                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}
-              >
-                <option value="ALL">All Subjects</option>
-                {uniqueSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <input 
-                type="text"
+                options={[
+                  { value: 'ALL', label: 'All Subjects' },
+                  ...uniqueSubjects.map(s => ({ value: s, label: s }))
+                ]}
+              />
+              <Input 
                 placeholder="Search video archive..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                style={{ padding: '8px 14px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.8rem', width: '220px', outline: 'none' }}
+                style={{ width: '220px' }}
               />
             </div>
-          </div>
+          </Card>
 
-          {/* Grid of RECORDED lectures only */}
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-              <div className="spinner" style={{ margin: '0 auto 1rem', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              <div>Loading recorded library archive...</div>
+            <div style={{ textAlign: 'center', padding: '4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+              <Spinner size="md" />
+              <span className="input-label">Loading recorded library archive...</span>
             </div>
           ) : filteredLectures.filter(l => l.type === 'RECORDED').length === 0 ? (
-            <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+            <Card variant="glass" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎥</div>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 800 }}>No Videos Found</h3>
-              <p style={{ margin: 0, fontSize: '0.85rem' }}>There are no recorded lessons assigned to your batch profile right now.</p>
-            </div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-heading)', fontSize: '1.1rem', fontWeight: 800 }}>No Videos Found</h3>
+              <p className="input-label">There are no recorded lessons assigned to your batch profile right now.</p>
+            </Card>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
               {filteredLectures.filter(l => l.type === 'RECORDED').map(lecture => (
-                <div 
+                <Card 
                   key={lecture.id}
+                  interactive
                   onClick={() => { setActiveLecture(lecture); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  className="lecture-grid-card"
                   style={{
-                    borderRadius: '16px',
-                    background: 'var(--card-bg)',
-                    border: activeLecture?.id === lecture.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    padding: 0,
                     overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
                     display: 'flex',
                     flexDirection: 'column',
-                    boxShadow: activeLecture?.id === lecture.id ? '0 8px 30px rgba(99, 102, 241, 0.15)' : 'none'
+                    borderColor: activeLecture?.id === lecture.id ? 'var(--primary)' : undefined
                   }}
                 >
-                  {/* Thumbnail with overlay status */}
                   <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', overflow: 'hidden' }}>
                     <img 
                       src={lecture.thumbnailUrl} 
@@ -613,219 +531,145 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
                       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
                     />
                     
-                    {/* Play Button Overlay */}
-                    <div className="play-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeLecture?.id === lecture.id ? 1 : 0, transition: '0.2s' }}>
-                      <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.2rem' }}>▶</div>
-                    </div>
-
-                    <span style={{ 
-                      position: 'absolute', top: '10px', left: '10px',
-                      background: 'rgba(0,0,0,0.7)', color: 'white',
-                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase'
-                    }}>
-                      🎥 VIDEO
+                    <span style={{ position: 'absolute', top: '10px', left: '10px' }}>
+                      <Badge variant="neutral">🎥 VIDEO</Badge>
                     </span>
                     
-                    <span style={{ 
-                      position: 'absolute', bottom: '10px', right: '10px',
-                      background: 'rgba(99, 102, 241, 0.9)', color: 'white',
-                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800
-                    }}>
-                      {lecture.subject}
+                    <span style={{ position: 'absolute', bottom: '10px', right: '10px' }}>
+                      <Badge variant="info">{lecture.subject}</Badge>
                     </span>
                   </div>
 
-                  {/* Info text details */}
                   <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
                     <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3 }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text-heading)' }}>
                         {lecture.title}
                       </h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4 }}>
+                      <p className="input-label" style={{ fontSize: '0.75rem', margin: 0 }}>
                         {lecture.description || 'No lecture syllabus details logged.'}
                       </p>
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      <span className="input-label" style={{ fontSize: '0.7rem' }}>
                         Batch: {lecture.batch.name}
                       </span>
                       
                       {(role === 'ADMIN' || (role === 'TEACHER' && lecture.assignedById === currentUserId)) && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => handleDeleteLecture(lecture.id, e)}
-                          style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                          style={{ color: '#ef4444' }}
                         >
                           Delete
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* ── SUB-TAB: BROADCAST SCHEDULER ────────────────────────────────── */}
+      {/* SUB-TAB: BROADCAST SCHEDULER */}
       {lectureSubTab === 'ASSIGN' && (role === 'ADMIN' || role === 'TEACHER') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-          <div className="glass-card animate-scale-up" style={{ padding: '2.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '24px' }}>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.5rem 0' }}>Assign Interactive Video Lecture</h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1.5rem 0' }}>Schedule a YouTube live stream or index a pre-recorded subject video for batch students.</p>
+          <Card variant="glass" style={{ padding: '2.5rem' }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.5rem 0' }}>Assign Interactive Video Lecture</h3>
+            <p className="input-label" style={{ marginBottom: '1.5rem' }}>Schedule a YouTube live stream or index a pre-recorded subject video for batch students.</p>
 
             {assignError && (
-              <div style={{ padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '12px', fontSize: '0.8rem', marginBottom: '1.25rem', fontWeight: 600 }}>
+              <Badge variant="danger" style={{ padding: '0.75rem 1rem', marginBottom: '1.25rem', width: '100%', justifyContent: 'center' }}>
                 {assignError}
-              </div>
+              </Badge>
             )}
 
             <form onSubmit={handleAssignLecture} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Lecture Title</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. Chemical Reactions & Equations - Part 1"
-                  value={assignForm.title}
-                  onChange={e => setAssignForm(p => ({ ...p, title: e.target.value }))}
-                  style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none' }}
-                />
-              </div>
+              <Input 
+                label="Lecture Title"
+                required
+                placeholder="e.g. Chemical Reactions & Equations - Part 1"
+                value={assignForm.title}
+                onChange={e => setAssignForm(p => ({ ...p, title: e.target.value }))}
+              />
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Syllabus / Description</label>
-                <textarea 
-                  placeholder="Summarize key takeaways, homework, or links for students..."
-                  value={assignForm.description}
-                  onChange={e => setAssignForm(p => ({ ...p, description: e.target.value }))}
-                  style={{ width: '100%', minHeight: '80px', padding: '0.8rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
-                />
-              </div>
+              <Textarea 
+                label="Syllabus / Description"
+                placeholder="Summarize key takeaways, homework, or links for students..."
+                value={assignForm.description}
+                onChange={e => setAssignForm(p => ({ ...p, description: e.target.value }))}
+                rows={3}
+              />
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Target Batch</label>
-                <select
-                  required
-                  value={assignForm.batchId}
-                  onChange={e => setAssignForm(p => ({ ...p, batchId: e.target.value }))}
-                  style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', fontWeight: 600 }}
-                >
-                  {batches.length === 0 && <option value="">No Batches Allocated</option>}
-                  {batches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name} ({b.className || 'General'})</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Target Batch"
+                required
+                value={assignForm.batchId}
+                onChange={e => setAssignForm(p => ({ ...p, batchId: e.target.value }))}
+                options={[
+                  ...(batches.length === 0 ? [{ value: '', label: 'No Batches Allocated' }] : []),
+                  ...batches.map(b => ({ value: b.id, label: `${b.name} (${b.className || 'General'})` }))
+                ]}
+              />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Subject Wise</label>
-                  <select
-                    required
-                    value={assignForm.subject}
-                    onChange={e => setAssignForm(p => ({ ...p, subject: e.target.value }))}
-                    style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', fontWeight: 600 }}
-                  >
-                    {batchSubjects.map((s: string) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>Lecture Type</label>
-                  <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '3px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setAssignForm(p => ({ ...p, type: 'LIVE' }))}
-                      style={{
-                        flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
-                        background: assignForm.type === 'LIVE' ? '#ef4444' : 'transparent',
-                        color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer'
-                      }}
-                    >
-                      🔴 Live
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAssignForm(p => ({ ...p, type: 'RECORDED' }))}
-                      style={{
-                        flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
-                        background: assignForm.type === 'RECORDED' ? 'var(--primary)' : 'transparent',
-                        color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer'
-                      }}
-                    >
-                      🎥 Video
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem', display: 'block' }}>YouTube URL / Live Stream Link</label>
-                <input 
-                  type="url" 
+                <Select
+                  label="Subject Wise"
                   required
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={assignForm.youtubeUrl}
-                  onChange={e => setAssignForm(p => ({ ...p, youtubeUrl: e.target.value }))}
-                  style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none' }}
+                  value={assignForm.subject}
+                  onChange={e => setAssignForm(p => ({ ...p, subject: e.target.value }))}
+                  options={batchSubjects.map((s: string) => ({ value: s, label: s }))}
+                />
+
+                <Select
+                  label="Lecture Type"
+                  required
+                  value={assignForm.type}
+                  onChange={e => setAssignForm(p => ({ ...p, type: e.target.value as 'LIVE' | 'RECORDED' }))}
+                  options={[
+                    { value: 'LIVE', label: '🔴 Live Stream' },
+                    { value: 'RECORDED', label: '🎥 Recorded Video' }
+                  ]}
                 />
               </div>
 
-              <button 
+              <Input 
+                label="YouTube URL / Live Stream Link"
+                type="url"
+                required
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={assignForm.youtubeUrl}
+                onChange={e => setAssignForm(p => ({ ...p, youtubeUrl: e.target.value }))}
+              />
+
+              <Button 
                 type="submit" 
-                disabled={assignLoading}
-                style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', opacity: assignLoading ? 0.7 : 1, transition: '0.2s', marginTop: '1rem', boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}
+                isLoading={assignLoading}
+                variant="primary"
+                fullWidth
+                style={{ marginTop: '1rem' }}
               >
-                {assignLoading ? 'Scheduling...' : '🚀 Broadcast & Assign Lecture'}
-              </button>
+                🚀 Broadcast & Assign Lecture
+              </Button>
             </form>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* Cinema Fullscreen Overlay */}
       {isCinemaMode && activeLecture && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: '#000000',
-          zIndex: 5000,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100vw',
-          height: '100vh'
-        }}>
-          {/* Close button at top-right */}
-          <button 
+        <div className="modal-overlay" style={{ background: '#000000', padding: 0 }}>
+          <Button 
             onClick={() => setIsCinemaMode(false)}
-            style={{
-              position: 'absolute',
-              top: '15px',
-              right: '15px',
-              background: 'rgba(255, 255, 255, 0.25)',
-              border: 'none',
-              color: '#ffffff',
-              padding: '10px 20px',
-              borderRadius: '30px',
-              fontSize: '0.9rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              zIndex: 5100,
-              transition: 'all 0.2s',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-            }}
+            variant="secondary"
+            style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 5100 }}
           >
             ✕ Close Full Screen
-          </button>
+          </Button>
           
-          {/* Video iframe taking full space */}
           <div style={{ width: '100%', height: '100%', position: 'relative' }}>
             <iframe
               src={`https://www.youtube.com/embed/${activeLecture.videoId}?autoplay=1&rel=0&modestbranding=1&fs=1`}
@@ -837,25 +681,6 @@ export function LecturesSection({ subTab, setSubTab }: LecturesSectionProps = {}
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .video-fullscreen-wrapper:fullscreen {
-          padding-top: 0 !important;
-          height: 100vh !important;
-          width: 100vw !important;
-          border-radius: 0 !important;
-          border: none !important;
-        }
-        .lecture-grid-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        .lecture-grid-card:hover .play-overlay {
-          opacity: 1 !important;
-        }
-        .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

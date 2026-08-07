@@ -23,88 +23,100 @@ export async function GET() {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Get groups the user belongs to
-    const memberships = await withDbRetry(() => prisma.groupMember.findMany({
-      where: { userId: session.user.id },
-      select: { groupId: true }
-    }));
+    const currentUserId = session.user.id;
+
+    // Parallel fetch: get user memberships & user direct messages concurrently
+    const [memberships, directMessages] = await Promise.all([
+      withDbRetry(() => prisma.groupMember.findMany({
+        where: { userId: currentUserId },
+        select: { groupId: true }
+      })),
+      withDbRetry(() => prisma.message.findMany({
+        where: {
+          OR: [
+            { senderId: currentUserId, deletedBySender: false },
+            { receiverId: currentUserId, deletedByReceiver: false },
+          ]
+        },
+        select: {
+          id: true,
+          senderId: true,
+          receiverId: true,
+          groupId: true,
+          content: true,
+          createdAt: true,
+          isRead: true,
+          sender: {
+            select: { id: true, name: true, username: true, role: true, photoUrl: true }
+          },
+          receiver: {
+            select: { id: true, name: true, username: true, role: true, photoUrl: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 60
+      }))
+    ]);
+
     const groupIds = memberships.map((m: any) => m.groupId);
+    let groupMessages: any[] = [];
 
-    const messages = await withDbRetry(() => prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: session.user.id, deletedBySender: false },
-          { receiverId: session.user.id, deletedByReceiver: false },
-          { groupId: { in: groupIds } }
-        ]
-      },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            role: true,
-            photoUrl: true,
-            studentProfile: { select: { photoUrl: true } },
-            teacherProfile: { select: { photoUrl: true } }
+    if (groupIds.length > 0) {
+      groupMessages = await withDbRetry(() => prisma.message.findMany({
+        where: {
+          groupId: { in: groupIds }
+        },
+        select: {
+          id: true,
+          senderId: true,
+          receiverId: true,
+          groupId: true,
+          content: true,
+          createdAt: true,
+          isRead: true,
+          sender: {
+            select: { id: true, name: true, username: true, role: true, photoUrl: true }
+          },
+          group: {
+            select: { id: true, name: true, photoUrl: true }
           }
         },
-        receiver: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            role: true,
-            photoUrl: true,
-            studentProfile: { select: { photoUrl: true } },
-            teacherProfile: { select: { photoUrl: true } }
-          }
-        },
-        group: {
-          select: {
-            id: true,
-            name: true,
-            photoUrl: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200
+        orderBy: { createdAt: 'desc' },
+        take: 40
+      }));
+    }
+
+    const allMessages = [...directMessages, ...groupMessages]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 80);
+
+    const mappedMessages = allMessages.map((m: any) => ({
+      ...m,
+      sender: m.sender ? {
+        id: m.sender.id,
+        name: m.sender.name,
+        username: m.sender.username,
+        role: m.sender.role,
+        photoUrl: m.sender.photoUrl || null
+      } : undefined,
+      receiver: m.receiver ? {
+        id: m.receiver.id,
+        name: m.receiver.name,
+        username: m.receiver.username,
+        role: m.receiver.role,
+        photoUrl: m.receiver.photoUrl || null
+      } : undefined,
+      group: m.group ? {
+        id: m.group.id,
+        name: m.group.name,
+        photoUrl: m.group.photoUrl || null
+      } : undefined
     }));
-
-    const mappedMessages = messages.map((m: any) => {
-      const senderPhoto = m.sender.photoUrl || (m.sender.role === 'STUDENT' ? m.sender.studentProfile?.photoUrl : m.sender.teacherProfile?.photoUrl);
-      const receiverPhoto = m.receiver ? (m.receiver.photoUrl || (m.receiver.role === 'STUDENT' ? m.receiver.studentProfile?.photoUrl : m.receiver.teacherProfile?.photoUrl)) : null;
-
-      return {
-        ...m,
-        sender: {
-          id: m.sender.id,
-          name: m.sender.name,
-          username: m.sender.username,
-          role: m.sender.role,
-          photoUrl: senderPhoto || null
-        },
-        receiver: m.receiver ? {
-          id: m.receiver.id,
-          name: m.receiver.name,
-          username: m.receiver.username,
-          role: m.receiver.role,
-          photoUrl: receiverPhoto || null
-        } : null,
-        group: m.group ? {
-          id: m.group.id,
-          name: m.group.name,
-          photoUrl: m.group.photoUrl
-        } : null
-      };
-    });
 
     return NextResponse.json({ messages: mappedMessages });
   } catch (error) {
-    console.error('Error in GET messages:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Error fetching messages:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 

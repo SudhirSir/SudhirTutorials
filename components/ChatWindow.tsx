@@ -32,6 +32,7 @@ interface ChatUser {
   email?: string;
   role: string;
   photoUrl?: string | null;
+  isSuspended?: boolean;
 }
 
 interface ChatMessage {
@@ -122,6 +123,40 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [loadingGroupDetails, setLoadingGroupDetails] = useState<boolean>(false);
   const [showAddMembersPanel, setShowAddMembersPanel] = useState<boolean>(false);
   const [selectedAddUsers, setSelectedAddUsers] = useState<string[]>([]);
+
+  // Load cached contacts & messages immediately on mount for sub-second instant load
+  useEffect(() => {
+    try {
+      const cachedContacts = localStorage.getItem(`st_chat_contacts_${currentUserId}`);
+      if (cachedContacts) {
+        const parsed = JSON.parse(cachedContacts);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setContacts(parsed);
+          setInitialLoading(false);
+        }
+      }
+      const cachedMsgs = localStorage.getItem(`st_chat_msgs_${currentUserId}`);
+      if (cachedMsgs) {
+        const parsed = JSON.parse(cachedMsgs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch (e) {}
+  }, [currentUserId]);
+
+  // Persist updated contacts to local cache for instant future loads
+  useEffect(() => {
+    if (contacts.length > 0) {
+      try { localStorage.setItem(`st_chat_contacts_${currentUserId}`, JSON.stringify(contacts.slice(0, 30))); } catch (e) {}
+    }
+  }, [contacts, currentUserId]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      try { localStorage.setItem(`st_chat_msgs_${currentUserId}`, JSON.stringify(messages.slice(0, 40))); } catch (e) {}
+    }
+  }, [messages, currentUserId]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -393,27 +428,19 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     return stopPolling;
   }, [startPolling, stopPolling, selectedUser?.id]);
 
-  // ── Auto-scroll to bottom unconditionally when opening a chat ──────────────
+
+
+  // ── Instant positioning at latest message without auto-scroll motion ──────
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || !selectedUser) return;
-    // Use a small timeout to ensure DOM has updated with the selected user's messages
-    const timer = setTimeout(() => {
+    el.scrollTop = el.scrollHeight;
+    requestAnimationFrame(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [selectedUser?.id]);
-
-  // ── Auto-scroll to bottom when messages change ────────────────────────────
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    // Only auto-scroll if already near the bottom (within 120px)
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (isNearBottom) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+    });
+  }, [selectedUser?.id, messages.length]);
 
   // ── Handle initialSelectedUserId prop ─────────────────────────────────────
   useEffect(() => {
@@ -939,6 +966,13 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       .sort((a, b) => (latestTime.get(b.id) ?? 0) - (latestTime.get(a.id) ?? 0));
   }, [contacts, messages, currentUserId]);
 
+  // ── Auto-open to latest chat if no chat is currently selected ──────────────
+  useEffect(() => {
+    if (!selectedUser && !initialSelectedUserId && sortedContacts.length > 0 && !initialLoading) {
+      setSelectedUser(sortedContacts[0]);
+    }
+  }, [sortedContacts, selectedUser, initialSelectedUserId, initialLoading]);
+
   // ── Render message content (media or text) ────────────────────────────────
   const renderMessageContent = useCallback((content: string) => {
     if (content.startsWith('{') && content.endsWith('}')) {
@@ -1022,7 +1056,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           display: flex;
           flex-direction: column;
           gap: 0;
-          scroll-behavior: smooth;
+          scroll-behavior: auto;
           -webkit-overflow-scrolling: touch;
         }
         .chat-messages-list::-webkit-scrollbar { width: 4px; }
@@ -1708,10 +1742,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
               </div>
             ) : (
               <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.9rem 1.1rem', textAlign: 'left', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', border: '1px solid var(--border)' }}>
-                {[['Username', selectedUser.username || 'N/A'], ['Email', selectedUser.email || 'Not disclosed'], ['Status', `● Active ${selectedUser.role}`]].map(([label, val]) => (
+                {[['Username', selectedUser.username || 'N/A'], ['Status', selectedUser.isSuspended ? 'Inactive' : 'Active']].map(([label, val]) => (
                   <div key={label}>
                     <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
-                    <span style={{ fontSize: '0.92rem', color: label === 'Status' ? '#10b981' : 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{val}</span>
+                    <span style={{ fontSize: '0.92rem', color: label === 'Status' ? (val === 'Active' ? '#10b981' : '#ef4444') : 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{val}</span>
                   </div>
                 ))}
               </div>

@@ -511,7 +511,7 @@ export default function LoginPage() {
                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
                </div>
                
-               <div style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid var(--glass-border)', height: '620px', display: 'flex', justifyContent: 'center' }}>
+               <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border)', height: '620px', display: 'flex', justifyContent: 'center' }}>
                   <iframe 
                     src="https://www.instagram.com/p/DYSZKfBKZkv/embed" 
                     width="100%" 
@@ -527,7 +527,7 @@ export default function LoginPage() {
             </div>
 
             {/* Smaller, Elegant Shilpy Quote Card */}
-            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
+            <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
                <div style={{ color: activeColor, fontSize: '1.5rem', marginBottom: '0.25rem', lineHeight: 1 }}>❝</div>
                 <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: '1rem', fontWeight: 500 }}>
                   "<span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span> didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
