@@ -53,6 +53,9 @@ export default function Home() {
 
 
 
+  // Mobile Navigation Drawer state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+
   // AI Assistant states
   const [doubtText, setDoubtText] = useState<string>("");
   const [doubtResponse, setDoubtResponse] = useState<string>("");
@@ -283,14 +286,16 @@ export default function Home() {
         <ThemeToggle />
       </div>
 
-      {/* VRSA Floating Capsule Navbar with Original Brand & Links */}
-      <header className="vrsa-floating-nav">
-        <Link href="/" className="navbar-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain' }} priority />
-          <span className="logo-text">
+      {/* VRSA Floating Capsule Navbar with Single Row Brand & Mobile Hamburger Drawer */}
+      <header className="vrsa-floating-nav" style={{ position: 'relative' }}>
+        <Link href="/" className="navbar-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.45rem', whiteSpace: 'nowrap' }}>
+          <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={30} height={30} style={{ width: '30px', height: '30px', objectFit: 'contain', flexShrink: 0 }} priority />
+          <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '0.88rem', fontWeight: 800 }}>
             <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
         </Link>
+
+        {/* Desktop Navigation Links */}
         <nav className="vrsa-nav-links">
           <Link href="#programs" className="vrsa-nav-link">Flagship Programs</Link>
           <Link href="/admissions" className="vrsa-nav-link">Admissions</Link>
@@ -298,9 +303,78 @@ export default function Home() {
           <Link href="#about" className="vrsa-nav-link">Why Us</Link>
           <Link href="/careers" className="vrsa-nav-link">Careers</Link>
         </nav>
-        <Link href="/login" className="login-portal-btn">
-          Portal Login <span className="arrow">→</span>
-        </Link>
+
+        {/* Right Actions: Desktop Login + Mobile Hamburger Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+          <Link href="/login" className="login-portal-btn desktop-only">
+            Portal Login <span className="arrow">→</span>
+          </Link>
+
+          {/* Mobile 3-Lines / 3-Dots Hamburger Toggle */}
+          <button 
+            onClick={() => setMobileMenuOpen(v => !v)}
+            aria-label="Toggle Navigation Menu"
+            className="vrsa-mobile-menu-btn"
+            style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '1.1rem',
+              fontWeight: 800,
+              flexShrink: 0
+            }}
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+
+        {/* Mobile Dropdown Menu Drawer */}
+        {mobileMenuOpen && (
+          <div style={{
+            position: 'absolute',
+            top: 'calc(100% + 0.6rem)',
+            left: 0,
+            right: 0,
+            background: 'var(--card-bg)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '20px',
+            border: '1px solid var(--border)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            padding: '1.1rem 1rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.65rem',
+            zIndex: 1001,
+            animation: 'fadeIn 0.2s ease-out'
+          }}>
+            <Link href="/admissions" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.08)', color: 'var(--primary)', fontWeight: 800, textDecoration: 'none', fontSize: '0.88rem' }}>
+              🎯 Admissions 2026-27 (Apply Now)
+            </Link>
+            <Link href="/careers" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+              💼 Careers & Faculty Jobs
+            </Link>
+            <Link href="#programs" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+              📚 Flagship Programs (JEE / NEET / Boards)
+            </Link>
+            <Link href="#about" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+              💡 Why SUDHIR TUTORIALS
+            </Link>
+            <Link href="#storefront" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+              🛒 Storefront (Notes & Test Series)
+            </Link>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem 1rem', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', color: '#ffffff', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.2rem' }}>
+              🔑 Student & Staff Login →
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Hero Section with VRSA Layout & Original Brand Content */}
@@ -387,70 +461,70 @@ export default function Home() {
           }}></div>
 
           {/* Top Header Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="guru-ji-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <span style={{
                 background: 'linear-gradient(135deg, #ef4444 0%, #3b82f6 100%)',
                 color: '#ffffff',
-                fontSize: '0.75rem',
+                fontSize: '0.72rem',
                 fontWeight: 800,
-                padding: '4px 14px',
+                padding: '4px 12px',
                 borderRadius: '20px',
                 textTransform: 'uppercase',
-                letterSpacing: '1px'
+                letterSpacing: '0.5px'
               }}>
                 ✨ 24/7 AI ACADEMIC GURU
               </span>
-              <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-heading)', margin: 0 }}>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-heading)', margin: 0 }}>
                 ST <span style={{ color: 'var(--primary)' }}>GURU</span> <span style={{ color: 'var(--secondary)' }}>JI</span>
               </h3>
             </div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 14px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 12px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span>🔊</span> Speaks & Explains in Sudhir Sir's Human Voice!
             </div>
           </div>
 
           {/* Subtitle / Description */}
-          <p style={{ fontSize: '1.05rem', color: 'var(--text-muted)', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
             Your personal 24/7 AI tutor that solves complex Physics, Chemistry & Math doubts instantly using <strong>Photo Scan</strong>, <strong>Voice Notes</strong>, and <strong>Text Queries</strong> — narrated step-by-step in Sudhir Sir’s authentic voice!
           </p>
 
           {/* 3 Doubt Solving Modes Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.15rem' }}>
+          <div className="guru-ji-modes-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
             {/* Mode 1: Photo Scan */}
-            <div style={{ padding: '1.25rem', background: 'var(--card-bg-alt)', borderRadius: '18px', border: '1px solid var(--border)', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '1.8rem', background: 'rgba(239, 68, 68, 0.12)', width: '48px', height: '48px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ padding: '1.1rem', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '1.5rem', background: 'rgba(239, 68, 68, 0.12)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 📸
               </div>
               <div>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.25rem 0' }}>Photo & Image Scan</h4>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.2rem 0' }}>Photo & Image Scan</h4>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
                   Snap & upload a photo of any textbook problem or handwritten doubt for instant step-by-step solutions.
                 </p>
               </div>
             </div>
 
             {/* Mode 2: Voice Notes */}
-            <div style={{ padding: '1.25rem', background: 'var(--card-bg-alt)', borderRadius: '18px', border: '1px solid var(--border)', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '1.8rem', background: 'rgba(59, 130, 246, 0.12)', width: '48px', height: '48px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ padding: '1.1rem', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '1.5rem', background: 'rgba(59, 130, 246, 0.12)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 🎙️
               </div>
               <div>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.25rem 0' }}>Voice Notes & Speech</h4>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.2rem 0' }}>Voice Notes & Speech</h4>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
                   Speak your doubts out loud in natural language. ST Guru Ji listens and responds back verbally.
                 </p>
               </div>
             </div>
 
             {/* Mode 3: Sudhir Sir Voice Audio */}
-            <div style={{ padding: '1.25rem', background: 'var(--card-bg-alt)', borderRadius: '18px', border: '1px solid var(--border)', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '1.8rem', background: 'rgba(16, 185, 129, 0.12)', width: '48px', height: '48px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ padding: '1.1rem', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '1.5rem', background: 'rgba(16, 185, 129, 0.12)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 🔊
               </div>
               <div>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.25rem 0' }}>Sudhir Sir Voice Audio</h4>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 0.2rem 0' }}>Sudhir Sir Voice Audio</h4>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
                   Explains every concept in <strong>Sudhir Sir’s exact human voice</strong> with clear audio playback.
                 </p>
               </div>
@@ -458,20 +532,20 @@ export default function Home() {
           </div>
 
           {/* Interactive AI Query Bar */}
-          <form onSubmit={handleSolveDoubt} style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+          <form onSubmit={handleSolveDoubt} className="guru-ji-form" style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
             <input 
               type="text" 
               value={doubtText}
               onChange={e => setDoubtText(e.target.value)}
               placeholder="Ask ST Guru Ji a doubt (e.g. Solve lim x->0 sin(5x)/x)..." 
               className="auth-input"
-              style={{ flex: 1, minWidth: '260px', padding: '0.85rem 1.25rem', fontSize: '0.95rem', borderRadius: '14px', background: 'var(--surface-light)', border: '1px solid var(--border)' }}
+              style={{ flex: 1, minWidth: '0', padding: '0.75rem 1.1rem', fontSize: '0.9rem', borderRadius: '12px', background: 'var(--surface-light)', border: '1px solid var(--border)' }}
             />
             <button 
               type="submit" 
               disabled={typingDoubt || !doubtText.trim()} 
               className="btn-primary" 
-              style={{ padding: '0.85rem 1.75rem', borderRadius: '14px', fontWeight: 800, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', color: '#fff' }}
+              style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', color: '#fff' }}
             >
               {typingDoubt ? 'Solving...' : '✨ Ask ST Guru Ji'}
             </button>
@@ -479,8 +553,8 @@ export default function Home() {
 
           {/* AI Response Display Box */}
           {doubtResponse && (
-            <div style={{ padding: '1rem 1.25rem', background: 'var(--surface-light)', borderRadius: '14px', border: '1px solid var(--border)', marginTop: '0.5rem' }}>
-              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.9rem', color: 'var(--text)', margin: 0 }}>
+            <div style={{ padding: '0.85rem 1.1rem', background: 'var(--surface-light)', borderRadius: '12px', border: '1px solid var(--border)', marginTop: '0.5rem' }}>
+              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.88rem', color: 'var(--text)', margin: 0 }}>
                 {doubtResponse}
                 {typingDoubt && <span className="typing-cursor">|</span>}
               </pre>
@@ -491,20 +565,20 @@ export default function Home() {
 
       {/* Institute Classroom & Campus Spotlight Section */}
       <section className="campus-spotlight-section" style={{
-        padding: '5.5rem 2rem',
+        padding: '4rem 1.5rem',
         background: 'radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.05) 0%, rgba(59, 130, 246, 0.03) 50%, var(--background) 100%)',
         borderTop: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
           
           {/* Left Column: Ultra-Realistic Classroom Photo Showcase Card */}
           <div style={{
             position: 'relative',
-            borderRadius: '28px',
+            borderRadius: '24px',
             overflow: 'hidden',
-            boxShadow: '0 30px 60px -15px rgba(15, 23, 42, 0.35)',
-            border: '2px solid var(--border)',
+            boxShadow: '0 25px 50px -15px rgba(15, 23, 42, 0.3)',
+            border: '1.5px solid var(--border)',
             background: 'var(--card-bg)'
           }}>
             <Image 
@@ -518,14 +592,14 @@ export default function Home() {
             {/* Top Verified Real Photo Badge */}
             <div style={{
               position: 'absolute',
-              top: '1rem',
-              left: '1rem',
+              top: '0.85rem',
+              left: '0.85rem',
               background: 'rgba(15, 23, 42, 0.75)',
               backdropFilter: 'blur(16px)',
-              borderRadius: '20px',
-              padding: '6px 14px',
+              borderRadius: '16px',
+              padding: '5px 12px',
               color: '#ffffff',
-              fontSize: '0.78rem',
+              fontSize: '0.75rem',
               fontWeight: 800,
               border: '1px solid rgba(255, 255, 255, 0.2)',
               display: 'inline-flex',
@@ -536,77 +610,77 @@ export default function Home() {
             </div>
 
             {/* Bottom Floating Information Bar */}
-            <div style={{
+            <div className="campus-bar-floating" style={{
               position: 'absolute',
-              bottom: '1.25rem',
-              left: '1.25rem',
-              right: '1.25rem',
+              bottom: '1rem',
+              left: '1rem',
+              right: '1rem',
               background: 'rgba(15, 23, 42, 0.88)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              borderRadius: '20px',
-              padding: '1.1rem 1.35rem',
+              borderRadius: '16px',
+              padding: '0.85rem 1.1rem',
               color: '#ffffff',
               border: '1px solid rgba(255, 255, 255, 0.18)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '1rem',
+              gap: '0.75rem',
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
             }}>
               <div>
-                <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff', letterSpacing: '-0.2px' }}>Interactive Smart Classroom</div>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>Sudhir Tutorials Main Campus, Ludhiana</div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>Interactive Smart Classroom</div>
+                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>Sudhir Tutorials Main Campus, Ludhiana</div>
               </div>
-              <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#ffffff', padding: '6px 16px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 4px 12px rgba(239,68,68,0.4)', flexShrink: 0 }}>
+              <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#ffffff', padding: '5px 14px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 4px 12px rgba(239,68,68,0.4)', flexShrink: 0 }}>
                 ● Active Batches
               </span>
             </div>
           </div>
 
           {/* Right Column: Campus Details & Highlights */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
             <span style={{
               background: 'linear-gradient(90deg, rgba(239,68,68,0.15) 0%, rgba(37,99,235,0.15) 100%)',
               color: 'var(--primary)',
-              padding: '6px 16px',
+              padding: '5px 14px',
               borderRadius: '20px',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               fontWeight: 800,
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '1px',
               alignSelf: 'flex-start',
               border: '1px solid rgba(239,68,68,0.2)'
             }}>
               CAMPUS & FACULTY SPOTLIGHT
             </span>
 
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1.2, margin: 0, color: 'var(--text-heading)' }}>
+            <h2 style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)', fontWeight: 900, lineHeight: 1.2, margin: 0, color: 'var(--text-heading)' }}>
               World-Class Facilities.<br/>
               <span className="text-gradient">Dedicated Mentorship.</span>
             </h2>
 
-            <p style={{ fontSize: '1.05rem', lineHeight: '1.65', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: '0.95rem', lineHeight: '1.6', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>
               At Sudhir Tutorials, our modern smart classrooms are equipped with high-resolution digital blackboards, AI-assisted doubt resolution, and personalized attention for every student. Experience immersive learning designed for top ranks in JEE, NEET, and Board Exams.
             </p>
 
             {/* Dark-mode compatible stats boxes */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
-              <div style={{ padding: '1.25rem', background: 'var(--card-bg)', borderRadius: '18px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary)' }}>500+</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Top Rankers Produced</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginTop: '0.25rem' }}>
+              <div style={{ padding: '1rem', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--primary)' }}>500+</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)' }}>Top Rankers Produced</div>
               </div>
-              <div style={{ padding: '1.25rem', background: 'var(--card-bg)', borderRadius: '18px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--secondary)' }}>100%</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Concept Clarity Guarantee</div>
+              <div style={{ padding: '1rem', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--secondary)' }}>100%</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)' }}>Concept Clarity Guarantee</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-              <Link href="/admissions" className="btn-primary-hero" style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'flex', gap: '0.85rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+              <Link href="/admissions" className="btn-primary-hero" style={{ textDecoration: 'none', padding: '0.75rem 1.5rem', fontSize: '0.9rem' }}>
                 Join Live Batch →
               </Link>
-              <Link href="/login" className="btn-secondary-hero" style={{ border: '1.5px solid var(--border)', textDecoration: 'none', background: 'var(--card-bg)', color: 'var(--text)' }}>
+              <Link href="/login" className="btn-secondary-hero" style={{ border: '1.5px solid var(--border)', textDecoration: 'none', background: 'var(--card-bg)', color: 'var(--text)', padding: '0.75rem 1.5rem', fontSize: '0.9rem' }}>
                 Explore Student Portal
               </Link>
             </div>

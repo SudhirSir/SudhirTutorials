@@ -966,10 +966,14 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       .sort((a, b) => (latestTime.get(b.id) ?? 0) - (latestTime.get(a.id) ?? 0));
   }, [contacts, messages, currentUserId]);
 
-  // ── Auto-open to latest chat if no chat is currently selected ──────────────
+  // ── Auto-open to latest chat ONLY on initial desktop load (preserves Back button state) ──
+  const hasAutoOpenedRef = useRef(false);
   useEffect(() => {
-    if (!selectedUser && !initialSelectedUserId && sortedContacts.length > 0 && !initialLoading) {
-      setSelectedUser(sortedContacts[0]);
+    if (!hasAutoOpenedRef.current && !selectedUser && !initialSelectedUserId && sortedContacts.length > 0 && !initialLoading) {
+      if (typeof window !== 'undefined' && window.innerWidth > 768) {
+        hasAutoOpenedRef.current = true;
+        setSelectedUser(sortedContacts[0]);
+      }
     }
   }, [sortedContacts, selectedUser, initialSelectedUserId, initialLoading]);
 
@@ -1256,8 +1260,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             <div style={{ padding: '0.45rem 0.75rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
                 <button onClick={() => setSelectedUser(null)} className="chat-back-btn"
-                  style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '4px 6px 4px 0', fontWeight: 700, fontSize: '0.88rem', flexShrink: 0 }}>
-                  ← Back
+                  style={{ background: 'var(--primary)', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '5px 10px', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(239,68,68,0.35)' }}>
+                  ← Chats
                 </button>
                 <div onClick={() => setShowProfileModal(true)} title="View profile"
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', padding: '2px 6px', borderRadius: 8, transition: 'background 0.15s', minWidth: 0, flex: 1 }}

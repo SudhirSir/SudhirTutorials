@@ -1681,6 +1681,30 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   color: #f1f5f9;
 }
 
+/* Mobile Responsiveness & Clean Site-Wide Scaled Font Sizes */
+.vrsa-hero-title {
+  font-size: clamp(1.85rem, 4.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.12;
+  color: var(--text-heading);
+  letter-spacing: -0.8px;
+  margin: 0 0 1rem 0;
+}
+
+.vrsa-hero-subtitle {
+  max-width: 620px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 auto 1.75rem;
+  font-weight: 500;
+}
+
+.guru-ji-showcase-card {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
 @media (max-width: 900px) {
   .vrsa-floating-nav {
     width: calc(100% - 1.5rem);
@@ -1707,6 +1731,90 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   .mobile-app-section .section-container {
     grid-template-columns: 1fr !important;
     gap: 2.5rem !important;
+  }
+}
+
+.vrsa-mobile-menu-btn {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .vrsa-mobile-menu-btn {
+    display: inline-flex !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+  .vrsa-hero-container {
+    padding: 2rem 1rem 3rem !important;
+  }
+  
+  .guru-ji-showcase-card {
+    width: 100% !important;
+    padding: 1.25rem 1rem !important;
+    border-radius: 20px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .guru-ji-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  
+  .guru-ji-modes-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .guru-ji-form {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .guru-ji-form input {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .guru-ji-form button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .campus-spotlight-section {
+    padding: 3rem 1rem !important;
+  }
+
+  .campus-spotlight-section > div {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+
+  .campus-bar-floating {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    margin-top: 0.75rem !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .vrsa-hero-buttons {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .vrsa-btn-dark, .vrsa-btn-light {
+    width: 100% !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
   }
 }
 

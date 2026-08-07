@@ -185,18 +185,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`dashboard-container ${role.toLowerCase()}-portal`}>
       {/* Mobile Top Header */}
-      <header className="mobile-header">
-        <button className="mobile-menu-btn" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open Menu">
+      <header className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem' }}>
+        <Link href="/" className="logo-small-mobile" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', whiteSpace: 'nowrap' }} onClick={handleNavLinkClick}>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '26px', height: '26px', objectFit: 'contain', borderRadius: '4px' }} />
+          <span style={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 800 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
+        </Link>
+        <button className="mobile-menu-btn" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open Menu" style={{ marginLeft: 'auto' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <Link href="/" className="logo-small-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', whiteSpace: 'nowrap' }} onClick={handleNavLinkClick}>
-          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
-          <span style={{ whiteSpace: 'nowrap' }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
-        </Link>
       </header>
 
       {/* Mobile Sidebar Backdrop Overlay */}
@@ -208,9 +208,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="sidebar-inner">
           <div className="sidebar-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <Link href="/" className="logo-small" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }} onClick={handleNavLinkClick}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
-                <span>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
+              <Link href="/" className="logo-small" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', whiteSpace: 'nowrap' }} onClick={handleNavLinkClick}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '26px', height: '26px', objectFit: 'contain', borderRadius: '4px' }} />
+                <span style={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 800 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
