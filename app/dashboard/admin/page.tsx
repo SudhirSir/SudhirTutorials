@@ -3620,50 +3620,52 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div className="subtab-nav no-scrollbar">
+          <div className="subtab-nav no-scrollbar" style={{ gap: '0.4rem', padding: '0.2rem' }}>
             <button 
               onClick={() => setUserSubTab('DIRECTORY')}
               style={{
-                padding: '0.55rem 1rem',
+                padding: '0.35rem 0.75rem',
                 border: 'none',
                 background: userSubTab === 'DIRECTORY' ? 'var(--primary)' : 'transparent',
                 color: userSubTab === 'DIRECTORY' ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 fontWeight: 700,
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
+                gap: '0.4rem',
                 whiteSpace: 'nowrap'
               }}
             >
-              👥 Members Directory
+              👥 Members
             </button>
             <button 
               onClick={() => setUserSubTab('CREATE')}
               style={{
-                padding: '0.55rem 1rem',
+                padding: '0.35rem 0.75rem',
                 border: 'none',
                 background: userSubTab === 'CREATE' ? 'var(--primary)' : 'transparent',
                 color: userSubTab === 'CREATE' ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 fontWeight: 700,
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
+                gap: '0.4rem',
                 whiteSpace: 'nowrap'
               }}
             >
-              ➕ Add new Student/Teacher/Admin
+              ➕ Add new user
             </button>
           </div>
 
           {userSubTab === 'DIRECTORY' && (
             <div className="glass-card" style={{ 
-              padding: '2rem',
+              padding: '1.5rem',
               transition: 'all 0.3s ease',
               border: `1px solid ${
                 directoryFilter === 'STUDENT' ? 'rgba(59, 130, 246, 0.3)' : 
@@ -3676,30 +3678,30 @@ function AdminDashboardContent() {
                          directoryFilter === 'ADMIN' ? '0 8px 32px rgba(239, 68, 68, 0.08)' :
                          'none'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
                 <div style={{ 
                   display: 'flex', 
-                  gap: '0.4rem', 
+                  gap: '0.25rem', 
                   background: 'rgba(255, 255, 255, 0.05)', 
-                  padding: '4px', 
-                  borderRadius: '12px', 
+                  padding: '3px', 
+                  borderRadius: '10px', 
                   width: '100%', 
                   justifyContent: 'center', 
-                  maxWidth: '480px',
+                  maxWidth: '360px',
                   border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
                   <button 
                     onClick={() => setDirectoryFilter('ALL')} 
                     style={{ 
                       flex: 1,
-                      padding: '0.55rem 1rem', 
+                      padding: '0.3rem 0.5rem', 
                       background: directoryFilter === 'ALL' ? '#2563eb' : 'transparent', 
                       color: directoryFilter === 'ALL' ? '#fff' : 'var(--text-muted)', 
                       border: 'none', 
-                      borderRadius: '8px', 
+                      borderRadius: '6px', 
                       cursor: 'pointer', 
                       fontWeight: 700, 
-                      fontSize: '0.8rem', 
+                      fontSize: '0.75rem', 
                       whiteSpace: 'nowrap',
                       transition: 'all 0.2s ease'
                     }}
@@ -3710,14 +3712,14 @@ function AdminDashboardContent() {
                     onClick={() => setDirectoryFilter('STUDENT')} 
                     style={{ 
                       flex: 1,
-                      padding: '0.55rem 1rem', 
+                      padding: '0.3rem 0.5rem', 
                       background: directoryFilter === 'STUDENT' ? '#2563eb' : 'transparent', 
                       color: directoryFilter === 'STUDENT' ? '#fff' : 'var(--text-muted)', 
                       border: 'none', 
-                      borderRadius: '8px', 
+                      borderRadius: '6px', 
                       cursor: 'pointer', 
                       fontWeight: 700, 
-                      fontSize: '0.8rem', 
+                      fontSize: '0.75rem', 
                       whiteSpace: 'nowrap',
                       transition: 'all 0.2s ease'
                     }}
@@ -3728,14 +3730,14 @@ function AdminDashboardContent() {
                     onClick={() => setDirectoryFilter('TEACHER')} 
                     style={{ 
                       flex: 1,
-                      padding: '0.55rem 1rem', 
+                      padding: '0.3rem 0.5rem', 
                       background: directoryFilter === 'TEACHER' ? '#10b981' : 'transparent', 
                       color: directoryFilter === 'TEACHER' ? '#fff' : 'var(--text-muted)', 
                       border: 'none', 
-                      borderRadius: '8px', 
+                      borderRadius: '6px', 
                       cursor: 'pointer', 
                       fontWeight: 700, 
-                      fontSize: '0.8rem', 
+                      fontSize: '0.75rem', 
                       whiteSpace: 'nowrap',
                       transition: 'all 0.2s ease'
                     }}
@@ -3746,14 +3748,14 @@ function AdminDashboardContent() {
                     onClick={() => setDirectoryFilter('ADMIN')} 
                     style={{ 
                       flex: 1,
-                      padding: '0.55rem 1rem', 
+                      padding: '0.3rem 0.5rem', 
                       background: directoryFilter === 'ADMIN' ? '#ef4444' : 'transparent', 
                       color: directoryFilter === 'ADMIN' ? '#fff' : 'var(--text-muted)', 
                       border: 'none', 
-                      borderRadius: '8px', 
+                      borderRadius: '6px', 
                       cursor: 'pointer', 
                       fontWeight: 700, 
-                      fontSize: '0.8rem', 
+                      fontSize: '0.75rem', 
                       whiteSpace: 'nowrap',
                       transition: 'all 0.2s ease'
                     }}
@@ -4113,7 +4115,7 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div className="subtab-nav no-scrollbar">
+          <div className="subtab-nav no-scrollbar" style={{ gap: '0.35rem', padding: '0.2rem' }}>
             {[
               { id: 'OVERVIEW', label: 'Finance Hub', desc: 'Overview & Stats' },
               { id: 'LEDGER', label: 'Fee Ledger', desc: 'Accounts & Dues' },
@@ -4126,23 +4128,22 @@ function AdminDashboardContent() {
                 key={tab.id}
                 onClick={() => setFinanceSubTab(tab.id as any)}
                 style={{
-                  padding: '0.55rem 0.9rem',
+                  padding: '0.35rem 0.65rem',
                   border: 'none',
                   background: financeSubTab === tab.id ? 'var(--primary)' : 'transparent',
                   color: financeSubTab === tab.id ? '#fff' : 'var(--text-muted)',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'flex-start',
-                  gap: '0.05rem',
-                  minWidth: '100px'
+                  gap: '0.02rem'
                 }}
               >
-                <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>{tab.label}</span>
-                <span style={{ fontSize: '0.6rem', fontWeight: 500, opacity: financeSubTab === tab.id ? 0.85 : 0.5 }}>{tab.desc}</span>
+                <span style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>{tab.label}</span>
+                <span style={{ fontSize: '0.58rem', fontWeight: 500, opacity: financeSubTab === tab.id ? 0.85 : 0.5 }}>{tab.desc}</span>
               </button>
             ))}
           </div>
@@ -5492,21 +5493,22 @@ function AdminDashboardContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Sub-Tab Navigation Header */}
-          <div className="subtab-nav no-scrollbar">
+          <div className="subtab-nav no-scrollbar" style={{ gap: '0.35rem', padding: '0.2rem' }}>
             <button 
               onClick={() => setCourseSubTab('COURSES')}
               style={{
-                padding: '0.55rem 1rem',
+                padding: '0.35rem 0.75rem',
                 border: 'none',
                 background: courseSubTab === 'COURSES' ? 'var(--primary)' : 'transparent',
                 color: courseSubTab === 'COURSES' ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 fontWeight: 700,
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.4rem'
               }}
             >
               📚 Courses Manager
@@ -5514,17 +5516,18 @@ function AdminDashboardContent() {
             <button 
               onClick={() => setCourseSubTab('BATCHES')}
               style={{
-                padding: '0.55rem 1rem',
+                padding: '0.35rem 0.75rem',
                 border: 'none',
                 background: courseSubTab === 'BATCHES' ? 'var(--primary)' : 'transparent',
                 color: courseSubTab === 'BATCHES' ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 fontWeight: 700,
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.4rem'
               }}
             >
               👥 Batch Manager
@@ -5532,17 +5535,18 @@ function AdminDashboardContent() {
             <button 
               onClick={() => setCourseSubTab('TIMETABLE')}
               style={{
-                padding: '0.55rem 1rem',
+                padding: '0.35rem 0.75rem',
                 border: 'none',
                 background: courseSubTab === 'TIMETABLE' ? 'var(--primary)' : 'transparent',
                 color: courseSubTab === 'TIMETABLE' ? '#fff' : 'var(--text-muted)',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 fontWeight: 700,
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.4rem'
               }}
             >
               📅 Timetable & Timings

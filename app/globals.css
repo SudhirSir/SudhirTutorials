@@ -326,7 +326,7 @@ textarea:focus {
   min-height: 100vh;
 }
 .sidebar {
-  width: 240px;
+  width: 255px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -337,7 +337,7 @@ textarea:focus {
   z-index: 10;
 }
 .sidebar-header {
-  padding: 1.1rem 1rem;
+  padding: 1rem 0.65rem 0.85rem 0.65rem;
   border-bottom: 1px solid var(--border);
 }
 .role-badge {
@@ -352,7 +352,7 @@ textarea:focus {
   border-radius: 999px;
 }
 .sidebar-nav {
-  padding: 0.75rem 0.65rem;
+  padding: 0.65rem 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

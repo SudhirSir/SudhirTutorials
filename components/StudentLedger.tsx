@@ -512,10 +512,10 @@ export function StudentLedger({
   );
 
   const TAB_STYLE = (active: boolean): React.CSSProperties => ({
-    padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
+    padding: '0.35rem 0.75rem', borderRadius: '8px', border: 'none',
     background: active ? 'var(--primary)' : 'transparent',
     color: active ? '#fff' : 'var(--text-muted)',
-    fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s',
+    fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s',
   });
 
   if (loading) {

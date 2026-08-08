@@ -303,23 +303,41 @@ export function NotificationsPanel({
 
       {/* Sent / Received Navigation */}
       {(role === 'ADMIN' || role === 'TEACHER') && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div className="tab-nav" style={{ maxWidth: '280px' }}>
-            <button 
-              type="button"
-              onClick={() => { setLoading(true); setPanelTab('received'); }}
-              className={`tab-btn ${panelTab === 'received' ? 'tab-btn-active' : ''}`}
-            >
-              Inbox
-            </button>
-            <button 
-              type="button"
-              onClick={() => { setLoading(true); setPanelTab('sent'); }}
-              className={`tab-btn ${panelTab === 'sent' ? 'tab-btn-active' : ''}`}
-            >
-              Sent Notices
-            </button>
-          </div>
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
+          <button 
+            type="button"
+            onClick={() => { setLoading(true); setPanelTab('received'); }}
+            style={{
+              padding: '0.35rem 0.85rem',
+              borderRadius: '8px',
+              border: '1px solid ' + (panelTab === 'received' ? 'var(--primary)' : 'var(--border)'),
+              background: panelTab === 'received' ? 'var(--primary)' : 'transparent',
+              color: panelTab === 'received' ? '#ffffff' : 'var(--text-muted)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Inbox
+          </button>
+          <button 
+            type="button"
+            onClick={() => { setLoading(true); setPanelTab('sent'); }}
+            style={{
+              padding: '0.35rem 0.85rem',
+              borderRadius: '8px',
+              border: '1px solid ' + (panelTab === 'sent' ? 'var(--primary)' : 'var(--border)'),
+              background: panelTab === 'sent' ? 'var(--primary)' : 'transparent',
+              color: panelTab === 'sent' ? '#ffffff' : 'var(--text-muted)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Sent Notices
+          </button>
         </div>
       )}
 

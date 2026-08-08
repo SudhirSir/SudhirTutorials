@@ -403,24 +403,32 @@ export function AdminStoreManager() {
               Manage notes, test series, storefront customers, and check sales analytics.
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <Card style={{ padding: "0.5rem 1rem", textAlign: "right" }}>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>TOTAL REVENUE</div>
-              <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#22c55e" }}>
-                ₹{totalRevenue.toLocaleString()}
-              </div>
-            </Card>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div style={{ 
+              padding: "0.35rem 0.85rem", 
+              textAlign: "center", 
+              background: "rgba(34, 197, 94, 0.08)", 
+              border: "1px solid rgba(34, 197, 94, 0.2)", 
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem"
+            }}>
+              <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Revenue:</span>
+              <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#22c55e" }}>₹{totalRevenue.toLocaleString()}</span>
+            </div>
             <Button
               variant="primary"
-              size="md"
+              size="sm"
               leftIcon="➕"
               onClick={() => {
                 resetForm();
                 setEditingItem(null);
                 setIsFormOpen(true);
               }}
+              style={{ padding: "0.35rem 0.85rem", fontSize: "0.8rem" }}
             >
-              Add Store Item
+              Add Item
             </Button>
           </div>
         </div>
@@ -561,7 +569,7 @@ export function AdminStoreManager() {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingItem ? "Edit Store Item" : "Create Store Item"}
+        title={editingItem ? "Edit Item" : "Create Item"}
       >
         <form onSubmit={handleSaveItem} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
