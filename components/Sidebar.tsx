@@ -104,16 +104,16 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
 
   return (
     <div className="sidebar-glass" style={{
-      width: '280px',
+      width: '240px',
       height: 'calc(100vh - 2rem)',
       margin: '1rem',
-      borderRadius: '24px',
+      borderRadius: '20px',
       background: 'var(--glass-bg)',
       backdropFilter: 'blur(16px)',
       border: '1px solid var(--glass-border)',
       display: 'flex',
       flexDirection: 'column',
-      padding: '2rem 1.5rem',
+      padding: '1.25rem 1rem',
       position: 'fixed',
       left: 0,
       top: 0,
@@ -121,14 +121,14 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
       boxShadow: 'var(--shadow)'
     }}>
       {/* Brand */}
-      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-        <img src="/logo.png" alt="Institute Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '16px', margin: '0 auto 1rem' }} />
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, letterSpacing: '1px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h2>
-        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '2px' }}>{role} PORTAL</p>
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <img src="/logo.png" alt="Institute Logo" style={{ width: '42px', height: '42px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.5rem' }} />
+        <h2 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h2>
+        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '1.5px' }}>{role} PORTAL</p>
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         {links.map(link => {
           let badgeCount = 0;
           if (link.id === 'messages') badgeCount = unreadMessages;
@@ -141,14 +141,14 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.5rem 0.75rem',
-                borderRadius: '10px',
+                gap: '0.55rem',
+                padding: '0.42rem 0.65rem',
+                borderRadius: '8px',
                 border: 'none',
                 background: activeTab === link.id ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
                 color: activeTab === link.id ? 'var(--primary)' : 'var(--text-muted)',
                 fontWeight: 600,
-                fontSize: '0.85rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 textAlign: 'left',
