@@ -28,9 +28,10 @@ export function SessionGuard() {
         if (data.valid === false && isMounted) {
           if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
           if (sessionStorage.getItem('isLoggingOut') === 'true') return;
-          console.warn("Session invalidated (logged in elsewhere or no session). Terminating session...");
           const errorType = data.error === "Logged in elsewhere" ? "concurrent_login" : "session_expired";
-          signOut({ callbackUrl: `/login?error=${errorType}` });
+          signOut({ redirect: false }).then(() => {
+            window.location.href = `/login?error=${errorType}`;
+          });
         }
       } catch (err) {
         if (typeof window !== "undefined" && (window as any).isLoggingOut) return;

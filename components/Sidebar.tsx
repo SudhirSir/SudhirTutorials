@@ -32,7 +32,8 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
         localStorage.setItem('theme', theme);
       }
     }
-    await signOut({ callbackUrl: '/login' });
+    await signOut({ redirect: false });
+    window.location.href = '/login';
   };
 
   const fetchBadgeCounts = async () => {

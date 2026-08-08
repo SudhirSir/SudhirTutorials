@@ -23,7 +23,8 @@ export default function WaitingVerificationPage() {
         localStorage.setItem('theme', theme);
       }
     }
-    await signOut({ callbackUrl: '/login' });
+    await signOut({ redirect: false });
+    window.location.href = '/login';
   };
 
   useEffect(() => {

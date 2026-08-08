@@ -172,9 +172,10 @@ function StoreDashboardContent() {
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{stsId}</span>
           </div>
           <button 
-            onClick={() => {
+            onClick={async () => {
               sessionStorage.removeItem('tabSessionActive');
-              signOut({ callbackUrl: '/store-login' });
+              await signOut({ redirect: false });
+              window.location.href = '/store-login';
             }}
             style={{ 
               padding: '0.5rem 1.25rem', 

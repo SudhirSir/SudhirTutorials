@@ -105,7 +105,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         localStorage.setItem('theme', theme);
       }
     }
-    await signOut({ callbackUrl: '/login' });
+    await signOut({ redirect: false });
+    window.location.href = '/login';
   };
 
   const handleNavLinkClick = () => {

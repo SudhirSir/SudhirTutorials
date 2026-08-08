@@ -247,6 +247,13 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).activeToken = token.activeToken;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return url;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {}
+      return baseUrl;
     }
   },
   events: {

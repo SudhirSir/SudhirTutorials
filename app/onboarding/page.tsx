@@ -12,7 +12,9 @@ export default function OnboardingPage() {
     if (typeof window !== "undefined") {
       const allowed = sessionStorage.getItem("onboarding_allowed");
       if (!allowed) {
-        signOut({ redirect: true, callbackUrl: "/login" });
+        signOut({ redirect: false }).then(() => {
+          window.location.href = "/login";
+        });
       } else {
         sessionStorage.removeItem("onboarding_allowed");
       }
