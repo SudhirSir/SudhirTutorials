@@ -197,8 +197,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
         {/* Brand name centered absolutely */}
         <Link href="/" className="logo-small-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', whiteSpace: 'nowrap', zIndex: 5 }} onClick={handleNavLinkClick}>
-          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '4px' }} />
-          <span style={{ whiteSpace: 'nowrap', fontSize: '0.95rem', fontWeight: 900 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }} />
+          <span style={{ whiteSpace: 'nowrap', fontSize: '1.05rem', fontWeight: 900 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
         </Link>
         {/* Spacer to balance layout */}
         <div style={{ width: '36px', flexShrink: 0 }} />
@@ -214,8 +214,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="sidebar-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', minWidth: 0, overflow: 'hidden' }}>
               <Link href="/" className="logo-small" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', minWidth: 0, overflow: 'hidden' }} onClick={handleNavLinkClick}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '4px', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.88rem', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.98rem', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

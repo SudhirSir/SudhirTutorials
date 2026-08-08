@@ -289,8 +289,8 @@ export default function Home() {
       {/* VRSA Floating Capsule Navbar with Single Row Brand & Mobile Hamburger Drawer */}
       <header className="vrsa-floating-nav" style={{ position: 'relative' }}>
         <Link href="/" className="navbar-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.65rem', whiteSpace: 'nowrap' }}>
-          <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} priority />
-          <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '1.05rem', fontWeight: 900 }}>
+          <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={38} height={38} style={{ width: '38px', height: '38px', objectFit: 'contain', flexShrink: 0 }} priority />
+          <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '1.18rem', fontWeight: 900 }}>
             <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
         </Link>

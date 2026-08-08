@@ -350,19 +350,13 @@ export function NotificationsPanel({
                   key={n.id}
                   onClick={() => panelTab === 'received' && !n.isRead && markOneRead(n.id)}
                   style={{
-                    display: 'flex',
-                    gap: '0.75rem',
-                    padding: '0.85rem 1.25rem',
+                    padding: '0.85rem 1rem',
                     borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
                     background: (panelTab === 'received' && !n.isRead) ? 'var(--surface-light)' : 'transparent',
                     cursor: (panelTab === 'received' && !n.isRead) ? 'pointer' : 'default',
                     transition: 'background 0.2s',
                   }}
                 >
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
-                    {getNotificationIcon(n.type)}
-                  </div>
-
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
                       <span style={{ fontWeight: n.isRead ? 600 : 800, color: 'var(--text-heading)', fontSize: '0.95rem' }}>
