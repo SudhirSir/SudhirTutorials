@@ -295,17 +295,17 @@ export default function Home() {
           </span>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <nav className="vrsa-nav-links">
-          <Link href="#programs" className="vrsa-nav-link">Flagship Programs</Link>
-          <Link href="/admissions" className="vrsa-nav-link">Admissions</Link>
-          <Link href="#storefront" className="vrsa-nav-link">Notes/Test Series</Link>
-          <Link href="#about" className="vrsa-nav-link">Why Us</Link>
-          <Link href="/careers" className="vrsa-nav-link">Careers</Link>
-        </nav>
+        {/* Right Actions & Navigation Links */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', marginLeft: 'auto' }}>
+          {/* Desktop Navigation Links */}
+          <nav className="vrsa-nav-links">
+            <Link href="#programs" className="vrsa-nav-link">Flagship Programs</Link>
+            <Link href="/admissions" className="vrsa-nav-link">Admissions</Link>
+            <Link href="#storefront" className="vrsa-nav-link">Notes/Test Series</Link>
+            <Link href="#about" className="vrsa-nav-link">Why Us</Link>
+            <Link href="/careers" className="vrsa-nav-link">Careers</Link>
+          </nav>
 
-        {/* Right Actions: Desktop Login + Mobile Hamburger Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
           <Link href="/login" className="login-portal-btn desktop-only">
             Portal Login <span className="arrow">→</span>
           </Link>
