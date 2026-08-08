@@ -186,17 +186,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className={`dashboard-container ${role.toLowerCase()}-portal`}>
       {/* Mobile Top Header */}
       <header className="mobile-header" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', minHeight: '50px' }}>
-        <Link href="/" className="logo-small-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', whiteSpace: 'nowrap' }} onClick={handleNavLinkClick}>
-          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '4px' }} />
-          <span style={{ whiteSpace: 'nowrap', fontSize: '0.95rem', fontWeight: 900 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
-        </Link>
-        <button className="mobile-menu-btn" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open Menu" style={{ marginLeft: 'auto', zIndex: 10 }}>
+        {/* Hamburger on LEFT */}
+        <button className="mobile-menu-btn" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open Menu" style={{ zIndex: 10, flexShrink: 0 }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
+        {/* Brand name centered absolutely */}
+        <Link href="/" className="logo-small-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', whiteSpace: 'nowrap', zIndex: 5 }} onClick={handleNavLinkClick}>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '4px' }} />
+          <span style={{ whiteSpace: 'nowrap', fontSize: '0.95rem', fontWeight: 900 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
+        </Link>
+        {/* Spacer to balance layout */}
+        <div style={{ width: '36px', flexShrink: 0 }} />
       </header>
 
       {/* Mobile Sidebar Backdrop Overlay */}
@@ -207,10 +211,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className={`sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-inner">
           <div className="sidebar-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <Link href="/" className="logo-small" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', whiteSpace: 'nowrap' }} onClick={handleNavLinkClick}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }} />
-                <span style={{ whiteSpace: 'nowrap', fontSize: '1rem', fontWeight: 900 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', minWidth: 0, overflow: 'hidden' }}>
+              <Link href="/" className="logo-small" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', minWidth: 0, overflow: 'hidden' }} onClick={handleNavLinkClick}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '4px', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.88rem', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
