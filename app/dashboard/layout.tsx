@@ -186,7 +186,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`dashboard-container ${role.toLowerCase()}-portal`}>
       {/* Mobile Top Header */}
-      <header className="mobile-header" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', minHeight: '50px' }}>
+      <header className="mobile-header">
         {/* Hamburger on LEFT */}
         <button className="mobile-menu-btn" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open Menu" style={{ zIndex: 10, flexShrink: 0 }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -587,10 +587,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         /* Responsive Mobile Styles */
         .mobile-header {
-          display: none;
+          display: none !important;
+          position: relative;
           align-items: center;
           justify-content: space-between;
-          padding: 0.85rem 1.5rem;
+          padding: 0.75rem 1rem;
+          min-height: 50px;
           background: var(--glass-bg);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
@@ -641,7 +643,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
 
           .mobile-header {
-            display: flex;
+            display: flex !important;
           }
 
           .mobile-sidebar-overlay {
