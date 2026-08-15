@@ -16,45 +16,53 @@ export async function GET() {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     const statsResult = await withDbRetry(async () => {
-      const totalStudents = await prisma.user.count({ where: { role: 'STUDENT', isStoreUser: false } });
-      const totalTeachers = await prisma.user.count({ where: { role: 'TEACHER', isStoreUser: false } });
-      const totalBatches = await prisma.batch.count();
-      const totalCourses = await prisma.course.count();
-      
-      const paymentsThisMonth = await prisma.payment.aggregate({
-        _sum: { paidAmount: true },
-        where: {
-          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-          paidAt: { gte: startOfMonth }
-        }
-      });
-      const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
-
-      const pendingDuesAggregate = await prisma.payment.aggregate({
-        _sum: {
-          amount: true,
-          lateFine: true,
-          discount: true,
-          paidAmount: true,
-        },
-        where: {
-          NOT: {
-            status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
+      const [
+        totalStudents,
+        totalTeachers,
+        totalBatches,
+        totalCourses,
+        paymentsThisMonth,
+        pendingDuesAggregate,
+        classGroups
+      ] = await Promise.all([
+        prisma.user.count({ where: { role: 'STUDENT', isStoreUser: false } }),
+        prisma.user.count({ where: { role: 'TEACHER', isStoreUser: false } }),
+        prisma.batch.count(),
+        prisma.course.count(),
+        prisma.payment.aggregate({
+          _sum: { paidAmount: true },
+          where: {
+            status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
+            paidAt: { gte: startOfMonth }
           }
-        }
-      });
+        }),
+        prisma.payment.aggregate({
+          _sum: {
+            amount: true,
+            lateFine: true,
+            discount: true,
+            paidAmount: true,
+          },
+          where: {
+            NOT: {
+              status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
+            }
+          }
+        }),
+        prisma.studentProfile.groupBy({
+          by: ['className'],
+          _count: { userId: true },
+          where: { className: { not: null } }
+        })
+      ]);
+
+      const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
       const pendingDues = Math.max(0, 
         (pendingDuesAggregate._sum.amount || 0) + 
         (pendingDuesAggregate._sum.lateFine || 0) - 
         (pendingDuesAggregate._sum.discount || 0) - 
         (pendingDuesAggregate._sum.paidAmount || 0)
       );
-
-      const classGroups = await prisma.studentProfile.groupBy({
-        by: ['className'],
-        _count: { userId: true },
-        where: { className: { not: null } }
-      });
       const classStats = classGroups.map(g => ({
         className: g.className || 'Unknown',
         count: g._count.userId || 0

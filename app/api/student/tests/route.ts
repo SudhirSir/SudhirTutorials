@@ -55,15 +55,23 @@ export async function GET() {
       }
     }));
 
-    const sanitizedTests = tests.map(test => {
-      if (!test.isPublished) {
-        return {
-          ...test,
-          results: []
-        };
-      }
-      return test;
-    });
+    const joinDate = userWithBatches.createdAt ? new Date(userWithBatches.createdAt) : null;
+    const joinDateStart = joinDate ? new Date(joinDate.getFullYear(), joinDate.getMonth(), joinDate.getDate()).getTime() : 0;
+
+    const sanitizedTests = tests
+      .filter(test => {
+        if (!joinDateStart || !test.date) return true;
+        return new Date(test.date).getTime() >= joinDateStart;
+      })
+      .map(test => {
+        if (!test.isPublished) {
+          return {
+            ...test,
+            results: []
+          };
+        }
+        return test;
+      });
 
     return NextResponse.json({ tests: sanitizedTests });
   } catch (error) {

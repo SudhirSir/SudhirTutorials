@@ -393,13 +393,20 @@ export default function Home() {
 
         {/* Hero Tagline Quote */}
         <div style={{
-          fontSize: '1.35rem',
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '0.5rem 1.35rem',
+          borderRadius: '100px',
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          fontSize: 'clamp(1rem, 2.5vw, 1.35rem)',
           fontWeight: 800,
           color: 'var(--primary)',
-          margin: '-0.25rem 0 1.25rem',
+          margin: '0.25rem 0 1.5rem',
           fontStyle: 'italic',
-          fontFamily: 'var(--font-poppins)',
-          textShadow: '0 2px 10px rgba(239, 68, 68, 0.15)',
+          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.1)',
+          maxWidth: '100%',
+          boxSizing: 'border-box'
         }} className="hero-tagline-quote">
           “साहब हम जबरदस्ती नहीं, जबरदस्त पढ़ाते हैं”
         </div>

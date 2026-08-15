@@ -25,6 +25,7 @@ export async function GET() {
         where: { id: studentId },
         select: {
           name: true,
+          createdAt: true,
           studentBatches: {
             select: {
               id: true,
@@ -143,10 +144,18 @@ export async function GET() {
     const presentDays = attendanceRecords.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE').length;
     const attendancePercent = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
 
-    // Aggregate test results
-    const totalTests = testResults.length;
-    const totalObtained = testResults.reduce((acc: number, r: any) => acc + r.marks, 0);
-    const totalMax = testResults.reduce((acc: number, r: any) => acc + r.totalMarks, 0);
+    // Aggregate test results (filtered by student joining date)
+    const studentJoinDate = (user as any).createdAt ? new Date((user as any).createdAt) : null;
+    const joinDateStart = studentJoinDate ? new Date(studentJoinDate.getFullYear(), studentJoinDate.getMonth(), studentJoinDate.getDate()).getTime() : 0;
+
+    const validTestResults = testResults.filter((tr: any) => {
+      if (!joinDateStart || !tr.test?.date) return true;
+      return new Date(tr.test.date).getTime() >= joinDateStart;
+    });
+
+    const totalTests = validTestResults.length;
+    const totalObtained = validTestResults.reduce((acc: number, r: any) => acc + r.marks, 0);
+    const totalMax = validTestResults.reduce((acc: number, r: any) => acc + (r.totalMarks || 100), 0);
     const averageScore = totalMax > 0 ? Math.round((totalObtained / totalMax) * 100) : null;
 
     return NextResponse.json({
@@ -163,7 +172,7 @@ export async function GET() {
       testStats: {
         totalTests,
         averageScore,
-        results: testResults,
+        results: validTestResults,
       }
     });
   } catch (error) {

@@ -11,6 +11,7 @@ const testSchema = z.object({
   title: z.string().min(1),
   subject: z.string().optional(),
   courseId: z.string().min(1),
+  totalMarks: z.union([z.number(), z.string()]).optional(),
   date: z.string().min(1),
   time: z.string().optional(),
   syllabus: z.string().optional()
@@ -21,6 +22,7 @@ const testEditSchema = z.object({
   title: z.string().min(1).optional(),
   subject: z.string().optional(),
   courseId: z.string().optional(),
+  totalMarks: z.union([z.number(), z.string()]).optional(),
   date: z.string().optional(),
   time: z.string().optional(),
   syllabus: z.string().optional(),
@@ -93,13 +95,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid data', details: validation.error.format() }, { status: 400 });
     }
 
-    const { title, subject, courseId, date, time, syllabus } = validation.data;
+    const { title, subject, courseId, totalMarks, date, time, syllabus } = validation.data;
 
     const test = await withDbRetry(() => prisma.test.create({
       data: {
         title,
         subject,
         courseId,
+        totalMarks: totalMarks ? parseFloat(String(totalMarks)) : 100,
         date: new Date(date),
         time,
         syllabus
@@ -195,7 +198,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Invalid data', details: validation.error.format() }, { status: 400 });
     }
 
-    const { id, title, subject, courseId, date, time, syllabus, isPublished } = validation.data;
+    const { id, title, subject, courseId, totalMarks, date, time, syllabus, isPublished } = validation.data;
     const isAdmin = session.user.role === 'ADMIN';
 
     // Fetch existing test to check publication status
@@ -216,6 +219,7 @@ export async function PUT(req: Request) {
     if (title !== undefined) updateData.title = title;
     if (subject !== undefined) updateData.subject = subject;
     if (courseId !== undefined) updateData.courseId = courseId;
+    if (totalMarks !== undefined) updateData.totalMarks = parseFloat(String(totalMarks));
     if (date !== undefined) updateData.date = new Date(date);
     if (time !== undefined) updateData.time = time;
     if (syllabus !== undefined) updateData.syllabus = syllabus;

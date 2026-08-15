@@ -409,6 +409,7 @@ function AdminDashboardContent() {
 
   // Study Materials
   const [materials, setMaterials] = useState<any[]>([]);
+  const [selectedMaterialClassFilter, setSelectedMaterialClassFilter] = useState<string>('ALL');
   const [matTitle, setMatTitle] = useState('');
   const [matType, setMatType] = useState('PDF');
   const [matUrl, setMatUrl] = useState('');
@@ -1184,7 +1185,7 @@ function AdminDashboardContent() {
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
   const [showCreateTestForm, setShowCreateTestForm] = useState(false);
-  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
+  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', totalMarks: '100', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
   const [testStudents, setTestStudents] = useState<any[]>([]);
   const [editingTest, setEditingTest] = useState<any>(null);
 
@@ -1266,7 +1267,7 @@ function AdminDashboardContent() {
         body: JSON.stringify(newTest)
       });
       if (res.ok) {
-        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
+        setNewTest({ title: '', subject: '', courseId: '', totalMarks: '100', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
         fetchTests();
         alert('Test created successfully!');
       } else alert('Failed to create test');
@@ -1281,11 +1282,12 @@ function AdminDashboardContent() {
       if (res.ok) {
         const data = await res.json();
         const initialMarks: any = {};
+        const testMaxMarks = test.totalMarks?.toString() || '100';
         data.students.forEach((s: any) => {
           const existingResult = test.results?.find((r: any) => r.studentId === s.id);
           initialMarks[s.id] = {
             marks: existingResult?.marks?.toString() || '',
-            totalMarks: existingResult?.totalMarks?.toString() || '100',
+            totalMarks: existingResult?.totalMarks?.toString() || testMaxMarks,
             remarks: existingResult?.remarks || ''
           };
         });
@@ -2039,12 +2041,12 @@ function AdminDashboardContent() {
       const net = totalIn - (totalExp + totalSal);
 
       tempElement = document.createElement('div');
-      tempElement.style.position = 'fixed';
-      tempElement.style.top = '0';
-      tempElement.style.left = '0';
-      tempElement.style.zIndex = '-99999';
-      tempElement.style.opacity = '0.99';
-      tempElement.style.pointerEvents = 'none';
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const scrollX = window.scrollX || window.pageXOffset || 0;
+      tempElement.style.position = 'absolute';
+      tempElement.style.top = `${scrollY}px`;
+      tempElement.style.left = `${scrollX}px`;
+      tempElement.style.zIndex = '-9999';
       tempElement.style.width = '790px';
       tempElement.style.padding = '30px';
       tempElement.style.background = '#ffffff';
@@ -2054,17 +2056,59 @@ function AdminDashboardContent() {
 
       const formatD = (dStr: any) => {
         const d = new Date(dStr);
+        if (isNaN(d.getTime())) return 'N/A';
         return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
       };
+
+      const transactions = [
+        ...inflow.map(f => ({
+          date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
+          ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
+          desc: `Fee Collected - ${f.student?.name || 'Student'} (${f.student?.username || ''}) - ${f.billingMonth} [${f.title}]`,
+          type: 'FEE_INFLOW',
+          inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
+          outflow: 0
+        })),
+        ...outExpenses.map(e => ({
+          date: new Date(e.date || e.createdAt),
+          ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
+          desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
+          type: 'EXPENSE_OUTFLOW',
+          inflow: 0,
+          outflow: e.amount
+        })),
+        ...outSalaries.map(s => ({
+          date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
+          ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
+          desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
+          type: 'SALARY_OUTFLOW',
+          inflow: 0,
+          outflow: s.netPaid
+        }))
+      ].sort((a,b) => a.date.getTime() - b.date.getTime());
+
+      const tableRowsHtml = transactions.length > 0 ? transactions.map(t => `
+        <tr>
+          <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${formatD(t.date)}</td>
+          <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${t.ref}</td>
+          <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${t.desc}</td>
+          <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${t.type}</td>
+          <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: bold;">${t.inflow > 0 ? '₹' + t.inflow.toLocaleString() : '-'}</td>
+          <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: bold;">${t.outflow > 0 ? '₹' + t.outflow.toLocaleString() : '-'}</td>
+        </tr>
+      `).join('') : `
+        <tr>
+          <td colspan="6" style="padding: 25px; text-align: center; color: #6b7280; font-size: 13px; font-style: italic;">
+            No financial transactions recorded for ${statementMonth} ${statementYear}.
+          </td>
+        </tr>
+      `;
 
       tempElement.innerHTML = `
         <div style="border-bottom: 3px solid #ef4444; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="/logo.png" alt="Logo" style="width: 45px; height: 45px; object-fit: contain; border-radius: 8px;" />
-            <div>
-              <div style="font-size: 24px; font-weight: bold; color: #ef4444; line-height: 1.1;">SUDHIR TUTORIALS</div>
-              <div style="font-size: 14px; color: #4b5563;">Institute Financial Statement</div>
-            </div>
+            <div style="font-size: 24px; font-weight: bold; color: #ef4444; line-height: 1.1;">SUDHIR TUTORIALS</div>
+            <div style="font-size: 14px; color: #4b5563;">Institute Financial Statement</div>
           </div>
           <div style="text-align: right">
             <div style="font-weight: bold; font-size: 16px;">${statementMonth.toUpperCase()} ${statementYear}</div>
@@ -2103,41 +2147,7 @@ function AdminDashboardContent() {
             </tr>
           </thead>
           <tbody>
-            ${[
-              ...inflow.map(f => ({
-                date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
-                ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
-                desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
-                type: 'FEE_INFLOW',
-                inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
-                outflow: 0
-              })),
-              ...outExpenses.map(e => ({
-                date: new Date(e.date || e.createdAt),
-                ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
-                desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
-                type: 'EXPENSE_OUTFLOW',
-                inflow: 0,
-                outflow: e.amount
-              })),
-              ...outSalaries.map(s => ({
-                date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
-                ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
-                desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
-                type: 'SALARY_OUTFLOW',
-                inflow: 0,
-                outflow: s.netPaid
-              }))
-            ].sort((a,b) => a.date.getTime() - b.date.getTime()).map(t => `
-              <tr>
-                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${formatD(t.date)}</td>
-                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${t.ref}</td>
-                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${t.desc}</td>
-                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${t.type}</td>
-                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: bold;">${t.inflow > 0 ? '₹' + t.inflow.toLocaleString() : '-'}</td>
-                <td style="padding: 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: bold;">${t.outflow > 0 ? '₹' + t.outflow.toLocaleString() : '-'}</td>
-              </tr>
-            `).join('')}
+            ${tableRowsHtml}
           </tbody>
         </table>
       `;
@@ -2152,9 +2162,9 @@ function AdminDashboardContent() {
           scale: 2,
           useCORS: true,
           letterRendering: true,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: 1024,
+          scrollY: scrollY,
+          scrollX: scrollX,
+          windowWidth: document.documentElement.offsetWidth || 1024
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
@@ -2736,20 +2746,24 @@ function AdminDashboardContent() {
     }
     if (activeTab === 'users') handleSearchDirectory(); // always load all users on tab switch
     if (activeTab === 'finances') {
-      fetchFinances();
-      fetchExpenses();
-      fetchFinSummary();
-      fetchAllStudents(); // populate student dropdown
-      fetchBatches();          // populate batch dropdown
       const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const now = new Date();
       const currentMonth = `${months[now.getMonth()]} ${now.getFullYear()}`;
       setAutoBillingMonth(currentMonth);
-      fetchAutoBillingPreview(currentMonth);
+      Promise.all([
+        fetchFinances(),
+        fetchExpenses(),
+        fetchFinSummary(),
+        fetchAllStudents(),
+        fetchBatches(),
+        fetchAutoBillingPreview(currentMonth)
+      ]);
     }
     if (activeTab === 'verifications') {
-      fetchPendingVerifications();
-      fetchBugReports();
+      Promise.all([
+        fetchPendingVerifications(),
+        fetchBugReports()
+      ]);
     }
 
     if (activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) {
@@ -2765,24 +2779,34 @@ function AdminDashboardContent() {
       fetchBatches();
     }
     if (activeTab === 'materials' || (activeTab === 'academics' && academicSubTab === 'materials')) {
-      fetchMaterials();
-      fetchCourses();
+      Promise.all([
+        fetchMaterials(),
+        fetchCourses()
+      ]);
     }
     if (activeTab === 'tests' || (activeTab === 'academics' && academicSubTab === 'tests')) {
-      fetchTests();
-      fetchCourses();
+      Promise.all([
+        fetchTests(),
+        fetchCourses()
+      ]);
     }
     if (activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) {
-      fetchReports();
-      fetchFinSummary();
+      Promise.all([
+        fetchReports(),
+        fetchFinSummary()
+      ]);
     }
     if (activeTab === 'settings') {
-      fetchSettings();
-      fetchJobApplications();
+      Promise.all([
+        fetchSettings(),
+        fetchJobApplications()
+      ]);
     }
     if (activeTab === 'salary') {
-      fetchTeachers();
-      fetchAdminSalaries();
+      Promise.all([
+        fetchTeachers(),
+        fetchAdminSalaries()
+      ]);
     }
     if (activeTab === 'guru-ai') {
       fetchAdminGuruHistory();
@@ -2914,8 +2938,10 @@ function AdminDashboardContent() {
         const userData = role === 'STUDENT' ? data.student : role === 'TEACHER' ? data.teacher : data.admin;
         const profileData = role === 'STUDENT' ? userData.studentProfile : (role === 'TEACHER' || role === 'ADMIN') ? userData.teacherProfile : {};
         
-        const profileDob = profileData?.dob;
-        const formattedDob = profileDob ? (profileDob.includes('T') ? profileDob.split('T')[0] : profileDob) : '';
+        const profileCreated = userData.createdAt;
+        const formattedCreated = profileCreated ? (typeof profileCreated === 'string' && profileCreated.includes('T') ? profileCreated.split('T')[0] : new Date(profileCreated).toISOString().split('T')[0]) : '';
+        const rawDob = profileData?.dob;
+        const formattedDob = rawDob ? (typeof rawDob === 'string' && rawDob.includes('T') ? rawDob.split('T')[0] : new Date(rawDob).toISOString().split('T')[0]) : '';
 
         setEditingProfile({ 
           userId: userData.id, 
@@ -2923,6 +2949,7 @@ function AdminDashboardContent() {
           name: userData.name || '',
           username: userData.username,
           isActive: userData.isActive !== undefined ? userData.isActive : true,
+          createdAt: formattedCreated,
           ...(profileData || {}),
           dob: formattedDob,
           ...(role === 'TEACHER' && userData.teacherBatches?.length > 0 && { batch: userData.teacherBatches[0].name })
@@ -6195,12 +6222,29 @@ function AdminDashboardContent() {
 
           {showUploadedMaterials && (
             <div className="glass-card animate-scale-up" style={{ padding: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 700 }}>📚 Uploaded Materials</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 700 }}>📚 Uploaded Materials</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>Class Filter:</label>
+                  <select
+                    value={selectedMaterialClassFilter}
+                    onChange={e => setSelectedMaterialClassFilter(e.target.value)}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600 }}
+                  >
+                    <option value="ALL">All Classes / Courses</option>
+                    {Array.from(new Set(materials.map(m => m.course?.name).filter(Boolean))).map((courseName: any) => (
+                      <option key={courseName} value={courseName}>{courseName}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {materials.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)' }}>No study materials published yet.</p>
                 ) : (
-                  materials.map(mat => (
+                  materials
+                    .filter(mat => selectedMaterialClassFilter === 'ALL' || mat.course?.name === selectedMaterialClassFilter)
+                    .map(mat => (
                     <div key={mat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', flexWrap: 'wrap', gap: '1rem' }}>
                       <div>
                         <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -6222,7 +6266,9 @@ function AdminDashboardContent() {
                           </span>
                           {mat.title}
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Course: {mat.course?.name} • Published by: {mat.teacher?.name || 'Admin'}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Course: {mat.course?.name} • Published by: {mat.teacher?.name || 'Admin'} • 📅 Uploaded: {mat.createdAt ? new Date(mat.createdAt).toLocaleDateString('en-GB') : 'N/A'}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button onClick={() => handleOpenMaterial(mat)} style={{ padding: '0.5rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: 'none', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Open File</button>
@@ -6464,6 +6510,10 @@ function AdminDashboardContent() {
                   </select>
                 </div>
                 <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Total Marks</label>
+                  <input type="number" required placeholder="e.g. 100" value={newTest.totalMarks || '100'} onChange={e => setNewTest({ ...newTest, totalMarks: e.target.value })} />
+                </div>
+                <div className="input-group">
                   <label style={{ fontWeight: 600 }}>Test Date</label>
                   <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
                 </div>
@@ -6503,6 +6553,10 @@ function AdminDashboardContent() {
                   <option value="">Select a Course...</option>
                   {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Total Marks</label>
+                <input type="number" required value={editingTest.totalMarks || '100'} onChange={e => setEditingTest({ ...editingTest, totalMarks: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
               </div>
               <div className="input-group">
                 <label style={{ fontWeight: 600 }}>Test Date</label>
@@ -7814,7 +7868,7 @@ function AdminDashboardContent() {
                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '1.5rem', border: '1px dashed var(--border)' }}>👤</div>
                    )}
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
-                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Upload from device (Auto-compresses to small size):</span>
+                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Upload from device:</span>
                      <input 
                        type="file" 
                        accept="image/*"
@@ -7883,18 +7937,23 @@ function AdminDashboardContent() {
                </div>
 
                <div className="input-group">
-                  <label>Phone Number</label>
-                  <input type="text" value={editingProfile.phone || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, phone: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
-                </div>
+                 <label>Phone Number</label>
+                 <input type="text" value={editingProfile.phone || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, phone: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
+               </div>
 
                <div className="input-group">
-                 <label>Email Address</label>
+                 <label>Email</label>
                  <input type="email" value={editingProfile.email || ''} onChange={e => setEditingProfile({...editingProfile, email: e.target.value})} placeholder="mail@example.com" />
                </div>
 
                <div className="input-group">
+                 <label>Aadhaar Number</label>
+                 <input type="text" value={editingProfile.aadhaarNumber || ''} onChange={e => setEditingProfile({...editingProfile, aadhaarNumber: e.target.value})} placeholder="12-digit Aadhaar" />
+               </div>
+
+               <div className="input-group">
                  <label>Join Date (System Record)</label>
-                 <input type="date" value={editingProfile.createdAt ? new Date(editingProfile.createdAt).toISOString().split('T')[0] : ''} onChange={e => setEditingProfile({...editingProfile, createdAt: e.target.value})} />
+                 <input type="date" value={editingProfile.createdAt ? (typeof editingProfile.createdAt === 'string' && editingProfile.createdAt.includes('T') ? editingProfile.createdAt.split('T')[0] : new Date(editingProfile.createdAt).toISOString().split('T')[0]) : ''} onChange={e => setEditingProfile({...editingProfile, createdAt: e.target.value})} />
                </div>
 
                {editingProfile.role === 'STUDENT' ? (
@@ -7966,14 +8025,8 @@ function AdminDashboardContent() {
                      <input type="number" value={editingProfile.scholarship || ''} onChange={e => setEditingProfile({...editingProfile, scholarship: parseFloat(e.target.value)})} placeholder="e.g. 500" />
                    </div>
                    <div className="input-group">
-                     <label>Aadhaar Number</label>
-                     <input type="text" value={editingProfile.aadhaarNumber || ''} onChange={e => setEditingProfile({...editingProfile, aadhaarNumber: e.target.value})} placeholder="12-digit Aadhaar" />
-                   </div>
-                   <div className="input-group">
                      <label>Parent Contact</label>
                      <input type="text" value={editingProfile.parentContact || ''} maxLength={10} onChange={e => setEditingProfile({...editingProfile, parentContact: e.target.value.replace(/\D/g, '')})} placeholder="e.g. 9876543210" />
-                   </div>
-                   <div className="input-group">
                    </div>
                    <div className="input-group">
                      <label>Batch Name</label>
@@ -10091,16 +10144,19 @@ function AdminDashboardContent() {
                 <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.2)', textAlign: 'center' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Pending Fee</div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ef4444', marginTop: '4px' }}>
-                    ₹{(
-                      fees.filter(f => f.studentId === selectedUserDetail.id && f.status === 'PENDING')
-                        .reduce((sum, f) => sum + (f.amount + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0)), 0) ||
-                      selectedUserDetail.studentProfile?.baseFee || 0
-                    ).toLocaleString('en-IN')}
+                    ₹{((() => {
+                      const studentPayments = selectedUserDetail.payments || fees.filter(f => f.studentId === selectedUserDetail.id);
+                      const pendingPayments = studentPayments.filter((f: any) => f.status === 'PENDING');
+                      if (pendingPayments.length > 0) {
+                        return pendingPayments.reduce((sum: number, f: any) => sum + Math.max(0, (f.amount + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0))), 0);
+                      }
+                      return 0;
+                    })()).toLocaleString('en-IN')}
                   </div>
                 </div>
 
                 <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.2)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Attendance</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Average Attendance</div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>
                     {selectedUserDetail.studentAttendance && selectedUserDetail.studentAttendance.length > 0
                       ? Math.round((selectedUserDetail.studentAttendance.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE').length / selectedUserDetail.studentAttendance.length) * 100) + '%'
@@ -10109,7 +10165,7 @@ function AdminDashboardContent() {
                 </div>
 
                 <div style={{ background: 'rgba(59, 130, 246, 0.08)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.2)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Avg Marks</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Average Marks</div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#3b82f6', marginTop: '4px' }}>
                     {selectedUserDetail.studentTestResults && selectedUserDetail.studentTestResults.length > 0
                       ? Math.round(selectedUserDetail.studentTestResults.reduce((acc: number, r: any) => acc + ((r.marks / (r.totalMarks || 100)) * 100), 0) / selectedUserDetail.studentTestResults.length) + '%'
@@ -10133,40 +10189,42 @@ function AdminDashboardContent() {
                   <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Registration No</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.registrationNo || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.registrationNo || 'N/A'}</div>
                     </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Join Date</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>
+                        {selectedUserDetail.createdAt ? new Date(selectedUserDetail.createdAt).toLocaleDateString('en-GB') : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Grade/Class</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.className || selectedUserDetail.studentProfile.grade || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.className || selectedUserDetail.studentProfile.grade || 'N/A'}</div>
                     </div>
-                  </div>
-
-                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>School</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.school || 'N/A'}</div>
-                    </div>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Board</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.board || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.school || 'N/A'}</div>
                     </div>
                   </div>
 
                   <div className="user-details-modal-grid-2col">
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Board</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.board || 'N/A'}</div>
+                    </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Base Fee (Monthly)</div>
                       <div style={{ fontWeight: 800, color: '#10b981' }}>₹{selectedUserDetail.studentProfile.baseFee || 0}</div>
                     </div>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
-                      <div style={{ fontWeight: 600 }}>{formatDobDisplay(selectedUserDetail.studentProfile.dob)}</div>
-                    </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Board</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.board || 'N/A'}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{formatDobDisplay(selectedUserDetail.studentProfile.dob)}</div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Scholarship Amount</div>
@@ -10174,46 +10232,48 @@ function AdminDashboardContent() {
                     </div>
                   </div>
 
-                  <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Personal Email</div>
-                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.email || 'N/A'}</div>
+                  <div className="user-details-modal-grid-2col">
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Email</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.email || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Aadhaar Number</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.aadhaarNumber || 'N/A'}</div>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Student Phone</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.phone || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.phone || 'N/A'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Parent Contact</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.parentContact || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.parentContact || 'N/A'}</div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Gender</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.gender || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.gender || 'N/A'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Religion</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.religion || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.religion || 'N/A'}</div>
                     </div>
                   </div>
 
-                  <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Father Name</div>
-                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.fatherName || 'N/A'}</div>
-                  </div>
-
-                  <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Aadhaar Number</div>
-                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.aadhaarNumber || 'N/A'}</div>
-                  </div>
-
-                  <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
-                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.studentProfile.address || 'N/A'}</div>
+                  <div className="user-details-modal-grid-2col">
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Father Name</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.fatherName || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.studentProfile.address || 'N/A'}</div>
+                    </div>
                   </div>
                 </>
               )}

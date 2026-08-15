@@ -129,12 +129,14 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 999999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  background-color: rgba(0, 0, 0, 0.65);
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   animation: fadeIn 0.2s ease-out forwards;
@@ -145,13 +147,14 @@
   width: 100%;
   max-width: 640px;
   max-height: 90vh;
+  margin: auto 0;
   display: flex;
   flex-direction: column;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  overflow-y: auto;
+  overflow: hidden;
   animation: scaleUp 0.2s ease-out forwards;
 }
 

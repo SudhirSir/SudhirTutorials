@@ -27,6 +27,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
       include: {
         studentProfile: true,
+        payments: true,
         attendance: {
           include: {
             batch: { select: { name: true } }
@@ -48,10 +49,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
+    const studentJoinDate = user.createdAt ? new Date(user.createdAt) : null;
+    const joinDateStart = studentJoinDate ? new Date(studentJoinDate.getFullYear(), studentJoinDate.getMonth(), studentJoinDate.getDate()).getTime() : 0;
+
+    const filteredTestResults = user.testResults.filter((tr: any) => {
+      if (!joinDateStart || !tr.test?.date) return true;
+      const testTime = new Date(tr.test.date).getTime();
+      return testTime >= joinDateStart;
+    });
+
     const studentData = {
       ...user,
       studentAttendance: user.attendance,
-      studentTestResults: user.testResults
+      studentTestResults: filteredTestResults
     };
 
     return NextResponse.json({ student: studentData });

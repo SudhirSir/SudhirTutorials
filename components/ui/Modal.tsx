@@ -1,6 +1,7 @@
 "use client";
 
-import React, { memo, useEffect } from "react";
+import React, { memo, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -21,6 +22,12 @@ export const Modal = memo(function Modal({
   maxWidth = "640px",
   className = ""
 }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -40,19 +47,43 @@ export const Modal = memo(function Modal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const modalContent = (
     <div
       className="modal-overlay"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      style={{ overflowY: "auto", WebkitOverflowScrolling: "touch" }}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1.5rem 1rem",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        backgroundColor: "rgba(0, 0, 0, 0.75)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)"
+      }}
     >
       <div
         className={`modal-container ${className}`}
-        style={{ maxWidth, maxHeight: "90vh", overflowY: "auto", display: "flex", flexDirection: "column" }}
+        style={{
+          maxWidth,
+          width: "100%",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: "20px",
+          overflow: "hidden"
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
@@ -75,6 +106,8 @@ export const Modal = memo(function Modal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 });
 
 export default Modal;

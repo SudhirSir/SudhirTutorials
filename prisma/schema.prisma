@@ -272,6 +272,7 @@ model Test {
   title       String
   subject     String?
   courseId    String
+  totalMarks  Float?       @default(100)
   course      Course       @relation(fields: [courseId], references: [id])
   date        DateTime
   time        String?

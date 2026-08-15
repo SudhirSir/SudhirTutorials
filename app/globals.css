@@ -277,16 +277,23 @@ input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
+input[type="date"],
 select,
 textarea {
   padding: 0.85rem 1.25rem;
   border-radius: 12px;
   background: var(--input-bg);
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--text) !important;
+  color-scheme: dark light;
   font-family: var(--font-inter, system-ui, sans-serif);
   font-size: 0.95rem;
   transition: all 0.2s;
+}
+
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5);
+  cursor: pointer;
 }
 
 input:focus,
@@ -1147,7 +1154,7 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   gap: 1.25rem;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .statement-summary-grid {
     grid-template-columns: 1fr !important;
   }
@@ -1156,13 +1163,26 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   }
   .monthly-fee-grid {
     grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
   }
   .student-ledger-main-card {
-    padding: 1rem !important;
-    margin-top: 1rem !important;
+    padding: 0.75rem !important;
+    margin-top: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .ledger-month-card {
+    padding: 0.85rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .modal-overlay-container {
-    padding: 0.5rem !important;
+    padding: 0.35rem !important;
+  }
+  .user-details-modal-card {
+    padding: 1.25rem 0.85rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -1717,22 +1737,63 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   color: #f1f5f9;
 }
 
+/* Responsive Hero Action Buttons */
+.btn-primary-hero {
+  padding: 0.85rem 1.85rem;
+  background: linear-gradient(135deg, var(--primary) 0%, #dc2626 100%);
+  border-radius: 9999px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+.btn-primary-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(239, 68, 68, 0.5);
+  color: #ffffff;
+}
+
+.btn-secondary-hero {
+  padding: 0.85rem 1.85rem;
+  background: var(--card-bg);
+  border-radius: 9999px;
+  color: var(--text-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-secondary-hero:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
 /* Mobile Responsiveness & Clean Site-Wide Scaled Font Sizes */
 .vrsa-hero-title {
-  font-size: clamp(1.85rem, 4.5vw, 3rem);
+  font-size: clamp(2rem, 5vw, 3.75rem);
   font-weight: 800;
   line-height: 1.12;
   color: var(--text-heading);
-  letter-spacing: -0.8px;
+  letter-spacing: -1px;
   margin: 0 0 1rem 0;
 }
 
 .vrsa-hero-subtitle {
-  max-width: 620px;
-  font-size: 0.95rem;
-  line-height: 1.55;
+  max-width: 650px;
+  font-size: 1rem;
+  line-height: 1.6;
   color: var(--text-muted);
-  margin: 0 auto 1.75rem;
+  margin: 0 auto 2rem;
   font-weight: 500;
 }
 
@@ -1762,9 +1823,13 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   }
   .campus-spotlight-section > div {
     grid-template-columns: 1fr !important;
-    gap: 2.5rem !important;
+    gap: 2rem !important;
   }
   .mobile-app-section .section-container {
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
+  }
+  .features-layout {
     grid-template-columns: 1fr !important;
     gap: 2.5rem !important;
   }
@@ -1845,9 +1910,10 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   .vrsa-hero-buttons {
     flex-direction: column !important;
     width: 100% !important;
+    gap: 0.75rem !important;
   }
 
-  .vrsa-btn-dark, .vrsa-btn-light {
+  .btn-primary-hero, .btn-secondary-hero {
     width: 100% !important;
     justify-content: center !important;
     box-sizing: border-box !important;

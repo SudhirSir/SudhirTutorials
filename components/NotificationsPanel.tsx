@@ -88,21 +88,26 @@ export function NotificationsPanel({
   const [composeTitle, setComposeTitle] = useState('');
   const [composeMsg, setComposeMsg] = useState('');
   const [selectedTargets, setSelectedTargets] = useState<string[]>(['STUDENT', 'TEACHER']);
+  const [availableBatches, setAvailableBatches] = useState<any[]>([]);
   const [composing, setComposing] = useState(false);
   const [composeSuccess, setComposeSuccess] = useState('');
+
+  useEffect(() => {
+    fetch('/api/admin/batches')
+      .then(r => r.json())
+      .then(data => {
+        if (data.batches) setAvailableBatches(data.batches);
+      })
+      .catch(console.error);
+  }, []);
 
   const targetOptions = [
     { id: 'TEACHER', label: '👨‍🏫 All Teachers' },
     { id: 'STUDENT', label: '🎓 All Students' },
-    { id: 'Class 6', label: '🏫 Class 6' },
-    { id: 'Class 7', label: '🏫 Class 7' },
-    { id: 'Class 8', label: '🏫 Class 8' },
-    { id: 'Class 9', label: '🏫 Class 9' },
-    { id: 'Class 10', label: '🏫 Class 10' },
-    { id: 'Class 11', label: '🏫 Class 11' },
-    { id: 'Class 12', label: '🏫 Class 12' },
-    { id: 'JEE', label: '⚡ JEE Batch' },
-    { id: 'NEET', label: '🩺 NEET Batch' },
+    ...availableBatches.map(b => ({
+      id: b.name,
+      label: `🏫 ${b.name}${b.className ? ` (${b.className})` : ''}`
+    }))
   ];
 
   const toggleTarget = (id: string) => {
@@ -317,7 +322,7 @@ export function NotificationsPanel({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                  Target Recipients (Select Multiple Options)
+                  Target Recipients (Dropdown Selection)
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button type="button" onClick={selectAllTargets} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Select All</button>
@@ -326,37 +331,76 @@ export function NotificationsPanel({
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.6rem', background: 'rgba(255,255,255,0.02)', padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                {targetOptions.map(opt => {
-                  const isChecked = selectedTargets.includes(opt.id);
-                  return (
-                    <label 
-                      key={opt.id} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.5rem', 
-                        padding: '6px 10px', 
-                        borderRadius: '8px', 
-                        background: isChecked ? 'rgba(59,130,246,0.12)' : 'transparent',
-                        border: isChecked ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
-                        cursor: 'pointer',
-                        fontSize: '0.82rem',
-                        fontWeight: isChecked ? 700 : 500,
-                        color: isChecked ? 'var(--text)' : 'var(--text-muted)',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <input 
-                        type="checkbox" 
-                        checked={isChecked} 
-                        onChange={() => toggleTarget(opt.id)}
-                        style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
-                      />
-                      <span>{opt.label}</span>
-                    </label>
-                  );
-                })}
+              {/* Recipient Dropdown Selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <select
+                  style={{
+                    width: '100%',
+                    padding: '0.85rem 1rem',
+                    borderRadius: '12px',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    if (!selectedTargets.includes(val)) {
+                      setSelectedTargets(prev => [...prev, val]);
+                    }
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">➕ Add Recipient Group (Select from list)...</option>
+                  {targetOptions.map(opt => (
+                    <option key={opt.id} value={opt.id} disabled={selectedTargets.includes(opt.id)}>
+                      {opt.label} {selectedTargets.includes(opt.id) ? '✓ (Selected)' : ''}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Selected Recipient Pills */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', minHeight: '38px', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', alignItems: 'center' }}>
+                  {selectedTargets.length === 0 ? (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '0.5rem' }}>No recipients selected. Please choose from dropdown above.</span>
+                  ) : (
+                    selectedTargets.map(targetId => {
+                      const opt = targetOptions.find(t => t.id === targetId);
+                      const label = opt ? opt.label : targetId;
+                      return (
+                        <span
+                          key={targetId}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '4px 12px',
+                            borderRadius: '100px',
+                            background: 'rgba(59,130,246,0.15)',
+                            border: '1px solid rgba(59,130,246,0.3)',
+                            color: 'var(--secondary)',
+                            fontSize: '0.8rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          {label}
+                          <button
+                            type="button"
+                            onClick={() => toggleTarget(targetId)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.9rem', cursor: 'pointer', padding: 0, marginLeft: '2px', display: 'flex', alignItems: 'center' }}
+                            title="Remove recipient"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
 

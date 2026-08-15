@@ -220,7 +220,7 @@ function TeacherDashboardContent() {
   const [isSavingMarks, setIsSavingMarks] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
   const [showCreateTestForm, setShowCreateTestForm] = useState(false);
-  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
+  const [newTest, setNewTest] = useState({ title: '', subject: '', courseId: '', totalMarks: '100', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
   const [editingTest, setEditingTest] = useState<any>(null);
 
   const handleEditTest = (test: any) => {
@@ -229,6 +229,7 @@ function TeacherDashboardContent() {
       title: test.title,
       subject: test.subject || '',
       courseId: test.courseId,
+      totalMarks: test.totalMarks || '100',
       date: new Date(test.date).toISOString().split('T')[0],
       time: test.time || '',
       syllabus: test.syllabus || '',
@@ -1184,7 +1185,7 @@ function TeacherDashboardContent() {
         body: JSON.stringify(newTest)
       });
       if (res.ok) {
-        setNewTest({ title: '', subject: '', courseId: '', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
+        setNewTest({ title: '', subject: '', courseId: '', totalMarks: '100', date: new Date().toISOString().split('T')[0], time: '', syllabus: '' });
         fetchTests();
         alert('Test created successfully!');
       } else alert('Failed to create test');
@@ -1200,11 +1201,12 @@ function TeacherDashboardContent() {
       if (res.ok) {
         const data = await res.json();
         const initialMarks: any = {};
+        const testMaxMarks = test.totalMarks?.toString() || '100';
         data.students.forEach((s: any) => {
           const existingResult = test.results?.find((r: any) => r.studentId === s.id);
           initialMarks[s.id] = {
             marks: existingResult?.marks?.toString() || '',
-            totalMarks: existingResult?.totalMarks?.toString() || '100',
+            totalMarks: existingResult?.totalMarks?.toString() || testMaxMarks,
             remarks: existingResult?.remarks || ''
           };
         });
@@ -2006,6 +2008,10 @@ function TeacherDashboardContent() {
                   </select>
                 </div>
                 <div className="input-group">
+                  <label style={{ fontWeight: 600 }}>Total Marks</label>
+                  <input type="number" required placeholder="e.g. 100" value={newTest.totalMarks || '100'} onChange={e => setNewTest({ ...newTest, totalMarks: e.target.value })} />
+                </div>
+                <div className="input-group">
                   <label>Test Date</label>
                   <input type="date" required value={newTest.date} onChange={e => setNewTest({ ...newTest, date: e.target.value })} />
                 </div>
@@ -2045,6 +2051,10 @@ function TeacherDashboardContent() {
                   <option value="">Select a Course...</option>
                   {uniqueCourses.map(c => c && <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div className="input-group">
+                <label style={{ fontWeight: 600 }}>Total Marks</label>
+                <input type="number" required value={editingTest.totalMarks || '100'} onChange={e => setEditingTest({ ...editingTest, totalMarks: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
               </div>
               <div className="input-group">
                 <label style={{ fontWeight: 600 }}>Test Date</label>
