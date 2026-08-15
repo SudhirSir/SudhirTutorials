@@ -2,15 +2,19 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-// NOTE: Do NOT call prisma.$connect() eagerly here.
-// Prisma manages connections lazily per-query. Calling $connect() at module
-// load time holds a PgBouncer session-mode slot open for the entire server
-// lifetime, rapidly exhausting the pool_size limit (EMAXCONNSESSION).
+function getTunedDatabaseUrl(): string | undefined {
+  const url = process.env.DATABASE_URL;
+  if (!url) return undefined;
+  if (url.includes('connection_limit=')) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}connection_limit=25&pool_timeout=30`;
+}
+
 export const prisma = globalForPrisma.prisma || new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: getTunedDatabaseUrl(),
     },
   },
 });
@@ -103,8 +107,8 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
  */
 export async function withDbRetry<T>(
   fn: () => Promise<T>,
-  retries: number = 4,
-  delayMs: number = 400,
+  retries: number = 5,
+  delayMs: number = 250,
   exponential: boolean = true
 ): Promise<T> {
   let attempt = 0;
@@ -114,16 +118,30 @@ export async function withDbRetry<T>(
       return await fn();
     } catch (error: any) {
       attempt++;
+      const isConnectionError = 
+        error?.code === 'P1001' || 
+        error?.code === 'P1002' || 
+        error?.code === 'P1017' ||
+        error?.code === 'P2024' ||
+        (error?.message && (
+          error.message.includes("Can't reach database server") ||
+          error.message.includes('connection pool') ||
+          error.message.includes('ETIMEDOUT') ||
+          error.message.includes('ECONNRESET') ||
+          error.message.includes('Connection terminated')
+        ));
+
       if (attempt >= retries) {
         throw error;
       }
+
       console.warn(
-        `[PRISMA DB RETRY] Attempt ${attempt}/${retries} failed. Retrying in ${currentDelay}ms. Error:`,
+        `[PRISMA DB RETRY] Transient DB error (Attempt ${attempt}/${retries}). Retrying in ${currentDelay}ms:`,
         error.message || error
       );
       await new Promise((resolve) => setTimeout(resolve, currentDelay));
       if (exponential) {
-        currentDelay = Math.min(currentDelay * 2, 4000); // Cap backoff at 4 seconds
+        currentDelay = Math.min(currentDelay * 1.5, 2000);
       }
     }
   }

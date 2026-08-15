@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
     // Find who already has fees for this month
     const existingFees = await withDbRetry(() => prisma.payment.findMany({
-      where: { billingMonth, title: 'Monthly Fee' },
+      where: { billingMonth },
       select: { studentId: true }
     }));
     const existingStudentIds = new Set(existingFees.map(f => f.studentId));
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     }));
 
     const existingFees = await withDbRetry(() => prisma.payment.findMany({
-      where: { billingMonth, title: 'Monthly Fee' },
+      where: { billingMonth },
       select: { studentId: true }
     }));
     const existingStudentIds = new Set(existingFees.map(f => f.studentId));
@@ -130,7 +130,12 @@ export async function POST(request: Request) {
        );
     }
 
-    return NextResponse.json({ success: true, count: assignedCount });
+    return NextResponse.json({ 
+      success: true, 
+      count: assignedCount, 
+      skippedCount: activeStudents.length - assignedCount, 
+      totalProcessed: activeStudents.length 
+    });
 
   } catch (error) {
     console.error("Auto Assign POST Error:", error);

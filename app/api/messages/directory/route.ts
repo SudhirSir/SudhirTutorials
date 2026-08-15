@@ -33,7 +33,19 @@ export async function GET(req: Request) {
         name: true,
         username: true,
         role: true,
-        photoUrl: true
+        photoUrl: true,
+        studentProfile: {
+          select: {
+            className: true,
+            batch: true,
+            grade: true,
+          }
+        },
+        teacherProfile: {
+          select: {
+            subject: true
+          }
+        }
       },
       orderBy: { name: 'asc' },
       take: 150,
@@ -44,7 +56,11 @@ export async function GET(req: Request) {
       name: u.name,
       username: u.username,
       role: u.role,
-      photoUrl: u.photoUrl || null
+      photoUrl: u.photoUrl || null,
+      className: u.studentProfile?.className || u.studentProfile?.grade || null,
+      batch: u.studentProfile?.batch || null,
+      grade: u.studentProfile?.grade || null,
+      subject: u.teacherProfile?.subject || null
     }));
 
     return NextResponse.json({ users: mappedUsers });

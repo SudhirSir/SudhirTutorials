@@ -178,9 +178,9 @@ export async function POST(req: Request) {
       
       let count = 0;
       for (const s of students) {
-        // Prevent duplicate for same month and title
+        // Prevent duplicate for same month
         const existing = await withDbRetry(() => prisma.payment.findFirst({
-          where: { studentId: s.id, billingMonth, title: title || 'Monthly Fee' }
+          where: { studentId: s.id, billingMonth }
         }));
         if (existing) continue;
 
@@ -234,11 +234,11 @@ export async function POST(req: Request) {
       }));
       if (!student) return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
 
-      // Prevent duplicate
+      // Prevent duplicate for same month
       const existing = await withDbRetry(() => prisma.payment.findFirst({
-        where: { studentId: student.id, billingMonth, title: title || 'Monthly Fee' }
+        where: { studentId: student.id, billingMonth }
       }));
-      if (existing) return NextResponse.json({ error: 'Fee already assigned for this month' }, { status: 400 });
+      if (existing) return NextResponse.json({ error: `Fee billing has already been generated for this student for ${billingMonth}` }, { status: 400 });
 
       const sScholarship = student.studentProfile?.scholarship || 0;
       const sBaseFee = student.studentProfile?.baseFee || 0;
@@ -316,23 +316,7 @@ export async function PATCH(req: Request) {
     }));
     if (!currentFee) return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
 
-    // Enforce chronological/serial check: check if there are earlier pending fees
-    if (status === 'PAID' || status === 'VERIFIED' || status === 'PAID_ONLINE') {
-      const previousPending = await withDbRetry(() => prisma.payment.findFirst({
-        where: {
-          studentId: currentFee.studentId,
-          status: 'PENDING',
-          dueDate: { lt: currentFee.dueDate },
-          id: { not: currentFee.id }
-        }
-      }));
 
-      if (previousPending) {
-        return NextResponse.json({
-          error: `Cannot collect/verify payment because a previous month's fee (${previousPending.billingMonth}) is still pending. Fees must be collected strictly in chronological order.`
-        }, { status: 400 });
-      }
-    }
 
     const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
     let paymentDateForFine = new Date();

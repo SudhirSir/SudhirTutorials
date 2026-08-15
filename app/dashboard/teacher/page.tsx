@@ -2071,79 +2071,104 @@ function TeacherDashboardContent() {
 
       {/* Marks Entry Modal */}
       {selectedTest && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, padding: '1rem', overflowY: 'auto' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '700px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{selectedTest.isPublished ? 'View Marks' : 'Enter Marks'}: {selectedTest.title}</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Course: {selectedTest.course?.name}</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '850px', padding: '2rem', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 800 }}>{selectedTest.isPublished ? 'View Marks' : 'Enter Marks'}: {selectedTest.title}</h2>
+                <p style={{ color: 'var(--text-muted)', margin: '4px 0 0', fontSize: '0.8rem' }}>Course: {selectedTest.course?.name}</p>
+              </div>
+              {!selectedTest.isPublished && (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: any = { ...testMarks };
+                      students.forEach(s => {
+                        const cur = updated[s.id] || { marks: '', totalMarks: '100', remarks: '' };
+                        updated[s.id] = { ...cur, marks: cur.totalMarks || '100', remarks: 'Full Marks' };
+                      });
+                      setTestMarks(updated);
+                    }}
+                    style={{ padding: '6px 12px', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                  >
+                    ⚡ Set All Full Marks
+                  </button>
+                </div>
+              )}
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-              {students.map(s => {
-                const data = testMarks[s.id] || { marks: '', totalMarks: '100', remarks: '' };
-                return (
-                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>
-                        <span 
-                          onClick={() => setActiveProfileUserId(s.id)} 
-                          style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', transition: 'color 0.2s' }}
-                          onMouseEnter={e => e.currentTarget.style.color = '#10b981'}
-                          onMouseLeave={e => e.currentTarget.style.color = 'inherit'}
-                          title="Click to view profile"
-                        >
-                          {s.name}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</div>
-                    </div>
-                    <div className="input-group" style={{ margin: 0 }}>
-                      <input 
-                        type="number" 
-                        placeholder="Marks" 
-                        value={data.marks} 
-                        disabled={selectedTest.isPublished}
-                        onChange={e => setTestMarks({
-                          ...testMarks,
-                          [s.id]: { ...data, marks: e.target.value }
-                        })}
-                        style={{ padding: '6px 12px' }}
-                      />
-                    </div>
-                    <div className="input-group" style={{ margin: 0 }}>
-                      <input 
-                        type="number" 
-                        placeholder="Total" 
-                        value={data.totalMarks} 
-                        disabled={selectedTest.isPublished}
-                        onChange={e => setTestMarks({
-                          ...testMarks,
-                          [s.id]: { ...data, totalMarks: e.target.value }
-                        })}
-                        style={{ padding: '6px 12px' }}
-                      />
-                    </div>
-                    <div className="input-group" style={{ margin: 0 }}>
-                      <input 
-                        type="text" 
-                        placeholder="Remarks" 
-                        value={data.remarks} 
-                        disabled={selectedTest.isPublished}
-                        onChange={e => setTestMarks({
-                          ...testMarks,
-                          [s.id]: { ...data, remarks: e.target.value }
-                        })}
-                        style={{ padding: '6px 12px' }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Compact Table */}
+            <div style={{ flex: 1, overflowY: 'auto', maxHeight: '420px', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '1.25rem', background: 'rgba(0,0,0,0.1)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                <thead style={{ position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10, borderBottom: '1px solid var(--border)' }}>
+                  <tr>
+                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700 }}>Student Name</th>
+                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700, width: '130px' }}>Marks Obtained</th>
+                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700, width: '130px' }}>Total Marks</th>
+                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700 }}>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.length === 0 ? (
+                    <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No students enrolled in this class.</td></tr>
+                  ) : (
+                    students.map(s => {
+                      const data = testMarks[s.id] || { marks: '', totalMarks: '100', remarks: '' };
+                      return (
+                        <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '8px 14px', fontWeight: 600 }}>
+                            <div 
+                              onClick={() => setActiveProfileUserId(s.id)} 
+                              style={{ color: 'var(--text)', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
+                            >
+                              {s.name}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.username}</div>
+                          </td>
+                          <td style={{ padding: '6px 14px' }}>
+                            <input
+                              type="number"
+                              placeholder="Marks"
+                              value={data.marks}
+                              disabled={selectedTest.isPublished}
+                              onChange={e => setTestMarks({ ...testMarks, [s.id]: { ...data, marks: e.target.value } })}
+                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontWeight: 700 }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px 14px' }}>
+                            <input
+                              type="number"
+                              placeholder="Total"
+                              value={data.totalMarks}
+                              disabled={selectedTest.isPublished}
+                              onChange={e => setTestMarks({ ...testMarks, [s.id]: { ...data, totalMarks: e.target.value } })}
+                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontWeight: 600 }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px 14px' }}>
+                            <input
+                              type="text"
+                              placeholder="Remarks"
+                              value={data.remarks}
+                              disabled={selectedTest.isPublished}
+                              onChange={e => setTestMarks({ ...testMarks, [s.id]: { ...data, remarks: e.target.value } })}
+                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)' }}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
 
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedTest(null)}>{selectedTest.isPublished ? 'Close' : 'Cancel'}</button>
               {!selectedTest.isPublished && (
                 <button className="btn-primary" style={{ flex: 1, background: '#10b981', boxShadow: 'none' }} onClick={handleSaveMarks} disabled={isSavingMarks}>
-                  {isSavingMarks ? 'Saving...' : 'Save Marks'}
+                  {isSavingMarks ? 'Saving...' : '💾 Save Marks'}
                 </button>
               )}
             </div>

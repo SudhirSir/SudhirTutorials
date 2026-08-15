@@ -582,8 +582,8 @@ export default function Home() {
             background: 'var(--card-bg)'
           }}>
             <Image 
-              src="/institute_classroom.jpg" 
-              alt="Sudhir Tutorials Real Classroom with Students and Teacher" 
+              src="/branded_students_photo.jpg" 
+              alt="Sudhir Tutorials Enrolled Students Studying in Official Branded Uniform T-Shirts" 
               width={800} 
               height={500} 
               style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }}

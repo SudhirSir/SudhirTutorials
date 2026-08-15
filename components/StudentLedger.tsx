@@ -34,6 +34,7 @@ export function StudentLedger({
   const [loading, setLoading] = useState(true);
   const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>('ALL');
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(true);
   const [downloadingStatement, setDownloadingStatement] = useState(false);
 
@@ -170,17 +171,8 @@ export function StudentLedger({
   }, [fees]);
 
   const isBlockedByPrevious = useMemo(() => {
-    return (record: any) => {
-      if (!record.dueDate) return false;
-      const currentDueTime = new Date(record.dueDate).getTime();
-      return fees.some(f => 
-        f.status === 'PENDING' && 
-        f.id !== record.id && 
-        f.dueDate && 
-        new Date(f.dueDate).getTime() < currentDueTime
-      );
-    };
-  }, [fees]);
+    return (_record: any) => false;
+  }, []);
 
   const handlePrintStatement = async () => {
     setDownloadingStatement(true);
@@ -538,6 +530,18 @@ export function StudentLedger({
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isAdmin && !studentId && (
+            <select
+              value={selectedClassFilter}
+              onChange={e => setSelectedClassFilter(e.target.value)}
+              style={{ padding: '0.5rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--primary)', color: 'var(--text)', fontWeight: 700, fontSize: '0.85rem' }}
+            >
+              <option value="ALL">All Classes / Grades</option>
+              {['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'JEE Batch', 'NEET Batch'].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
           {viewType === 'month' && (
             <select
               value={selectedYear}
@@ -743,29 +747,22 @@ export function StudentLedger({
                                 </>
                               )}
                               
-                              {!isAdmin && ['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (() => {
-                                const blocked = isBlockedByPrevious(record);
-                                return (
-                                  <button type="button" 
-                                    onClick={() => !blocked && onPayOnline(record)}
-                                    disabled={blocked}
-                                    className={blocked ? "" : "btn-primary"} 
-                                    style={{ 
-                                      padding: '6px 12px', 
-                                      fontSize: '0.75rem', 
-                                      fontWeight: 700,
-                                      cursor: blocked ? 'not-allowed' : 'pointer',
-                                      background: blocked ? 'rgba(255,255,255,0.05)' : undefined,
-                                      color: blocked ? 'var(--text-muted)' : undefined,
-                                      border: blocked ? '1px solid var(--border)' : undefined,
-                                      borderRadius: '8px'
-                                    }}
-                                    title={blocked ? "You must pay previous months' pending fees first." : "Pay this invoice"}
-                                  >
-                                    {blocked ? 'Blocked' : 'Pay'}
-                                  </button>
-                                );
-                              })()}
+                              {!isAdmin && ['PENDING', 'VERIFIED'].includes(status) && (record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0) > 0) && onPayOnline && (
+                                 <button type="button" 
+                                   onClick={() => onPayOnline(record)}
+                                   className="btn-primary" 
+                                   style={{ 
+                                     padding: '6px 12px', 
+                                     fontSize: '0.75rem', 
+                                     fontWeight: 700,
+                                     cursor: 'pointer',
+                                     borderRadius: '8px'
+                                   }}
+                                   title="Pay this invoice"
+                                 >
+                                   Pay
+                                 </button>
+                               )}
                               {isPaid && onViewReceipt && (
                                 <button type="button" onClick={() => onViewReceipt(record.id)}
                                   style={{ padding: '6px 12px', background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s' }}>
@@ -774,11 +771,6 @@ export function StudentLedger({
                               )}
                             </div>
                           </div>
-                          {isBlockedByPrevious(record) && (
-                            <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, marginTop: '0.5rem', textAlign: 'right' }}>
-                              ⚠️ Pay previous pending fees first
-                            </div>
-                          )}
                           {record.paidAt && (
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'right' }}>
                               Paid {new Date(record.paidAt).toLocaleDateString('en-GB')}

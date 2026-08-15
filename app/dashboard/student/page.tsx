@@ -1115,22 +1115,24 @@ function StudentDashboardContent() {
                   ? '1px solid rgba(239, 68, 68, 0.5)'
                   : undefined
               }}>
-                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>Fee Status</h3>
+                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>Total Outstanding Balance</h3>
                  
                  {(dashboard as any)?.feeHighlight ? (
                    <>
-                     <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: ((dashboard as any).feeHighlight.isOverdue || (dashboard as any).feeHighlight.status === 'PENDING') ? '#ef4444' : '#fff' }}>
-                       ₹{((dashboard as any).feeHighlight.totalAmount ?? (dashboard as any).feeHighlight.amount).toFixed(0)}
+                     <div style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.4rem', color: ((dashboard as any).feeHighlight.isOverdue || (dashboard as any).feeHighlight.status === 'PENDING') ? '#ef4444' : '#fff' }}>
+                       ₹{((dashboard as any).feeHighlight.totalAmount ?? (dashboard as any).feeHighlight.amount).toLocaleString('en-IN')}
                      </div>
-                     <p style={{ color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'var(--text)' : 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                       {(dashboard as any).feeHighlight.status === 'PENDING' ? `Due by ${formatDateDisplay((dashboard as any).feeHighlight.dueDate)}` : `Status: ${(dashboard as any).feeHighlight.status}`}
+                     <p style={{ color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'var(--text)' : 'rgba(255,255,255,0.85)', fontSize: '0.85rem', marginBottom: '1.25rem', fontWeight: 600 }}>
+                       {(dashboard as any).feeHighlight.pendingMonthsCount > 1 
+                         ? `Total pending across ${(dashboard as any).feeHighlight.pendingMonthsCount} billing months`
+                         : `Due by ${formatDateDisplay((dashboard as any).feeHighlight.dueDate)}`}
                      </p>
                      <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : 'rgba(255,255,255,0.15)', color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '#fff', border: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
                         handleTabChange('fees');
                         if ((dashboard as any)?.feeHighlight) {
                           handlePayOnline((dashboard as any).feeHighlight, 'month');
                         }
-                      }}>Pay Online</button>
+                      }}>Pay Outstanding Fees →</button>
                    </>
                  ) : (
                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>No pending fees. You are all caught up!</p>

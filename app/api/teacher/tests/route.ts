@@ -106,6 +106,45 @@ export async function POST(req: Request) {
       }
     }));
 
+    // Notify enrolled students about the newly created/assigned test
+    try {
+      let targetStudents: { id: string }[] = [];
+      if (courseId) {
+        targetStudents = await withDbRetry(() => prisma.user.findMany({
+          where: {
+            role: 'STUDENT',
+            isActive: true,
+            studentBatches: { some: { courseId: courseId } }
+          },
+          select: { id: true }
+        }));
+      }
+      
+      if (targetStudents.length === 0) {
+        targetStudents = await withDbRetry(() => prisma.user.findMany({
+          where: { role: 'STUDENT', isActive: true },
+          select: { id: true }
+        }));
+      }
+
+      if (targetStudents.length > 0) {
+        const formattedDate = new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const notifMsg = `A new test "${title}" (${subject}) is scheduled for ${formattedDate} at ${time}. Syllabus: ${syllabus || 'As discussed in class'}. Please prepare accordingly!`;
+        
+        await withDbRetry(() => prisma.notification.createMany({
+          data: targetStudents.map(s => ({
+            userId: s.id,
+            senderId: session.user.id,
+            title: `📝 New Test/Exam Scheduled: ${title}`,
+            message: notifMsg,
+            type: 'TEST'
+          }))
+        }));
+      }
+    } catch (notifErr) {
+      console.error("Failed to auto-notify students of new test:", notifErr);
+    }
+
     return NextResponse.json({ test, success: true });
   } catch (error) {
     console.error('Error creating test:', error);

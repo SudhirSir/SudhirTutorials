@@ -48,14 +48,15 @@ export const Modal = memo(function Modal({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      style={{ overflowY: "auto", WebkitOverflowScrolling: "touch" }}
     >
       <div
         className={`modal-container ${className}`}
-        style={{ maxWidth }}
+        style={{ maxWidth, maxHeight: "90vh", overflowY: "auto", display: "flex", flexDirection: "column" }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="modal-header">
+          <div className="modal-header" style={{ flexShrink: 0, position: "sticky", top: 0, zIndex: 10, background: "var(--surface-light, #1e293b)" }}>
             <h3 className="modal-title">{title}</h3>
             <button
               type="button"
@@ -68,9 +69,9 @@ export const Modal = memo(function Modal({
           </div>
         )}
 
-        <div className="modal-body">{children}</div>
+        <div className="modal-body" style={{ overflowY: "auto", flex: 1, padding: "1.5rem" }}>{children}</div>
 
-        {footer && <div className="modal-footer">{footer}</div>}
+        {footer && <div className="modal-footer" style={{ flexShrink: 0 }}>{footer}</div>}
       </div>
     </div>
   );

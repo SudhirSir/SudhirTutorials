@@ -64,8 +64,9 @@ const sendSchema = z.object({
   title: z.string().min(1).max(100),
   message: z.string().min(1).max(500),
   type: z.string().default('SYSTEM'),
-  targetRole: z.string().optional(), // 'STUDENT', 'TEACHER', or 'ALL'
-  targetUserId: z.string().optional(), // single user, if provided
+  targetRole: z.string().optional(),
+  targetSelections: z.array(z.string()).optional(),
+  targetUserId: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -73,7 +74,6 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions) as any;
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Only admins and teachers can send notifications
     if (!['ADMIN', 'TEACHER'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -84,26 +84,61 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
     }
 
-    const { title, message, type, targetRole, targetUserId } = validation.data;
-
-    let targetIds: string[] = [];
+    const { title, message, type, targetRole, targetSelections, targetUserId } = validation.data;
+    const targetSet = new Set<string>();
 
     if (targetUserId) {
-      targetIds = [targetUserId];
+      targetSet.add(targetUserId);
+    } else if (targetSelections && targetSelections.length > 0) {
+      if (targetSelections.includes('TEACHER')) {
+        const teachers = await withDbRetry(() => prisma.user.findMany({
+          where: { role: 'TEACHER' },
+          select: { id: true }
+        }));
+        teachers.forEach((t: any) => targetSet.add(t.id));
+      }
+
+      if (targetSelections.includes('STUDENT')) {
+        const students = await withDbRetry(() => prisma.user.findMany({
+          where: { role: 'STUDENT', isActive: true },
+          select: { id: true }
+        }));
+        students.forEach((s: any) => targetSet.add(s.id));
+      }
+
+      const specificClasses = targetSelections.filter(s => s !== 'TEACHER' && s !== 'STUDENT');
+      if (specificClasses.length > 0) {
+        const classStudents = await withDbRetry(() => prisma.user.findMany({
+          where: {
+            role: 'STUDENT',
+            isActive: true,
+            studentProfile: {
+              OR: [
+                { className: { in: specificClasses } },
+                { grade: { in: specificClasses } },
+                { batch: { in: specificClasses } }
+              ]
+            }
+          },
+          select: { id: true }
+        }));
+        classStudents.forEach((cs: any) => targetSet.add(cs.id));
+      }
     } else if (targetRole && targetRole !== 'ALL') {
       const users = await withDbRetry(() => prisma.user.findMany({
         where: { role: targetRole },
         select: { id: true },
       }));
-      targetIds = users.map((u: any) => u.id);
+      users.forEach((u: any) => targetSet.add(u.id));
     } else {
-      // Broadcast to all students and teachers (not admins)
       const users = await withDbRetry(() => prisma.user.findMany({
         where: { role: { in: ['STUDENT', 'TEACHER'] } },
         select: { id: true },
       }));
-      targetIds = users.map((u: any) => u.id);
+      users.forEach((u: any) => targetSet.add(u.id));
     }
+
+    const targetIds = Array.from(targetSet);
 
     if (targetIds.length === 0) {
       return NextResponse.json({ error: 'No target users found' }, { status: 400 });

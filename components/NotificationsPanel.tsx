@@ -87,9 +87,37 @@ export function NotificationsPanel({
   const [showCompose, setShowCompose] = useState(false);
   const [composeTitle, setComposeTitle] = useState('');
   const [composeMsg, setComposeMsg] = useState('');
-  const [composeRole, setComposeRole] = useState('ALL');
+  const [selectedTargets, setSelectedTargets] = useState<string[]>(['STUDENT', 'TEACHER']);
   const [composing, setComposing] = useState(false);
   const [composeSuccess, setComposeSuccess] = useState('');
+
+  const targetOptions = [
+    { id: 'TEACHER', label: '👨‍🏫 All Teachers' },
+    { id: 'STUDENT', label: '🎓 All Students' },
+    { id: 'Class 6', label: '🏫 Class 6' },
+    { id: 'Class 7', label: '🏫 Class 7' },
+    { id: 'Class 8', label: '🏫 Class 8' },
+    { id: 'Class 9', label: '🏫 Class 9' },
+    { id: 'Class 10', label: '🏫 Class 10' },
+    { id: 'Class 11', label: '🏫 Class 11' },
+    { id: 'Class 12', label: '🏫 Class 12' },
+    { id: 'JEE', label: '⚡ JEE Batch' },
+    { id: 'NEET', label: '🩺 NEET Batch' },
+  ];
+
+  const toggleTarget = (id: string) => {
+    setSelectedTargets(prev => 
+      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllTargets = () => {
+    setSelectedTargets(targetOptions.map(t => t.id));
+  };
+
+  const clearAllTargets = () => {
+    setSelectedTargets([]);
+  };
 
   const role = (session?.user as any)?.role as string;
 
@@ -213,12 +241,21 @@ export function NotificationsPanel({
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedTargets.length === 0) {
+      alert("Please select at least one recipient category or class.");
+      return;
+    }
     setComposing(true);
     try {
       const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: composeTitle, message: composeMsg, type: 'SYSTEM', targetRole: composeRole }),
+        body: JSON.stringify({ 
+          title: composeTitle, 
+          message: composeMsg, 
+          type: 'SYSTEM', 
+          targetSelections: selectedTargets 
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -226,6 +263,8 @@ export function NotificationsPanel({
         setComposeTitle('');
         setComposeMsg('');
         setTimeout(() => { setComposeSuccess(''); setShowCompose(false); }, 3000);
+      } else {
+        alert(data.error || 'Failed to send notification');
       }
     } catch (e) { console.error(e); }
     finally { setComposing(false); }
@@ -266,36 +305,72 @@ export function NotificationsPanel({
               {composeSuccess}
             </Badge>
           )}
-          <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <Input
-                label="Title"
-                required
-                placeholder="e.g. Fee Reminder"
-                value={composeTitle}
-                onChange={e => setComposeTitle(e.target.value)}
-              />
-              <Select
-                label="Send To"
-                value={composeRole}
-                onChange={e => setComposeRole(e.target.value)}
-                options={[
-                  { value: 'ALL', label: 'All Students & Teachers' },
-                  { value: 'STUDENT', label: 'All Students' },
-                  { value: 'TEACHER', label: 'All Teachers' }
-                ]}
-              />
+          <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <Input
+              label="Notification Title"
+              required
+              placeholder="e.g. Fee Reminder / Exam Schedule"
+              value={composeTitle}
+              onChange={e => setComposeTitle(e.target.value)}
+            />
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Target Recipients (Select Multiple Options)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button type="button" onClick={selectAllTargets} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Select All</button>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>|</span>
+                  <button type="button" onClick={clearAllTargets} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Clear All</button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.6rem', background: 'rgba(255,255,255,0.02)', padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                {targetOptions.map(opt => {
+                  const isChecked = selectedTargets.includes(opt.id);
+                  return (
+                    <label 
+                      key={opt.id} 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem', 
+                        padding: '6px 10px', 
+                        borderRadius: '8px', 
+                        background: isChecked ? 'rgba(59,130,246,0.12)' : 'transparent',
+                        border: isChecked ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        fontWeight: isChecked ? 700 : 500,
+                        color: isChecked ? 'var(--text)' : 'var(--text-muted)',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked} 
+                        onChange={() => toggleTarget(opt.id)}
+                        style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
+
             <Textarea
-              label="Message"
+              label="Message Content"
               required
               placeholder="Write your notification message here..."
               value={composeMsg}
               onChange={e => setComposeMsg(e.target.value)}
               rows={3}
             />
-            <Button type="submit" isLoading={composing} variant="primary" style={{ alignSelf: 'flex-end' }}>
-              Send Notification
+            
+            <Button type="submit" isLoading={composing} variant="primary" style={{ alignSelf: 'flex-end', padding: '0.75rem 1.5rem' }}>
+              🚀 Send Notification ({selectedTargets.length} selected)
             </Button>
           </form>
         </Card>

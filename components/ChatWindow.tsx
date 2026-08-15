@@ -33,6 +33,10 @@ interface ChatUser {
   role: string;
   photoUrl?: string | null;
   isSuspended?: boolean;
+  className?: string | null;
+  batch?: string | null;
+  grade?: string | null;
+  subject?: string | null;
 }
 
 interface ChatMessage {
@@ -97,6 +101,13 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [preloadedUsers, setPreloadedUsers] = useState<ChatUser[]>([]);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedUserProfileDetails, setSelectedUserProfileDetails] = useState<{
+    className?: string;
+    batch?: string;
+    grade?: string;
+    subject?: string;
+    rollNumber?: string;
+  } | null>(null);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -635,6 +646,22 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       fetchGroupDetails(selectedUser.id);
       setShowAddMembersPanel(false);
       setSelectedAddUsers([]);
+    } else if (showProfileModal && selectedUser && selectedUser.role !== 'GROUP') {
+      setSelectedUserProfileDetails(null);
+      fetch(`/api/user/profile?userId=${selectedUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.profile) {
+            setSelectedUserProfileDetails({
+              className: data.profile.className || data.profile.grade || '',
+              grade: data.profile.grade || '',
+              batch: data.profile.batch || '',
+              subject: data.profile.subject || '',
+              rollNumber: data.profile.rollNumber || ''
+            });
+          }
+        })
+        .catch(() => setSelectedUserProfileDetails(null));
     }
   }, [showProfileModal, selectedUser, fetchGroupDetails]);
 
@@ -977,6 +1004,43 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     }
   }, [sortedContacts, selectedUser, initialSelectedUserId, initialLoading]);
 
+  // ── Helper to reliably open base64 and remote file attachments ───────────
+  const downloadOrOpenFile = useCallback((mediaUrl: string, fileName: string) => {
+    try {
+      if (mediaUrl.startsWith('data:')) {
+        const arr = mediaUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName || 'attachment';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } else {
+        const a = document.createElement('a');
+        a.href = mediaUrl;
+        a.download = fileName || 'attachment';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (e) {
+      console.error("Error opening attachment:", e);
+      window.open(mediaUrl, '_blank');
+    }
+  }, []);
+
   // ── Render message content (media or text) ────────────────────────────────
   const renderMessageContent = useCallback((content: string) => {
     if (content.startsWith('{') && content.endsWith('}')) {
@@ -985,38 +1049,42 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         if (media.type === 'media') {
           const isImg = media.fileType?.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(media.fileName);
           if (isImg) return (
-            <div style={{ margin: '4px 0', cursor: 'pointer' }} onClick={() => setLightboxUrl(media.mediaUrl)}>
+            <div style={{ margin: '4px 0', cursor: 'pointer', maxWidth: '280px' }} onClick={() => setLightboxUrl(media.mediaUrl)}>
               <img src={media.mediaUrl} alt={media.fileName}
                 style={{ width: '100%', borderRadius: 12, maxHeight: 220, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
-              <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: 4, textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', wordBreak: 'break-all' }}>
                 🖼️ {media.fileName}
               </div>
             </div>
           );
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: 10, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', margin: '4px 0', minWidth: 220 }}>
-              <div style={{ fontSize: '1.5rem', flexShrink: 0 }}>📄</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{media.fileName}</div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{media.fileSize ? `${(media.fileSize / 1024).toFixed(1)} KB` : ''}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.85rem', borderRadius: 12, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', margin: '4px 0', maxWidth: '290px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: '1.6rem', flexShrink: 0 }}>📄</div>
+              <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', wordBreak: 'break-all', color: '#fff' }} title={media.fileName}>
+                  {media.fileName}
+                </div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.65, marginTop: '2px' }}>
+                  {media.fileSize ? `${(media.fileSize / 1024).toFixed(1)} KB` : 'Document'}
+                </div>
               </div>
-              <a href={media.mediaUrl} download={media.fileName} target="_blank" rel="noreferrer"
-                style={{ padding: 6, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', flexShrink: 0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              </a>
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); downloadOrOpenFile(media.mediaUrl, media.fileName); }}
+                style={{ padding: '6px 10px', borderRadius: '8px', background: 'var(--primary)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '0.75rem', fontWeight: 700 }}
+                title="Download / View File"
+              >
+                ⬇️ Open
+              </button>
             </div>
           );
         }
       } catch {}
     }
     if (/^(https?:\/\/[^\s]+)$/i.test(content))
-      return <a href={content} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>{content}</a>;
-    return <span>{content}</span>;
-  }, []);
+      return <a href={content} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline', wordBreak: 'break-all' }}>{content}</a>;
+    return <span style={{ wordBreak: 'break-word' }}>{content}</span>;
+  }, [downloadOrOpenFile]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -1746,10 +1814,18 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
               </div>
             ) : (
               <div style={{ background: 'var(--card-bg-alt)', borderRadius: 12, padding: '0.9rem 1.1rem', textAlign: 'left', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', border: '1px solid var(--border)' }}>
-                {[['Username', selectedUser.username || 'N/A'], ['Status', selectedUser.isSuspended ? 'Inactive' : 'Active']].map(([label, val]) => (
+                {[
+                  ['Username', selectedUser.username || 'N/A'],
+                  ['Role', selectedUser.role || 'N/A'],
+                  ['Academic Class / Grade', selectedUserProfileDetails?.className || selectedUserProfileDetails?.grade || selectedUser.className || selectedUser.grade || 'Not Specified'],
+                  ['Assigned Batch', selectedUserProfileDetails?.batch || selectedUser.batch || 'Not Assigned'],
+                  ...(selectedUser.role === 'TEACHER' ? [['Teaching Subject', selectedUserProfileDetails?.subject || selectedUser.subject || 'Faculty Member']] : []),
+                  ...(selectedUser.role === 'STUDENT' && selectedUserProfileDetails?.rollNumber ? [['Roll Number', selectedUserProfileDetails.rollNumber]] : []),
+                  ['Account Status', selectedUser.isSuspended ? 'Inactive' : 'Active']
+                ].map(([label, val]) => (
                   <div key={label}>
                     <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
-                    <span style={{ fontSize: '0.92rem', color: label === 'Status' ? (val === 'Active' ? '#10b981' : '#ef4444') : 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{val}</span>
+                    <span style={{ fontSize: '0.92rem', color: label === 'Account Status' ? (val === 'Active' ? '#10b981' : '#ef4444') : 'var(--text)', fontWeight: 600, wordBreak: 'break-all' }}>{val}</span>
                   </div>
                 ))}
               </div>

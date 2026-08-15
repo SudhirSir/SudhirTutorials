@@ -41,6 +41,16 @@ export async function GET(req: Request) {
     }
 
     if (!hasFullAccess) {
+      const publicProfile = user.role === 'STUDENT' ? {
+        className: user.studentProfile?.className || null,
+        grade: user.studentProfile?.grade || null,
+        batch: user.studentProfile?.batch || null,
+        rollNumber: user.studentProfile?.rollNumber || null
+      } : (user.role === 'TEACHER' || user.role === 'ADMIN') ? {
+        subject: user.teacherProfile?.subject || null,
+        qualification: user.teacherProfile?.qualification || null,
+      } : null;
+
       return NextResponse.json({
         id: user.id,
         name: user.name,
@@ -49,7 +59,7 @@ export async function GET(req: Request) {
         isProfileVerified: user.isProfileVerified,
         photoUrl: user.photoUrl,
         createdAt: user.createdAt,
-        profile: null
+        profile: publicProfile
       });
     }
 
@@ -114,14 +124,24 @@ export async function PUT(req: Request) {
         return NextResponse.json({ error: 'Address must be at most 150 characters long.' }, { status: 400 });
       }
     }
+
     if (phone !== undefined && phone !== null && phone !== '') {
-      if (!/^\d{10}$/.test(phone)) {
-        return NextResponse.json({ error: 'Phone number must be exactly 10 digits.' }, { status: 400 });
+      const cleanPhone = String(phone).trim().toUpperCase();
+      if (cleanPhone !== 'NA' && cleanPhone !== 'N/A' && !/^\d{10}$/.test(phone)) {
+        return NextResponse.json({ error: 'Phone number must be a valid 10-digit number or NA.' }, { status: 400 });
       }
     }
     if (parentContact !== undefined && parentContact !== null && parentContact !== '') {
-      if (!/^\d{10}$/.test(parentContact)) {
-        return NextResponse.json({ error: 'Parent contact must be exactly 10 digits.' }, { status: 400 });
+      const cleanParent = String(parentContact).trim().toUpperCase();
+      if (cleanParent !== 'NA' && cleanParent !== 'N/A' && !/^\d{10}$/.test(parentContact)) {
+        return NextResponse.json({ error: 'Parent contact must be a valid 10-digit number or NA.' }, { status: 400 });
+      }
+    }
+    if (phone && parentContact) {
+      const p1 = String(phone).trim().toUpperCase();
+      const p2 = String(parentContact).trim().toUpperCase();
+      if (p1 !== 'NA' && p1 !== 'N/A' && p2 !== 'NA' && p2 !== 'N/A' && p1 === p2) {
+        return NextResponse.json({ error: 'Student contact and Parent contact cannot be the same. Please provide different numbers or NA.' }, { status: 400 });
       }
     }
 

@@ -107,23 +107,34 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Process fee highlight using already-fetched settings
+    // Process fee highlight to aggregate TOTAL outstanding balance across all pending fees
     let feeHighlight = null;
     if (user.payments.length > 0) {
       const { perDayFine, flatFineAfter10Days } = feeSettings;
       
+      let totalOutstandingBalance = 0;
+      let hasOverdueFee = false;
+      let totalCurrentLateFines = 0;
+
+      user.payments.forEach(payment => {
+        const fine = calculateLateFine(payment.dueDate, payment.status, perDayFine, flatFineAfter10Days);
+        if (fine > 0) hasOverdueFee = true;
+        totalCurrentLateFines += fine;
+        const discount = payment.discount ?? 0;
+        const netDue = payment.amount + fine - discount - (payment.paidAmount || 0);
+        totalOutstandingBalance += Math.max(0, netDue);
+      });
+
       const oldestPayment = user.payments[0];
-      const fine = calculateLateFine(oldestPayment.dueDate, oldestPayment.status, perDayFine, flatFineAfter10Days);
-      
-      // Calculate net due for display on the dashboard card
-      const effectiveDiscount = oldestPayment.discount ?? 0;
-      const totalDueForThisMonth = oldestPayment.amount + fine - effectiveDiscount - (oldestPayment.paidAmount || 0);
+      const oldestFine = calculateLateFine(oldestPayment.dueDate, oldestPayment.status, perDayFine, flatFineAfter10Days);
 
       feeHighlight = {
         ...oldestPayment,
-        isOverdue: fine > 0,
-        currentLateFine: fine,
-        totalAmount: Math.max(0, totalDueForThisMonth),
+        isOverdue: hasOverdueFee,
+        currentLateFine: oldestFine,
+        totalCurrentLateFines,
+        totalAmount: Math.max(0, totalOutstandingBalance),
+        pendingMonthsCount: user.payments.length,
       };
     }
 

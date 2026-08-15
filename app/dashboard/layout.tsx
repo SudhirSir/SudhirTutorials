@@ -457,15 +457,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         .sidebar-header {
-          padding: 2.5rem 1.1rem;
+          padding: 1.25rem 1.1rem 0.75rem 1.1rem;
         }
 
         .logo-small {
           font-weight: 900;
-          font-size: 1.4rem;
+          font-size: 1.35rem;
           color: var(--text-heading);
           display: block;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.5rem;
           letter-spacing: -0.03em;
         }
 
@@ -476,7 +476,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 1px;
-          padding: 0.35rem 0.85rem;
+          padding: 0.3rem 0.75rem;
           border-radius: 10px;
         }
 
@@ -486,27 +486,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         .sidebar-nav {
           flex: 1;
-          padding: 0 1rem;
+          padding: 0.5rem 1rem;
           display: flex;
           flex-direction: column;
-          gap: 2rem;
+          gap: 0.75rem;
           overflow-y: auto;
         }
 
         .nav-group {
           display: flex;
           flex-direction: column;
-          gap: 0.2rem;
+          gap: 0.15rem;
         }
 
         .nav-label {
-          font-size: 0.7rem;
-          font-weight: 700;
+          font-size: 0.68rem;
+          font-weight: 800;
           color: var(--text-muted);
           text-transform: uppercase;
-          letter-spacing: 1.5px;
+          letter-spacing: 1.2px;
           margin-left: 0.75rem;
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.2rem;
+          margin-top: 0.2rem;
         }
 
         .nav-link-modern {

@@ -43,34 +43,22 @@ export function formatDate(dateVal: any): string {
   return `${day}/${month}/${year}`;
 }
 
-export function generateReceiptNo(payment: any, serial: number): string {
-  const paidYear = new Date(payment.paidAt || payment.createdAt || new Date()).getFullYear();
-  const yy = String(paidYear).slice(-2);
+export function generateReceiptNo(payment: any, serial?: number | string): string {
+  if (!payment) return 'REC/2026/0000';
+  if (payment.receiptNo) return payment.receiptNo;
 
+  const paidYear = new Date(payment.paidAt || payment.createdAt || new Date()).getFullYear();
   const studentProfile = payment.student?.studentProfile;
   const className = studentProfile?.className || studentProfile?.grade || '1st';
   const match = className.match(/\d+/);
-  let gradeCode = 'A';
+  let gradeCode = 'S';
   if (match) {
     const num = parseInt(match[0]);
     if (num >= 1 && num <= 26) {
       gradeCode = String.fromCharCode(65 + num - 1);
     }
-  } else {
-    const cLower = className.toLowerCase();
-    if (cLower.includes('first') || cLower.includes('1st')) gradeCode = 'A';
-    else if (cLower.includes('second') || cLower.includes('2nd')) gradeCode = 'B';
-    else if (cLower.includes('third') || cLower.includes('3rd')) gradeCode = 'C';
-    else if (cLower.includes('fourth') || cLower.includes('4th')) gradeCode = 'D';
-    else if (cLower.includes('fifth') || cLower.includes('5th')) gradeCode = 'E';
-    else if (cLower.includes('sixth') || cLower.includes('6th')) gradeCode = 'F';
-    else if (cLower.includes('seventh') || cLower.includes('7th')) gradeCode = 'G';
-    else if (cLower.includes('eighth') || cLower.includes('8th')) gradeCode = 'H';
-    else if (cLower.includes('ninth') || cLower.includes('9th')) gradeCode = 'I';
-    else if (cLower.includes('tenth') || cLower.includes('10th')) gradeCode = 'J';
-    else if (cLower.includes('eleventh') || cLower.includes('11th')) gradeCode = 'K';
-    else if (cLower.includes('twelfth') || cLower.includes('12th')) gradeCode = 'L';
   }
 
-  return `${yy}/${gradeCode}/${serial}`;
+  const serialVal = serial ?? (payment.id ? payment.id.slice(-4).toUpperCase() : '1001');
+  return `${paidYear}/${gradeCode}/${serialVal}`;
 }

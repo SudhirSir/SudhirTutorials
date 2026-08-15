@@ -319,128 +319,20 @@ You MUST follow these critical instruction rules:
           }
         }
 
-        // Attempt 3: Local Fallback Streaming (if API keys failed or were missing)
+        // Attempt 3: If AI API rate limit / quota is exhausted or failed, return explicit limit reached message
         if (!success) {
-          let solution = '';
-          if (isPdf || activeImage) {
-            if (resolvedLanguage.toUpperCase() === 'HINGLISH') {
-              solution = `**Extracted Question**
-Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
-
----
-
-**Solution & Explanation**
-1. **Given values**:
-   * Mass (m) = 5 kg
-   * Force (F) = 20 N
-   * Initial velocity (u) = 0 m/s (from rest)
-   * Time (t) = 6 seconds
-
-2. **Acceleration (a) nikalna**:
-   Newton's Second Law se:
-   👉 **F = m * a**
-   👉 **a = F / m = 20 / 5 = 4 m/s²**
-
-3. **Final Velocity (v) nikalna**:
-   First Equation of Motion se:
-   👉 **v = u + a * t**
-   👉 **v = 0 + 4 * 6 = 24 m/s**
-
-**Final Answer: Object ki velocity 6 seconds baad 24 m/s hogi.**
-
----
-
-**Stepwise Explanation**
-* **Step 1**: Sabse pehle humne Newton ka dusra niyam use kiya jisse force aur mass ki help se acceleration (acceleration = force / mass) nikala.
-* **Step 2**: Acceleration nikalne ke baad, humne kinematics ki pehli equation (v = u + at) use ki velocity calculate karne ke liye. Kyonki body rest se start ho rahi thi, u = 0 tha.
-
----
-
-**ST Guru ji's Tip**
-JEE/NEET exams me hamesha units ka dhyan rakhein. Agar mass grams me ho, to use kg me convert karna na bhulein!`;
-            } else if (resolvedLanguage.toUpperCase() === 'HINDI') {
-              solution = `**निकाला गया प्रश्न**
-भौतिकी प्रश्न हल करें: 5 kg द्रव्यमान की एक वस्तु को विरामवस्था से 20 N के बल द्वारा त्वरित किया जाता है। 6 सेकंड के बाद उसका वेग ज्ञात कीजिए।
-
----
-
-**समाधान और व्याख्या**
-1. **दिए गए मान**:
-   * द्रव्यमान (m) = 5 kg
-   * बल (F) = 20 N
-   * प्रारंभिक वेग (u) = 0 m/s (विरामवस्था से)
-   * समय (t) = 6 सेकंड
-
-2. **त्वरण (a) की गणना**:
-   न्यूटन के द्वितीय नियम से:
-   👉 **F = m * a**
-   👉 **a = F / m = 20 / 5 = 4 m/s²**
-
-3. **अंतिम वेग (v) की गणना**:
-   गति के प्रथम समीकरण से:
-   👉 **v = u + a * t**
-   👉 **v = 0 + 4 * 6 = 24 m/s**
-
-**उत्तर: 6 सेकंड के बाद वस्तु का वेग 24 m/s होगा।**
-
----
-
-**चरण-दर-चरण व्याख्या**
-* **चरण 1**: सबसे पहले हमने न्यूटन के गति के दूसरे नियम का उपयोग किया ताकि द्रव्यमान और बल की मदद से त्वरण ज्ञात किया जा सके।
-* **चरण 2**: त्वरण प्राप्त करने के बाद, हमने अंतिम वेग प्राप्त करने के लिए गति के पहले समीकरण (v = u + at) का उपयोग किया।
-
----
-
-**ST Guru ji की सलाह (Tip)**
-बोर्ड और प्रतियोगी परीक्षाओं में हमेशा मात्रकों (Units) का ध्यान रखें। यदि बल CGS मात्रक (dyne) में हो, तो गणना से पहले उसे SI मात्रक में बदलें।`;
-            } else {
-              solution = `**Extracted Question**
-Solve the following physics problem: An object of mass 5 kg is accelerated from rest by a force of 20 N. Find its velocity after 6 seconds.
-
----
-
-**Solution & Explanation**
-1. **Given values**:
-   * Mass (m) = 5 kg
-   * Force (F) = 20 N
-   * Initial velocity (u) = 0 m/s (starts from rest)
-   * Time (t) = 6 seconds
-
-2. **Calculate Acceleration (a)**:
-   Using Newton's Second Law:
-   👉 **F = m * a**
-   👉 **a = F / m = 20 / 5 = 4 m/s²**
-
-3. **Calculate Final Velocity (v)**:
-   Using the First Equation of Motion:
-   👉 **v = u + a * t**
-   👉 **v = 0 + 4 * 6 = 24 m/s**
-
-**Final Answer: The velocity of the object after 6 seconds is 24 m/s.**
-
----
-
-**Stepwise Explanation**
-* **Step 1**: We first apply Newton's second law of motion (F = m * a) to find the acceleration of the object, which is 4 m/s².
-* **Step 2**: Since the acceleration is constant, we apply the first kinematic equation v = u + a * t to compute the final velocity. As the object starts from rest, u is 0.
-
----
-
-**ST Guru ji's Tip**
-For competitive exams like JEE/NEET, check whether the force is constant. If force is a function of time F(t), acceleration will also vary, and you'll need to integrate instead of using standard kinematics formulas!`;
-            }
+          let limitMsg = "";
+          if (resolvedLanguage.toUpperCase() === 'HINGLISH') {
+            limitMsg = `⚠️ **Daily AI Question / Doubt Limit Hit**\n\nAaj ki daily AI question/doubt ask limit finish ho chuki hai. Daily AI quota limit hit hone ke karan naye doubts abhi answer nahi ho sakte. Please kal dobara try karein ya Sudhir Tutorials ke faculty se direct contact karein.`;
+          } else if (resolvedLanguage.toUpperCase() === 'HINDI') {
+            limitMsg = `⚠️ **दैनिक AI प्रश्न / संदेह पूछने की सीमा समाप्त (Daily Limit Hit)**\n\nआपकी आज की दैनिक AI Doubt Ask Limit समाप्त हो चुकी है। दैनिक कोटा सीमा पूर्ण होने के कारण अभी प्रश्नों के उत्तर नहीं दिए जा सकते। कृपया कल पुनः प्रयास करें या सुधीर ट्यूटोरियल्स के शिक्षकों से संपर्क करें।`;
           } else {
-            solution = generateAcademicResponse(question, resolvedSubject, resolvedLanguage.toUpperCase());
+            limitMsg = `⚠️ **Daily AI Question / Doubt Ask Limit Hit**\n\nThe daily AI question/doubt ask limit has been reached for today. Due to API daily quota limits, further AI doubt answers cannot be generated right now. Please try again tomorrow or contact Sudhir Tutorials faculty directly for assistance.`;
           }
 
-          const cleanedSolution = cleanAllHashSymbols(solution);
-          const chunkSize = 4;
-          for (let i = 0; i < cleanedSolution.length; i += chunkSize) {
-            const chunk = cleanedSolution.substring(i, i + chunkSize);
-            controller.enqueue(encoder.encode(chunk));
-            fullResponse += chunk;
-            await new Promise(r => setTimeout(r, 15));
-          }
+          const cleanedMsg = cleanAllHashSymbols(limitMsg);
+          controller.enqueue(encoder.encode(cleanedMsg));
+          fullResponse = cleanedMsg;
         }
 
         // Save accumulated response to database
