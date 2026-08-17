@@ -405,18 +405,18 @@
   bottom: 0;
   left: 0;
   right: 0;
-  max-height: 88vh;
+  height: 85vh;
+  max-height: 85vh;
   background: var(--surface);
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
   border: 1px solid var(--border);
   border-bottom: none;
   z-index: 999999;
-  overflow-y: auto;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideUp {
