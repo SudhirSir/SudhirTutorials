@@ -5133,228 +5133,247 @@ function AdminDashboardContent() {
               </div>
 
               {/* --- COLLECT PENDING BILLS SELECTOR MODAL --- */}
-              {collectModalStudent && (() => {
-                const s = collectModalStudent;
-                const pendingBills = fees.filter(f => 
-                  (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
-                  (f.status === 'PENDING' || f.totalDue > 0.01)
-                ).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+              {collectModalStudent && typeof window !== 'undefined' && createPortal(
+                (() => {
+                  const s = collectModalStudent;
+                  const pendingBills = fees.filter(f => 
+                    (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
+                    (f.status === 'PENDING' || f.totalDue > 0.01)
+                  ).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
-                return (
-                  <div style={{ position: 'fixed', inset: 0, zIndex: 999995, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                    <div className="glass-card" style={{ width: '100%', maxWidth: '520px', padding: '1.5rem', background: 'var(--surface)', borderRadius: '18px', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>💳 Collect Fee</h3>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, marginTop: '0.2rem' }}>
-                            {s.name} ({s.username})
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setCollectModalStudent(null)}
-                          style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: 'var(--text)', fontSize: '1.1rem', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', margin: '0 0 1rem 0' }}>
-                        Select the pending billing cycle you want to collect:
-                      </p>
-
-                      {pendingBills.length === 0 ? (
-                        <div style={{ padding: '1.5rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          No pending bills found for this student.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                          {pendingBills.map(fee => {
-                            const fine = fee.currentLateFine || 0;
-                            const netDue = Math.max(0, fee.amount + fine - (fee.discount || 0) - (fee.paidAmount || 0));
-                            return (
-                              <div key={fee.id} style={{ padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                                <div>
-                                  <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{fee.billingMonth}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                    Base: ₹{fee.amount - fee.discount} {fine > 0 ? `| Fine: +₹${fine}` : ''}
-                                  </div>
-                                </div>
-
-                                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
-                                  <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#ef4444' }}>
-                                    ₹{netDue.toFixed(0)}
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      setCollectModalStudent(null);
-                                      setPayingFee(fee);
-                                      setShowPaymentModal(true);
-                                      setPaymentDetails({
-                                        paymentMethod: 'CASH',
-                                        transactionId: '',
-                                        discount: fee.discount,
-                                        remarks: '',
-                                        paidAmount: netDue.toString(),
-                                        paidAt: new Date().toISOString().split('T')[0]
-                                      });
-                                    }}
-                                    style={{ padding: '5px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
-                                  >
-                                    Collect ₹{netDue.toFixed(0)}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* --- MOBILE DETAIL DRAWER / BOTTOM SHEET MODAL --- */}
-              {selectedLedgerMobileStudent && (() => {
-                const s = selectedLedgerMobileStudent;
-                const studentInvoices = fees.filter(f => 
-                  (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id)
-                );
-                const pendingInvoices = studentInvoices.filter(f => f.status === 'PENDING');
-                const totalBase = studentInvoices.reduce((acc, f) => acc + f.amount, 0);
-                const totalDiscount = studentInvoices.reduce((acc, f) => acc + f.discount, 0);
-                const totalFine = studentInvoices.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
-                const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
-                
-                const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
-                  const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                  return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
-                }, 0);
-
-                const oldestPending = [...pendingInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
-
-                return (
-                  <>
-                    <div 
-                      className="ledger-drawer-overlay" 
-                      onClick={() => setSelectedLedgerMobileStudent(null)} 
-                    />
-                    <div className="ledger-drawer-sheet">
-                      {/* Drawer Header (Compact Sticky Top) */}
-                      <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10 }}>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{s.name}</h3>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700, marginTop: '0.1rem' }}>
-                            {s.username} {s.studentProfile?.className ? `• Class ${s.studentProfile.className}` : ''}
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setSelectedLedgerMobileStudent(null)}
-                          style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: 'var(--text)', fontSize: '1.1rem', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-
-                      {/* Drawer Content (Starts IMMEDIATELY right under top header) */}
-                      <div style={{ padding: '1.0rem 1.25rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.0rem' }}>
-                        
-                        {/* Outstanding Summary Hero Box */}
-                        <div style={{ padding: '0.85rem 1rem', borderRadius: '14px', background: outstanding > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)', border: `1px solid ${outstanding > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}` }}>
-                          <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.05em' }}>
-                            Total Outstanding Due
-                          </div>
-                          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: outstanding > 0 ? '#ef4444' : '#10b981', marginTop: '0.15rem' }}>
-                            ₹{outstanding.toFixed(0)}
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.78rem' }}>
-                            <div>Base Fee: <strong>₹{totalBase}</strong></div>
-                            <div>Scholarship: <strong style={{ color: '#10b981' }}>-₹{totalDiscount}</strong></div>
-                            <div>Late Fine: <strong style={{ color: '#ef4444' }}>+₹{totalFine}</strong></div>
-                            <div>Total Paid: <strong style={{ color: 'var(--primary)' }}>₹{totalPaid}</strong></div>
-                          </div>
-                        </div>
-
-                        {/* Individual Invoices / Billing Cycles */}
-                        <div>
-                          <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                            Billing Cycles & Invoices ({studentInvoices.length})
-                          </h4>
-
-                          {studentInvoices.length === 0 ? (
-                            <div style={{ padding: '1.25rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                              No invoices assigned to this student yet.
+                  return (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 999995, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                      <div className="glass-card" style={{ width: '100%', maxWidth: '520px', padding: '1.5rem', background: 'var(--surface)', borderRadius: '18px', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>💳 Collect Fee</h3>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, marginTop: '0.2rem' }}>
+                              {s.name} ({s.username})
                             </div>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                              {studentInvoices.map(fee => {
-                                const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
-                                return (
-                                  <div key={fee.id} style={{ padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                      <div>
-                                        <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{fee.billingMonth}</div>
-                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{fee.title} • {fee.receiptNo || 'REC'}</div>
-                                      </div>
-                                      <span style={{
-                                        padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800,
-                                        background: fee.status === 'PAID' ? 'rgba(52,211,153,0.15)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)',
-                                        color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'
-                                      }}>
-                                        {fee.status}
-                                      </span>
-                                    </div>
-
-                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-                                      <span>Amount: ₹{fee.amount} {fee.discount > 0 ? `(-₹${fee.discount})` : ''} {fee.currentLateFine > 0 ? `(+₹${fee.currentLateFine} Fine)` : ''}</span>
-                                      <strong style={{ color: fee.totalDue > 0 ? '#ef4444' : '#10b981' }}>Due: ₹{fee.totalDue}</strong>
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
-                                      {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
-                                        <button 
-                                          onClick={() => { setSelectedLedgerMobileStudent(null); setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
-                                          style={{ flex: 1, padding: '0.45rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}
-                                        >
-                                          Collect ₹{fee.totalDue}
-                                        </button>
-                                      )}
-                                      {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
-                                        <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ flex: 1, padding: '0.45rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Verify</button>
-                                      )}
-                                      {fee.status !== 'PENDING' && (
-                                        <button onClick={() => handleViewReceipt(fee.id)} style={{ flex: 1, padding: '0.45rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>🧾 Receipt</button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Sticky Footer CTA */}
-                      <div style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: '0.75rem' }}>
-                        {oldestPending ? (
+                          </div>
                           <button 
-                            onClick={() => { setSelectedLedgerMobileStudent(null); setCollectModalStudent(s); }}
-                            style={{ flex: 1, padding: '0.7rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}
+                            onClick={() => setCollectModalStudent(null)}
+                            style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: 'var(--text)', fontSize: '1.1rem', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
-                            💳 Select & Collect Pending Bills
+                            ✕
                           </button>
+                        </div>
+
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', margin: '0 0 1rem 0' }}>
+                          Select the pending billing cycle you want to collect:
+                        </p>
+
+                        {pendingBills.length === 0 ? (
+                          <div style={{ padding: '1.5rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            No pending bills found for this student.
+                          </div>
                         ) : (
-                          <button 
-                            onClick={() => { setSelectedLedgerMobileStudent(null); setSelectedUserDetail(s); }}
-                            style={{ flex: 1, padding: '0.7rem', background: 'rgba(99,102,241,0.15)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800 }}
-                          >
-                            📋 View Full Statement
-                          </button>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                            {pendingBills.map(fee => {
+                              const fine = fee.currentLateFine || 0;
+                              const netDue = Math.max(0, fee.amount + fine - (fee.discount || 0) - (fee.paidAmount || 0));
+                              return (
+                                <div key={fee.id} style={{ padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                                  <div>
+                                    <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{fee.billingMonth}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                      Base: ₹{fee.amount - fee.discount} {fine > 0 ? `| Fine: +₹${fine}` : ''}
+                                    </div>
+                                  </div>
+
+                                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
+                                    <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#ef4444' }}>
+                                      ₹{netDue.toFixed(0)}
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        setCollectModalStudent(null);
+                                        setPayingFee(fee);
+                                        setShowPaymentModal(true);
+                                        setPaymentDetails({
+                                          paymentMethod: 'CASH',
+                                          transactionId: '',
+                                          discount: fee.discount,
+                                          remarks: '',
+                                          paidAmount: netDue.toString(),
+                                          paidAt: new Date().toISOString().split('T')[0]
+                                        });
+                                      }}
+                                      style={{ padding: '5px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
+                                    >
+                                      Collect ₹{netDue.toFixed(0)}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     </div>
-                  </>
-                );
-              })()}
+                  );
+                })(),
+                document.body
+              )}
+
+              {/* --- MOBILE DETAIL DRAWER / BOTTOM SHEET MODAL --- */}
+              {selectedLedgerMobileStudent && typeof window !== 'undefined' && createPortal(
+                (() => {
+                  const s = selectedLedgerMobileStudent;
+                  const studentInvoices = fees.filter(f => 
+                    (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id)
+                  );
+                  const pendingInvoices = studentInvoices.filter(f => f.status === 'PENDING');
+                  const totalBase = studentInvoices.reduce((acc, f) => acc + f.amount, 0);
+                  const totalDiscount = studentInvoices.reduce((acc, f) => acc + f.discount, 0);
+                  const totalFine = studentInvoices.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
+                  const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
+                  
+                  const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
+                    const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+                    return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+                  }, 0);
+
+                  const oldestPending = [...pendingInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+
+                  return (
+                    <>
+                      <div 
+                        className="ledger-drawer-overlay" 
+                        onClick={() => setSelectedLedgerMobileStudent(null)} 
+                      />
+                      <div className="ledger-drawer-sheet">
+                        {/* Drawer Header (Compact Sticky Top) */}
+                        <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10 }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{s.name}</h3>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700, marginTop: '0.1rem' }}>
+                              {s.username} {s.studentProfile?.className ? `• Class ${s.studentProfile.className}` : ''}
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setSelectedLedgerMobileStudent(null)}
+                            style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: 'var(--text)', fontSize: '1.1rem', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* Drawer Content (Starts IMMEDIATELY right under top header) */}
+                        <div style={{ padding: '1.0rem 1.25rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.0rem' }}>
+                          
+                          {/* Outstanding Summary Hero Box */}
+                          <div style={{ padding: '0.85rem 1rem', borderRadius: '14px', background: outstanding > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)', border: `1px solid ${outstanding > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}` }}>
+                            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.05em' }}>
+                              Total Outstanding Due
+                            </div>
+                            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: outstanding > 0 ? '#ef4444' : '#10b981', marginTop: '0.15rem' }}>
+                              ₹{outstanding.toFixed(0)}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.78rem' }}>
+                              <div>Base Fee: <strong>₹{totalBase}</strong></div>
+                              <div>Scholarship: <strong style={{ color: '#10b981' }}>-₹{totalDiscount}</strong></div>
+                              <div>Late Fine: <strong style={{ color: '#ef4444' }}>+₹{totalFine}</strong></div>
+                              <div>Total Paid: <strong style={{ color: 'var(--primary)' }}>₹{totalPaid}</strong></div>
+                            </div>
+                          </div>
+
+                          {/* Individual Invoices / Billing Cycles */}
+                          <div>
+                            <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                              Billing Cycles & Invoices ({studentInvoices.length})
+                            </h4>
+
+                            {studentInvoices.length === 0 ? (
+                              <div style={{ padding: '1.25rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                No invoices assigned to this student yet.
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                {studentInvoices.map(fee => {
+                                  const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
+                                  return (
+                                    <div key={fee.id} style={{ padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                          <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{fee.billingMonth}</div>
+                                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{fee.title} • {fee.receiptNo || 'REC'}</div>
+                                        </div>
+                                        <span style={{
+                                          padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800,
+                                          background: fee.status === 'PAID' ? 'rgba(52,211,153,0.15)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)',
+                                          color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'
+                                        }}>
+                                          {fee.status}
+                                        </span>
+                                      </div>
+
+                                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Amount: ₹{fee.amount} {fee.discount > 0 ? `(-₹${fee.discount})` : ''} {fee.currentLateFine > 0 ? `(+₹${fee.currentLateFine} Fine)` : ''}</span>
+                                        <strong style={{ color: fee.totalDue > 0 ? '#ef4444' : '#10b981' }}>Due: ₹{fee.totalDue}</strong>
+                                      </div>
+
+                                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
+                                        {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
+                                          <button 
+                                            onClick={() => { setSelectedLedgerMobileStudent(null); setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
+                                            style={{ flex: 1, padding: '0.45rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}
+                                          >
+                                            Collect ₹{fee.totalDue}
+                                          </button>
+                                        )}
+                                        {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
+                                          <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ flex: 1, padding: '0.45rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Verify</button>
+                                        )}
+                                        {fee.status !== 'PENDING' && (
+                                          <button onClick={() => handleViewReceipt(fee.id)} style={{ flex: 1, padding: '0.45rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>🧾 Receipt</button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Sticky Footer CTA */}
+                        <div style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: '0.5rem' }}>
+                          {oldestPending && (
+                            <button 
+                              onClick={() => { setSelectedLedgerMobileStudent(null); setCollectModalStudent(s); }}
+                              style={{ flex: 1, padding: '0.7rem 0.4rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}
+                            >
+                              💳 Collect
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => {
+                              setSelectedLedgerMobileStudent(null);
+                              setAddFeeMode('INDIVIDUAL');
+                              setFeeStudentId(s.username);
+                              setFeeStudentSearch(`${s.name} (${s.username})`);
+                              setFeeAmount(String(s.studentProfile?.baseFee || 0));
+                              setFeeDiscount(String(s.studentProfile?.scholarship || 0));
+                              setFinanceSubTab('ASSIGN');
+                            }}
+                            style={{ flex: 1, padding: '0.7rem 0.4rem', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800 }}
+                          >
+                            ➕ Assign Fee
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedLedgerMobileStudent(null); setSelectedUserDetail(s); }}
+                            style={{ flex: 1, padding: '0.7rem 0.4rem', background: 'rgba(99,102,241,0.15)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800 }}
+                          >
+                            📋 Statement
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })(),
+                document.body
+              )}
             </div>
           )}
 
