@@ -75,25 +75,44 @@ export async function GET() {
       (pendingAggregateResult._sum.paidAmount || 0)
     );
 
-    // Monthly breakdown (last 6 months)
+    // Monthly breakdown (last 6 months) using O(N) Hash Map lookup
+    const monthStatsMap = new Map<string, { revenue: number; expenses: number }>();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      monthStatsMap.set(key, { revenue: 0, expenses: 0 });
+    }
+
+    payments.forEach((p: any) => {
+      if (!p.paidAt) return;
+      const d = new Date(p.paidAt);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const entry = monthStatsMap.get(key);
+      if (entry) {
+        entry.revenue += (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0)));
+      }
+    });
+
+    expenses.forEach((e: any) => {
+      if (!e.date) return;
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const entry = monthStatsMap.get(key);
+      if (entry) {
+        entry.expenses += e.amount;
+      }
+    });
+
     const monthlyData = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const mName = d.toLocaleString('default', { month: 'long', year: 'numeric' });
-      
-      const mRevenue = payments
-        .filter((p: any) => p.paidAt && new Date(p.paidAt).getMonth() === d.getMonth() && new Date(p.paidAt).getFullYear() === d.getFullYear())
-        .reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
-
-      const mExpenses = expenses
-        .filter((e: any) => new Date(e.date).getMonth() === d.getMonth() && new Date(e.date).getFullYear() === d.getFullYear())
-        .reduce((acc: number, e: any) => acc + e.amount, 0);
-
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const entry = monthStatsMap.get(key) || { revenue: 0, expenses: 0 };
       monthlyData.push({
         name: d.toLocaleString('default', { month: 'short' }),
-        revenue: mRevenue,
-        expenses: mExpenses,
-        profit: mRevenue - mExpenses
+        revenue: entry.revenue,
+        expenses: entry.expenses,
+        profit: entry.revenue - entry.expenses
       });
     }
 

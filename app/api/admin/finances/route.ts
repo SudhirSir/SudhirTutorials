@@ -83,23 +83,12 @@ export async function GET(req: Request) {
         } 
       },
       orderBy: { createdAt: 'desc' },
+      ...(status || month || studentId || studentUsername ? {} : { take: 250 })
     }));
 
-    const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
+    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
 
-    const feeIds = fees.map(f => f.id);
-    const paymentIndexMap = new Map<string, number>();
-
-    if (feeIds.length > 0) {
-      const allPayments = await withDbRetry(() => prisma.payment.findMany({
-        select: { id: true },
-        orderBy: { createdAt: 'asc' }
-      }));
-      allPayments.forEach((p, idx) => {
-        paymentIndexMap.set(p.id, idx + 1);
-      });
-    }
-
+    const now = new Date();
     const enrichedFees = fees.map((fee: any) => {
       const effectiveDueDate = fee.dueDate;
 
@@ -109,15 +98,10 @@ export async function GET(req: Request) {
         ? calculateLateFine(effectiveDueDate, fee.status, perDayFine, flatFineAfter10Days)
         : fee.lateFine;
 
-      const now = new Date();
       const due = effectiveDueDate;
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Compute actual sequential receipt number matched with receipt page
-      const count = paymentIndexMap.get(fee.id) || 1;
-      const serial = 1000 + count;
-      const receiptNo = generateReceiptNo(fee, serial);
-
+      const receiptNo = generateReceiptNo(fee);
       const effectiveDiscount = fee.discount;
 
       return {
