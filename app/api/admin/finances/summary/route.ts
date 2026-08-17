@@ -14,21 +14,25 @@ export async function GET() {
     }
 
     const now = new Date();
-    const currentMonth = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     sixMonthsAgo.setDate(1);
     sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
 
     // Parallelize all financial queries to drastically minimize database round-trip times
     const [payments, expenses, pendingAggregateResult, currentMonthFees] = await Promise.all([
       withDbRetry(() => prisma.payment.findMany({
         where: {
           status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-          paidAt: { gte: sixMonthsAgo }
+          OR: [
+            { paidAt: { gte: sixMonthsAgo } },
+            { createdAt: { gte: sixMonthsAgo } }
+          ]
         },
-        select: { paidAmount: true, paidAt: true, amount: true, lateFine: true, discount: true }
+        select: { paidAmount: true, paidAt: true, createdAt: true, amount: true, lateFine: true, discount: true }
       })),
       withDbRetry(() => prisma.expense.findMany({
         where: { date: { gte: sixMonthsAgo } },
@@ -48,7 +52,12 @@ export async function GET() {
         }
       })),
       withDbRetry(() => prisma.payment.findMany({
-        where: { billingMonth: currentMonth },
+        where: {
+          OR: [
+            { billingMonth: { contains: currentMonthName, mode: 'insensitive' } },
+            { createdAt: { gte: startOfCurrentMonth } }
+          ]
+        },
         select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true }
       }))
     ]);
@@ -64,6 +73,7 @@ export async function GET() {
     }, 0);
 
     const currentMonthPending = currentMonthFees.reduce((acc: number, f: any) => {
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return acc;
       return acc + Math.max(0, f.amount + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0));
     }, 0);
 
@@ -84,8 +94,8 @@ export async function GET() {
     }
 
     payments.forEach((p: any) => {
-      if (!p.paidAt) return;
-      const d = new Date(p.paidAt);
+      const d = p.paidAt ? new Date(p.paidAt) : (p.createdAt ? new Date(p.createdAt) : null);
+      if (!d) return;
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       const entry = monthStatsMap.get(key);
       if (entry) {
