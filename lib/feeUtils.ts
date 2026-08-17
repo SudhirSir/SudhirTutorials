@@ -43,22 +43,28 @@ export function formatDate(dateVal: any): string {
   return `${day}/${month}/${year}`;
 }
 
+export function getGradeLetterCode(classNameStr?: string | null): string {
+  if (!classNameStr) return 'A';
+  const cls = classNameStr.trim();
+  const match = cls.match(/\d+/);
+  if (match) {
+    const num = parseInt(match[0], 10);
+    if (num >= 1 && num <= 26) {
+      return String.fromCharCode(65 + num - 1); // 1->A, 2->B, 3->C ... 10->J, 11->K, 12->L
+    }
+  }
+  return 'S';
+}
+
 export function generateReceiptNo(payment: any, serial?: number | string): string {
-  if (!payment) return 'REC/2026/0000';
+  if (!payment) return '2026/A/1001';
   if (payment.receiptNo) return payment.receiptNo;
 
   const paidYear = new Date(payment.paidAt || payment.createdAt || new Date()).getFullYear();
   const studentProfile = payment.student?.studentProfile;
   const className = studentProfile?.className || studentProfile?.grade || '1st';
-  const match = className.match(/\d+/);
-  let gradeCode = 'S';
-  if (match) {
-    const num = parseInt(match[0]);
-    if (num >= 1 && num <= 26) {
-      gradeCode = String.fromCharCode(65 + num - 1);
-    }
-  }
+  const gradeCode = getGradeLetterCode(className);
 
-  const serialVal = serial ?? (payment.id ? payment.id.slice(-4).toUpperCase() : '1001');
+  const serialVal = serial !== undefined && serial !== null ? String(serial) : (payment.id ? payment.id.slice(-4).toUpperCase() : '1001');
   return `${paidYear}/${gradeCode}/${serialVal}`;
 }

@@ -36,17 +36,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     if (!fee) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
 
-    // Count all payments created before or on this payment
-    const count = await withDbRetry(() => prisma.payment.count({
-      where: {
-        createdAt: {
-          lte: fee.createdAt
-        }
-      }
-    }));
-
-    const serial = 1000 + count;
-    const receiptNo = generateReceiptNo(fee, serial);
+    const receiptNo = generateReceiptNo(fee);
 
     // Attach receiptNo
     const enrichedFee = {

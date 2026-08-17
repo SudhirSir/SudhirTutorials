@@ -154,6 +154,7 @@ model TeacherProfile {
 
 model Payment {
   id            String    @id @default(cuid())
+  receiptNo     String?   @unique
   studentId     String
   student       User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   title         String    @default("Monthly Fee")
@@ -176,6 +177,7 @@ model Payment {
   @@index([billingMonth])
   @@index([createdAt])
   @@index([paidAt])
+  @@index([receiptNo])
 }
 
 model Expense {

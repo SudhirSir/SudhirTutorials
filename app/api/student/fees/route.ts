@@ -44,28 +44,12 @@ export async function GET() {
       orderBy: { dueDate: 'desc' }
     }));
 
-    const { perDayFine, flatFineAfter10Days, feeDueDay } = await getLateFineSettings();
+    const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
 
-    const feeIds = rawFees.map(f => f.id);
-    const paymentIndexMap = new Map<string, number>();
-
-    if (feeIds.length > 0) {
-      const rowNumbers = await withDbRetry(() => prisma.$queryRaw<Array<{ id: string; rn: bigint | number }>>`
-        WITH ordered_payments AS (
-          SELECT id, ROW_NUMBER() OVER (ORDER BY "createdAt" ASC) as rn
-          FROM "Payment"
-        )
-        SELECT id, rn FROM ordered_payments WHERE id = ANY(${feeIds})
-      `);
-      rowNumbers.forEach(r => {
-        paymentIndexMap.set(r.id, Number(r.rn));
-      });
-    }
-
+    const now = new Date();
     const fees = rawFees.map((fee: any) => {
       const effectiveDueDate = fee.dueDate;
 
-      const now = new Date();
       const due = effectiveDueDate;
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
@@ -76,11 +60,7 @@ export async function GET() {
         : fee.lateFine;
 
       const effectiveDiscount = fee.discount;
-      
-      // Compute actual sequential receipt number matched with receipt page
-      const count = paymentIndexMap.get(fee.id) || 1;
-      const serial = 1000 + count;
-      const receiptNo = generateReceiptNo(fee, serial);
+      const receiptNo = generateReceiptNo(fee);
 
       return {
         ...fee,

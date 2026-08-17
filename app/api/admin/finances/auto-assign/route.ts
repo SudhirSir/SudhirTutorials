@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { getLateFineSettings } from '@/lib/feeSettings';
+import { getGradeLetterCode } from '@/lib/feeUtils';
 
 // GET: Preview auto-billing for a specific month
 export async function GET(request: Request) {
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
 
     const activeStudents = await withDbRetry(() => prisma.user.findMany({
       where: { role: 'STUDENT', isActive: true },
-      include: { studentProfile: { select: { baseFee: true, scholarship: true } } }
+      include: { studentProfile: { select: { baseFee: true, scholarship: true, className: true } } }
     }));
 
     const existingFees = await withDbRetry(() => prisma.payment.findMany({
@@ -97,6 +98,9 @@ export async function POST(request: Request) {
       dueDate.setFullYear(parseInt(yearStr), monthIndex, feeDueDay);
     }
 
+    const currentTotalPayments = await withDbRetry(() => prisma.payment.count());
+    const targetYear = dueDate.getFullYear();
+
     const paymentsToCreate: any[] = [];
     let assignedCount = 0;
 
@@ -105,9 +109,12 @@ export async function POST(request: Request) {
 
       const baseFee = student.studentProfile?.baseFee || 0;
       const discount = student.studentProfile?.scholarship || 0;
+      const gradeCode = getGradeLetterCode(student.studentProfile?.className);
+      const receiptNo = `${targetYear}/${gradeCode}/${1001 + currentTotalPayments + assignedCount}`;
       
       paymentsToCreate.push({
         studentId: student.id,
+        receiptNo,
         title: 'Monthly Fee',
         billingMonth,
         dueDate,

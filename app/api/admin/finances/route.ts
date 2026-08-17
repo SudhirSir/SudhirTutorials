@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
-import { calculateLateFine, generateReceiptNo } from '@/lib/feeUtils';
+import { calculateLateFine, generateReceiptNo, getGradeLetterCode } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
@@ -87,9 +87,10 @@ export async function GET(req: Request) {
     }));
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
-
+    const totalDbPayments = await withDbRetry(() => prisma.payment.count());
     const now = new Date();
-    const enrichedFees = fees.map((fee: any) => {
+
+    const enrichedFees = fees.map((fee: any, idx: number) => {
       const effectiveDueDate = fee.dueDate;
 
       // For pending fees, show real-time calculated fine
@@ -101,8 +102,17 @@ export async function GET(req: Request) {
       const due = effectiveDueDate;
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
-      const receiptNo = generateReceiptNo(fee);
+      // Use stored receiptNo or compute fallback serial
+      const receiptNo = fee.receiptNo || generateReceiptNo(fee, 1000 + (totalDbPayments - idx));
       const effectiveDiscount = fee.discount;
+
+      // Backfill receiptNo asynchronously in database if missing
+      if (!fee.receiptNo && fee.id) {
+        withDbRetry(() => prisma.payment.update({
+          where: { id: fee.id },
+          data: { receiptNo }
+        })).catch(() => {});
+      }
 
       return {
         ...fee,
@@ -129,13 +139,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const validation = feeSchema.safeParse(body);
+    const validatedData = feeSchema.parse(body);
 
-    if (!validation.success) {
-      return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
-    }
-
-    const { type, amount, billingMonth, title, studentId, batchId, discount, remarks, dueDate, createdAt } = validation.data;
+    const { type, amount, billingMonth, title, studentId, batchId, discount, remarks, dueDate, createdAt } = validatedData;
 
     const parsed = new Date(`${billingMonth} 12`);
     if (isNaN(parsed.getTime())) {
@@ -144,6 +150,7 @@ export async function POST(req: Request) {
     
     const finalDueDate = dueDate ? new Date(dueDate) : new Date(parsed.getFullYear(), parsed.getMonth(), 12);
     const finalCreatedAt = createdAt ? new Date(createdAt) : new Date();
+    const currentTotalPayments = await withDbRetry(() => prisma.payment.count());
 
     if (type === 'BATCH') {
       const where: any = { role: 'STUDENT' };
@@ -156,7 +163,7 @@ export async function POST(req: Request) {
         select: {
           id: true,
           username: true,
-          studentProfile: { select: { baseFee: true, scholarship: true } }
+          studentProfile: { select: { baseFee: true, scholarship: true, className: true } }
         }
       }));
       
@@ -171,9 +178,13 @@ export async function POST(req: Request) {
         const sScholarship = s.studentProfile?.scholarship || 0;
         const sDiscount = Math.max(discount || 0, sScholarship);
         const finalAssignedAmount = amount || s.studentProfile?.baseFee || 0;
+        const gradeCode = getGradeLetterCode(s.studentProfile?.className);
+        const receiptNo = `${finalCreatedAt.getFullYear()}/${gradeCode}/${1001 + currentTotalPayments + count}`;
+
         await withDbRetry(() => prisma.payment.create({
           data: {
             studentId: s.id,
+            receiptNo,
             amount: finalAssignedAmount,
             billingMonth,
             dueDate: finalDueDate,
@@ -214,7 +225,7 @@ export async function POST(req: Request) {
       // Individual
       const student = await withDbRetry(() => prisma.user.findUnique({ 
         where: { username: studentId },
-        select: { id: true, studentProfile: { select: { baseFee: true, scholarship: true } } }
+        select: { id: true, studentProfile: { select: { baseFee: true, scholarship: true, className: true } } }
       }));
       if (!student) return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
 
@@ -238,9 +249,13 @@ export async function POST(req: Request) {
         finalDiscount = discount;
       }
 
+      const gradeCode = getGradeLetterCode(student.studentProfile?.className);
+      const receiptNo = `${finalCreatedAt.getFullYear()}/${gradeCode}/${1001 + currentTotalPayments}`;
+
       const payment = await withDbRetry(() => prisma.payment.create({
         data: {
           studentId: student.id,
+          receiptNo,
           amount: finalAmount,
           billingMonth,
           dueDate: finalDueDate,
