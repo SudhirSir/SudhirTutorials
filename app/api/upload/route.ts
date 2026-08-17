@@ -10,8 +10,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!session || !session.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || !session.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) {
+      return NextResponse.json({ error: 'Unauthorized: Admin or Teacher access required.' }, { status: 401 });
     }
 
     const formData = await req.formData();

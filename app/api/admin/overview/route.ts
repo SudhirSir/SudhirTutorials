@@ -13,7 +13,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthName = now.toLocaleString('en-US', { month: 'long' });
+    const currentMonthStr = `${monthName} ${now.getFullYear()}`;
 
     const statsResult = await withDbRetry(async () => {
       const [
@@ -21,33 +24,32 @@ export async function GET() {
         totalTeachers,
         totalBatches,
         totalCourses,
-        paymentsThisMonth,
-        pendingDuesAggregate,
+        paidPayments,
+        pendingPayments,
         classGroups
       ] = await Promise.all([
         prisma.user.count({ where: { role: 'STUDENT', isStoreUser: false } }),
         prisma.user.count({ where: { role: 'TEACHER', isStoreUser: false } }),
         prisma.batch.count(),
         prisma.course.count(),
-        prisma.payment.aggregate({
-          _sum: { paidAmount: true },
+        prisma.payment.findMany({
           where: {
             status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-            paidAt: { gte: startOfMonth }
-          }
-        }),
-        prisma.payment.aggregate({
-          _sum: {
-            amount: true,
-            lateFine: true,
-            discount: true,
-            paidAmount: true,
+            OR: [
+              { paidAt: { gte: startOfMonth } },
+              { createdAt: { gte: startOfMonth } },
+              { billingMonth: { contains: monthName, mode: 'insensitive' } }
+            ]
           },
+          select: { paidAmount: true, amount: true, lateFine: true, discount: true }
+        }),
+        prisma.payment.findMany({
           where: {
             NOT: {
               status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
             }
-          }
+          },
+          select: { amount: true, lateFine: true, discount: true, paidAmount: true }
         }),
         prisma.studentProfile.groupBy({
           by: ['className'],
@@ -56,13 +58,14 @@ export async function GET() {
         })
       ]);
 
-      const revenueThisMonth = paymentsThisMonth._sum.paidAmount || 0;
-      const pendingDues = Math.max(0, 
-        (pendingDuesAggregate._sum.amount || 0) + 
-        (pendingDuesAggregate._sum.lateFine || 0) - 
-        (pendingDuesAggregate._sum.discount || 0) - 
-        (pendingDuesAggregate._sum.paidAmount || 0)
-      );
+      const revenueThisMonth = paidPayments.reduce((sum, p) => {
+        return sum + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0)));
+      }, 0);
+
+      const pendingDues = pendingPayments.reduce((sum, p) => {
+        const net = (p.amount || 0) + (p.lateFine || 0) - (p.discount || 0) - (p.paidAmount || 0);
+        return sum + Math.max(0, net);
+      }, 0);
       const classStats = classGroups.map(g => ({
         className: g.className || 'Unknown',
         count: g._count.userId || 0

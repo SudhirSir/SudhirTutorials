@@ -2000,6 +2000,7 @@ function AdminDashboardContent() {
 
   const downloadStatementPDF = async (isPrint = false) => {
     let tempElement: HTMLDivElement | null = null;
+    setDownloadingPDF(true);
     try {
       const loadHtml2Pdf = () => {
         return new Promise<void>((resolve, reject) => {
@@ -2018,36 +2019,44 @@ function AdminDashboardContent() {
 
       await loadHtml2Pdf();
 
+      const isTargetMonth = (dVal: any, billingMonthStr?: string | null) => {
+        if (billingMonthStr) {
+          const lowerB = billingMonthStr.toLowerCase();
+          if (lowerB.includes(statementMonth.toLowerCase()) && lowerB.includes(statementYear)) {
+            return true;
+          }
+        }
+        if (!dVal) return false;
+        const d = new Date(dVal);
+        if (isNaN(d.getTime())) return false;
+        return d.toLocaleString('en-US', { month: 'long' }).toLowerCase() === statementMonth.toLowerCase() && String(d.getFullYear()) === statementYear;
+      };
+
       const inflow = fees.filter(f => {
         if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
-        const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
-        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+        return isTargetMonth(f.paidAt || f.createdAt, f.billingMonth);
       });
       
       const outExpenses = expenses.filter(e => {
-        const date = new Date(e.date || e.createdAt);
-        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+        return isTargetMonth(e.date || e.createdAt, null);
       });
       
       const outSalaries = adminSalaries.filter(s => {
         if (s.status !== 'PAID') return false;
-        const date = s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt);
-        return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+        return isTargetMonth(s.paidAt || s.createdAt, s.month);
       });
       
       const totalIn = inflow.reduce((sum, f) => sum + (f.paidAmount || (f.amount + f.lateFine - f.discount)), 0);
       const totalExp = outExpenses.reduce((sum, e) => sum + e.amount, 0);
-      const totalSal = outSalaries.reduce((sum, s) => sum + s.netPaid, 0);
+      const totalSal = outSalaries.reduce((sum, s) => sum + (s.netPaid || 0), 0);
       const net = totalIn - (totalExp + totalSal);
 
       tempElement = document.createElement('div');
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const scrollX = window.scrollX || window.pageXOffset || 0;
-      tempElement.style.position = 'absolute';
-      tempElement.style.top = `${scrollY}px`;
-      tempElement.style.left = `${scrollX}px`;
-      tempElement.style.zIndex = '-9999';
-      tempElement.style.width = '790px';
+      tempElement.style.position = 'fixed';
+      tempElement.style.top = '0';
+      tempElement.style.left = '0';
+      tempElement.style.zIndex = '999999';
+      tempElement.style.width = '800px';
       tempElement.style.padding = '30px';
       tempElement.style.background = '#ffffff';
       tempElement.style.color = '#1f2937';
@@ -2083,7 +2092,7 @@ function AdminDashboardContent() {
           desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
           type: 'SALARY_OUTFLOW',
           inflow: 0,
-          outflow: s.netPaid
+          outflow: s.netPaid || 0
         }))
       ].sort((a,b) => a.date.getTime() - b.date.getTime());
 
@@ -2162,9 +2171,9 @@ function AdminDashboardContent() {
           scale: 2,
           useCORS: true,
           letterRendering: true,
-          scrollY: scrollY,
-          scrollX: scrollX,
-          windowWidth: document.documentElement.offsetWidth || 1024
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 1024
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
@@ -2225,6 +2234,7 @@ function AdminDashboardContent() {
       if (tempElement && tempElement.parentNode) {
         tempElement.parentNode.removeChild(tempElement);
       }
+      setDownloadingPDF(false);
     }
   };
 
