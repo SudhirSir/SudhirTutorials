@@ -1733,28 +1733,31 @@ function AdminDashboardContent() {
     }
   };
 
-  const fetchFinances = async () => {
+  const fetchFinances = async (retries = 3, delay = 600) => {
     setIsLoadingFees(true);
     setFeesError(null);
-    try {
-      const res = await fetch(`/api/admin/finances?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setFees(data.fees || []);
-        setFinanceRefreshTrigger(prev => prev + 1);
-        setLedgerRefreshTrigger(prev => prev + 1);
-      } else {
-        setFeesError(data.error || 'Failed to load fee records.');
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(`/api/admin/finances?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.fees)) {
+          setFees(data.fees || []);
+          setFinanceRefreshTrigger(prev => prev + 1);
+          setLedgerRefreshTrigger(prev => prev + 1);
+          setIsLoadingFees(false);
+          return;
+        }
+      } catch (err: any) {
+        console.error(`Attempt ${attempt} failed to fetch finances:`, err);
       }
-    } catch (err: any) {
-      console.error(err);
-      setFeesError(err?.message || 'Failed to connect to fee ledger service.');
-    } finally {
-      setIsLoadingFees(false);
+      if (attempt < retries) {
+        await new Promise(res => setTimeout(res, delay * attempt));
+      }
     }
+    setIsLoadingFees(false);
   };
 
   const handleAddFee = async (e: React.FormEvent) => {
@@ -2059,10 +2062,10 @@ function AdminDashboardContent() {
       const net = totalIn - (totalExp + totalSal);
 
       tempElement = document.createElement('div');
-      tempElement.style.position = 'fixed';
+      tempElement.style.position = 'absolute';
       tempElement.style.top = '0';
       tempElement.style.left = '0';
-      tempElement.style.zIndex = '999999';
+      tempElement.style.zIndex = '-9999';
       tempElement.style.width = '800px';
       tempElement.style.padding = '30px';
       tempElement.style.background = '#ffffff';
@@ -2169,6 +2172,7 @@ function AdminDashboardContent() {
       `;
 
       document.body.appendChild(tempElement);
+      await new Promise(r => setTimeout(r, 150));
 
       const opt = {
         margin: [10, 10, 10, 10],
@@ -2180,7 +2184,7 @@ function AdminDashboardContent() {
           letterRendering: true,
           scrollY: 0,
           scrollX: 0,
-          windowWidth: 1024
+          windowWidth: 860
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
@@ -2226,12 +2230,10 @@ function AdminDashboardContent() {
             iframe.src = blobUrl;
             document.body.appendChild(iframe);
             iframe.contentWindow?.print();
-            // Remove the iframe after a short delay so it doesn't linger in DOM
             setTimeout(() => document.body.removeChild(iframe), 60000);
           });
         } else {
           await (window as any).html2pdf().from(tempElement).set(opt).save();
-          alert('Statement downloaded successfully!');
         }
       }
     } catch (err) {
@@ -4556,20 +4558,6 @@ function AdminDashboardContent() {
                   </div>
                 ) : (
                   <div>
-                    {/* Error State Banner */}
-                    {feesError && (
-                      <div style={{ padding: '1.25rem', borderRadius: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
-                          ⚠️ {feesError}
-                        </div>
-                        <button
-                          onClick={() => fetchFinances()}
-                          style={{ padding: '6px 14px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
-                        >
-                          🔄 Retry Connection
-                        </button>
-                      </div>
-                    )}
 
                     {/* View Mode: ALL RECORDS or PENDING FEES */}
                     {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (() => {
