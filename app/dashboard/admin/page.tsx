@@ -1400,6 +1400,8 @@ function AdminDashboardContent() {
   const [selectedFinanceMonth, setSelectedFinanceMonth] = useState<string>('');
   const [ledgerFilterMonth, setLedgerFilterMonth] = useState<string>('ALL');
   const [ledgerFilterYear, setLedgerFilterYear] = useState<string>('ALL');
+  const [selectedLedgerMobileStudent, setSelectedLedgerMobileStudent] = useState<any>(null);
+  const [feesError, setFeesError] = useState<string | null>(null);
 
   // Generate 36 months for Assign Fee billing month select dropdown
   const billingMonthOptions = (() => {
@@ -1732,6 +1734,7 @@ function AdminDashboardContent() {
 
   const fetchFinances = async () => {
     setIsLoadingFees(true);
+    setFeesError(null);
     try {
       const res = await fetch(`/api/admin/finances?t=${Date.now()}`, {
         cache: 'no-store',
@@ -1742,9 +1745,12 @@ function AdminDashboardContent() {
         setFees(data.fees || []);
         setFinanceRefreshTrigger(prev => prev + 1);
         setLedgerRefreshTrigger(prev => prev + 1);
+      } else {
+        setFeesError(data.error || 'Failed to load fee records.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setFeesError(err?.message || 'Failed to connect to fee ledger service.');
     } finally {
       setIsLoadingFees(false);
     }
@@ -4305,98 +4311,129 @@ function AdminDashboardContent() {
           )}
 
           {financeSubTab === 'LEDGER' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               
-
-
-              {/* Full-Width Ledger Collection Table */}
+              {/* Full-Width Ledger Collection Header & Filters */}
               <div className="glass-card" style={{ padding: '1.25rem 1.5rem', position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
+                
+                {/* Header Title & Subtitle */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
-                    <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Fee Ledger & Collections</h2>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Track and verify all student payments</p>
-                    
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => setLedgerViewMode('ALL')}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          background: ledgerViewMode === 'ALL' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                          color: ledgerViewMode === 'ALL' ? 'white' : 'var(--text)',
-                          border: ledgerViewMode === 'ALL' ? 'none' : '1px solid var(--border)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        All Records
-                      </button>
-                      <button
-                        onClick={() => setLedgerViewMode('FIRST_10')}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          background: ledgerViewMode === 'FIRST_10' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                          color: ledgerViewMode === 'FIRST_10' ? 'white' : 'var(--text)',
-                          border: ledgerViewMode === 'FIRST_10' ? 'none' : '1px solid var(--border)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        First 10 Transactions
-                      </button>
-                      <button
-                        onClick={() => setLedgerViewMode('ASSIGNED_FEES')}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          background: ledgerViewMode === 'ASSIGNED_FEES' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                          color: ledgerViewMode === 'ASSIGNED_FEES' ? 'white' : 'var(--text)',
-                          border: ledgerViewMode === 'ASSIGNED_FEES' ? 'none' : '1px solid var(--border)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Assigned Fees
-                      </button>
-                      <button
-                        onClick={() => setLedgerViewMode('PENDING_FEES')}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          background: ledgerViewMode === 'PENDING_FEES' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                          color: ledgerViewMode === 'PENDING_FEES' ? 'white' : 'var(--text)',
-                          border: ledgerViewMode === 'PENDING_FEES' ? 'none' : '1px solid var(--border)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Pending Fees
-                      </button>
-                    </div>
+                    <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>Fee Ledger & Collections</h2>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Track, collect, and verify all student payments</p>
                   </div>
 
+                  {/* Open / Collapse Ledger Toggle */}
+                  <button
+                    onClick={() => setIsLedgerListOpen(!isLedgerListOpen)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: isLedgerListOpen ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                      color: isLedgerListOpen ? '#ef4444' : '#10b981',
+                      border: `1px solid ${isLedgerListOpen ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    {isLedgerListOpen ? '↩️ Collapse View' : '📂 Open Ledger Table'}
+                  </button>
+                </div>
+
+                {/* Filter Control Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+                  
+                  {/* View Mode Pills (Scrollable on Mobile) */}
+                  <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+                    <button
+                      onClick={() => setLedgerViewMode('ALL')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        background: ledgerViewMode === 'ALL' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                        color: ledgerViewMode === 'ALL' ? 'white' : 'var(--text)',
+                        border: ledgerViewMode === 'ALL' ? 'none' : '1px solid var(--border)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      All Records
+                    </button>
+                    <button
+                      onClick={() => setLedgerViewMode('FIRST_10')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        background: ledgerViewMode === 'FIRST_10' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                        color: ledgerViewMode === 'FIRST_10' ? 'white' : 'var(--text)',
+                        border: ledgerViewMode === 'FIRST_10' ? 'none' : '1px solid var(--border)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      First 10 Transactions
+                    </button>
+                    <button
+                      onClick={() => setLedgerViewMode('ASSIGNED_FEES')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        background: ledgerViewMode === 'ASSIGNED_FEES' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                        color: ledgerViewMode === 'ASSIGNED_FEES' ? 'white' : 'var(--text)',
+                        border: ledgerViewMode === 'ASSIGNED_FEES' ? 'none' : '1px solid var(--border)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Assigned Fees
+                    </button>
+                    <button
+                      onClick={() => setLedgerViewMode('PENDING_FEES')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        background: ledgerViewMode === 'PENDING_FEES' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                        color: ledgerViewMode === 'PENDING_FEES' ? 'white' : 'var(--text)',
+                        border: ledgerViewMode === 'PENDING_FEES' ? 'none' : '1px solid var(--border)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Pending Fees
+                    </button>
+                  </div>
+
+                  {/* Search and Year/Month Controls */}
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (
-                      <div style={{ position: 'relative', display: 'flex', gap: '1rem' }}>
+                      <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
                         <input 
                           type="text" 
-                          placeholder="Search Name or ID..." 
+                          placeholder="🔍 Search Student Name or ID..." 
                           value={feeSearchQuery}
                           onChange={e => {
                             setFeeSearchQuery(e.target.value);
                             setShowLedgerSuggestions(true);
                           }}
                           onFocus={() => setShowLedgerSuggestions(true)}
-                          style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '200px' }}
+                          style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
                         />
                         {showLedgerSuggestions && (
                           <>
@@ -4428,7 +4465,7 @@ function AdminDashboardContent() {
                                 if (matches.length === 0) {
                                   return (
                                     <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
-                                      No students found
+                                      No matching students found
                                     </div>
                                   );
                                 }
@@ -4466,7 +4503,7 @@ function AdminDashboardContent() {
                     <select
                       value={ledgerFilterYear}
                       onChange={e => setLedgerFilterYear(e.target.value)}
-                      style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, flex: '1 1 120px' }}
                     >
                       <option value="ALL">All Years</option>
                       {(uniqueLedgerYears as string[]).map(y => (
@@ -4477,33 +4514,13 @@ function AdminDashboardContent() {
                     <select
                       value={ledgerFilterMonth}
                       onChange={e => setLedgerFilterMonth(e.target.value)}
-                      style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, flex: '1 1 140px' }}
                     >
                       <option value="ALL">All Months</option>
                       {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
                         <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
-
-                    <button
-                      onClick={() => setIsLedgerListOpen(!isLedgerListOpen)}
-                      style={{
-                        padding: '0.4rem 0.75rem',
-                        borderRadius: '10px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: isLedgerListOpen ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                        color: isLedgerListOpen ? '#ef4444' : '#10b981',
-                        border: `1px solid ${isLedgerListOpen ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem'
-                      }}
-                    >
-                      {isLedgerListOpen ? '↩️ Collapse Table' : '📂 Expand Table'}
-                    </button>
                   </div>
                 </div>
 
@@ -4512,99 +4529,557 @@ function AdminDashboardContent() {
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'space-between', 
-                    padding: '1rem 1.5rem', 
+                    padding: '1.25rem 1.5rem', 
                     border: '1px dashed var(--border)', 
-                    borderRadius: '12px', 
+                    borderRadius: '14px', 
                     background: 'rgba(255,255,255,0.01)', 
                     gap: '1rem',
                     flexWrap: 'wrap'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '1.5rem' }}>📁</span>
+                      <span style={{ fontSize: '1.75rem' }}>📁</span>
                       <div style={{ textAlign: 'left' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Ledger Records Table</h4>
-                        <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          Click to load and view the full interactive ledger.
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Ledger Collection View</h4>
+                        <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Click to load and view all student fee invoices & collections.
                         </p>
                       </div>
                     </div>
                     <button 
                       onClick={() => setIsLedgerListOpen(true)}
                       className="btn-primary"
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '8px' }}
+                      style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '10px' }}
                     >
-                      📂 Open Ledger Table
+                      📂 Open Fee Ledger
                     </button>
                   </div>
                 ) : (
-                  <div style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem', width: '100%' }}>
-                    {/* View Mode 1: ALL RECORDS OR PENDING FEES */}
-                    {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (
-                      <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            <th style={{ padding: '0.5rem 0' }}>Student / ID</th>
-                            <th>Billing Details</th>
-                            <th>Status</th>
-                            <th>Amount Breakup</th>
-                            <th>Total Due</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {isLoadingFees ? (
-                            Array.from({ length: 5 }).map((_, idx) => (
-                              <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <td colSpan={6} style={{ padding: '1rem' }}>
-                                  <div style={{ height: '14px', width: '100%', borderRadius: '6px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-                                </td>
-                              </tr>
-                            ))
-                          ) : (() => {
-                            const filteredStudents = allStudents.filter(s => {
-                              const matchesSearch = !feeSearchQuery.trim() || 
-                                                    s.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
-                                                    s.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
-                              if (!matchesSearch) return false;
+                  <div>
+                    {/* Error State Banner */}
+                    {feesError && (
+                      <div style={{ padding: '1.25rem', borderRadius: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
+                          ⚠️ {feesError}
+                        </div>
+                        <button
+                          onClick={() => fetchFinances()}
+                          style={{ padding: '6px 14px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                        >
+                          🔄 Retry Connection
+                        </button>
+                      </div>
+                    )}
 
-                              if (ledgerViewMode === 'PENDING_FEES') {
-                                const hasPending = fees.some(f => 
-                                  (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) && 
-                                  f.status === 'PENDING' &&
-                                  (
-                                    (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
-                                    (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
-                                    (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
-                                    (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`)
-                                  )
+                    {/* View Mode: ALL RECORDS or PENDING FEES */}
+                    {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (() => {
+                      const filteredStudents = allStudents.filter(s => {
+                        const matchesSearch = !feeSearchQuery.trim() || 
+                                              s.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
+                                              s.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
+                        if (!matchesSearch) return false;
+
+                        if (ledgerViewMode === 'PENDING_FEES') {
+                          const hasPending = fees.some(f => 
+                            (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) && 
+                            f.status === 'PENDING' &&
+                            (
+                              (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
+                              (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
+                              (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
+                              (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`)
+                            )
+                          );
+                          return hasPending;
+                        }
+                        return true;
+                      });
+
+                      const getSummary = (s: any) => {
+                        const studentInvoices = fees.filter(f => 
+                          (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
+                          (
+                            (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
+                            (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
+                            (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
+                            (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`)
+                          )
+                        );
+                        const hasInvoices = studentInvoices.length > 0;
+                        const pendingInvoices = studentInvoices.filter(f => f.status === 'PENDING');
+                        const pendingCount = pendingInvoices.length;
+                        const totalBase = studentInvoices.reduce((acc, f) => acc + f.amount, 0);
+                        const totalDiscount = studentInvoices.reduce((acc, f) => acc + f.discount, 0);
+                        const totalFine = studentInvoices.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
+                        const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
+                        
+                        const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
+                          const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+                          return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+                        }, 0);
+
+                        const isOverdue = pendingInvoices.some(f => (f.lateFine || 0) > 0 || (f.currentLateFine || 0) > 0);
+                        const baseFee = s.studentProfile?.baseFee || 0;
+                        const scholarship = s.studentProfile?.scholarship || 0;
+                        const finalBase = Math.max(0, baseFee - scholarship);
+
+                        return {
+                          studentInvoices,
+                          hasInvoices,
+                          pendingInvoices,
+                          pendingCount,
+                          totalBase,
+                          totalDiscount,
+                          totalFine,
+                          totalPaid,
+                          outstanding,
+                          isOverdue,
+                          baseFee,
+                          scholarship,
+                          finalBase
+                        };
+                      };
+
+                      return (
+                        <div>
+                          {/* --- DESKTOP TABLE VIEW --- */}
+                          <div className="ledger-desktop-view" style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem' }}>
+                            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  <th style={{ padding: '0.85rem 1rem' }}>Student / ID</th>
+                                  <th style={{ padding: '0.85rem 1rem' }}>Billing Details</th>
+                                  <th style={{ padding: '0.85rem 1rem' }}>Status</th>
+                                  <th style={{ padding: '0.85rem 1rem' }}>Amount Breakup</th>
+                                  <th style={{ padding: '0.85rem 1rem' }}>Total Due</th>
+                                  <th style={{ padding: '0.85rem 1rem' }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {isLoadingFees ? (
+                                  Array.from({ length: 5 }).map((_, idx) => (
+                                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                      <td colSpan={6} style={{ padding: '1.2rem 1rem' }}>
+                                        <div style={{ height: '18px', width: '100%', borderRadius: '8px', background: 'linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                                      </td>
+                                    </tr>
+                                  ))
+                                ) : filteredStudents.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={6} style={{ padding: '3.5rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+                                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>No matching student records found</div>
+                                      <div style={{ fontSize: '0.8rem', marginTop: '0.2rem' }}>Try adjusting your search query or month/year filter.</div>
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  filteredStudents.map(s => {
+                                    const sum = getSummary(s);
+
+                                    if (!sum.hasInvoices) {
+                                      return (
+                                        <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: 0.8 }}>
+                                          <td style={{ padding: '0.85rem 1rem' }}>
+                                            <div onClick={() => setActiveProfileUserId(s.id)} style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }} className="clickable-name">
+                                              {s.name}
+                                            </div>
+                                            <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 700 }}>{s.username}</span>
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            {ledgerFilterMonth !== 'ALL' || ledgerFilterYear !== 'ALL' ? `${ledgerFilterMonth} ${ledgerFilterYear}` : 'Not Assigned'}
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem' }}>
+                                            <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                                              UNASSIGNED
+                                            </span>
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            <div>Base: ₹{sum.finalBase}</div>
+                                            {sum.scholarship > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Scholarship: -₹{sum.scholarship}</div>}
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-muted)' }}>-</td>
+                                          <td style={{ padding: '0.85rem 1rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                              <button 
+                                                onClick={() => {
+                                                  setAddFeeMode('INDIVIDUAL');
+                                                  setFeeStudentId(s.username);
+                                                  setFeeStudentSearch(`${s.name} (${s.username})`);
+                                                  setFeeAmount(String(sum.baseFee));
+                                                  setFeeDiscount(String(sum.scholarship));
+                                                  setFinanceSubTab('ASSIGN');
+                                                }}
+                                                style={{ padding: '6px 12px', background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                              >
+                                                ➕ Assign Fee
+                                              </button>
+                                              <button 
+                                                onClick={() => setSelectedUserDetail(s)} 
+                                                style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                              >
+                                                Statement
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    }
+
+                                    if (sum.studentInvoices.length === 1) {
+                                      const fee = sum.studentInvoices[0];
+                                      const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
+                                      return (
+                                        <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
+                                          <td style={{ padding: '0.85rem 1rem' }}>
+                                            <div onClick={() => setActiveProfileUserId(s.id)} style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }} className="clickable-name">
+                                              {s.name}
+                                            </div>
+                                            <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 700 }}>{s.username}</span>
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem' }}>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{fee.billingMonth}</div>
+                                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem' }}>
+                                            <span style={{
+                                              padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
+                                              background: fee.status === 'PAID' ? 'rgba(52,211,153,0.12)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)',
+                                              color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
+                                              border: `1px solid ${fee.status === 'PAID' ? '#10b98140' : fee.status === 'VERIFIED' ? '#3b82f640' : '#ef444440'}`
+                                            }}>
+                                              {fee.status}
+                                            </span>
+                                            {fee.collectedBy && (
+                                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                                👤 By: <strong>{fee.collectedBy}</strong>
+                                              </div>
+                                            )}
+                                            {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem', fontSize: '0.82rem' }}>
+                                            <div>Base: ₹{fee.amount - fee.discount}</div>
+                                            {fee.currentLateFine > 0 && <div style={{ color: '#ef4444', fontWeight: 700 }}>Fine: +₹{fee.currentLateFine}</div>}
+                                            {fee.discount > 0 && <div style={{ fontSize: '0.72rem', color: '#10b981' }}>Scholarship: -₹{fee.discount}</div>}
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem', fontWeight: 800, fontSize: '1.05rem', color: fee.totalDue > 0 ? '#ef4444' : '#10b981' }}>
+                                            ₹{fee.totalDue.toFixed(0)}
+                                          </td>
+                                          <td style={{ padding: '0.85rem 1rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                              {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
+                                                <button 
+                                                  onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
+                                                  style={{ padding: '6px 14px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
+                                                >
+                                                  💳 Collect
+                                                </button>
+                                              )}
+                                              {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
+                                                <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Verify</button>
+                                              )}
+                                              {(fee.status !== 'PENDING') && (
+                                                <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.08)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>🧾 Receipt</button>
+                                              )}
+                                              <button 
+                                                onClick={() => setSelectedUserDetail(s)} 
+                                                style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                              >
+                                                Statement
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    }
+
+                                    // Multiple Invoices Case
+                                    return (
+                                      <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: sum.isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
+                                        <td style={{ padding: '0.85rem 1rem' }}>
+                                          <div onClick={() => setActiveProfileUserId(s.id)} style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }} className="clickable-name">
+                                            {s.name}
+                                          </div>
+                                          <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 700 }}>{s.username}</span>
+                                        </td>
+                                        <td style={{ padding: '0.85rem 1rem' }}>
+                                          <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>Multiple Invoices</div>
+                                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{sum.studentInvoices.length} billing cycles</div>
+                                        </td>
+                                        <td style={{ padding: '0.85rem 1rem' }}>
+                                          {(sum.pendingCount > 0 || sum.outstanding > 0.01) ? (
+                                            <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid #ef444440' }}>
+                                              {sum.pendingCount > 0 ? `${sum.pendingCount} PENDING` : 'PARTIAL DUE'}
+                                            </span>
+                                          ) : (
+                                            <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: 'rgba(52,211,153,0.12)', color: '#10b981', border: '1px solid #10b98140' }}>
+                                              ALL PAID
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td style={{ padding: '0.85rem 1rem', fontSize: '0.82rem' }}>
+                                          <div>Base: ₹{sum.totalBase - sum.totalDiscount}</div>
+                                          {sum.totalFine > 0 && <div style={{ color: '#ef4444', fontWeight: 700 }}>Fine: +₹{sum.totalFine}</div>}
+                                          {sum.totalDiscount > 0 && <div style={{ fontSize: '0.72rem', color: '#10b981' }}>Scholarship: -₹{sum.totalDiscount}</div>}
+                                          {sum.totalPaid > 0 && <div style={{ color: 'var(--primary)' }}>Paid: -₹{sum.totalPaid}</div>}
+                                        </td>
+                                        <td style={{ padding: '0.85rem 1rem', fontWeight: 800, fontSize: '1.05rem', color: sum.outstanding > 0 ? '#ef4444' : '#10b981' }}>
+                                          ₹{sum.outstanding.toFixed(0)}
+                                        </td>
+                                        <td style={{ padding: '0.85rem 1rem' }}>
+                                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            {(sum.pendingCount > 0 || sum.outstanding > 0.01) && (() => {
+                                              const invoicesWithDues = sum.studentInvoices.filter(f => f.status === 'PENDING' || f.totalDue > 0.01);
+                                              const oldestPending = [...invoicesWithDues].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+                                              if (!oldestPending) return null;
+                                              return (
+                                                <button 
+                                                  onClick={() => { setPayingFee(oldestPending); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: oldestPending.discount, remarks: '', paidAmount: (oldestPending.amount + oldestPending.currentLateFine - oldestPending.discount - (oldestPending.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
+                                                  style={{ padding: '6px 14px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
+                                                >
+                                                  💳 Collect Oldest
+                                                </button>
+                                              );
+                                            })()}
+                                            <button 
+                                              onClick={() => setSelectedUserDetail(s)} 
+                                              style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                            >
+                                              Statement
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* --- MOBILE CARDS VIEW (NO HORIZONTAL SCROLLING) --- */}
+                          <div className="ledger-mobile-view">
+                            {isLoadingFees ? (
+                              Array.from({ length: 4 }).map((_, idx) => (
+                                <div key={idx} className="ledger-mobile-card">
+                                  <div style={{ height: '16px', width: '60%', borderRadius: '6px', background: 'var(--border)', marginBottom: '0.5rem', animation: 'shimmer 1.4s infinite' }} />
+                                  <div style={{ height: '12px', width: '40%', borderRadius: '6px', background: 'var(--border)', marginBottom: '1rem', animation: 'shimmer 1.4s infinite' }} />
+                                  <div style={{ height: '24px', width: '100%', borderRadius: '8px', background: 'var(--border)', animation: 'shimmer 1.4s infinite' }} />
+                                </div>
+                              ))
+                            ) : filteredStudents.length === 0 ? (
+                              <div className="ledger-mobile-card" style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+                                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>No matching students found</div>
+                                <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Try clearing filters or search.</div>
+                              </div>
+                            ) : (
+                              filteredStudents.map(s => {
+                                const sum = getSummary(s);
+
+                                return (
+                                  <div key={s.id} className="ledger-mobile-card">
+                                    {/* Top Row: Name + ID + Status */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
+                                      <div>
+                                        <div 
+                                          onClick={() => setActiveProfileUserId(s.id)}
+                                          style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)', cursor: 'pointer' }}
+                                        >
+                                          {s.name}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.2rem' }}>
+                                          <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 700 }}>
+                                            {s.username}
+                                          </span>
+                                          {sum.hasInvoices && (
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                              • {sum.studentInvoices.length} billing cycle{sum.studentInvoices.length > 1 ? 's' : ''}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Status Badge */}
+                                      <div>
+                                        {!sum.hasInvoices ? (
+                                          <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                                            UNASSIGNED
+                                          </span>
+                                        ) : sum.pendingCount > 0 ? (
+                                          <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                            {sum.pendingCount} PENDING
+                                          </span>
+                                        ) : (
+                                          <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800, background: 'rgba(52,211,153,0.15)', color: '#10b981', border: '1px solid rgba(52,211,153,0.3)' }}>
+                                            ALL PAID
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Middle Row: Total Due Display */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid var(--border)', margin: '0.6rem 0 0.85rem 0' }}>
+                                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Due:</span>
+                                      <span style={{ fontSize: '1.2rem', fontWeight: 900, color: sum.outstanding > 0 ? '#ef4444' : '#10b981' }}>
+                                        {sum.hasInvoices ? `₹${sum.outstanding.toFixed(0)}` : '-'}
+                                      </span>
+                                    </div>
+
+                                    {/* Bottom Row: Mobile Action Buttons */}
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                      {sum.hasInvoices && (sum.pendingCount > 0 || sum.outstanding > 0.01) && (() => {
+                                        const invoicesWithDues = sum.studentInvoices.filter(f => f.status === 'PENDING' || f.totalDue > 0.01);
+                                        const oldestPending = [...invoicesWithDues].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+                                        if (!oldestPending) return null;
+                                        return (
+                                          <button 
+                                            onClick={() => { setPayingFee(oldestPending); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: oldestPending.discount, remarks: '', paidAmount: (oldestPending.amount + oldestPending.currentLateFine - oldestPending.discount - (oldestPending.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
+                                            style={{ flex: 1, padding: '0.55rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                                          >
+                                            💳 Collect ₹{sum.outstanding.toFixed(0)}
+                                          </button>
+                                        );
+                                      })()}
+
+                                      {!sum.hasInvoices && (
+                                        <button 
+                                          onClick={() => {
+                                            setAddFeeMode('INDIVIDUAL');
+                                            setFeeStudentId(s.username);
+                                            setFeeStudentSearch(`${s.name} (${s.username})`);
+                                            setFeeAmount(String(sum.baseFee));
+                                            setFeeDiscount(String(sum.scholarship));
+                                            setFinanceSubTab('ASSIGN');
+                                          }}
+                                          style={{ flex: 1, padding: '0.55rem', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800 }}
+                                        >
+                                          ➕ Assign Fee
+                                        </button>
+                                      )}
+
+                                      <button 
+                                        onClick={() => setSelectedLedgerMobileStudent(s)}
+                                        style={{ flex: 1, padding: '0.55rem', background: 'rgba(99,102,241,0.12)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                                      >
+                                        👁️ View Details
+                                      </button>
+                                    </div>
+                                  </div>
                                 );
-                                return hasPending;
-                              }
-                              return true;
-                            });
+                              })
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
-                            if (filteredStudents.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No matching student records found.</td></tr>;
+                    {/* View Mode: FIRST 10 TRANSACTIONS */}
+                    {ledgerViewMode === 'FIRST_10' && (
+                      <div style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem' }}>
+                        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>
+                              <th style={{ padding: '0.85rem 1rem' }}>Receipt No. / Date</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Student</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Category</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Method</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Amount Paid</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const paidFees = [...fees]
+                                .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
+                                .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+                                .slice(0, 10);
 
-                            return filteredStudents.map(s => {
-                              const studentInvoices = fees.filter(f => 
-                                (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
-                                (
-                                  (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
-                                  (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
-                                  (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
-                                  (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`)
-                                )
-                              );
+                              if (paidFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3.5rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions recorded yet.</td></tr>;
 
-                              const hasInvoices = studentInvoices.length > 0;
+                              return paidFees.map(fee => {
+                                const dateObj = new Date(fee.paidAt || fee.updatedAt || fee.createdAt);
+                                const formattedDate = formatDateDisplay(dateObj) + ', ' + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                                return (
+                                  <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.receiptNo || `REC-${fee.id.slice(-6).toUpperCase()}`}</div>
+                                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
+                                    </td>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.student?.name}</div>
+                                      <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
+                                    </td>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                      <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{fee.billingMonth}</div>
+                                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fee.title}</div>
+                                    </td>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                      <span style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontWeight: 600 }}>
+                                        {fee.paymentMethod || 'ONLINE'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: '#10b981' }}>₹{fee.totalDue.toFixed(0)}</td>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                      <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>🧾 View Receipt</button>
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
 
-                              if (!hasInvoices) {
+                    {/* View Mode: ASSIGNED FEES */}
+                    {ledgerViewMode === 'ASSIGNED_FEES' && (
+                      <div style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem' }}>
+                        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>
+                              <th style={{ padding: '0.85rem 1rem' }}>Student Details</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Assigned Base Fee</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Total Paid Fees</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Outstanding Balance</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Invoices Status</th>
+                              <th style={{ padding: '0.85rem 1rem' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const students = allStudents;
+
+                              if (students.length === 0) return <tr><td colSpan={6} style={{ padding: '3.5rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No registered students found in directory.</td></tr>;
+
+                              return students.map(s => {
+                                const studentInvoices = fees.filter(f => f.studentId === s.id);
+                                const totalPaid = studentInvoices
+                                  .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0))
+                                  .reduce((acc, f) => acc + (f.paidAmount || 0), 0);
+
+                                const excessPaid = studentInvoices
+                                  .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
+                                  .reduce((acc, f) => {
+                                    const netDue = f.amount + (f.lateFine || 0) - f.discount;
+                                    return acc + Math.max(0, (f.paidAmount || 0) - netDue);
+                                  }, 0);
+                                
+                                const pendingDues = studentInvoices
+                                  .filter(f => f.status === 'PENDING')
+                                  .reduce((acc, f) => {
+                                    const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+                                    return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+                                  }, 0);
+                                
+                                const outstanding = Math.max(0, pendingDues - excessPaid);
+                                const creditBalance = Math.max(0, excessPaid - pendingDues);
                                 const baseFee = s.studentProfile?.baseFee || 0;
                                 const scholarship = s.studentProfile?.scholarship || 0;
                                 const finalBase = Math.max(0, baseFee - scholarship);
+                                const pendingCount = studentInvoices.filter(f => f.status === 'PENDING').length;
+
                                 return (
-                                  <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: 0.75 }}>
-                                    <td style={{ padding: '0.6rem 0' }}>
+                                  <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
                                       <div 
                                         onClick={() => setActiveProfileUserId(s.id)} 
                                         style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
@@ -4614,28 +5089,43 @@ function AdminDashboardContent() {
                                       </div>
                                       <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
                                     </td>
-                                    <td>
-                                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                        {ledgerFilterMonth !== 'ALL' || ledgerFilterYear !== 'ALL' 
-                                          ? `${ledgerFilterMonth} ${ledgerFilterYear}` 
-                                          : 'No invoices assigned'}
-                                      </div>
+                                    <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text)' }}>
+                                      ₹{finalBase.toLocaleString()}
+                                      {scholarship > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Discounted</div>}
                                     </td>
-                                    <td>
-                                      <span style={{
-                                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                                        background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border)'
-                                      }}>
-                                        UNASSIGNED
-                                      </span>
+                                    <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#10b981' }}>
+                                      ₹{totalPaid.toLocaleString()}
                                     </td>
-                                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                      <div>Base: ₹{finalBase}</div>
-                                      {scholarship > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Scholarship: -₹{scholarship}</div>}
+                                    <td style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>
+                                      {outstanding > 0 ? (
+                                        <span style={{ color: '#ef4444' }}>₹{outstanding.toLocaleString()}</span>
+                                      ) : creditBalance > 0 ? (
+                                        <span style={{ color: '#10b981' }}>+ ₹{creditBalance.toLocaleString()} Credit</span>
+                                      ) : (
+                                        <span style={{ color: 'var(--text-muted)' }}>₹0</span>
+                                      )}
                                     </td>
-                                    <td style={{ fontWeight: 700, color: 'var(--text-muted)' }}>-</td>
-                                    <td>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                      {pendingCount > 0 ? (
+                                        <span style={{ fontSize: '0.7rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                          {pendingCount} PENDING BILLS
+                                        </span>
+                                      ) : (
+                                        <span style={{ fontSize: '0.7rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                          ALL PAID
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '0.85rem 1rem' }}>
                                       <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button 
+                                          onClick={() => {
+                                            setSelectedUserDetail(s);
+                                          }}
+                                          style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                        >
+                                          📋 View Statement
+                                        </button>
                                         <button 
                                           onClick={() => {
                                             setAddFeeMode('INDIVIDUAL');
@@ -4645,362 +5135,166 @@ function AdminDashboardContent() {
                                             setFeeDiscount(String(scholarship));
                                             setFinanceSubTab('ASSIGN');
                                           }}
-                                          style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
+                                          style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
                                         >
                                           ➕ Assign Fee
                                         </button>
-                                        <button 
-                                          onClick={() => setSelectedUserDetail(s)} 
-                                          style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
-                                        >
-                                          Statement
-                                        </button>
                                       </div>
                                     </td>
                                   </tr>
                                 );
-                              }
-
-                              if (studentInvoices.length === 1) {
-                                const fee = studentInvoices[0];
-                                const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
-                                return (
-                                  <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
-                                    <td style={{ padding: '0.6rem 0' }}>
-                                      <div 
-                                        onClick={() => setActiveProfileUserId(s.id)} 
-                                        style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
-                                        className="clickable-name"
-                                      >
-                                        {s.name}
-                                      </div>
-                                      <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
-                                    </td>
-                                    <td>
-                                      <div style={{ fontSize: '0.9rem' }}>{fee.billingMonth}</div>
-                                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{fee.title}</div>
-                                    </td>
-                                    <td>
-                                      <span style={{
-                                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                                        background: fee.status === 'PAID' ? 'rgba(52,211,153,0.1)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
-                                        color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444',
-                                        border: `1px solid ${fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'}`
-                                      }}>
-                                        {fee.status}
-                                      </span>
-                                      {fee.collectedBy && (
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                          👤 By: <strong>{fee.collectedBy}</strong>
-                                        </div>
-                                      )}
-                                      {isOverdue && <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>⚠ {fee.daysLate} DAYS LATE</div>}
-                                    </td>
-                                    <td style={{ fontSize: '0.8rem' }}>
-                                       <div>Base: ₹{fee.amount - fee.discount}</div>
-                                       {fee.currentLateFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{fee.currentLateFine}</div>}
-                                       {fee.discount > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Scholarship: ₹{fee.discount} (deducted)</div>}
-                                    </td>
-                                    <td style={{ fontWeight: 700 }}>₹{fee.totalDue.toFixed(0)}</td>
-                                    <td>
-                                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
-                                          <button onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} style={{ padding: '6px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Collect</button>
-                                        )}
-                                        {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
-                                          <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ padding: '6px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>Verify</button>
-                                        )}
-                                        {(fee.status !== 'PENDING') && (
-                                          <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem' }}>🧾 Receipt</button>
-                                        )}
-                                        <button 
-                                          onClick={() => setSelectedUserDetail(s)} 
-                                          style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
-                                        >
-                                          Statement
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              }
-
-                              const pendingInvoices = studentInvoices.filter(f => f.status === 'PENDING');
-                              const pendingCount = pendingInvoices.length;
-                              const totalBase = studentInvoices.reduce((acc, f) => acc + f.amount, 0);
-                              const totalDiscount = studentInvoices.reduce((acc, f) => acc + f.discount, 0);
-                              const totalFine = studentInvoices.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
-                              const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
-                              const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
-                                const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                                return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
-                              }, 0);
-
-                              const isOverdue = pendingInvoices.some(f => (f.lateFine || 0) > 0 || (f.currentLateFine || 0) > 0);
-
-                              return (
-                                <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent' }}>
-                                  <td style={{ padding: '0.6rem 0' }}>
-                                    <div 
-                                      onClick={() => setActiveProfileUserId(s.id)} 
-                                      style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
-                                      className="clickable-name"
-                                    >
-                                      {s.name}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
-                                  </td>
-                                  <td>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Multiple Invoices</div>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{studentInvoices.length} billing cycles</div>
-                                  </td>
-                                  <td>
-                                    {(pendingCount > 0 || outstanding > 0.01) ? (
-                                      <span style={{
-                                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                                        background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid #ef4444'
-                                      }}>
-                                        {pendingCount > 0 ? `${pendingCount} PENDING` : 'PARTIAL DUE'}
-                                      </span>
-                                    ) : (
-                                      <span style={{
-                                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800,
-                                        background: 'rgba(52,211,153,0.1)', color: '#10b981', border: '1px solid #10b981'
-                                      }}>
-                                        ALL PAID
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td style={{ fontSize: '0.8rem' }}>
-                                     <div>Base: ₹{totalBase - totalDiscount}</div>
-                                     {totalFine > 0 && <div style={{ color: '#ef4444' }}>Fine: +₹{totalFine}</div>}
-                                     {totalDiscount > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Scholarship: ₹{totalDiscount} (deducted)</div>}
-                                     {totalPaid > 0 && <div style={{ color: 'var(--primary)' }}>Paid: -₹{totalPaid}</div>}
-                                  </td>
-                                  <td style={{ fontWeight: 700 }}>₹{outstanding.toFixed(0)}</td>
-                                  <td>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                      {(pendingCount > 0 || outstanding > 0.01) && (() => {
-                                        const invoicesWithDues = studentInvoices.filter(f => f.status === 'PENDING' || f.totalDue > 0.01);
-                                        const oldestPending = [...invoicesWithDues].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
-                                        if (!oldestPending) return null;
-                                        return (
-                                          <button 
-                                            onClick={() => { setPayingFee(oldestPending); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: oldestPending.discount, remarks: '', paidAmount: (oldestPending.amount + oldestPending.currentLateFine - oldestPending.discount - (oldestPending.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
-                                            style={{ padding: '6px 10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
-                                          >
-                                            Collect Oldest
-                                          </button>
-                                        );
-                                      })()}
-                                      <button 
-                                        onClick={() => setSelectedUserDetail(s)} 
-                                        style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
-                                      >
-                                        Statement
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          setAddFeeMode('INDIVIDUAL');
-                                          setFeeStudentId(s.username);
-                                          setFeeStudentSearch(`${s.name} (${s.username})`);
-                                          const base = s.studentProfile?.baseFee || 0;
-                                          const scholarship = s.studentProfile?.scholarship || 0;
-                                          const finalBase = Math.max(0, base - scholarship);
-                                          setFeeAmount(String(base));
-                                          setFeeDiscount(String(scholarship));
-                                          setFinanceSubTab('ASSIGN');
-                                        }}
-                                        style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
-                                      >
-                                        ➕ Assign
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })()}
-                        </tbody>
-                      </table>
-                    )}
-
-                    {/* View Mode 2: FIRST 10 TRANSACTIONS */}
-                    {ledgerViewMode === 'FIRST_10' && (
-                      <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            <th style={{ padding: '0.75rem 0' }}>Receipt No. / Date</th>
-                            <th>Student</th>
-                            <th>Category</th>
-                            <th>Method</th>
-                            <th>Amount Paid</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const paidFees = [...fees]
-                              .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
-                              .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
-                              .slice(0, 10);
-
-                            if (paidFees.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No completed transactions recorded yet.</td></tr>;
-
-                            return paidFees.map(fee => {
-                              const dateObj = new Date(fee.paidAt || fee.updatedAt || fee.createdAt);
-                              const formattedDate = formatDateDisplay(dateObj) + ', ' + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                              return (
-                                <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                  <td style={{ padding: '0.6rem 0' }}>
-                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.receiptNo || `REC-${fee.id.slice(-6).toUpperCase()}`}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
-                                  </td>
-                                  <td>
-                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.student?.name}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{fee.student?.username}</div>
-                                  </td>
-                                  <td>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{fee.billingMonth}</div>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fee.title}</div>
-                                  </td>
-                                  <td>
-                                    <span style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontWeight: 600 }}>
-                                      {fee.paymentMethod || 'ONLINE'}
-                                    </span>
-                                  </td>
-                                  <td style={{ fontWeight: 800, color: '#10b981' }}>₹{fee.totalDue.toFixed(0)}</td>
-                                  <td>
-                                    <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>🧾 View Receipt</button>
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })()}
-                        </tbody>
-                      </table>
-                    )}
-
-                    {/* View Mode 3: ASSIGNED FEES */}
-                    {ledgerViewMode === 'ASSIGNED_FEES' && (
-                      <table style={{ width: '100%', minWidth: '750px', textAlign: 'left', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            <th style={{ padding: '0.75rem 0' }}>Student Details</th>
-                            <th>Assigned Base Fee</th>
-                            <th>Total Paid Fees</th>
-                            <th>Outstanding Balance</th>
-                            <th>Invoices Status</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const students = allStudents;
-
-                            if (students.length === 0) return <tr><td colSpan={6} style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No registered students found in directory.</td></tr>;
-
-                            return students.map(s => {
-                              const studentInvoices = fees.filter(f => f.studentId === s.id);
-                              const totalPaid = studentInvoices
-                                .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0))
-                                .reduce((acc, f) => acc + (f.paidAmount || 0), 0);
-
-                              const excessPaid = studentInvoices
-                                .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status))
-                                .reduce((acc, f) => {
-                                  const netDue = f.amount + (f.lateFine || 0) - f.discount;
-                                  return acc + Math.max(0, (f.paidAmount || 0) - netDue);
-                                }, 0);
-                              
-                              const pendingDues = studentInvoices
-                                .filter(f => f.status === 'PENDING')
-                                .reduce((acc, f) => {
-                                  const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                                  return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
-                                }, 0);
-                              
-                              const outstanding = Math.max(0, pendingDues - excessPaid);
-                              const creditBalance = Math.max(0, excessPaid - pendingDues);
-                              const baseFee = s.studentProfile?.baseFee || 0;
-                              const scholarship = s.studentProfile?.scholarship || 0;
-                              const finalBase = Math.max(0, baseFee - scholarship);
-                              const pendingCount = studentInvoices.filter(f => f.status === 'PENDING').length;
-
-                              return (
-                                <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                  <td style={{ padding: '0.6rem 0' }}>
-                                    <div 
-                                      onClick={() => setActiveProfileUserId(s.id)} 
-                                      style={{ fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
-                                      className="clickable-name"
-                                    >
-                                      {s.name}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{s.username}</div>
-                                  </td>
-                                  <td style={{ fontWeight: 700, color: 'var(--text)' }}>
-                                    ₹{finalBase.toLocaleString()}
-                                    {scholarship > 0 && <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Discounted</div>}
-                                  </td>
-                                  <td style={{ fontWeight: 700, color: '#10b981' }}>
-                                    ₹{totalPaid.toLocaleString()}
-                                  </td>
-                                  <td style={{ fontWeight: 700 }}>
-                                    {outstanding > 0 ? (
-                                      <span style={{ color: '#ef4444' }}>₹{outstanding.toLocaleString()}</span>
-                                    ) : creditBalance > 0 ? (
-                                      <span style={{ color: '#10b981' }}>+ ₹{creditBalance.toLocaleString()} Credit</span>
-                                    ) : (
-                                      <span style={{ color: 'var(--text-muted)' }}>₹0</span>
-                                    )}
-                                  </td>
-                                  <td>
-                                    {pendingCount > 0 ? (
-                                      <span style={{ fontSize: '0.7rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                                        {pendingCount} PENDING BILLS
-                                      </span>
-                                    ) : (
-                                      <span style={{ fontSize: '0.7rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                                        ALL PAID
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                      <button 
-                                        onClick={() => {
-                                          setSelectedUserDetail(s);
-                                        }}
-                                        style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                                      >
-                                        📋 View Fee Statement
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          setAddFeeMode('INDIVIDUAL');
-                                          setFeeStudentId(s.username);
-                                          setFeeStudentSearch(`${s.name} (${s.username})`);
-                                            setFeeAmount(String(baseFee));
-                                            setFeeDiscount(String(scholarship));
-                                          setFinanceSubTab('ASSIGN');
-                                        }}
-                                        style={{ padding: '6px 10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                                      >
-                                        ➕ Assign Fee
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })()}
-                        </tbody>
-                      </table>
+                              });
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
+
+              {/* --- MOBILE DETAIL DRAWER / BOTTOM SHEET MODAL --- */}
+              {selectedLedgerMobileStudent && (() => {
+                const s = selectedLedgerMobileStudent;
+                const studentInvoices = fees.filter(f => 
+                  (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id)
+                );
+                const pendingInvoices = studentInvoices.filter(f => f.status === 'PENDING');
+                const totalBase = studentInvoices.reduce((acc, f) => acc + f.amount, 0);
+                const totalDiscount = studentInvoices.reduce((acc, f) => acc + f.discount, 0);
+                const totalFine = studentInvoices.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
+                const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
+                
+                const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
+                  const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+                  return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+                }, 0);
+
+                const oldestPending = [...pendingInvoices].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+
+                return (
+                  <>
+                    <div 
+                      className="ledger-drawer-overlay" 
+                      onClick={() => setSelectedLedgerMobileStudent(null)} 
+                    />
+                    <div className="ledger-drawer-sheet">
+                      {/* Drawer Header */}
+                      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10 }}>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{s.name}</h3>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 700, marginTop: '0.1rem' }}>
+                            {s.username} {s.studentProfile?.className ? `• Class ${s.studentProfile.className}` : ''}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setSelectedLedgerMobileStudent(null)}
+                          style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: 'var(--text)', fontSize: '1.2rem', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {/* Drawer Content */}
+                      <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        
+                        {/* Outstanding Summary Hero Box */}
+                        <div style={{ padding: '1.25rem', borderRadius: '16px', background: outstanding > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)', border: `1px solid ${outstanding > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}` }}>
+                          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.05em' }}>
+                            Total Outstanding Due
+                          </div>
+                          <div style={{ fontSize: '2rem', fontWeight: 900, color: outstanding > 0 ? '#ef4444' : '#10b981', marginTop: '0.2rem' }}>
+                            ₹{outstanding.toFixed(0)}
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.8rem' }}>
+                            <div>Base Fee: <strong>₹{totalBase}</strong></div>
+                            <div>Scholarship: <strong style={{ color: '#10b981' }}>-₹{totalDiscount}</strong></div>
+                            <div>Late Fine: <strong style={{ color: '#ef4444' }}>+₹{totalFine}</strong></div>
+                            <div>Total Paid: <strong style={{ color: 'var(--primary)' }}>₹{totalPaid}</strong></div>
+                          </div>
+                        </div>
+
+                        {/* Individual Invoices / Billing Cycles */}
+                        <div>
+                          <h4 style={{ margin: '0 0 0.85rem 0', fontSize: '0.95rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                            Billing Cycles & Invoices ({studentInvoices.length})
+                          </h4>
+
+                          {studentInvoices.length === 0 ? (
+                            <div style={{ padding: '1.5rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                              No invoices assigned to this student yet.
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                              {studentInvoices.map(fee => {
+                                const isOverdue = fee.status === 'PENDING' && fee.currentLateFine > 0;
+                                return (
+                                  <div key={fee.id} style={{ padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                      <div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{fee.billingMonth}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{fee.title} • {fee.receiptNo || 'REC'}</div>
+                                      </div>
+                                      <span style={{
+                                        padding: '4px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800,
+                                        background: fee.status === 'PAID' ? 'rgba(52,211,153,0.15)' : fee.status === 'VERIFIED' ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)',
+                                        color: fee.status === 'PAID' ? '#10b981' : fee.status === 'VERIFIED' ? '#3b82f6' : '#ef4444'
+                                      }}>
+                                        {fee.status}
+                                      </span>
+                                    </div>
+
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                                      <span>Amount: ₹{fee.amount} {fee.discount > 0 ? `(-₹${fee.discount})` : ''} {fee.currentLateFine > 0 ? `(+₹${fee.currentLateFine} Fine)` : ''}</span>
+                                      <strong style={{ color: fee.totalDue > 0 ? '#ef4444' : '#10b981' }}>Due: ₹{fee.totalDue}</strong>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                                      {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
+                                        <button 
+                                          onClick={() => { setSelectedLedgerMobileStudent(null); setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
+                                          style={{ flex: 1, padding: '0.45rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}
+                                        >
+                                          Collect ₹{fee.totalDue}
+                                        </button>
+                                      )}
+                                      {(fee.status === 'PAID' || fee.status === 'PAID_ONLINE') && (
+                                        <button onClick={() => updateFeeStatus(fee.id, 'VERIFIED')} style={{ flex: 1, padding: '0.45rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Verify</button>
+                                      )}
+                                      {fee.status !== 'PENDING' && (
+                                        <button onClick={() => handleViewReceipt(fee.id)} style={{ flex: 1, padding: '0.45rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>🧾 Receipt</button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Sticky Footer CTA */}
+                      <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: '0.75rem' }}>
+                        {oldestPending ? (
+                          <button 
+                            onClick={() => { setSelectedLedgerMobileStudent(null); setPayingFee(oldestPending); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: oldestPending.discount, remarks: '', paidAmount: (oldestPending.amount + oldestPending.currentLateFine - oldestPending.discount - (oldestPending.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }}
+                            style={{ flex: 1, padding: '0.75rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}
+                          >
+                            💳 Collect ₹{outstanding.toFixed(0)} (Oldest Due)
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => { setSelectedLedgerMobileStudent(null); setSelectedUserDetail(s); }}
+                            style={{ flex: 1, padding: '0.75rem', background: 'rgba(99,102,241,0.15)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 800 }}
+                          >
+                            📋 View Full Statement
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 
