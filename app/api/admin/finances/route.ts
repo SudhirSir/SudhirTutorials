@@ -63,6 +63,7 @@ export async function GET(req: Request) {
       include: { 
         student: { 
           select: { 
+            id: true,
             name: true, 
             username: true,
             studentProfile: {
@@ -87,10 +88,9 @@ export async function GET(req: Request) {
     }));
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
-    const totalDbPayments = await withDbRetry(() => prisma.payment.count());
     const now = new Date();
 
-    const enrichedFees = fees.map((fee: any, idx: number) => {
+    const enrichedFees = fees.map((fee: any) => {
       const effectiveDueDate = fee.dueDate;
 
       // For pending fees, show real-time calculated fine
@@ -102,17 +102,8 @@ export async function GET(req: Request) {
       const due = effectiveDueDate;
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Use stored receiptNo or compute fallback serial
-      const receiptNo = fee.receiptNo || generateReceiptNo(fee, 1000 + (totalDbPayments - idx));
+      const receiptNo = generateReceiptNo(fee);
       const effectiveDiscount = fee.discount;
-
-      // Backfill receiptNo asynchronously in database if missing
-      if (!fee.receiptNo && fee.id) {
-        withDbRetry(() => prisma.payment.update({
-          where: { id: fee.id },
-          data: { receiptNo }
-        })).catch(() => {});
-      }
 
       return {
         ...fee,

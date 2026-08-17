@@ -4569,7 +4569,7 @@ function AdminDashboardContent() {
 
                               if (ledgerViewMode === 'PENDING_FEES') {
                                 const hasPending = fees.some(f => 
-                                  f.studentId === s.id && 
+                                  (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) && 
                                   f.status === 'PENDING' &&
                                   (
                                     (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
@@ -4587,7 +4587,7 @@ function AdminDashboardContent() {
 
                             return filteredStudents.map(s => {
                               const studentInvoices = fees.filter(f => 
-                                f.studentId === s.id &&
+                                (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
                                 (
                                   (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
                                   (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
