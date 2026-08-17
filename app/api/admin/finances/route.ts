@@ -90,6 +90,12 @@ export async function GET(req: Request) {
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
     const now = new Date();
 
+    const feesAsc = [...fees].sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const seqMap = new Map<string, number>();
+    feesAsc.forEach((f: any, idx: number) => {
+      seqMap.set(f.id, 1001 + idx);
+    });
+
     const enrichedFees = fees.map((fee: any) => {
       const effectiveDueDate = fee.dueDate;
 
@@ -102,7 +108,7 @@ export async function GET(req: Request) {
       const due = effectiveDueDate;
       const daysLate = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
 
-      const receiptNo = generateReceiptNo(fee);
+      const receiptNo = generateReceiptNo(fee, seqMap.get(fee.id));
       const effectiveDiscount = fee.discount;
 
       return {

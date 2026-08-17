@@ -53,18 +53,27 @@ export function getGradeLetterCode(classNameStr?: string | null): string {
       return String.fromCharCode(65 + num - 1); // 1->A, 2->B, 3->C ... 10->J, 11->K, 12->L
     }
   }
-  return 'S';
+  return 'A';
 }
 
 export function generateReceiptNo(payment: any, serial?: number | string): string {
   if (!payment) return '2026/A/1001';
-  if (payment.receiptNo) return payment.receiptNo;
+  if (payment.receiptNo && payment.receiptNo.includes('/')) return payment.receiptNo;
 
   const paidYear = new Date(payment.paidAt || payment.createdAt || new Date()).getFullYear();
   const studentProfile = payment.student?.studentProfile;
   const className = studentProfile?.className || studentProfile?.grade || '1st';
   const gradeCode = getGradeLetterCode(className);
 
-  const serialVal = serial !== undefined && serial !== null ? String(serial) : (payment.id ? payment.id.slice(-4).toUpperCase() : '1001');
-  return `${paidYear}/${gradeCode}/${serialVal}`;
+  let num = 1001;
+  if (typeof serial === 'number') {
+    num = serial;
+  } else if (typeof serial === 'string' && !isNaN(parseInt(serial, 10))) {
+    num = parseInt(serial, 10);
+  } else if (payment.seqIndex && typeof payment.seqIndex === 'number') {
+    num = 1000 + payment.seqIndex;
+  }
+
+  const serialStr = String(num).padStart(4, '0');
+  return `${paidYear}/${gradeCode}/${serialStr}`;
 }
