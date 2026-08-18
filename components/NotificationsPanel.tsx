@@ -347,7 +347,7 @@ export function NotificationsPanel({
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
-                    justify: 'space-between',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     boxSizing: 'border-box'
                   }}

@@ -5263,7 +5263,7 @@ function AdminDashboardContent() {
                                       background: isChecked ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)', 
                                       border: `1px solid ${isChecked ? 'rgba(59,130,246,0.3)' : 'var(--border)'}`, 
                                       display: 'flex', 
-                                      justify: 'space-between', 
+                                      justifyContent: 'space-between', 
                                       alignItems: 'center', 
                                       gap: '1rem',
                                       cursor: 'pointer'
