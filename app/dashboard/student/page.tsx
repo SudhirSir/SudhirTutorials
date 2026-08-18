@@ -1353,7 +1353,7 @@ function StudentDashboardContent() {
                 const pending = fees.find(f => f.status === 'PENDING');
                 if (pending) handlePayOnline(pending, 'outstanding');
               }} className="btn-primary" style={{ padding: '0.85rem 1.6rem', fontSize: '0.95rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>
-                💳 Pay Total Outstanding (₹{totalOutstanding.toLocaleString('en-IN')})
+                💳 Pay Now
               </button>
             </div>
           )}
