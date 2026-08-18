@@ -242,7 +242,20 @@ function AdminDashboardContent() {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Analytics State
-  const [reportData, setReportData] = useState<{ enrollmentData: any[], revenueTrend: any[], attendanceRate: number } | null>(null);
+  const [reportData, setReportData] = useState<{
+    enrollmentData: any[];
+    revenueTrend: any[];
+    attendanceRate: number;
+    subjectPerformance?: any[];
+    scoreDistribution?: {
+      topAchieversPct: number;
+      satisfactoryPct: number;
+      supportNeededPct: number;
+      totalEvaluatedStudents: number;
+    };
+    overallAvgScore?: number;
+    submissionPromptness?: number;
+  } | null>(null);
   const [isReportsLoading, setIsReportsLoading] = useState(false);
 
   // System Settings States
