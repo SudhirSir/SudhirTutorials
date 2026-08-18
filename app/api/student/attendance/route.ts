@@ -52,14 +52,27 @@ export async function GET() {
       const recordDate = new Date(a.date);
       const dayOfWeek = recordDate.getDay();
       const batchSchedules = a.batch?.schedules || [];
-      const matchedSchedule = batchSchedules.find((s: any) => s.dayOfWeek === dayOfWeek) || batchSchedules[0];
+      const daySchedules = batchSchedules.filter((s: any) => s.dayOfWeek === dayOfWeek);
+      const activeSchedules = daySchedules.length > 0 ? daySchedules : batchSchedules;
 
-      const timeStr = matchedSchedule
-        ? `${matchedSchedule.startTime} - ${matchedSchedule.endTime}`
-        : '5:15 PM - 7:20 PM';
+      // 1. Time range: From first class start to last class end of the day
+      let timeStr = '5:15 PM - 7:20 PM';
+      if (activeSchedules.length > 0) {
+        const sorted = [...activeSchedules].sort((x: any, y: any) => (x.startTime || '').localeCompare(y.startTime || ''));
+        const startTime = sorted[0]?.startTime || '5:15 PM';
+        const endTime = sorted[sorted.length - 1]?.endTime || '7:20 PM';
+        timeStr = `${startTime} - ${endTime}`;
+      }
 
-      const subjectStr = matchedSchedule?.subject || a.batch?.subjects || 'General';
-      const teacherNames = a.batch?.teachers?.map((t: any) => t.name).filter(Boolean).join(', ') || 'Sudhir Sir';
+      // 2. Subjects: Comma separated list of all subjects held on that day
+      const daySubjects = activeSchedules.map((s: any) => s.subject).filter(Boolean);
+      const uniqueSubjects = Array.from(new Set(daySubjects));
+      const subjectStr = uniqueSubjects.length > 0 
+        ? uniqueSubjects.join(', ') 
+        : (a.batch?.subjects || 'General');
+
+      // 3. Single teacher name who marked attendance
+      const singleTeacherName = a.batch?.teachers?.[0]?.name || 'Sudhir Sir';
 
       return {
         id: a.id,
@@ -67,7 +80,7 @@ export async function GET() {
         status: a.status,
         time: timeStr,
         subject: subjectStr,
-        teacherName: teacherNames,
+        teacherName: singleTeacherName,
         batchName: a.batch?.name || 'Assigned Batch'
       };
     });
