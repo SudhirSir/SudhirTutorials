@@ -396,7 +396,7 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
-  z-index: 999990;
+  z-index: 900000;
   animation: fadeIn 0.25s ease-out;
 }
 
@@ -412,7 +412,7 @@
   border-top-right-radius: 20px;
   border: 1px solid var(--border);
   border-bottom: none;
-  z-index: 999999;
+  z-index: 900005;
   display: flex;
   flex-direction: column;
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);

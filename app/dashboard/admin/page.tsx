@@ -5142,7 +5142,7 @@ function AdminDashboardContent() {
                   ).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
                   return (
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 999995, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 950000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
                       <div className="glass-card" style={{ width: '100%', maxWidth: '520px', padding: '1.5rem', background: 'var(--surface)', borderRadius: '18px', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                           <div>
@@ -9039,7 +9039,7 @@ function AdminDashboardContent() {
       )}
       {/* ── Receipt Modal ───────────────────────────── */}
       {activeReceipt && typeof window !== 'undefined' && createPortal(
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100010, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
             width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', margin: '2rem auto', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px', 
@@ -9217,7 +9217,7 @@ function AdminDashboardContent() {
 
       {/* ── Collect Payment Modal ───────────────────── */}
       {showPaymentModal && payingFee && typeof window !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100010, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 980000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '2rem', margin: 'auto' }}>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Collect Payment</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Student: <strong>{payingFee.student?.name}</strong> • {payingFee.billingMonth}</p>
@@ -9309,7 +9309,7 @@ function AdminDashboardContent() {
 
       {/* ── Edit Fee Record Modal (Admin corrective editing) ───────────────── */}
       {showEditFeeModal && editingFeeRecord && typeof window !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100010, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 980000, overflowY: 'auto', padding: '2rem 1rem' }}>
           <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', margin: 'auto', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
             <h2 style={{ fontSize: '1.6rem', margin: '0 0 0.5rem', fontWeight: 800, color: 'var(--text)' }}>✎ Edit Fee Record</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
