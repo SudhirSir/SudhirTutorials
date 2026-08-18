@@ -55,6 +55,8 @@ model User {
 
   @@index([role])
   @@index([isActive])
+  @@index([role, isActive])
+  @@index([createdAt])
 }
 
 model Message {
@@ -133,6 +135,7 @@ model StudentProfile {
   religion          String?
 
   @@index([className])
+  @@index([batch])
 }
 
 model TeacherProfile {
@@ -179,6 +182,8 @@ model Payment {
   @@index([createdAt])
   @@index([paidAt])
   @@index([receiptNo])
+  @@index([studentId, billingMonth])
+  @@index([studentId, status])
 }
 
 model Expense {

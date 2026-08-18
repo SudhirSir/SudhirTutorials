@@ -2082,7 +2082,7 @@ function TeacherDashboardContent() {
       {/* Marks Entry Modal */}
       {selectedTest && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '850px', padding: '2rem', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '850px', padding: '2rem', height: 'fit-content', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 800 }}>{selectedTest.isPublished ? 'View Marks' : 'Enter Marks'}: {selectedTest.title}</h2>
@@ -2109,7 +2109,7 @@ function TeacherDashboardContent() {
             </div>
 
             {/* Compact Table */}
-            <div style={{ flex: 1, overflowY: 'auto', maxHeight: '420px', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '1.25rem', background: 'rgba(0,0,0,0.1)' }}>
+            <div style={{ flex: '0 1 auto', overflowY: 'auto', maxHeight: '420px', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '1.25rem', background: 'rgba(0,0,0,0.1)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
                 <thead style={{ position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10, borderBottom: '1px solid var(--border)' }}>
                   <tr>

@@ -3162,15 +3162,22 @@ function AdminDashboardContent() {
 
         @media (max-width: 768px) {
           .modal-overlay-container {
-            padding: 0 !important;
+            padding: 0.5rem !important;
+            align-items: flex-start !important;
+            justify-content: center !important;
+            overflow-x: hidden !important;
+            box-sizing: border-box !important;
           }
           .user-details-modal-card {
-            padding: 1.25rem 1rem !important;
-            border-radius: 0px !important;
-            margin: 0 !important;
+            padding: 1.25rem 0.85rem !important;
+            border-radius: 16px !important;
+            margin: 0.5rem auto !important;
             width: 100% !important;
-            min-height: 100vh !important;
             max-width: 100% !important;
+            min-height: auto !important;
+            max-height: 90vh !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
           }
           .user-details-modal-grid-2col {
             grid-template-columns: 1fr !important;
@@ -4351,32 +4358,9 @@ function AdminDashboardContent() {
               <div className="glass-card" style={{ padding: '1.25rem 1.5rem', position: 'relative', zIndex: 1 }}>
                 
                 {/* Header Title & Subtitle */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div>
-                    <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>Fee Ledger & Collections</h2>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Track, collect, and verify all student payments</p>
-                  </div>
-
-                  {/* Open / Collapse Ledger Toggle */}
-                  <button
-                    onClick={() => setIsLedgerListOpen(!isLedgerListOpen)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: '10px',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: isLedgerListOpen ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                      color: isLedgerListOpen ? '#ef4444' : '#10b981',
-                      border: `1px solid ${isLedgerListOpen ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem'
-                    }}
-                  >
-                    {isLedgerListOpen ? '↩️ Collapse View' : '📂 Open Ledger Table'}
-                  </button>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 800 }}>Fee Ledger & Collections</h2>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Track, collect, and verify all student payments</p>
                 </div>
 
                 {/* Filter Control Bar */}
@@ -4555,61 +4539,10 @@ function AdminDashboardContent() {
                         <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
-
-                    <button
-                      onClick={() => setFinanceSubTab('ASSIGN')}
-                      style={{
-                        padding: '0.65rem 1.25rem',
-                        borderRadius: '10px',
-                        background: '#10b981',
-                        color: 'white',
-                        border: 'none',
-                        fontWeight: 800,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      ➕ Assign Fee
-                    </button>
                   </div>
                 </div>
 
-                {!isLedgerListOpen ? (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    padding: '1.25rem 1.5rem', 
-                    border: '1px dashed var(--border)', 
-                    borderRadius: '14px', 
-                    background: 'rgba(255,255,255,0.01)', 
-                    gap: '1rem',
-                    flexWrap: 'wrap'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '1.75rem' }}>📁</span>
-                      <div style={{ textAlign: 'left' }}>
-                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Ledger Collection View</h4>
-                        <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          Click to load and view all student fee invoices & collections.
-                        </p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => setIsLedgerListOpen(true)}
-                      className="btn-primary"
-                      style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', borderRadius: '10px' }}
-                    >
-                      📂 Open Fee Ledger
-                    </button>
-                  </div>
-                ) : (
-                  <div>
+                <div>
 
                     {/* View Mode: ALL RECORDS or PENDING FEES */}
                     {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (() => {
@@ -5201,7 +5134,6 @@ function AdminDashboardContent() {
                       </div>
                     )}
                   </div>
-                )}
               </div>
 
               {/* --- COLLECT PENDING BILLS SELECTOR MODAL --- */}
@@ -7161,7 +7093,7 @@ function AdminDashboardContent() {
 
       {selectedTest && typeof window !== 'undefined' && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 99999 }}>
-          <div className="animate-slide-up" style={{ width: '100%', maxWidth: '100%', height: '92vh', maxHeight: '92vh', background: 'var(--card-bg)', borderTop: '2px solid var(--primary)', borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', padding: '1.75rem 2rem 2rem', boxShadow: '0 -10px 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+          <div className="animate-slide-up" style={{ width: '100%', maxWidth: '100%', height: 'fit-content', maxHeight: '90vh', background: 'var(--card-bg)', borderTop: '2px solid var(--primary)', borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', padding: '1.75rem 2rem 2rem', boxShadow: '0 -10px 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 800 }}>Enter Student Marks: {selectedTest.title}</h2>
@@ -7187,7 +7119,7 @@ function AdminDashboardContent() {
             </div>
 
             {/* Compact Student Marks Table with Sticky Header & Auto Scroll */}
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '1rem', background: 'rgba(0,0,0,0.1)' }}>
+            <div style={{ flex: '0 1 auto', overflowY: 'auto', maxHeight: '420px', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '1rem', background: 'rgba(0,0,0,0.1)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                 <thead style={{ position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10, borderBottom: '1px solid var(--border)' }}>
                   <tr>
@@ -8424,8 +8356,8 @@ function AdminDashboardContent() {
         document.body
       )}
       {showProfileModal && editingProfile && typeof window !== 'undefined' && createPortal(
-        <div className="modal-overlay-container" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem', overflowY: 'auto' }}>
-          <div className="glass-card user-details-modal-card" style={{ width: '95%', maxWidth: '850px', maxHeight: '92vh', overflowY: 'auto', padding: '2rem', border: '1px solid var(--primary)', margin: 'auto', borderRadius: '24px', background: 'var(--card-bg)' }}>
+        <div className="modal-overlay-container" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 99999, padding: '1rem 0.5rem', overflowY: 'auto', overflowX: 'hidden' }}>
+          <div className="glass-card user-details-modal-card" style={{ width: '95%', maxWidth: '850px', maxHeight: '90vh', overflowY: 'auto', overflowX: 'hidden', padding: '2rem', border: '1px solid var(--primary)', margin: 'auto', borderRadius: '24px', background: 'var(--card-bg)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                <div>
                  <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{editingProfile.role === 'STUDENT' ? 'Student' : editingProfile.role === 'TEACHER' ? 'Teacher' : 'Admin'} Profile Editor</h2>

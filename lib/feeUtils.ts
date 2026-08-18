@@ -72,17 +72,8 @@ export function generateReceiptNo(payment: any, serial?: number | string): strin
     num = serial;
   } else if (typeof serial === 'string' && !isNaN(parseInt(serial, 10)) && parseInt(serial, 10) > 0) {
     num = parseInt(serial, 10);
-  } else if (payment.seqIndex && typeof payment.seqIndex === 'number') {
+  } else if (payment.seqIndex && typeof payment.seqIndex === 'number' && payment.seqIndex > 0) {
     num = 1000 + payment.seqIndex;
-  } else if (payment.id) {
-    // Stable deterministic hash based on unique payment.id
-    let hash = 0;
-    const str = String(payment.id);
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash |= 0;
-    }
-    num = 1001 + (Math.abs(hash) % 8999);
   }
 
   const serialStr = String(num).padStart(4, '0');

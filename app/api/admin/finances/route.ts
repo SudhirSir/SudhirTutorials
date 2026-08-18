@@ -105,10 +105,6 @@ export async function GET(req: Request) {
       let receiptNo = fee.receiptNo;
       if (!receiptNo || typeof receiptNo !== 'string' || receiptNo.trim().length === 0) {
         receiptNo = generateReceiptNo(fee);
-        withDbRetry(() => prisma.payment.update({
-          where: { id: fee.id },
-          data: { receiptNo }
-        })).catch(err => console.error("Error auto-persisting receiptNo in admin finances API:", err));
       }
       const effectiveDiscount = fee.discount;
 

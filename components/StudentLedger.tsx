@@ -579,73 +579,7 @@ export function StudentLedger({
       {/* 12-MONTH GRID */}
       {viewType === 'month' && (
         <div>
-          {!showMonthlyDetails ? (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '3.5rem 2rem',
-              background: 'var(--surface-light)',
-              borderRadius: '16px',
-              border: '1px dashed var(--border)',
-              textAlign: 'center',
-              gap: '1rem',
-              transition: 'all 0.3s ease'
-            }}>
-              <div style={{ fontSize: '3rem', animation: 'bounce-slow 3s infinite' }}>📂</div>
-              <div>
-                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)' }}>Monthly Fee Structure</h4>
-                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>View month-by-month details, billing status, and fine statements for {selectedYear}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowMonthlyDetails(true)}
-                className="btn-secondary"
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-              >
-                📂 Open Monthly Fee Details
-              </button>
-              <style>{`
-                @keyframes bounce-slow {
-                  0%, 100% { transform: translateY(0); }
-                  50% { transform: translateY(-6px); }
-                }
-              `}</style>
-            </div>
-          ) : (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowMonthlyDetails(false)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    borderRadius: '8px',
-                    color: '#ef4444',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  📁 Hide Monthly Details
-                </button>
-              </div>
-              <div className="monthly-fee-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+          <div className="monthly-fee-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
                 {monthlyLedger.map(({ month, record }) => {
                   const hasRecord = !!record;
                   const status = record?.status || 'NO_RECORD';
@@ -788,19 +722,12 @@ export function StudentLedger({
                               )}
                             </div>
                           </div>
-                          {record.paidAt && (
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'right' }}>
-                              Paid {new Date(record.paidAt).toLocaleDateString('en-GB')}
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
                   );
                 })}
               </div>
-            </div>
-          )}
         </div>
       )}
 

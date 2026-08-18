@@ -423,188 +423,170 @@ export function NotificationsPanel({
                   </div>
                 )}
 
-                {/* Selected Recipient Pills */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', minHeight: '38px', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', alignItems: 'center' }}>
-                  {selectedTargets.length === 0 ? (
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '0.5rem' }}>No recipients selected. Please click dropdown above to check recipients.</span>
-                  ) : (
-                    selectedTargets.map(targetId => {
-                      const opt = targetOptions.find(t => t.id === targetId);
-                      const label = opt ? opt.label : targetId;
-                      return (
-                        <span
-                          key={targetId}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.4rem',
-                            padding: '4px 12px',
-                            borderRadius: '100px',
-                            background: 'rgba(59,130,246,0.15)',
-                            border: '1px solid rgba(59,130,246,0.3)',
-                            color: 'var(--secondary)',
-                            fontSize: '0.8rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          ✓ {label}
-                          <button
-                            type="button"
-                            onClick={() => toggleTarget(targetId)}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.9rem', cursor: 'pointer', padding: 0, marginLeft: '2px', display: 'flex', alignItems: 'center' }}
-                            title="Remove recipient"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      );
-                    })
-                  )}
+                    {/* Selected Recipient Summary Label */}
+                    {selectedTargets.length > 0 && (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--secondary)', fontWeight: 600, fontStyle: 'italic', paddingLeft: '0.25rem' }}>
+                        Selected: {selectedTargets.map(t => targetOptions.find(o => o.id === t)?.label || t).join(', ')}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+              <Textarea
+                label="Message Content"
+                required
+                placeholder="Write your notification message here..."
+                value={composeMsg}
+                onChange={e => setComposeMsg(e.target.value)}
+                rows={3}
+              />
+              
+              <Button type="submit" isLoading={composing} variant="primary" style={{ alignSelf: 'flex-end', padding: '0.75rem 1.5rem' }}>
+                🚀 Send Notification ({selectedTargets.length} selected)
+              </Button>
+            </form>
+          </Card>
+        )}
+
+        {/* Sent / Received Navigation */}
+        {(role === 'ADMIN' || role === 'TEACHER') && (
+          <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
+            <button 
+              type="button"
+              onClick={() => { setLoading(true); setPanelTab('received'); }}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '8px',
+                border: '1px solid ' + (panelTab === 'received' ? 'var(--primary)' : 'var(--border)'),
+                background: panelTab === 'received' ? 'var(--primary)' : 'transparent',
+                color: panelTab === 'received' ? '#ffffff' : 'var(--text-muted)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Inbox
+            </button>
+            <button 
+              type="button"
+              onClick={() => { setLoading(true); setPanelTab('sent'); }}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '8px',
+                border: '1px solid ' + (panelTab === 'sent' ? 'var(--primary)' : 'var(--border)'),
+                background: panelTab === 'sent' ? 'var(--primary)' : 'transparent',
+                color: panelTab === 'sent' ? '#ffffff' : 'var(--text-muted)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Sent Notices
+            </button>
+          </div>
+        )}
+
+        {/* Notifications List */}
+        <Card variant="glass" style={{ padding: 0, overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ padding: '3rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+              <Spinner size="md" />
+              <span className="input-label">Loading notifications...</span>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div style={{ padding: '4rem', textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>
+                {panelTab === 'sent' ? 'No sent broadcasts' : 'No notifications yet'}
+              </div>
+              <div className="input-label">
+                {panelTab === 'sent' ? 'Broadcast notices to see them listed here.' : "You'll see messages from admin and teachers here."}
               </div>
             </div>
+          ) : (
+            <>
+              {notifications.slice(0, visibleCount).map((n, i) => {
+                const { cleanMessage, screenshot, email } = parseNotificationMessage(n.message);
+                const badgeType = n.type === 'FEE' || n.type === 'REPORT' ? 'danger' : n.type === 'ALERT' ? 'warning' : n.type === 'MESSAGE' ? 'success' : 'info';
 
-            <Textarea
-              label="Message Content"
-              required
-              placeholder="Write your notification message here..."
-              value={composeMsg}
-              onChange={e => setComposeMsg(e.target.value)}
-              rows={3}
-            />
-            
-            <Button type="submit" isLoading={composing} variant="primary" style={{ alignSelf: 'flex-end', padding: '0.75rem 1.5rem' }}>
-              🚀 Send Notification ({selectedTargets.length} selected)
-            </Button>
-          </form>
-        </Card>
-      )}
-
-      {/* Sent / Received Navigation */}
-      {(role === 'ADMIN' || role === 'TEACHER') && (
-        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
-          <button 
-            type="button"
-            onClick={() => { setLoading(true); setPanelTab('received'); }}
-            style={{
-              padding: '0.35rem 0.85rem',
-              borderRadius: '8px',
-              border: '1px solid ' + (panelTab === 'received' ? 'var(--primary)' : 'var(--border)'),
-              background: panelTab === 'received' ? 'var(--primary)' : 'transparent',
-              color: panelTab === 'received' ? '#ffffff' : 'var(--text-muted)',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            Inbox
-          </button>
-          <button 
-            type="button"
-            onClick={() => { setLoading(true); setPanelTab('sent'); }}
-            style={{
-              padding: '0.35rem 0.85rem',
-              borderRadius: '8px',
-              border: '1px solid ' + (panelTab === 'sent' ? 'var(--primary)' : 'var(--border)'),
-              background: panelTab === 'sent' ? 'var(--primary)' : 'transparent',
-              color: panelTab === 'sent' ? '#ffffff' : 'var(--text-muted)',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            Sent Notices
-          </button>
-        </div>
-      )}
-
-      {/* Notifications List */}
-      <Card variant="glass" style={{ padding: 0, overflow: 'hidden' }}>
-        {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-            <Spinner size="md" />
-            <span className="input-label">Loading notifications...</span>
-          </div>
-        ) : notifications.length === 0 ? (
-          <div style={{ padding: '4rem', textAlign: 'center' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>
-              {panelTab === 'sent' ? 'No sent broadcasts' : 'No notifications yet'}
-            </div>
-            <div className="input-label">
-              {panelTab === 'sent' ? 'Broadcast notices to see them listed here.' : "You'll see messages from admin and teachers here."}
-            </div>
-          </div>
-        ) : (
-          <>
-            {notifications.slice(0, visibleCount).map((n, i) => {
-              const { cleanMessage, screenshot, email } = parseNotificationMessage(n.message);
-              const badgeType = n.type === 'FEE' || n.type === 'REPORT' ? 'danger' : n.type === 'ALERT' ? 'warning' : n.type === 'MESSAGE' ? 'success' : 'info';
-
-              return (
-                <div
-                  key={n.id}
-                  onClick={() => panelTab === 'received' && !n.isRead && markOneRead(n.id)}
-                  style={{
-                    padding: '0.85rem 1rem',
-                    borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
-                    background: (panelTab === 'received' && !n.isRead) ? 'var(--surface-light)' : 'transparent',
-                    cursor: (panelTab === 'received' && !n.isRead) ? 'pointer' : 'default',
-                    transition: 'background 0.2s',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                      <span style={{ fontWeight: n.isRead ? 600 : 800, color: 'var(--text-heading)', fontSize: '0.95rem' }}>
-                        {n.title}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                        <span className="input-label" style={{ fontSize: '0.75rem' }}>{timeAgo(n.createdAt)}</span>
-                      </div>
-                    </div>
-                    <p className="input-label" style={{ margin: '0.3rem 0 0 0', fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
-                      {cleanMessage}
-                    </p>
-                    
-                    {email && (
-                      <div className="input-label" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-                        Contact Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
-                      </div>
-                    )}
-
-                    {screenshot && (
-                      <div style={{ marginTop: '0.5rem' }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); setLightboxImg(screenshot); }}
-                        >
-                          View Attachment
-                        </Button>
-                      </div>
-                    )}
-
-                    {(() => {
-                      let senderLabel = 'Admin';
-                      if (n.sender) {
-                        if (n.sender.role === 'TEACHER') {
-                          senderLabel = n.sender.name || 'Teacher';
-                        } else if (n.sender.role === 'ADMIN') {
-                          senderLabel = 'Admin';
-                        } else {
-                          senderLabel = n.sender.name || 'Admin';
-                        }
-                      } else if (n.type && n.type !== 'SYSTEM') {
-                        senderLabel = n.type;
-                      }
-
-                      return (
-                        <div style={{ marginTop: '0.5rem' }}>
-                          <Badge variant={badgeType}>{senderLabel}</Badge>
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => panelTab === 'received' && !n.isRead && markOneRead(n.id)}
+                    style={{
+                      padding: '0.85rem 1rem',
+                      borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
+                      background: (panelTab === 'received' && !n.isRead) ? 'var(--surface-light)' : 'transparent',
+                      cursor: (panelTab === 'received' && !n.isRead) ? 'pointer' : 'default',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                        <span style={{ fontWeight: n.isRead ? 600 : 800, color: 'var(--text-heading)', fontSize: '0.95rem' }}>
+                          {n.title}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                          <span className="input-label" style={{ fontSize: '0.75rem' }}>{timeAgo(n.createdAt)}</span>
                         </div>
-                      );
-                    })()}
+                      </div>
+                      <p className="input-label" style={{ margin: '0.3rem 0 0 0', fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                        {cleanMessage}
+                      </p>
+                      
+                      {email && (
+                        <div className="input-label" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                          Contact Email: <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{email}</span>
+                        </div>
+                      )}
+
+                      {screenshot && (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); setLightboxImg(screenshot); }}
+                          >
+                            View Attachment
+                          </Button>
+                        </div>
+                      )}
+
+                      {(() => {
+                        let senderLabel = 'Admin';
+                        if (n.sender) {
+                          if (n.sender.role === 'TEACHER') {
+                            senderLabel = n.sender.name || 'Teacher';
+                          } else if (n.sender.role === 'ADMIN') {
+                            senderLabel = 'Admin';
+                          } else {
+                            senderLabel = n.sender.name || 'Admin';
+                          }
+                        } else if (n.type && n.type !== 'SYSTEM') {
+                          senderLabel = n.type;
+                        }
+
+                        return (
+                          <div style={{ marginTop: '0.35rem' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.4px',
+                              background: badgeType === 'danger' ? 'rgba(239,68,68,0.1)' : badgeType === 'warning' ? 'rgba(245,158,11,0.1)' : 'rgba(59,130,246,0.1)',
+                              color: badgeType === 'danger' ? '#ef4444' : badgeType === 'warning' ? '#f59e0b' : 'var(--secondary)',
+                              border: `1px solid ${badgeType === 'danger' ? 'rgba(239,68,68,0.25)' : badgeType === 'warning' ? 'rgba(245,158,11,0.25)' : 'rgba(59,130,246,0.25)'}`
+                            }}>
+                              {senderLabel}
+                            </span>
+                          </div>
+                        );
+                      })()}
                   </div>
                 </div>
               );
