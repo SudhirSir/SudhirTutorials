@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { generateReceiptNo } from '@/lib/feeUtils';
 
 interface StudentLedgerProps {
   studentId?: string;
@@ -140,7 +141,7 @@ export function StudentLedger({
         postings.push({
           date: new Date(fee.paidAt || fee.createdAt),
           description: `Payment Received – ${fee.paymentMethod || 'Online'}`,
-          reference: fee.receiptNo || '–',
+          reference: fee.receiptNo || generateReceiptNo(fee),
           type: 'CREDIT',
           debit: 0,
           credit: creditAmt,
@@ -503,6 +504,15 @@ export function StudentLedger({
     [fees, getParsedFeeDetails]
   );
 
+  const totalPendingLedger = useMemo(() => {
+    return fees.reduce((sum, f) => {
+      if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return sum;
+      const fineVal = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+      const rem = Math.max(0, f.amount + fineVal - (f.discount || 0) - (f.paidAmount || 0));
+      return sum + rem;
+    }, 0);
+  }, [fees]);
+
   const TAB_STYLE = (active: boolean): React.CSSProperties => ({
     padding: '0.35rem 0.75rem', borderRadius: '8px', border: 'none',
     background: active ? 'var(--primary)' : 'transparent',
@@ -525,7 +535,14 @@ export function StudentLedger({
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)' }}>Financial Fee Ledger</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)' }}>Financial Fee Ledger</h3>
+            {totalPendingLedger > 0 && (
+              <span style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                Total Pending: ₹{totalPendingLedger.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
           <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Complete historical transactions and billing overview</p>
         </div>
 
@@ -953,7 +970,7 @@ export function StudentLedger({
                       {new Date(p.paidAt || p.createdAt).toLocaleDateString('en-GB')}
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 700 }}>
-                      {p.receiptNo || `REC-${p.id.slice(-6).toUpperCase()}`}
+                      {p.receiptNo || generateReceiptNo(p)}
                     </td>
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--text)' }}>{p.title || 'Monthly Fee'}</div>

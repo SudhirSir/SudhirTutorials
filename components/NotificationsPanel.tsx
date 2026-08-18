@@ -88,6 +88,7 @@ export function NotificationsPanel({
   const [composeTitle, setComposeTitle] = useState('');
   const [composeMsg, setComposeMsg] = useState('');
   const [selectedTargets, setSelectedTargets] = useState<string[]>(['STUDENT', 'TEACHER']);
+  const [isTargetDropdownOpen, setIsTargetDropdownOpen] = useState(false);
   const [availableBatches, setAvailableBatches] = useState<any[]>([]);
   const [composing, setComposing] = useState(false);
   const [composeSuccess, setComposeSuccess] = useState('');
@@ -331,42 +332,97 @@ export function NotificationsPanel({
                 </div>
               </div>
 
-              {/* Recipient Dropdown Selector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <select
+              {/* Recipient Multi-Select Dropdown with Checkbox Ticks */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative' }}>
+                <div 
+                  onClick={() => setIsTargetDropdownOpen(!isTargetDropdownOpen)}
                   style={{
                     width: '100%',
                     padding: '0.85rem 1rem',
                     borderRadius: '12px',
                     background: 'var(--input-bg)',
-                    border: '1px solid var(--border)',
+                    border: `1px solid ${isTargetDropdownOpen ? 'var(--primary)' : 'var(--border)'}`,
                     color: 'var(--text)',
                     fontSize: '0.9rem',
                     fontWeight: 600,
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!val) return;
-                    if (!selectedTargets.includes(val)) {
-                      setSelectedTargets(prev => [...prev, val]);
-                    }
-                    e.target.value = '';
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justify: 'space-between',
+                    alignItems: 'center',
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <option value="">➕ Add Recipient Group (Select from list)...</option>
-                  {targetOptions.map(opt => (
-                    <option key={opt.id} value={opt.id} disabled={selectedTargets.includes(opt.id)}>
-                      {opt.label} {selectedTargets.includes(opt.id) ? '✓ (Selected)' : ''}
-                    </option>
-                  ))}
-                </select>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>📥 Target Recipients</span>
+                    <span style={{ fontSize: '0.75rem', background: 'rgba(59,130,246,0.15)', color: 'var(--secondary)', padding: '2px 8px', borderRadius: '100px', fontWeight: 800 }}>
+                      {selectedTargets.length} selected
+                    </span>
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{isTargetDropdownOpen ? '▲' : '▼'}</span>
+                </div>
+
+                {isTargetDropdownOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    left: 0,
+                    right: 0,
+                    zIndex: 999,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '14px',
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                    padding: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0.6rem 0.6rem 0.6rem', borderBottom: '1px solid var(--border)', marginBottom: '0.4rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Select Target Groups</span>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsTargetDropdownOpen(false)} 
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                      >
+                        Done ✓
+                      </button>
+                    </div>
+
+                    {targetOptions.map(opt => {
+                      const isSelected = selectedTargets.includes(opt.id);
+                      return (
+                        <div
+                          key={opt.id}
+                          onClick={() => toggleTarget(opt.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.6rem 0.75rem',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            background: isSelected ? 'rgba(59,130,246,0.1)' : 'transparent',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--primary)' }}
+                          />
+                          <span style={{ fontSize: '0.88rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--text)' : 'var(--text-muted)' }}>
+                            {opt.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Selected Recipient Pills */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', minHeight: '38px', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', alignItems: 'center' }}>
                   {selectedTargets.length === 0 ? (
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '0.5rem' }}>No recipients selected. Please choose from dropdown above.</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '0.5rem' }}>No recipients selected. Please click dropdown above to check recipients.</span>
                   ) : (
                     selectedTargets.map(targetId => {
                       const opt = targetOptions.find(t => t.id === targetId);
@@ -387,7 +443,7 @@ export function NotificationsPanel({
                             fontWeight: 700
                           }}
                         >
-                          {label}
+                          ✓ {label}
                           <button
                             type="button"
                             onClick={() => toggleTarget(targetId)}
@@ -525,9 +581,26 @@ export function NotificationsPanel({
                       </div>
                     )}
 
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <Badge variant={badgeType}>{n.type}</Badge>
-                    </div>
+                    {(() => {
+                      let senderLabel = 'Admin';
+                      if (n.sender) {
+                        if (n.sender.role === 'TEACHER') {
+                          senderLabel = n.sender.name || 'Teacher';
+                        } else if (n.sender.role === 'ADMIN') {
+                          senderLabel = 'Admin';
+                        } else {
+                          senderLabel = n.sender.name || 'Admin';
+                        }
+                      } else if (n.type && n.type !== 'SYSTEM') {
+                        senderLabel = n.type;
+                      }
+
+                      return (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <Badge variant={badgeType}>{senderLabel}</Badge>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );

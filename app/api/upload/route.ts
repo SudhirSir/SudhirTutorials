@@ -34,20 +34,32 @@ export async function POST(req: Request) {
     const rawName = file.name || 'uploaded_notes.pdf';
     const filename = `${uniqueSuffix}-${rawName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
-    // Save to public/uploads
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
+    // Save to public/uploads with Data URI fallback for serverless Vercel
+    try {
+      const uploadDir = join(process.cwd(), 'public', 'uploads');
+      
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true });
+      }
+
+      const filepath = join(uploadDir, filename);
+      await writeFile(filepath, buffer);
+
+      return NextResponse.json({ 
+        success: true, 
+        fileUrl: `/uploads/${filename}` 
+      });
+    } catch (fsError: any) {
+      console.warn("Local filesystem write failed (serverless/read-only environment), using Data URI fallback:", fsError?.message || fsError);
+      const mimeType = file.type || (filename.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+      const base64Data = buffer.toString('base64');
+      const dataUrl = `data:${mimeType};base64,${base64Data}`;
+
+      return NextResponse.json({ 
+        success: true, 
+        fileUrl: dataUrl 
+      });
     }
-
-    const filepath = join(uploadDir, filename);
-    await writeFile(filepath, buffer);
-
-    return NextResponse.json({ 
-      success: true, 
-      fileUrl: `/uploads/${filename}` 
-    });
 
   } catch (error: any) {
     console.error('Upload Error:', error);

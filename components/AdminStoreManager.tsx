@@ -194,7 +194,7 @@ export function AdminStoreManager() {
       setUploadingFile(true);
       let finalFileUrl = fileUrl;
 
-      if (type === "NOTES" && selectedFile) {
+      if (selectedFile) {
         const formData = new FormData();
         formData.append("file", selectedFile);
         try {
@@ -589,14 +589,17 @@ export function AdminStoreManager() {
 
           <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
 
-          {type === "NOTES" && (
-            <div>
-              <label className="input-label" style={{ marginBottom: "0.5rem", display: "block" }}>
-                Upload PDF File
-              </label>
-              <input type="file" accept=".pdf" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
-            </div>
-          )}
+          <div>
+            <label className="input-label" style={{ marginBottom: "0.4rem", display: "block", fontWeight: 700 }}>
+              Upload PDF File {type === "TEST_SERIES" ? "(Optional Test Paper / Notes PDF)" : "(Notes PDF)"}
+            </label>
+            <input type="file" accept=".pdf" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} style={{ width: '100%', padding: '0.5rem 0' }} />
+            {fileUrl && (
+              <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '0.35rem', fontWeight: 600 }}>
+                ✓ PDF File Attached {fileUrl.startsWith('data:') ? '(Embedded File)' : `(${fileUrl})`}
+              </div>
+            )}
+          </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <input type="checkbox" id="pubCheck" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />

@@ -44,6 +44,7 @@ model User {
   testResults        TestResult[]   @relation("StudentTestResults")
   materials          Material[]
   notifications      Notification[]
+  sentNotifications  Notification[] @relation("NotificationSender")
   salaryRecords      SalaryRecord[]
   doubtHistory       DoubtHistory[]
 
@@ -255,6 +256,7 @@ model Notification {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   senderId  String?
+  sender    User?    @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
   title     String
   message   String
   type      String   // SYSTEM, FEE, ALERT

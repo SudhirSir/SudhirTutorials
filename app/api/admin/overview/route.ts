@@ -16,7 +16,6 @@ export async function GET() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthName = now.toLocaleString('en-US', { month: 'long' });
-    const currentMonthStr = `${monthName} ${now.getFullYear()}`;
 
     const statsResult = await withDbRetry(async () => {
       const [
@@ -24,25 +23,24 @@ export async function GET() {
         totalTeachers,
         totalBatches,
         totalCourses,
-        paidPayments,
+        currentMonthFees,
         pendingPayments,
         classGroups
       ] = await Promise.all([
-        prisma.user.count({ where: { role: 'STUDENT', isStoreUser: false } }),
-        prisma.user.count({ where: { role: 'TEACHER', isStoreUser: false } }),
-        prisma.batch.count(),
-        prisma.course.count(),
+        prisma.user.count({ where: { role: 'STUDENT', NOT: { isStoreUser: true } } }).catch(() => 0),
+        prisma.user.count({ where: { role: 'TEACHER', NOT: { isStoreUser: true } } }).catch(() => 0),
+        prisma.batch.count().catch(() => 0),
+        prisma.course.count().catch(() => 0),
         prisma.payment.findMany({
           where: {
-            status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
             OR: [
               { paidAt: { gte: startOfMonth } },
               { createdAt: { gte: startOfMonth } },
               { billingMonth: { contains: monthName, mode: 'insensitive' } }
             ]
           },
-          select: { paidAmount: true, amount: true, lateFine: true, discount: true }
-        }),
+          select: { paidAmount: true, amount: true, lateFine: true, discount: true, status: true }
+        }).catch(() => []),
         prisma.payment.findMany({
           where: {
             NOT: {
@@ -50,25 +48,29 @@ export async function GET() {
             }
           },
           select: { amount: true, lateFine: true, discount: true, paidAmount: true }
-        }),
+        }).catch(() => []),
         prisma.studentProfile.groupBy({
           by: ['className'],
           _count: { userId: true },
           where: { className: { not: null } }
-        })
+        }).catch(() => [])
       ]);
 
-      const revenueThisMonth = paidPayments.reduce((sum, p) => {
-        return sum + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0)));
+      const revenueThisMonth = currentMonthFees.reduce((sum, f) => {
+        if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
+          return sum + (f.paidAmount || (f.amount + (f.lateFine || 0) - (f.discount || 0)));
+        }
+        return sum + (f.paidAmount || 0);
       }, 0);
 
       const pendingDues = pendingPayments.reduce((sum, p) => {
         const net = (p.amount || 0) + (p.lateFine || 0) - (p.discount || 0) - (p.paidAmount || 0);
         return sum + Math.max(0, net);
       }, 0);
+
       const classStats = classGroups.map(g => ({
         className: g.className || 'Unknown',
-        count: g._count.userId || 0
+        count: g._count?.userId || 0
       }));
 
       return {

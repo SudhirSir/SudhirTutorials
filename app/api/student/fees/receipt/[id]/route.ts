@@ -41,11 +41,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (!fee) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
 
     let receiptNo = fee.receiptNo;
-    if (!receiptNo || !receiptNo.includes('/')) {
-      const countBefore = await withDbRetry(() => prisma.payment.count({
-        where: { createdAt: { lte: fee.createdAt } }
-      }));
-      receiptNo = generateReceiptNo(fee, 1000 + countBefore);
+    if (!receiptNo || typeof receiptNo !== 'string' || receiptNo.trim().length === 0) {
+      receiptNo = generateReceiptNo(fee);
+      // Persist to DB so receipt number is 100% permanent
+      withDbRetry(() => prisma.payment.update({
+        where: { id: fee.id },
+        data: { receiptNo }
+      })).catch(err => console.error("Error persisting receiptNo:", err));
     }
 
     const enrichedFee = {

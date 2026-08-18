@@ -101,6 +101,7 @@ export async function POST(req: Request) {
         await withDbRetry(() => prisma.notification.createMany({
           data: enrolledStudents.map(student => ({
             userId: student.id,
+            senderId: session.user.id,
             title: '📚 New Material Uploaded',
             message: `A new ${type.toLowerCase()} "${title}" has been uploaded for "${material.course.name}".`,
             type: 'SYSTEM',

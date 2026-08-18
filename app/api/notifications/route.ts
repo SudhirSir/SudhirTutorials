@@ -31,6 +31,11 @@ export async function GET(req: Request) {
       const notifications = await withDbRetry(() => prisma.notification.findMany({
         where: { senderId: session.user.id },
         distinct: ['title', 'message', 'createdAt'],
+        include: {
+          sender: {
+            select: { id: true, name: true, role: true }
+          }
+        },
         orderBy: { createdAt: 'desc' },
         take: limit,
       }));
@@ -48,6 +53,11 @@ export async function GET(req: Request) {
 
     const notifications = await withDbRetry(() => prisma.notification.findMany({
       where: { userId: session.user.id },
+      include: {
+        sender: {
+          select: { id: true, name: true, role: true }
+        }
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
     }));

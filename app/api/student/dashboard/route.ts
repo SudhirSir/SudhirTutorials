@@ -76,15 +76,35 @@ export async function GET() {
           }
         }
       })),
-      // Only last 90 days of attendance to avoid full-table scans
       withDbRetry(() => prisma.attendance.findMany({
         where: {
           studentId,
-          date: { gte: ninetyDaysAgo }
         },
-        select: { id: true, date: true, status: true },
+        include: {
+          batch: {
+            select: {
+              id: true,
+              name: true,
+              className: true,
+              subjects: true,
+              schedules: {
+                select: {
+                  dayOfWeek: true,
+                  startTime: true,
+                  endTime: true,
+                  subject: true
+                }
+              },
+              teachers: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          }
+        },
         orderBy: { date: 'desc' },
-        take: 120, // cap at 120 records max
       })),
       // Only recent test results (last 50)
       withDbRetry(() => prisma.testResult.findMany({
@@ -158,6 +178,30 @@ export async function GET() {
     const totalMax = validTestResults.reduce((acc: number, r: any) => acc + (r.totalMarks || 100), 0);
     const averageScore = totalMax > 0 ? Math.round((totalObtained / totalMax) * 100) : null;
 
+    const enrichedAttendance = attendanceRecords.map((a: any) => {
+      const recordDate = new Date(a.date);
+      const dayOfWeek = recordDate.getDay();
+      const batchSchedules = a.batch?.schedules || [];
+      const matchedSchedule = batchSchedules.find((s: any) => s.dayOfWeek === dayOfWeek) || batchSchedules[0];
+
+      const timeStr = matchedSchedule
+        ? `${matchedSchedule.startTime} - ${matchedSchedule.endTime}`
+        : '5:15 PM - 7:20 PM';
+
+      const subjectStr = matchedSchedule?.subject || a.batch?.subjects || 'General';
+      const teacherNames = a.batch?.teachers?.map((t: any) => t.name).filter(Boolean).join(', ') || 'Sudhir Sir';
+
+      return {
+        id: a.id,
+        date: a.date,
+        status: a.status,
+        time: timeStr,
+        subject: subjectStr,
+        teacherName: teacherNames,
+        batchName: a.batch?.name || 'Assigned Batch'
+      };
+    });
+
     return NextResponse.json({
       name: user.name,
       batches: user.studentBatches,
@@ -167,7 +211,7 @@ export async function GET() {
         percentage: attendancePercent,
         total: totalDays,
         present: presentDays,
-        history: attendanceRecords.slice(0, 10), // last 10 for display
+        history: enrichedAttendance,
       },
       testStats: {
         totalTests,

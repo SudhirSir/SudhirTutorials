@@ -58,20 +58,31 @@ export function getGradeLetterCode(classNameStr?: string | null): string {
 
 export function generateReceiptNo(payment: any, serial?: number | string): string {
   if (!payment) return '2026/A/1001';
-  if (payment.receiptNo && payment.receiptNo.includes('/')) return payment.receiptNo;
+  if (payment.receiptNo && typeof payment.receiptNo === 'string' && payment.receiptNo.trim().length > 0) {
+    return payment.receiptNo;
+  }
 
   const paidYear = new Date(payment.paidAt || payment.createdAt || new Date()).getFullYear();
-  const studentProfile = payment.student?.studentProfile;
+  const studentProfile = payment.student?.studentProfile || payment.studentProfile;
   const className = studentProfile?.className || studentProfile?.grade || '1st';
   const gradeCode = getGradeLetterCode(className);
 
   let num = 1001;
-  if (typeof serial === 'number') {
+  if (typeof serial === 'number' && serial > 0) {
     num = serial;
-  } else if (typeof serial === 'string' && !isNaN(parseInt(serial, 10))) {
+  } else if (typeof serial === 'string' && !isNaN(parseInt(serial, 10)) && parseInt(serial, 10) > 0) {
     num = parseInt(serial, 10);
   } else if (payment.seqIndex && typeof payment.seqIndex === 'number') {
     num = 1000 + payment.seqIndex;
+  } else if (payment.id) {
+    // Stable deterministic hash based on unique payment.id
+    let hash = 0;
+    const str = String(payment.id);
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    num = 1001 + (Math.abs(hash) % 8999);
   }
 
   const serialStr = String(num).padStart(4, '0');

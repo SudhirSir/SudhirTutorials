@@ -77,6 +77,17 @@ export function StudentPurchases() {
                 </a>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {item.fileUrl && (
+                    <a 
+                      href={item.fileUrl} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="btn-ui btn-primary btn-full"
+                      style={{ textDecoration: 'none', textAlign: 'center', marginBottom: '0.25rem' }}
+                    >
+                      📄 Open / Download PDF Paper
+                    </a>
+                  )}
                   {item.onlineTests?.map((test: any) => (
                     <div key={test.id} className="card-ui" style={{ padding: '0.75rem', gap: '0.5rem', display: 'flex', flexDirection: 'column' }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-heading)' }}>

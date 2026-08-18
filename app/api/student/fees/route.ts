@@ -46,12 +46,6 @@ export async function GET() {
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();
 
-    const feesAsc = [...rawFees].sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    const seqMap = new Map<string, number>();
-    feesAsc.forEach((f: any, idx: number) => {
-      seqMap.set(f.id, 1001 + idx);
-    });
-
     const now = new Date();
     const fees = rawFees.map((fee: any) => {
       const effectiveDueDate = fee.dueDate;
@@ -66,7 +60,14 @@ export async function GET() {
         : fee.lateFine;
 
       const effectiveDiscount = fee.discount;
-      const receiptNo = generateReceiptNo(fee, seqMap.get(fee.id));
+      let receiptNo = fee.receiptNo;
+      if (!receiptNo || typeof receiptNo !== 'string' || receiptNo.trim().length === 0) {
+        receiptNo = generateReceiptNo(fee);
+        withDbRetry(() => prisma.payment.update({
+          where: { id: fee.id },
+          data: { receiptNo }
+        })).catch(err => console.error("Error auto-persisting receiptNo in student fees API:", err));
+      }
 
       return {
         ...fee,

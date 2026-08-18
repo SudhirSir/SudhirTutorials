@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
+import { generateReceiptNo } from '@/lib/feeUtils';
 import { Capacitor } from '@capacitor/core';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -1402,6 +1403,8 @@ function AdminDashboardContent() {
   const [ledgerFilterYear, setLedgerFilterYear] = useState<string>('ALL');
   const [selectedLedgerMobileStudent, setSelectedLedgerMobileStudent] = useState<any>(null);
   const [collectModalStudent, setCollectModalStudent] = useState<any>(null);
+  const [selectedCollectFeeIds, setSelectedCollectFeeIds] = useState<string[]>([]);
+  const [feeCategoryCustomTitle, setFeeCategoryCustomTitle] = useState<string>('');
   const [feesError, setFeesError] = useState<string | null>(null);
 
   // Generate 36 months for Assign Fee billing month select dropdown
@@ -1768,7 +1771,7 @@ function AdminDashboardContent() {
         type: addFeeMode,
         amount: feeAmount,
         billingMonth: feeBillingMonth,
-        title: feeTitle
+        title: feeTitle === 'Others' ? (feeCategoryCustomTitle.trim() || 'Others') : feeTitle
       };
 
       if (feeDueDate) payload.dueDate = feeDueDate;
@@ -2062,11 +2065,11 @@ function AdminDashboardContent() {
       const net = totalIn - (totalExp + totalSal);
 
       tempElement = document.createElement('div');
-      tempElement.style.position = 'absolute';
+      tempElement.style.position = 'fixed';
+      tempElement.style.left = '-9999px';
       tempElement.style.top = '0';
-      tempElement.style.left = '0';
-      tempElement.style.zIndex = '-9999';
-      tempElement.style.width = '800px';
+      tempElement.style.zIndex = '9999';
+      tempElement.style.width = '820px';
       tempElement.style.padding = '30px';
       tempElement.style.background = '#ffffff';
       tempElement.style.color = '#1f2937';
@@ -2082,7 +2085,7 @@ function AdminDashboardContent() {
       const transactions = [
         ...inflow.map(f => ({
           date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
-          ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
+          ref: f.receiptNo || generateReceiptNo(f),
           desc: `Fee Collected - ${f.student?.name || 'Student'} (${f.student?.username || ''}) - ${f.billingMonth} [${f.title}]`,
           type: 'FEE_INFLOW',
           inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
@@ -3387,10 +3390,10 @@ function AdminDashboardContent() {
           {/* Key Metrics Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {[
-              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : 0, icon: '👥', color: '#ef4444' },
-              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : 0, icon: '👨‍🏫', color: '#10b981' },
-              { label: 'Revenue This Month', value: overviewStats ? `₹${overviewStats.revenueThisMonth.toLocaleString()}` : '₹0', icon: '💰', color: '#3b82f6' },
-              { label: 'Pending Dues', value: overviewStats ? `₹${overviewStats.pendingDues.toLocaleString()}` : '₹0', icon: '⚠️', color: '#ef4444' }
+              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : (isLoadingOverview ? '--' : 0), icon: '👥', color: '#ef4444' },
+              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : (isLoadingOverview ? '--' : 0), icon: '👨‍🏫', color: '#10b981' },
+              { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : (isLoadingOverview ? '--' : '₹0'), icon: '💰', color: '#3b82f6' },
+              { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : (isLoadingOverview ? '--' : '₹0'), icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
               <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '0.85rem', right: '0.85rem', fontSize: '1.6rem', opacity: 0.12 }}>{stat.icon}</div>
@@ -4524,6 +4527,27 @@ function AdminDashboardContent() {
                         <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
+
+                    <button
+                      onClick={() => setFinanceSubTab('ASSIGN')}
+                      style={{
+                        padding: '0.65rem 1.25rem',
+                        borderRadius: '10px',
+                        background: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      ➕ Assign Fee
+                    </button>
                   </div>
                 </div>
 
@@ -4769,6 +4793,16 @@ function AdminDashboardContent() {
                                                 <button onClick={() => handleViewReceipt(fee.id)} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.08)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>🧾 Receipt</button>
                                               )}
                                               <button 
+                                                onClick={() => {
+                                                  setFeeStudentId(s.username);
+                                                  setFeeStudentSearch(`${s.name} (${s.username})`);
+                                                  setFinanceSubTab('ASSIGN');
+                                                }} 
+                                                style={{ padding: '6px 12px', background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                              >
+                                                ➕ Assign Fee
+                                              </button>
+                                              <button 
                                                 onClick={() => setSelectedUserDetail(s)} 
                                                 style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
                                               >
@@ -4823,6 +4857,16 @@ function AdminDashboardContent() {
                                                 💳 Collect
                                               </button>
                                             )}
+                                            <button 
+                                              onClick={() => {
+                                                setFeeStudentId(s.username);
+                                                setFeeStudentSearch(`${s.name} (${s.username})`);
+                                                setFinanceSubTab('ASSIGN');
+                                              }} 
+                                              style={{ padding: '6px 12px', background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                            >
+                                              ➕ Assign Fee
+                                            </button>
                                             <button 
                                               onClick={() => setSelectedUserDetail(s)} 
                                               style={{ padding: '6px 12px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
@@ -4980,7 +5024,7 @@ function AdminDashboardContent() {
                                 return (
                                   <tr key={fee.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                     <td style={{ padding: '0.85rem 1rem' }}>
-                                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.receiptNo || `REC-${fee.id.slice(-6).toUpperCase()}`}</div>
+                                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{fee.receiptNo || generateReceiptNo(fee)}</div>
                                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formattedDate}</div>
                                     </td>
                                     <td style={{ padding: '0.85rem 1rem' }}>
@@ -5141,6 +5185,28 @@ function AdminDashboardContent() {
                     (f.status === 'PENDING' || f.totalDue > 0.01)
                   ).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
+                  const selectedBills = pendingBills.filter(f => selectedCollectFeeIds.includes(f.id));
+                  const selectedTotal = selectedBills.reduce((acc, f) => {
+                    const fine = f.currentLateFine || f.lateFine || 0;
+                    return acc + Math.max(0, f.amount + fine - (f.discount || 0) - (f.paidAmount || 0));
+                  }, 0);
+
+                  const allSelected = pendingBills.length > 0 && selectedBills.length === pendingBills.length;
+
+                  const toggleAll = () => {
+                    if (allSelected) {
+                      setSelectedCollectFeeIds([]);
+                    } else {
+                      setSelectedCollectFeeIds(pendingBills.map(b => b.id));
+                    }
+                  };
+
+                  const toggleBill = (id: string) => {
+                    setSelectedCollectFeeIds(prev => 
+                      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                    );
+                  };
+
                   return (
                     <div style={{ position: 'fixed', inset: 0, zIndex: 950000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
                       <div className="glass-card" style={{ width: '100%', maxWidth: '520px', padding: '1.5rem', background: 'var(--surface)', borderRadius: '18px', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
@@ -5159,55 +5225,133 @@ function AdminDashboardContent() {
                           </button>
                         </div>
 
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', margin: '0 0 1rem 0' }}>
-                          Select the pending billing cycle you want to collect:
-                        </p>
-
                         {pendingBills.length === 0 ? (
                           <div style={{ padding: '1.5rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                             No pending bills found for this student.
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                            {pendingBills.map(fee => {
-                              const fine = fee.currentLateFine || 0;
-                              const netDue = Math.max(0, fee.amount + fine - (fee.discount || 0) - (fee.paidAmount || 0));
-                              return (
-                                <div key={fee.id} style={{ padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                                  <div>
-                                    <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{fee.billingMonth}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                      Base: ₹{fee.amount - fee.discount} {fine > 0 ? `| Fine: +₹${fine}` : ''}
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', padding: '0 0.25rem' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary)' }}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={allSelected} 
+                                  onChange={toggleAll}
+                                  style={{ accentColor: 'var(--primary)', width: '16px', height: '16px', cursor: 'pointer' }}
+                                />
+                                Select All ({selectedBills.length}/{pendingBills.length})
+                              </label>
+
+                              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text)' }}>
+                                Total: <span style={{ color: '#ef4444' }}>₹{selectedTotal.toFixed(0)}</span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '320px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                              {pendingBills.map(fee => {
+                                const fine = fee.currentLateFine || fee.lateFine || 0;
+                                const netDue = Math.max(0, fee.amount + fine - (fee.discount || 0) - (fee.paidAmount || 0));
+                                const isChecked = selectedCollectFeeIds.includes(fee.id);
+
+                                return (
+                                  <div 
+                                    key={fee.id} 
+                                    onClick={() => toggleBill(fee.id)}
+                                    style={{
+                                      padding: '0.85rem 1rem', 
+                                      borderRadius: '12px', 
+                                      background: isChecked ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)', 
+                                      border: `1px solid ${isChecked ? 'rgba(59,130,246,0.3)' : 'var(--border)'}`, 
+                                      display: 'flex', 
+                                      justify: 'space-between', 
+                                      alignItems: 'center', 
+                                      gap: '1rem',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isChecked} 
+                                        onChange={() => {}}
+                                        style={{ accentColor: 'var(--primary)', width: '17px', height: '17px', cursor: 'pointer' }}
+                                      />
+                                      <div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{fee.billingMonth}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                          Base: ₹{fee.amount - fee.discount} {fine > 0 ? `| Fine: +₹${fine}` : ''}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ textAlign: 'right' }}>
+                                      <span style={{ fontWeight: 900, fontSize: '1.1rem', color: isChecked ? '#ef4444' : 'var(--text-muted)' }}>
+                                        ₹{netDue.toFixed(0)}
+                                      </span>
                                     </div>
                                   </div>
+                                );
+                              })}
+                            </div>
 
-                                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
-                                    <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#ef4444' }}>
-                                      ₹{netDue.toFixed(0)}
-                                    </span>
-                                    <button
-                                      onClick={() => {
-                                        setCollectModalStudent(null);
-                                        setPayingFee(fee);
-                                        setShowPaymentModal(true);
-                                        setPaymentDetails({
-                                          paymentMethod: 'CASH',
-                                          transactionId: '',
-                                          discount: fee.discount,
-                                          remarks: '',
-                                          paidAmount: netDue.toString(),
-                                          paidAt: new Date().toISOString().split('T')[0]
-                                        });
-                                      }}
-                                      style={{ padding: '5px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
-                                    >
-                                      Collect ₹{netDue.toFixed(0)}
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                            <button
+                              disabled={selectedBills.length === 0}
+                              onClick={() => {
+                                setCollectModalStudent(null);
+                                if (selectedBills.length === 1) {
+                                  const fee = selectedBills[0];
+                                  const fine = fee.currentLateFine || fee.lateFine || 0;
+                                  const netDue = Math.max(0, fee.amount + fine - (fee.discount || 0) - (fee.paidAmount || 0));
+                                  setPayingFee(fee);
+                                  setShowPaymentModal(true);
+                                  setPaymentDetails({
+                                    paymentMethod: 'CASH',
+                                    transactionId: '',
+                                    discount: fee.discount,
+                                    remarks: '',
+                                    paidAmount: netDue.toString(),
+                                    paidAt: new Date().toISOString().split('T')[0]
+                                  });
+                                } else {
+                                  setPayingFee({
+                                    isBatch: true,
+                                    id: `batch-${Date.now()}`,
+                                    student: s,
+                                    billingMonth: selectedBills.map(b => b.billingMonth).join(', '),
+                                    amount: selectedTotal,
+                                    discount: 0,
+                                    paidAmount: 0,
+                                    dueDate: new Date(),
+                                    batchFees: selectedBills
+                                  });
+                                  setShowPaymentModal(true);
+                                  setPaymentDetails({
+                                    paymentMethod: 'CASH',
+                                    transactionId: '',
+                                    discount: 0,
+                                    remarks: `Collected ${selectedBills.length} billing cycles`,
+                                    paidAmount: selectedTotal.toString(),
+                                    paidAt: new Date().toISOString().split('T')[0]
+                                  });
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                marginTop: '1.25rem',
+                                padding: '0.85rem',
+                                background: selectedBills.length > 0 ? '#10b981' : 'var(--border)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: selectedBills.length > 0 ? 'pointer' : 'not-allowed',
+                                fontSize: '0.95rem',
+                                fontWeight: 800,
+                                boxShadow: selectedBills.length > 0 ? '0 4px 14px rgba(16,185,129,0.3)' : 'none'
+                              }}
+                            >
+                              💳 Collect Selected ({selectedBills.length}) • ₹{selectedTotal.toFixed(0)}
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -5543,9 +5687,23 @@ function AdminDashboardContent() {
                       <option value="Registration">Registration</option>
                       <option value="Exam Fee">Exam Fee</option>
                       <option value="Books/Materials">Materials</option>
+                      <option value="Others">Others</option>
                     </select>
                   </div>
                 </div>
+
+                {feeTitle === 'Others' && (
+                  <div className="input-group" style={{ marginTop: '0.75rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Specify Custom Fee Category Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Special Fee / Uniform / Picnic / Fine / Others" 
+                      value={feeCategoryCustomTitle} 
+                      onChange={e => setFeeCategoryCustomTitle(e.target.value)} 
+                      style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                    />
+                  </div>
+                )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
                   <div className="input-group">
@@ -5853,7 +6011,7 @@ function AdminDashboardContent() {
                 const ledgerData = [
                   ...inflow.map(f => ({
                     date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
-                    ref: f.receiptNo || `REC-${f.id.slice(-6).toUpperCase()}`,
+                    ref: f.receiptNo || generateReceiptNo(f),
                     desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
                     type: 'FEE_INFLOW',
                     inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
@@ -6380,25 +6538,26 @@ function AdminDashboardContent() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {[
-                  { subject: 'Mathematics', avgScore: 82, tag: '⚡ Strong', color: '#10b981' },
-                  { subject: 'Physics', avgScore: 74, tag: '🎯 Focus Needed', color: '#f59e0b' },
-                  { subject: 'Chemistry', avgScore: 68, tag: '🎯 Focus Needed', color: '#ef4444' },
-                  { subject: 'Biology / Science', avgScore: 88, tag: '🌟 Outstanding', color: '#8b5cf6' }
-                ].map((s, idx) => (
-                  <div key={idx}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                      <span style={{ fontWeight: 700 }}>{s.subject}</span>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.color }}>{s.tag}</span>
-                        <strong style={{ color: 'var(--text)' }}>{s.avgScore}%</strong>
+                {(reportData?.subjectPerformance && reportData.subjectPerformance.length > 0) ? (
+                  reportData.subjectPerformance.map((s: any, idx: number) => (
+                    <div key={idx}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                        <span style={{ fontWeight: 700 }}>{s.subject}</span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.color }}>{s.tag}</span>
+                          <strong style={{ color: 'var(--text)' }}>{s.avgScore}%</strong>
+                        </div>
+                      </div>
+                      <div style={{ height: '7px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${s.avgScore}%`, background: s.color, borderRadius: '4px' }}></div>
                       </div>
                     </div>
-                    <div style={{ height: '7px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${s.avgScore}%`, background: s.color, borderRadius: '4px' }}></div>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', padding: '1rem 0' }}>
+                    No published test results recorded yet. Metrics will automatically populate in real-time as exam marks are published.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -6409,37 +6568,37 @@ function AdminDashboardContent() {
                   🎯 Student Score Distribution & Submission Index
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                  Comparative breakdown of student performance percentiles:
+                  Real-time database breakdown of student performance percentiles:
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.25rem' }}>
                       <span style={{ fontWeight: 600, color: '#10b981' }}>Top Achievers (90%+ Score)</span>
-                      <strong>28% of Students</strong>
+                      <strong>{reportData?.scoreDistribution?.topAchieversPct || 0}% of Students</strong>
                     </div>
                     <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: '28%', background: '#10b981' }}></div>
+                      <div style={{ height: '100%', width: `${reportData?.scoreDistribution?.topAchieversPct || 0}%`, background: '#10b981' }}></div>
                     </div>
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.25rem' }}>
                       <span style={{ fontWeight: 600, color: '#3b82f6' }}>Satisfactory (75% - 89% Score)</span>
-                      <strong>52% of Students</strong>
+                      <strong>{reportData?.scoreDistribution?.satisfactoryPct || 0}% of Students</strong>
                     </div>
                     <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: '52%', background: '#3b82f6' }}></div>
+                      <div style={{ height: '100%', width: `${reportData?.scoreDistribution?.satisfactoryPct || 0}%`, background: '#3b82f6' }}></div>
                     </div>
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.25rem' }}>
                       <span style={{ fontWeight: 600, color: '#ef4444' }}>Academic Support Needed (&lt; 75%)</span>
-                      <strong>20% of Students</strong>
+                      <strong>{reportData?.scoreDistribution?.supportNeededPct || 0}% of Students</strong>
                     </div>
                     <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: '20%', background: '#ef4444' }}></div>
+                      <div style={{ height: '100%', width: `${reportData?.scoreDistribution?.supportNeededPct || 0}%`, background: '#ef4444' }}></div>
                     </div>
                   </div>
                 </div>
@@ -6448,11 +6607,11 @@ function AdminDashboardContent() {
               <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Test Submission Promptness</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>94.2% On-Time</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>{(reportData?.submissionPromptness || 100).toFixed(1)}% On-Time</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Avg Mock Test Score</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>78.5 / 100</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>{(reportData?.overallAvgScore || 0).toFixed(1)} / 100</div>
                 </div>
               </div>
             </div>
@@ -6917,11 +7076,14 @@ function AdminDashboardContent() {
         </div>
       )}
 
-      {editingTest && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '600px', padding: '2.5rem', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--primary)' }}>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>Edit Test Details</h3>
-            <form onSubmit={handleUpdateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {editingTest && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 99999 }}>
+          <div className="animate-slide-up" style={{ width: '100%', maxWidth: '100%', height: '92vh', maxHeight: '92vh', background: 'var(--card-bg)', borderTop: '2px solid var(--primary)', borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', padding: '1.75rem 2rem 2rem', boxShadow: '0 -10px 40px rgba(0,0,0,0.5)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 800, color: 'var(--primary)' }}>Edit Test Details</h3>
+              <button type="button" onClick={() => setEditingTest(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+            </div>
+            <form onSubmit={handleUpdateTest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
               <div className="input-group">
                 <label style={{ fontWeight: 600 }}>Test Title</label>
                 <input type="text" required value={editingTest.title} onChange={e => setEditingTest({ ...editingTest, title: e.target.value })} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }} />
@@ -6957,26 +7119,27 @@ function AdminDashboardContent() {
                 <input type="checkbox" id="editTestIsPublished" checked={editingTest.isPublished} onChange={e => setEditingTest({ ...editingTest, isPublished: e.target.checked })} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
                 <label htmlFor="editTestIsPublished" style={{ fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Publish Results (Visible to Students)</label>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setEditingTest(null)}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ flex: 1, background: 'var(--primary)', border: 'none' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                <button type="button" className="btn-secondary" style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', fontWeight: 700 }} onClick={() => setEditingTest(null)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ padding: '0.55rem 1.5rem', fontSize: '0.85rem', fontWeight: 800, background: 'var(--primary)', border: 'none' }}>
                   Save Changes
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {selectedTest && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '850px', padding: '2rem', maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '1px solid var(--primary)', borderRadius: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      {selectedTest && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 99999 }}>
+          <div className="animate-slide-up" style={{ width: '100%', maxWidth: '100%', height: '92vh', maxHeight: '92vh', background: 'var(--card-bg)', borderTop: '2px solid var(--primary)', borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', padding: '1.75rem 2rem 2rem', boxShadow: '0 -10px 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 800 }}>Enter Student Marks: {selectedTest.title}</h2>
                 <p style={{ color: 'var(--text-muted)', margin: '4px 0 0', fontSize: '0.8rem' }}>Course: {selectedTest.course?.name}</p>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -6991,29 +7154,30 @@ function AdminDashboardContent() {
                 >
                   ⚡ Set All Full Marks
                 </button>
+                <button type="button" onClick={() => setSelectedTest(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.2rem', marginLeft: '0.5rem' }}>✕</button>
               </div>
             </div>
 
             {/* Compact Student Marks Table with Sticky Header & Auto Scroll */}
-            <div style={{ flex: 1, overflowY: 'auto', maxHeight: '420px', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '1.25rem', background: 'rgba(0,0,0,0.1)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', marginBottom: '1rem', background: 'rgba(0,0,0,0.1)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                 <thead style={{ position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10, borderBottom: '1px solid var(--border)' }}>
                   <tr>
-                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700 }}>Student Name</th>
-                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700, width: '130px' }}>Marks Obtained</th>
-                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700, width: '130px' }}>Total Marks</th>
-                    <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700 }}>Remarks</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 700 }}>Student Name</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 700, width: '150px' }}>Marks Obtained</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 700, width: '150px' }}>Total Marks</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 700 }}>Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
                   {testStudents.length === 0 ? (
-                    <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No students found in this course.</td></tr>
+                    <tr><td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No students found in this course.</td></tr>
                   ) : (
                     testStudents.map(s => {
                       const data = testMarks[s.id] || { marks: '', totalMarks: '100', remarks: '' };
                       return (
                         <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <td style={{ padding: '8px 14px', fontWeight: 600 }}>
+                          <td style={{ padding: '10px 16px', fontWeight: 600 }}>
                             <div 
                               onClick={() => setActiveProfileUserId(s.id)} 
                               style={{ color: 'var(--text)', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
@@ -7021,33 +7185,33 @@ function AdminDashboardContent() {
                             >
                               {s.name}
                             </div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.username}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{s.username}</div>
                           </td>
-                          <td style={{ padding: '6px 14px' }}>
+                          <td style={{ padding: '8px 16px' }}>
                             <input
                               type="number"
                               placeholder="Marks"
                               value={data.marks}
                               onChange={e => setTestMarks({ ...testMarks, [s.id]: { ...data, marks: e.target.value } })}
-                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontWeight: 700 }}
+                              style={{ width: '100%', padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontWeight: 700 }}
                             />
                           </td>
-                          <td style={{ padding: '6px 14px' }}>
+                          <td style={{ padding: '8px 16px' }}>
                             <input
                               type="number"
                               placeholder="Total"
                               value={data.totalMarks}
                               onChange={e => setTestMarks({ ...testMarks, [s.id]: { ...data, totalMarks: e.target.value } })}
-                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontWeight: 600 }}
+                              style={{ width: '100%', padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontWeight: 600 }}
                             />
                           </td>
-                          <td style={{ padding: '6px 14px' }}>
+                          <td style={{ padding: '8px 16px' }}>
                             <input
                               type="text"
                               placeholder="Remarks"
                               value={data.remarks}
                               onChange={e => setTestMarks({ ...testMarks, [s.id]: { ...data, remarks: e.target.value } })}
-                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)' }}
+                              style={{ width: '100%', padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)' }}
                             />
                           </td>
                         </tr>
@@ -7058,14 +7222,16 @@ function AdminDashboardContent() {
               </table>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedTest(null)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 1, background: '#10b981', border: 'none' }} onClick={handleSaveMarks} disabled={isSavingMarks || testStudents.length === 0}>
+            {/* Compact Action Footer Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+              <button className="btn-secondary" style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', fontWeight: 700 }} onClick={() => setSelectedTest(null)}>Cancel</button>
+              <button className="btn-primary" style={{ padding: '0.55rem 1.5rem', fontSize: '0.85rem', fontWeight: 800, background: '#10b981', border: 'none' }} onClick={handleSaveMarks} disabled={isSavingMarks || testStudents.length === 0}>
                 {isSavingMarks ? 'Saving...' : '💾 Save Marks'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {activeTab === 'store-manager' && (
@@ -9068,7 +9234,7 @@ function AdminDashboardContent() {
 
               <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
-                  <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || `REC-${activeReceipt.id.slice(-6).toUpperCase()}`}</span></div>
+                  <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || generateReceiptNo(activeReceipt)}</span></div>
                   <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.paidAt ? formatDateDisplay(activeReceipt.paidAt) : formatDateDisplay(new Date())}</span></div>
                 </div>
                 <div style={{ color: '#1a1a1a' }}>
@@ -9299,7 +9465,24 @@ function AdminDashboardContent() {
                </div>
                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                  <button type="button" onClick={() => setShowPaymentModal(false)} style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>Cancel</button>
-                 <button onClick={() => updateFeeStatus(payingFee.id, 'PAID', { ...paymentDetails, paidAmount: parseFloat(paymentDetails.paidAmount || '0') })} className="btn-primary" style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }}>Confirm Payment</button>
+                 <button 
+                   onClick={async () => {
+                     if (payingFee?.isBatch && Array.isArray(payingFee?.batchFees)) {
+                       for (const f of payingFee.batchFees) {
+                         const fine = f.currentLateFine || f.lateFine || 0;
+                         const fDue = Math.max(0, f.amount + fine - (f.discount || 0) - (f.paidAmount || 0));
+                         await updateFeeStatus(f.id, 'PAID', { ...paymentDetails, paidAmount: fDue });
+                       }
+                       setShowPaymentModal(false);
+                     } else if (payingFee?.id) {
+                       updateFeeStatus(payingFee.id, 'PAID', { ...paymentDetails, paidAmount: parseFloat(paymentDetails.paidAmount || '0') });
+                     }
+                   }} 
+                   className="btn-primary" 
+                   style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }}
+                 >
+                   Confirm Payment
+                 </button>
                </div>
              </div>
           </div>

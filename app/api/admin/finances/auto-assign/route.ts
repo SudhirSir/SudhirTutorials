@@ -22,9 +22,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Billing month is required' }, { status: 400 });
     }
 
-    // Get all active students
+    // Get active students who have a configured baseFee > 0
     const activeStudents = await withDbRetry(() => prisma.user.findMany({
-      where: { role: 'STUDENT', isActive: true },
+      where: { 
+        role: 'STUDENT', 
+        isActive: true,
+        studentProfile: {
+          baseFee: { gt: 0 }
+        }
+      },
       include: {
         studentProfile: { select: { baseFee: true, scholarship: true, className: true } }
       }
@@ -76,7 +82,13 @@ export async function POST(request: Request) {
     }
 
     const activeStudents = await withDbRetry(() => prisma.user.findMany({
-      where: { role: 'STUDENT', isActive: true },
+      where: { 
+        role: 'STUDENT', 
+        isActive: true,
+        studentProfile: {
+          baseFee: { gt: 0 }
+        }
+      },
       include: { studentProfile: { select: { baseFee: true, scholarship: true, className: true } } }
     }));
 
@@ -108,6 +120,7 @@ export async function POST(request: Request) {
       if (existingStudentIds.has(student.id)) continue; // skip already assigned
 
       const baseFee = student.studentProfile?.baseFee || 0;
+      if (baseFee <= 0) continue; // safety guard to exclude 0 base fee
       const discount = student.studentProfile?.scholarship || 0;
       const gradeCode = getGradeLetterCode(student.studentProfile?.className);
       const receiptNo = `${targetYear}/${gradeCode}/${1001 + currentTotalPayments + assignedCount}`;

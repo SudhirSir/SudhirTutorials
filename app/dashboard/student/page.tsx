@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
+import { generateReceiptNo } from '@/lib/feeUtils';
 import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -181,6 +182,8 @@ function StudentDashboardContent() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [showAllAttendance, setShowAllAttendance] = useState(false);
+  const [attendanceFilter, setAttendanceFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT' | 'LATE'>('ALL');
 
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [razorpayFee, setRazorpayFee] = useState<any>(null);
@@ -641,8 +644,9 @@ function StudentDashboardContent() {
     try {
       const res = await fetch('/api/student/tests');
       if (res.ok) {
-        const data = await res.json();
-        setTests(data.tests || []);
+        const raw = data.tests || [];
+        const sorted = [...raw].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setTests(sorted);
       }
     } catch (e) { console.error(e); }
   };
@@ -1108,29 +1112,30 @@ function StudentDashboardContent() {
               {/* Fee Status */}
               <div className={`glass-card ${((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'overdue-pulse' : ''}`} style={{
                 padding: '2rem',
-                background: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING')
+                background: ((totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING'))
                   ? 'rgba(239, 68, 68, 0.1)'
                   : 'linear-gradient(135deg, var(--primary), var(--accent))',
-                border: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING')
+                border: ((totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING'))
                   ? '1px solid rgba(239, 68, 68, 0.5)'
                   : undefined
               }}>
-                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>Total Outstanding Balance</h3>
+                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>Total Outstanding Balance</h3>
                  
-                 {(dashboard as any)?.feeHighlight ? (
+                 {(totalOutstanding > 0 || (dashboard as any)?.feeHighlight) ? (
                    <>
-                     <div style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.4rem', color: ((dashboard as any).feeHighlight.isOverdue || (dashboard as any).feeHighlight.status === 'PENDING') ? '#ef4444' : '#fff' }}>
-                       ₹{((dashboard as any).feeHighlight.totalAmount ?? (dashboard as any).feeHighlight.amount).toLocaleString('en-IN')}
+                     <div style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.4rem', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>
+                       ₹{(totalOutstanding > 0 ? totalOutstanding : ((dashboard as any).feeHighlight.totalAmount ?? (dashboard as any).feeHighlight.amount)).toLocaleString('en-IN')}
                      </div>
-                     <p style={{ color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'var(--text)' : 'rgba(255,255,255,0.85)', fontSize: '0.85rem', marginBottom: '1.25rem', fontWeight: 600 }}>
-                       {(dashboard as any).feeHighlight.pendingMonthsCount > 1 
-                         ? `Total pending across ${(dashboard as any).feeHighlight.pendingMonthsCount} billing months`
-                         : `Due by ${formatDateDisplay((dashboard as any).feeHighlight.dueDate)}`}
+                     <p style={{ color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'var(--text)' : 'rgba(255,255,255,0.85)', fontSize: '0.85rem', marginBottom: '1.25rem', fontWeight: 600 }}>
+                       {((dashboard as any)?.feeHighlight?.pendingMonthsCount > 1 || fees.filter(f => f.status === 'PENDING').length > 1) 
+                         ? `Total pending across ${fees.filter(f => f.status === 'PENDING').length || (dashboard as any)?.feeHighlight?.pendingMonthsCount} billing months`
+                         : (dashboard as any)?.feeHighlight?.dueDate ? `Due by ${formatDateDisplay((dashboard as any).feeHighlight.dueDate)}` : 'Pending dues settlement'}
                      </p>
-                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : 'rgba(255,255,255,0.15)', color: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '#fff', border: ((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
+                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : 'rgba(255,255,255,0.15)', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '#fff', border: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
                         handleTabChange('fees');
-                        if ((dashboard as any)?.feeHighlight) {
-                          handlePayOnline((dashboard as any).feeHighlight, 'month');
+                        const pending = fees.find(f => f.status === 'PENDING') || (dashboard as any)?.feeHighlight;
+                        if (pending) {
+                          handlePayOnline(pending, 'outstanding');
                         }
                       }}>Pay Outstanding Fees →</button>
                    </>
@@ -1156,7 +1161,31 @@ function StudentDashboardContent() {
 
       {activeTab === 'attendance' && !isStoreUser && (
         <div className="glass-card animate-scale-up" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Attendance Record</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Attendance Record</h2>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {(['ALL', 'PRESENT', 'ABSENT', 'LATE'] as const).map(st => (
+                <button
+                  key={st}
+                  onClick={() => setAttendanceFilter(st)}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    border: '1px solid var(--border)',
+                    background: attendanceFilter === st ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                    color: attendanceFilter === st ? '#fff' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Attendance Rate</div>
@@ -1172,38 +1201,78 @@ function StudentDashboardContent() {
              </div>
           </div>
 
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '500px', width: '100%', maxWidth: '100%' }}>
-            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  <th style={{ padding: '1rem' }}>Date</th>
-                  <th>Batch</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(dashboard as any)?.attendance?.history?.length > 0 ? (
-                  (dashboard as any).attendance.history.map((a: any) => (
-                    <tr key={a.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '1rem' }}>{formatDateDisplay(a.date)}</td>
-                      <td>Batch assigned</td>
-                      <td>
-                        <span style={{ 
-                          padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700,
-                          background: a.status === 'PRESENT' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
-                          color: a.status === 'PRESENT' ? 'var(--secondary)' : '#ef4444'
-                        }}>
-                          {a.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No attendance history recorded yet.</td></tr>
+          {(() => {
+            const rawHistory = (dashboard as any)?.attendance?.history || [];
+            const filteredHistory = attendanceFilter === 'ALL'
+              ? rawHistory
+              : rawHistory.filter((a: any) => a.status === attendanceFilter);
+
+            const displayList = showAllAttendance ? filteredHistory : filteredHistory.slice(0, 10);
+
+            return (
+              <>
+                <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '600px', width: '100%', maxWidth: '100%' }}>
+                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        <th style={{ padding: '1rem' }}>Date</th>
+                        <th>Time</th>
+                        <th>Subject</th>
+                        <th>Marked By (Teacher)</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {displayList.length > 0 ? (
+                        displayList.map((a: any) => (
+                          <tr key={a.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.9rem' }}>
+                            <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text)' }}>{formatDateDisplay(a.date)}</td>
+                            <td style={{ color: 'var(--text)', fontWeight: 600 }}>{a.time || '5:15 PM - 7:20 PM'}</td>
+                            <td style={{ color: 'var(--primary)', fontWeight: 700 }}>{a.subject || 'General'}</td>
+                            <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{a.teacherName || 'Sudhir Sir'}</td>
+                            <td>
+                              <span style={{ 
+                                padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800,
+                                background: a.status === 'PRESENT' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)',
+                                color: a.status === 'PRESENT' ? 'var(--secondary)' : '#ef4444'
+                              }}>
+                                {a.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No attendance history recorded yet.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {filteredHistory.length > 10 && (
+                  <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                    <button
+                      onClick={() => setShowAllAttendance(!showAllAttendance)}
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid var(--secondary)',
+                        color: 'var(--secondary)',
+                        padding: '0.6rem 1.5rem',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {showAllAttendance
+                        ? `▲ Show Recent 10 Only`
+                        : `📂 View All Attendance History (${filteredHistory.length} Sessions)`}
+                    </button>
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -1241,14 +1310,22 @@ function StudentDashboardContent() {
                       </span>
                       {mat.title}
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                      Course: <strong>{mat.course?.name}</strong> • Uploaded by <span 
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                      <span>Course: <strong>{mat.course?.name}</strong></span>
+                      <span>•</span>
+                      <span>Uploaded by <span 
                         onClick={() => setActiveProfileUserId(mat.teacher?.id)} 
                         style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: 600 }}
                         className="clickable-name"
                       >
                         {mat.teacher?.name}
-                      </span>
+                      </span></span>
+                      {mat.createdAt && (
+                        <>
+                          <span>•</span>
+                          <span>Assigned: <strong style={{ color: 'var(--text)', fontWeight: 700 }}>📅 {formatDateDisplay(mat.createdAt)}</strong></span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <button onClick={() => handleOpenMaterial(mat)} className="btn-secondary">Open Material →</button>
@@ -1265,14 +1342,17 @@ function StudentDashboardContent() {
           {fees.some(f => f.status === 'PENDING') && (
             <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(239,68,68,0.05)', border: '1px solid #ef4444', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#ef4444' }}>⚠️ Outstanding Invoice Alert</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Please settle your pending balance online to avoid automatic late fines.</p>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#ef4444', fontWeight: 800 }}>⚠️ Outstanding Invoice Alert</h3>
+                <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ef4444', margin: '0.3rem 0 0.1rem' }}>
+                  Total Pending: ₹{totalOutstanding.toLocaleString('en-IN')}
+                </div>
+                <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Please settle your pending balance online to avoid automatic late fines.</p>
               </div>
               <button onClick={() => {
                 const pending = fees.find(f => f.status === 'PENDING');
                 if (pending) handlePayOnline(pending, 'outstanding');
-              }} className="btn-primary" style={{ padding: '0.75rem 1.5rem' }}>
-                Pay Outstanding Now
+              }} className="btn-primary" style={{ padding: '0.85rem 1.6rem', fontSize: '0.95rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>
+                💳 Pay Total Outstanding (₹{totalOutstanding.toLocaleString('en-IN')})
               </button>
             </div>
           )}
@@ -1318,7 +1398,7 @@ function StudentDashboardContent() {
             {tests.length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No tests are scheduled for your courses at the moment.</p>
             ) : (
-              tests.map(test => {
+              [...tests].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(test => {
                 const testDate = new Date(test.date);
                 const isUpcoming = testDate > new Date();
                 const result = test.results?.[0] || (dashboard as any)?.testStats?.results?.find((r: any) => r.testId === test.id);
@@ -1372,11 +1452,11 @@ function StudentDashboardContent() {
 
 
       {isReceiptOpen && receiptData && typeof window !== 'undefined' && createPortal(
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 5000, overflowY: 'auto', overflowX: 'hidden', padding: '2rem 1rem 4rem' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, overflowY: 'auto', overflowX: 'hidden', padding: '1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
             width: '100%', maxWidth: '500px', padding: 0, overflow: 'visible', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: '2rem auto'
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: 'auto'
           }}>
             {/* PAID Stamp Overlay */}
             {(receiptData.status === 'PAID' || receiptData.status === 'VERIFIED' || receiptData.status === 'PAID_ONLINE') && (
@@ -1401,7 +1481,7 @@ function StudentDashboardContent() {
 
               <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
-                  <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || `REC-${receiptData.id.slice(-6).toUpperCase()}`}</span></div>
+                  <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || generateReceiptNo(receiptData)}</span></div>
                   <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{receiptData.paidAt ? formatDateDisplay(receiptData.paidAt) : formatDateDisplay(new Date())}</span></div>
                 </div>
                 <div style={{ color: '#1a1a1a' }}>
@@ -1511,8 +1591,8 @@ function StudentDashboardContent() {
       )}
 
       {/* 💳 SIMULATED RAZORPAY GATEWAY OVERLAY */}
-      {isRazorpayOpen && razorpayFee && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem 1rem' }}>
+      {isRazorpayOpen && razorpayFee && typeof window !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, overflowY: 'auto', padding: '1rem' }}>
           <div className="animate-scale-up" style={{ 
             width: '680px', maxWidth: '100%', 
             background: 'var(--card-bg)', border: '1px solid var(--border)',
@@ -1863,7 +1943,8 @@ function StudentDashboardContent() {
             )}
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style jsx>{`

@@ -7,7 +7,7 @@ function getTunedDatabaseUrl(): string | undefined {
   if (!url) return undefined;
   if (url.includes('connection_limit=')) return url;
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}connection_limit=25&pool_timeout=30`;
+  return `${url}${separator}connection_limit=10&pool_timeout=15`;
 }
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({
@@ -18,6 +18,9 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
     },
   },
 });
+
+// Always store global singleton instance to prevent connection leaks across Next.js re-evaluations
+globalForPrisma.prisma = prisma;
 
 // Add middleware for automatic push notifications
 prisma.$use(async (params, next) => {
@@ -99,8 +102,6 @@ prisma.$use(async (params, next) => {
   return result;
 });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
 /**
  * Executes a Prisma query or operation with automatic retries for transient
  * database connection failures, cold starts, or pool exhaustion.
@@ -126,6 +127,8 @@ export async function withDbRetry<T>(
         (error?.message && (
           error.message.includes("Can't reach database server") ||
           error.message.includes('connection pool') ||
+          error.message.includes('EMAXCONNSESSION') ||
+          error.message.includes('max clients reached') ||
           error.message.includes('ETIMEDOUT') ||
           error.message.includes('ECONNRESET') ||
           error.message.includes('Connection terminated')
