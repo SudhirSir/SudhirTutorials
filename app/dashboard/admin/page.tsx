@@ -2028,6 +2028,14 @@ function AdminDashboardContent() {
     let tempElement: HTMLDivElement | null = null;
     setDownloadingPDF(true);
     try {
+      if (fees.length === 0 || expenses.length === 0 || adminSalaries.length === 0) {
+        await Promise.all([
+          fetchFinances(),
+          fetchExpenses(),
+          fetchAdminSalaries()
+        ]).catch(() => {});
+      }
+
       const loadHtml2Pdf = () => {
         return new Promise<void>((resolve, reject) => {
           if ((window as any).html2pdf) {
@@ -2046,16 +2054,21 @@ function AdminDashboardContent() {
       await loadHtml2Pdf();
 
       const isTargetMonth = (dVal: any, billingMonthStr?: string | null) => {
+        if (!statementMonth || statementMonth === 'ALL') return true;
+        const targetMonthLower = statementMonth.toLowerCase();
+        const shortMonthLower = targetMonthLower.slice(0, 3);
+        
         if (billingMonthStr) {
           const lowerB = billingMonthStr.toLowerCase();
-          if (lowerB.includes(statementMonth.toLowerCase()) && lowerB.includes(statementYear)) {
+          if ((lowerB.includes(targetMonthLower) || lowerB.includes(shortMonthLower)) && lowerB.includes(statementYear)) {
             return true;
           }
         }
         if (!dVal) return false;
         const d = new Date(dVal);
         if (isNaN(d.getTime())) return false;
-        return d.toLocaleString('en-US', { month: 'long' }).toLowerCase() === statementMonth.toLowerCase() && String(d.getFullYear()) === statementYear;
+        const monthName = d.toLocaleString('en-US', { month: 'long' }).toLowerCase();
+        return (monthName.includes(targetMonthLower) || monthName.includes(shortMonthLower)) && String(d.getFullYear()) === statementYear;
       };
 
       const inflow = fees.filter(f => {
@@ -2078,10 +2091,12 @@ function AdminDashboardContent() {
       const net = totalIn - (totalExp + totalSal);
 
       tempElement = document.createElement('div');
-      tempElement.style.position = 'fixed';
-      tempElement.style.left = '-9999px';
+      tempElement.style.position = 'absolute';
+      tempElement.style.left = '0';
       tempElement.style.top = '0';
-      tempElement.style.zIndex = '9999';
+      tempElement.style.opacity = '0.01';
+      tempElement.style.pointerEvents = 'none';
+      tempElement.style.zIndex = '-9999';
       tempElement.style.width = '820px';
       tempElement.style.padding = '30px';
       tempElement.style.background = '#ffffff';

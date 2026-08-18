@@ -27,8 +27,18 @@ export async function GET() {
         pendingPayments,
         classGroups
       ] = await Promise.all([
-        prisma.user.count({ where: { role: 'STUDENT', NOT: { isStoreUser: true } } }).catch(() => 0),
-        prisma.user.count({ where: { role: 'TEACHER', NOT: { isStoreUser: true } } }).catch(() => 0),
+        prisma.user.count({
+          where: {
+            role: 'STUDENT',
+            isStoreUser: false
+          }
+        }).catch((err) => { console.error('Error counting students:', err); return 0; }),
+        prisma.user.count({
+          where: {
+            role: 'TEACHER',
+            isStoreUser: false
+          }
+        }).catch((err) => { console.error('Error counting teachers:', err); return 0; }),
         prisma.batch.count().catch(() => 0),
         prisma.course.count().catch(() => 0),
         prisma.payment.findMany({

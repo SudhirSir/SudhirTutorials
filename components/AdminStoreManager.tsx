@@ -202,12 +202,11 @@ export function AdminStoreManager() {
             method: "POST",
             body: formData
           });
-          if (uploadRes.ok) {
-            const data = await uploadRes.json();
-            finalFileUrl = data.fileUrl;
+          const resData = await uploadRes.json().catch(() => ({}));
+          if (uploadRes.ok && resData.fileUrl) {
+            finalFileUrl = resData.fileUrl;
           } else {
-            const errData = await uploadRes.json().catch(() => ({}));
-            alert(errData.error || "Failed to upload file");
+            alert(resData.error || "Failed to upload file. Please check file size or paste a direct PDF URL.");
             setUploadingFile(false);
             return;
           }
@@ -594,9 +593,19 @@ export function AdminStoreManager() {
               Upload PDF File {type === "TEST_SERIES" ? "(Optional Test Paper / Notes PDF)" : "(Notes PDF)"}
             </label>
             <input type="file" accept=".pdf" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} style={{ width: '100%', padding: '0.5rem 0' }} />
+            
+            <div style={{ marginTop: '0.5rem' }}>
+              <Input
+                label="OR Direct File / Google Drive PDF Link"
+                placeholder="https://drive.google.com/... or https://..."
+                value={fileUrl}
+                onChange={(e) => setFileUrl(e.target.value)}
+              />
+            </div>
+
             {fileUrl && (
               <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '0.35rem', fontWeight: 600 }}>
-                ✓ PDF File Attached {fileUrl.startsWith('data:') ? '(Embedded File)' : `(${fileUrl})`}
+                ✓ PDF Attached: {fileUrl.length > 50 ? fileUrl.slice(0, 50) + '...' : fileUrl}
               </div>
             )}
           </div>
