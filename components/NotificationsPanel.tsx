@@ -15,6 +15,10 @@ interface Notification {
   type: string;
   isRead: boolean;
   createdAt: string;
+  sender?: {
+    name?: string;
+    role?: string;
+  } | null;
 }
 
 function getNotificationIcon(type: string) {

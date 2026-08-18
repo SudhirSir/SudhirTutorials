@@ -644,7 +644,8 @@ function StudentDashboardContent() {
     try {
       const res = await fetch('/api/student/tests');
       if (res.ok) {
-        const raw = data.tests || [];
+        const data = await res.json();
+        const raw = Array.isArray(data) ? data : (data.tests || []);
         const sorted = [...raw].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setTests(sorted);
       }
