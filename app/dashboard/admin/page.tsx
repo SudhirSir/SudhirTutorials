@@ -2766,8 +2766,14 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
-    if (activeTab === 'overview') {
-      fetchOverviewStats();
+    // Pre-load directory, finances, batches, courses, & overview stats upfront for 0ms tab switching
+    Promise.all([
+      handleSearchDirectory(),
+      fetchFinances(),
+      fetchBatches(),
+      fetchCourses(),
+      fetchOverviewStats()
+    ]).catch(console.error);
       
       const handleVisibility = () => {
         if (document.visibilityState === 'visible' && activeTab === 'overview') {
@@ -2788,7 +2794,6 @@ function AdminDashboardContent() {
         clearInterval(overviewInterval);
         document.removeEventListener('visibilitychange', handleVisibility);
       };
-    }
     if (activeTab === 'users') handleSearchDirectory(); // always load all users on tab switch
     if (activeTab === 'finances') {
       const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -2981,16 +2986,16 @@ function AdminDashboardContent() {
       const data = await res.json();
       if (res.ok) {
         const userData = role === 'STUDENT' ? data.student : role === 'TEACHER' ? data.teacher : data.admin;
-        const profileData = role === 'STUDENT' ? userData.studentProfile : (role === 'TEACHER' || role === 'ADMIN') ? userData.teacherProfile : {};
+        const profileData = role === 'STUDENT' ? userData?.studentProfile : (role === 'TEACHER' || role === 'ADMIN') ? userData?.teacherProfile : {};
         
-        const profileCreated = userData.createdAt;
+        const profileCreated = userData?.createdAt;
         const formattedCreated = profileCreated ? (typeof profileCreated === 'string' && profileCreated.includes('T') ? profileCreated.split('T')[0] : new Date(profileCreated).toISOString().split('T')[0]) : '';
         const rawDob = profileData?.dob;
         const formattedDob = rawDob ? (typeof rawDob === 'string' && rawDob.includes('T') ? rawDob.split('T')[0] : new Date(rawDob).toISOString().split('T')[0]) : '';
 
         setEditingProfile({ 
           userId: userData.id, 
-          role,
+          role: userData.role || role,
           name: userData.name || '',
           username: userData.username,
           isActive: userData.isActive !== undefined ? userData.isActive : true,
@@ -3003,6 +3008,35 @@ function AdminDashboardContent() {
       }
     } catch (e) { console.error(e); }
     finally { setIsFetchingProfile(null); }
+  };
+
+  const openProfileEditor = (userId: string, role: string, fallbackObj?: any) => {
+    const existing = fallbackObj || 
+      allStudents.find(s => s.id === userId || s.username === userId) || 
+      directoryUsers.find(u => u.id === userId || u.username === userId) || 
+      allTeachers.find(t => t.id === userId || t.username === userId) ||
+      (selectedUserDetail && (selectedUserDetail.id === userId || selectedUserDetail.username === userId) ? selectedUserDetail : null);
+
+    if (existing) {
+      const p = existing.studentProfile || existing.teacherProfile || existing;
+      const formattedCreated = existing.createdAt ? (typeof existing.createdAt === 'string' && existing.createdAt.includes('T') ? existing.createdAt.split('T')[0] : new Date(existing.createdAt).toISOString().split('T')[0]) : '';
+      const formattedDob = p?.dob ? (typeof p.dob === 'string' && p.dob.includes('T') ? p.dob.split('T')[0] : new Date(p.dob).toISOString().split('T')[0]) : '';
+
+      setEditingProfile({
+        userId: existing.id,
+        role: existing.role || role,
+        name: existing.name || '',
+        username: existing.username,
+        isActive: existing.isActive !== undefined ? existing.isActive : true,
+        createdAt: formattedCreated,
+        ...(p || {}),
+        dob: formattedDob,
+        ...(role === 'TEACHER' && existing.teacherBatches?.length > 0 && { batch: existing.teacherBatches[0].name })
+      });
+      setShowProfileModal(true);
+    }
+    
+    fetchProfile(userId, role);
   };
 
   const saveProfile = async (e: React.FormEvent) => {
@@ -4078,7 +4112,7 @@ function AdminDashboardContent() {
                           🔍 Details
                         </button>
                         <button 
-                          type="button" disabled={isFetchingProfile === u.id} onClick={(e) => { e.preventDefault(); fetchProfile(u.id, u.role); }}
+                          type="button" disabled={isFetchingProfile === u.id} onClick={(e) => { e.preventDefault(); openProfileEditor(u.id, u.role, u); }}
                           style={{ flex: 1, padding: '0.4rem 0.5rem', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
                         >
                           ✎ Edit
@@ -11094,7 +11128,7 @@ function AdminDashboardContent() {
                   onClick={() => {
                     const u = selectedUserDetail;
                     setSelectedUserDetail(null);
-                    fetchProfile(u.id, u.role);
+                    openProfileEditor(u.id, u.role, u);
                   }}
                   className="btn-primary" 
                   style={{ flex: 1, padding: '0.85rem' }}
