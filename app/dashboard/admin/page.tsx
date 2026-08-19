@@ -204,24 +204,18 @@ function AdminDashboardContent() {
   };
   
   // User Creation State
-  const [overviewStats, setOverviewStats] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem('st_overview_stats');
-        if (cached) return JSON.parse(cached);
-      } catch (e) {}
-    }
-    return null;
-  });
-  const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem('st_overview_stats');
-        if (cached) return false;
-      } catch (e) {}
-    }
-    return true;
-  });
+  const [overviewStats, setOverviewStats] = useState<any>(null);
+  const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(true);
+
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('st_overview_stats');
+      if (cached) {
+        setOverviewStats(JSON.parse(cached));
+        setIsLoadingOverview(false);
+      }
+    } catch (e) {}
+  }, []);
   const [overviewStatsError, setOverviewStatsError] = useState(false);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
@@ -3474,11 +3468,11 @@ function AdminDashboardContent() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalBatches}</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? '--'}</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats.totalCourses}</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? '--'}</div>
                 </div>
               </div>
 
@@ -3487,7 +3481,7 @@ function AdminDashboardContent() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
                   {overviewStats?.classStats && overviewStats.classStats.length > 0 ? (
                     overviewStats.classStats.map((item: any, idx: number) => {
-                      const total = overviewStats.totalStudents || 1;
+                      const total = overviewStats?.totalStudents || 1;
                       const percentage = Math.round((item.count / total) * 100);
                       
                       // Harmonious, premium HSL gradients for progress bars
