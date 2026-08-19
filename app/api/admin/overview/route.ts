@@ -46,17 +46,17 @@ export async function GET(req: Request) {
             role: 'STUDENT',
             NOT: { isStoreUser: true }
           }
-        }).catch((err) => { console.error('Error counting students:', err); return 0; }),
+        }),
 
         prisma.user.count({
           where: {
             role: 'TEACHER',
             NOT: { isStoreUser: true }
           }
-        }).catch((err) => { console.error('Error counting teachers:', err); return 0; }),
+        }),
 
-        prisma.batch.count().catch((err) => { console.error('Error counting batches:', err); return 0; }),
-        prisma.course.count().catch((err) => { console.error('Error counting courses:', err); return 0; }),
+        prisma.batch.count(),
+        prisma.course.count(),
 
         prisma.payment.findMany({
           where: {
@@ -68,7 +68,7 @@ export async function GET(req: Request) {
             ]
           },
           select: { paidAmount: true, amount: true, lateFine: true, discount: true, status: true }
-        }).catch((err) => { console.error('Error fetching month fees:', err); return []; }),
+        }),
 
         prisma.payment.findMany({
           where: {
@@ -77,13 +77,13 @@ export async function GET(req: Request) {
             }
           },
           select: { amount: true, lateFine: true, discount: true, paidAmount: true }
-        }).catch((err) => { console.error('Error fetching pending payments:', err); return []; }),
+        }),
 
         prisma.studentProfile.groupBy({
           by: ['className'],
           _count: { userId: true },
           where: { className: { not: null } }
-        }).catch((err) => { console.error('Error grouping student classes:', err); return []; })
+        })
       ]);
 
       const revenueThisMonth = currentMonthFees.reduce((sum, f) => {
@@ -115,24 +115,33 @@ export async function GET(req: Request) {
       };
     });
 
+    // Merge with previous cached non-zero data if any field returned 0 spuriously
+    const prevData = cachedOverviewStats?.data;
     const payload = {
-      totalStudents: statsResult?.totalStudents || 0,
-      totalTeachers: statsResult?.totalTeachers || 0,
-      totalBatches: statsResult?.totalBatches || 0,
-      totalCourses: statsResult?.totalCourses || 0,
-      classStats: statsResult?.classStats || [],
-      revenueThisMonth: statsResult?.revenueThisMonth || 0,
-      pendingDues: statsResult?.pendingDues || 0,
+      totalStudents: statsResult?.totalStudents || prevData?.totalStudents || 0,
+      totalTeachers: statsResult?.totalTeachers || prevData?.totalTeachers || 0,
+      totalBatches: statsResult?.totalBatches || prevData?.totalBatches || 0,
+      totalCourses: statsResult?.totalCourses || prevData?.totalCourses || 0,
+      classStats: (statsResult?.classStats && statsResult.classStats.length > 0) ? statsResult.classStats : (prevData?.classStats || []),
+      revenueThisMonth: statsResult?.revenueThisMonth || prevData?.revenueThisMonth || 0,
+      pendingDues: statsResult?.pendingDues || prevData?.pendingDues || 0,
       activityLogs: []
     };
 
-    cachedOverviewStats = { timestamp: nowTs, data: payload };
+    if (payload.totalStudents > 0 || payload.totalTeachers > 0 || payload.revenueThisMonth > 0) {
+      cachedOverviewStats = { timestamp: nowTs, data: payload };
+    }
 
     return NextResponse.json(payload, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
   } catch (error) {
     console.error('Error fetching overview stats:', error);
+    if (cachedOverviewStats?.data) {
+      return NextResponse.json(cachedOverviewStats.data, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+    }
     return NextResponse.json({ error: 'Failed to fetch overview data' }, { status: 500 });
   }
 }

@@ -1739,17 +1739,19 @@ function AdminDashboardContent() {
   const fetchAllStudents = async () => {
     try {
       const res = await fetch(`/api/admin/directory?role=STUDENT&t=${Date.now()}`);
-      const data = await res.json();
       if (res.ok) {
-        setAllStudents(data.users || []);
+        const data = await res.json();
+        if (Array.isArray(data.users) && data.users.length > 0) {
+          setAllStudents(data.users);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch all students:", err);
     }
   };
 
-  const fetchFinances = async (retries = 3, delay = 600) => {
-    setIsLoadingFees(true);
+  const fetchFinances = async (isSilent = false, retries = 3, delay = 600) => {
+    if (!isSilent && fees.length === 0) setIsLoadingFees(true);
     setFeesError(null);
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
@@ -1757,13 +1759,15 @@ function AdminDashboardContent() {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
         });
-        const data = await res.json();
-        if (res.ok && Array.isArray(data.fees)) {
-          setFees(data.fees || []);
-          setFinanceRefreshTrigger(prev => prev + 1);
-          setLedgerRefreshTrigger(prev => prev + 1);
-          setIsLoadingFees(false);
-          return;
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.fees)) {
+            setFees(prev => data.fees.length > 0 ? data.fees : (prev.length > 0 ? prev : data.fees));
+            setFinanceRefreshTrigger(prev => prev + 1);
+            setLedgerRefreshTrigger(prev => prev + 1);
+            setIsLoadingFees(false);
+            return;
+          }
         }
       } catch (err: any) {
         console.error(`Attempt ${attempt} failed to fetch finances:`, err);
@@ -2305,8 +2309,8 @@ function AdminDashboardContent() {
     }
   };
 
-  const fetchOverviewStats = async (retryCount = 0) => {
-    if (!overviewStats) setIsLoadingOverview(true);
+  const fetchOverviewStats = async (isSilent = false, retryCount = 0) => {
+    if (!isSilent && !overviewStats) setIsLoadingOverview(true);
     setOverviewStatsError(false);
     try {
       const res = await fetch(`/api/admin/overview?t=${Date.now()}`, {
@@ -2315,13 +2319,25 @@ function AdminDashboardContent() {
       });
       if (res.ok) {
         const data = await res.json();
-        setOverviewStats(data);
-        if (data.activityLogs) setActivityLogs(data.activityLogs);
+        setOverviewStats((prev: any) => {
+          if (!prev) return data;
+          return {
+            ...data,
+            totalStudents: data.totalStudents || prev.totalStudents || 0,
+            totalTeachers: data.totalTeachers || prev.totalTeachers || 0,
+            totalBatches: data.totalBatches || prev.totalBatches || 0,
+            totalCourses: data.totalCourses || prev.totalCourses || 0,
+            revenueThisMonth: data.revenueThisMonth || prev.revenueThisMonth || 0,
+            pendingDues: data.pendingDues || prev.pendingDues || 0,
+            classStats: (data.classStats && data.classStats.length > 0) ? data.classStats : (prev.classStats || [])
+          };
+        });
+        if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
         if (data.totalStudents > 0 || data.totalTeachers > 0 || data.revenueThisMonth > 0) {
           try { sessionStorage.setItem('st_overview_stats', JSON.stringify(data)); } catch (e) {}
         }
       } else if (res.status === 401 && retryCount < 2) {
-        setTimeout(() => fetchOverviewStats(retryCount + 1), 400);
+        setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 400);
         return;
       } else {
         if (!overviewStats) setOverviewStatsError(true);
@@ -2788,9 +2804,10 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
-    // Pre-load directory, finances, batches, courses, & overview stats upfront for 0ms tab switching
+    // Pre-load directory, finances, batches, courses, allStudents & overview stats upfront for 0ms tab switching
     Promise.all([
       handleSearchDirectory(),
+      fetchAllStudents(),
       fetchFinances(),
       fetchExpenses(),
       fetchFinSummary(),
@@ -2801,21 +2818,31 @@ function AdminDashboardContent() {
       fetchOverviewStats()
     ]).catch(console.error);
       
-    const pollRealtimeData = () => {
-      if (document.visibilityState !== 'visible') return;
-      if (activeTab === 'overview') {
-        fetchOverviewStats();
-      } else if (activeTab === 'finances') {
-        fetchFinances();
-        fetchExpenses();
-        fetchFinSummary();
-        fetchAdminSalaries();
-        fetchStatementData();
+    let isPolling = false;
+    const pollRealtimeData = async () => {
+      if (document.visibilityState !== 'visible' || isPolling) return;
+      isPolling = true;
+      try {
+        if (activeTab === 'overview') {
+          await fetchOverviewStats(true);
+        } else if (activeTab === 'finances') {
+          await Promise.all([
+            fetchFinances(true),
+            fetchExpenses(),
+            fetchFinSummary(),
+            fetchAdminSalaries(),
+            fetchStatementData()
+          ]);
+        }
+      } catch (e) {
+        console.error("Polling error:", e);
+      } finally {
+        isPolling = false;
       }
     };
 
-    // Auto-refresh real-time data every 2.5 s (2,3 sec) in background
-    const bgPollingInterval = setInterval(pollRealtimeData, 2500);
+    // Auto-refresh real-time data silently every 5 seconds in background
+    const bgPollingInterval = setInterval(pollRealtimeData, 5000);
     document.addEventListener('visibilitychange', pollRealtimeData);
 
     return () => {
@@ -4627,7 +4654,25 @@ function AdminDashboardContent() {
 
                     {/* View Mode: ALL RECORDS or PENDING FEES */}
                     {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (() => {
-                      const filteredStudents = allStudents.filter(s => {
+                      const effectiveStudents = (() => {
+                        if (allStudents && allStudents.length > 0) return allStudents;
+                        const studentMap = new Map();
+                        fees.forEach(f => {
+                          if (f.student && (f.student.id || f.student.username)) {
+                            const key = f.student.id || f.student.username;
+                            if (!studentMap.has(key)) studentMap.set(key, f.student);
+                          }
+                        });
+                        directoryUsers.forEach(u => {
+                          if (u.role === 'STUDENT') {
+                            const key = u.id || u.username;
+                            if (!studentMap.has(key)) studentMap.set(key, u);
+                          }
+                        });
+                        return Array.from(studentMap.values());
+                      })();
+
+                      const filteredStudents = effectiveStudents.filter(s => {
                         const matchesSearch = !feeSearchQuery.trim() || 
                                               s.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
                                               s.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
