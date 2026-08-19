@@ -206,13 +206,18 @@ function AdminDashboardContent() {
   // User Creation State
   const [overviewStats, setOverviewStats] = useState<any>(null);
   const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(true);
+  const [statementData, setStatementData] = useState<any>(null);
+  const [isLoadingStatement, setIsLoadingStatement] = useState<boolean>(false);
 
   useEffect(() => {
     try {
       const cached = sessionStorage.getItem('st_overview_stats');
       if (cached) {
-        setOverviewStats(JSON.parse(cached));
-        setIsLoadingOverview(false);
+        const parsed = JSON.parse(cached);
+        if (parsed && (parsed.totalStudents > 0 || parsed.totalTeachers > 0 || parsed.revenueThisMonth > 0)) {
+          setOverviewStats(parsed);
+          setIsLoadingOverview(false);
+        }
       }
     } catch (e) {}
   }, []);
@@ -2074,15 +2079,10 @@ function AdminDashboardContent() {
         return isTargetMonth(e.date || e.createdAt, null);
       });
       
-      const outSalaries = adminSalaries.filter(s => {
-        if (s.status !== 'PAID') return false;
-        return isTargetMonth(s.paidAt || s.createdAt, s.month);
-      });
-      
-      const totalIn = inflow.reduce((sum, f) => sum + (f.paidAmount || (f.amount + f.lateFine - f.discount)), 0);
-      const totalExp = outExpenses.reduce((sum, e) => sum + e.amount, 0);
-      const totalSal = outSalaries.reduce((sum, s) => sum + (s.netPaid || 0), 0);
-      const net = totalIn - (totalExp + totalSal);
+      const totalIn = statementData?.totalInflow ?? inflow.reduce((sum, f) => sum + (f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0))), 0);
+      const totalExp = statementData?.totalExpenses ?? outExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+      const totalSal = statementData?.totalSalaries ?? outSalaries.reduce((sum, s) => sum + (s.netPaid || 0), 0);
+      const net = statementData?.netBalance ?? (totalIn - (totalExp + totalSal));
 
       tempElement = document.createElement('div');
       tempElement.style.position = 'absolute';
@@ -2104,13 +2104,13 @@ function AdminDashboardContent() {
         return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
       };
 
-      const transactions = [
+      const transactions: Array<{ date: any; ref: string; desc: string; type: string; inflow: number; outflow: number }> = statementData?.ledgerData || [
         ...inflow.map(f => ({
           date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
           ref: f.receiptNo || generateReceiptNo(f),
-          desc: `Fee Collected - ${f.student?.name || 'Student'} (${f.student?.username || ''}) - ${f.billingMonth} [${f.title}]`,
+          desc: `Fee Collected - ${f.student?.name || 'Student'} (${f.student?.username || ''}) - ${f.billingMonth || ''} [${f.title || 'Fee'}]`,
           type: 'FEE_INFLOW',
-          inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
+          inflow: f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0)),
           outflow: 0
         })),
         ...outExpenses.map(e => ({
@@ -2119,17 +2119,17 @@ function AdminDashboardContent() {
           desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
           type: 'EXPENSE_OUTFLOW',
           inflow: 0,
-          outflow: e.amount
+          outflow: e.amount || 0
         })),
         ...outSalaries.map(s => ({
           date: s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt),
           ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
-          desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
+          desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month || ''}`,
           type: 'SALARY_OUTFLOW',
           inflow: 0,
           outflow: s.netPaid || 0
         }))
-      ].sort((a,b) => a.date.getTime() - b.date.getTime());
+      ].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       const tableRowsHtml = transactions.length > 0 ? transactions.map(t => `
         <tr>
@@ -2288,16 +2288,38 @@ function AdminDashboardContent() {
     } catch (err) { console.error(err); }
   };
 
+  const fetchStatementData = async (mVal?: string, yVal?: string) => {
+    const m = mVal || statementMonth;
+    const y = yVal || statementYear;
+    try {
+      const res = await fetch(`/api/admin/finances/statement?month=${encodeURIComponent(m)}&year=${encodeURIComponent(y)}&t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStatementData(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch statement data:", e);
+    }
+  };
+
   const fetchOverviewStats = async (retryCount = 0) => {
     if (!overviewStats) setIsLoadingOverview(true);
     setOverviewStatsError(false);
     try {
-      const res = await fetch(`/api/admin/overview?t=${Date.now()}`);
+      const res = await fetch(`/api/admin/overview?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
       if (res.ok) {
         const data = await res.json();
         setOverviewStats(data);
         if (data.activityLogs) setActivityLogs(data.activityLogs);
-        try { sessionStorage.setItem('st_overview_stats', JSON.stringify(data)); } catch (e) {}
+        if (data.totalStudents > 0 || data.totalTeachers > 0 || data.revenueThisMonth > 0) {
+          try { sessionStorage.setItem('st_overview_stats', JSON.stringify(data)); } catch (e) {}
+        }
       } else if (res.status === 401 && retryCount < 2) {
         setTimeout(() => fetchOverviewStats(retryCount + 1), 400);
         return;
@@ -2770,30 +2792,40 @@ function AdminDashboardContent() {
     Promise.all([
       handleSearchDirectory(),
       fetchFinances(),
+      fetchExpenses(),
+      fetchFinSummary(),
+      fetchAdminSalaries(),
+      fetchStatementData(),
       fetchBatches(),
       fetchCourses(),
       fetchOverviewStats()
     ]).catch(console.error);
       
-      const handleVisibility = () => {
-        if (document.visibilityState === 'visible' && activeTab === 'overview') {
-          fetchOverviewStats();
-        }
-      };
+    const pollRealtimeData = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (activeTab === 'overview') {
+        fetchOverviewStats();
+      } else if (activeTab === 'finances') {
+        fetchFinances();
+        fetchExpenses();
+        fetchFinSummary();
+        fetchAdminSalaries();
+        fetchStatementData();
+      }
+    };
 
-      // Auto-refresh revenue every 60 s while on overview tab
-      const overviewInterval = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-          fetchOverviewStats();
-        }
-      }, 60000);
+    // Auto-refresh real-time data every 2.5 s (2,3 sec) in background
+    const bgPollingInterval = setInterval(pollRealtimeData, 2500);
+    document.addEventListener('visibilitychange', pollRealtimeData);
 
-      document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(bgPollingInterval);
+      document.removeEventListener('visibilitychange', pollRealtimeData);
+    };
+  }, [session, activeTab, statementMonth, statementYear]);
 
-      return () => {
-        clearInterval(overviewInterval);
-        document.removeEventListener('visibilitychange', handleVisibility);
-      };
+  useEffect(() => {
+    if (!session?.user) return;
     if (activeTab === 'users') handleSearchDirectory(); // always load all users on tab switch
     if (activeTab === 'finances') {
       const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -2804,10 +2836,12 @@ function AdminDashboardContent() {
         fetchFinances(),
         fetchExpenses(),
         fetchFinSummary(),
+        fetchAdminSalaries(),
+        fetchStatementData(),
         fetchAllStudents(),
         fetchBatches(),
         fetchAutoBillingPreview(currentMonth)
-      ]);
+      ]).catch(console.error);
     }
     if (activeTab === 'verifications') {
       Promise.all([
@@ -5964,7 +5998,11 @@ function AdminDashboardContent() {
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <select
                       value={statementMonth}
-                      onChange={e => setStatementMonth(e.target.value)}
+                      onChange={e => {
+                        const m = e.target.value;
+                        setStatementMonth(m);
+                        fetchStatementData(m, statementYear);
+                      }}
                       style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
                     >
                       {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(m => (
@@ -5973,7 +6011,11 @@ function AdminDashboardContent() {
                     </select>
                     <select
                       value={statementYear}
-                      onChange={e => setStatementYear(e.target.value)}
+                      onChange={e => {
+                        const y = e.target.value;
+                        setStatementYear(y);
+                        fetchStatementData(statementMonth, y);
+                      }}
                       style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}
                     >
                       {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
@@ -5993,54 +6035,85 @@ function AdminDashboardContent() {
 
               {/* Summary Cards */}
               {(() => {
+                const parseSafeDate = (dVal: any) => {
+                  if (!dVal) return null;
+                  const d = new Date(dVal);
+                  return isNaN(d.getTime()) ? null : d;
+                };
+
+                const isTargetMonth = (dVal: any, billingMonthStr?: string | null) => {
+                  if (!statementMonth || statementMonth === 'ALL') return true;
+                  const targetMonthLower = statementMonth.toLowerCase();
+                  const shortMonthLower = targetMonthLower.slice(0, 3);
+                  
+                  if (billingMonthStr) {
+                    const lowerB = billingMonthStr.toLowerCase();
+                    if ((lowerB.includes(targetMonthLower) || lowerB.includes(shortMonthLower)) && lowerB.includes(statementYear)) {
+                      return true;
+                    }
+                  }
+                  const d = parseSafeDate(dVal);
+                  if (!d) return false;
+                  const monthName = d.toLocaleString('en-US', { month: 'long' }).toLowerCase();
+                  return (monthName.includes(targetMonthLower) || monthName.includes(shortMonthLower)) && String(d.getFullYear()) === statementYear;
+                };
+
                 const inflow = fees.filter(f => {
                   if (!['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return false;
-                  const date = f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt);
-                  return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                  return isTargetMonth(f.paidAt || f.createdAt, f.billingMonth);
                 });
                 
                 const outExpenses = expenses.filter(e => {
-                  const date = new Date(e.date || e.createdAt);
-                  return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                  return isTargetMonth(e.date || e.createdAt, null);
                 });
                 
                 const outSalaries = adminSalaries.filter(s => {
                   if (s.status !== 'PAID') return false;
-                  const date = s.paidAt ? new Date(s.paidAt) : new Date(s.createdAt);
-                  return date.toLocaleString('en-US', { month: 'long' }) === statementMonth && String(date.getFullYear()) === statementYear;
+                  return isTargetMonth(s.paidAt || s.createdAt, s.month);
                 });
                 
-                const totalIn = inflow.reduce((sum, f) => sum + (f.paidAmount || (f.amount + f.lateFine - f.discount)), 0);
-                const totalExp = outExpenses.reduce((sum, e) => sum + e.amount, 0);
-                const totalSal = outSalaries.reduce((sum, s) => sum + s.netPaid, 0);
-                const net = totalIn - (totalExp + totalSal);
+                const totalIn = statementData?.totalInflow ?? inflow.reduce((sum, f) => sum + (f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0))), 0);
+                const totalExp = statementData?.totalExpenses ?? outExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+                const totalSal = statementData?.totalSalaries ?? outSalaries.reduce((sum, s) => sum + (s.netPaid || 0), 0);
+                const net = statementData?.netBalance ?? (totalIn - (totalExp + totalSal));
 
-                const ledgerData = [
-                  ...inflow.map(f => ({
-                    date: f.paidAt ? new Date(f.paidAt) : new Date(f.createdAt),
-                    ref: f.receiptNo || generateReceiptNo(f),
-                    desc: `Fee Collected - ${f.student?.name} (${f.student?.username}) - ${f.billingMonth} [${f.title}]`,
-                    type: 'FEE_INFLOW',
-                    inflow: f.paidAmount || (f.amount + f.lateFine - f.discount),
-                    outflow: 0
-                  })),
-                  ...outExpenses.map(e => ({
-                    date: new Date(e.date || e.createdAt),
-                    ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
-                    desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
-                    type: 'EXPENSE_OUTFLOW',
-                    inflow: 0,
-                    outflow: e.amount
-                  })),
-                  ...outSalaries.map(s => ({
-                    date: s.paidAt ? new Date(s.paidAt) : s.createdAt ? new Date(s.createdAt) : new Date(),
-                    ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
-                    desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month}`,
-                    type: 'SALARY_OUTFLOW',
-                    inflow: 0,
-                    outflow: s.netPaid
-                  }))
-                ].sort((a,b) => a.date.getTime() - b.date.getTime());
+                const fallbackLedgerData = [
+                  ...inflow.map(f => {
+                    const d = parseSafeDate(f.paidAt) || parseSafeDate(f.createdAt) || new Date();
+                    return {
+                      date: d.toISOString(),
+                      ref: f.receiptNo || generateReceiptNo(f),
+                      desc: `Fee Collected - ${f.student?.name || 'Student'} (${f.student?.username || ''}) - ${f.billingMonth || ''} [${f.title || 'Fee'}]`,
+                      type: 'FEE_INFLOW',
+                      inflow: f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0)),
+                      outflow: 0
+                    };
+                  }),
+                  ...outExpenses.map(e => {
+                    const d = parseSafeDate(e.date) || parseSafeDate(e.createdAt) || new Date();
+                    return {
+                      date: d.toISOString(),
+                      ref: `EXP-${e.id.slice(-6).toUpperCase()}`,
+                      desc: `Administrative Expense - ${e.title} (${e.category})${e.remarks ? ' - ' + e.remarks : ''}`,
+                      type: 'EXPENSE_OUTFLOW',
+                      inflow: 0,
+                      outflow: e.amount || 0
+                    };
+                  }),
+                  ...outSalaries.map(s => {
+                    const d = parseSafeDate(s.paidAt) || parseSafeDate(s.createdAt) || new Date();
+                    return {
+                      date: d.toISOString(),
+                      ref: `SAL-${s.id.slice(-6).toUpperCase()}`,
+                      desc: `Salary Disbursed - ${s.teacher?.name || 'Faculty Member'} - ${s.month || ''}`,
+                      type: 'SALARY_OUTFLOW',
+                      inflow: 0,
+                      outflow: s.netPaid || 0
+                    };
+                  })
+                ].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                const ledgerRows: Array<{ date: string; ref: string; desc: string; type: string; inflow: number; outflow: number }> = statementData?.ledgerData || fallbackLedgerData;
 
                 return (
                   <>
@@ -6079,23 +6152,29 @@ function AdminDashboardContent() {
                             </tr>
                           </thead>
                           <tbody>
-                            {ledgerData.map((t, idx) => (
-                              <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.88rem' }}>
-                                <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{((d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)(t.date)}</td>
-                                <td style={{ padding: '1.1rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{t.ref}</td>
-                                <td style={{ padding: '1.1rem 1rem', color: 'var(--text)', fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'normal', minWidth: '250px' }}>{t.desc}</td>
-                                <td style={{ padding: '1.1rem 1rem' }}>
-                                  <span style={{ 
-                                    padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, 
-                                    background: t.type === 'FEE_INFLOW' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)', 
-                                    color: t.type === 'FEE_INFLOW' ? 'var(--secondary)' : 'var(--primary)' 
-                                  }}>{t.type}</span>
-                                </td>
-                                <td style={{ padding: '1.1rem 1rem', textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{t.inflow > 0 ? `₹${t.inflow.toLocaleString()}` : '–'}</td>
-                                <td style={{ padding: '1.1rem 1.5rem', textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{t.outflow > 0 ? `₹${t.outflow.toLocaleString()}` : '–'}</td>
-                              </tr>
-                            ))}
-                            {ledgerData.length === 0 && (
+                            {ledgerRows.map((t, idx) => {
+                              const d = new Date(t.date);
+                              const dateFormatted = !isNaN(d.getTime()) 
+                                ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+                                : 'N/A';
+                              return (
+                                <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.88rem' }}>
+                                  <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{dateFormatted}</td>
+                                  <td style={{ padding: '1.1rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{t.ref}</td>
+                                  <td style={{ padding: '1.1rem 1rem', color: 'var(--text)', fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'normal', minWidth: '250px' }}>{t.desc}</td>
+                                  <td style={{ padding: '1.1rem 1rem' }}>
+                                    <span style={{ 
+                                      padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, 
+                                      background: t.type === 'FEE_INFLOW' ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)', 
+                                      color: t.type === 'FEE_INFLOW' ? 'var(--secondary)' : 'var(--primary)' 
+                                    }}>{t.type}</span>
+                                  </td>
+                                  <td style={{ padding: '1.1rem 1rem', textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{t.inflow > 0 ? `₹${t.inflow.toLocaleString()}` : '–'}</td>
+                                  <td style={{ padding: '1.1rem 1.5rem', textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{t.outflow > 0 ? `₹${t.outflow.toLocaleString()}` : '–'}</td>
+                                </tr>
+                              );
+                            })}
+                            {ledgerRows.length === 0 && (
                               <tr><td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transactions recorded for {statementMonth} {statementYear}.</td></tr>
                             )}
                           </tbody>

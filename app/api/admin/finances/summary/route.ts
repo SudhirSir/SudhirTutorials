@@ -22,22 +22,19 @@ export async function GET() {
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
 
+    const currentMonthShort = now.toLocaleString('en-US', { month: 'short' });
+
     // Parallelize all financial queries to drastically minimize database round-trip times
     const [payments, expenses, pendingAggregateResult, currentMonthFees] = await Promise.all([
       withDbRetry(() => prisma.payment.findMany({
         where: {
-          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
-          OR: [
-            { paidAt: { gte: sixMonthsAgo } },
-            { createdAt: { gte: sixMonthsAgo } }
-          ]
+          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
         },
         select: { paidAmount: true, paidAt: true, createdAt: true, amount: true, lateFine: true, discount: true }
-      })),
+      })).catch((err) => { console.error('Error fetching paid payments:', err); return []; }),
       withDbRetry(() => prisma.expense.findMany({
-        where: { date: { gte: sixMonthsAgo } },
-        select: { amount: true, date: true } // Avoid retrieving unnecessary large columns like remarks
-      })),
+        select: { amount: true, date: true, createdAt: true }
+      })).catch((err) => { console.error('Error fetching expenses:', err); return []; }),
       withDbRetry(() => prisma.payment.aggregate({
         _sum: {
           amount: true,
@@ -50,39 +47,45 @@ export async function GET() {
             status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
           }
         }
-      })),
+      })).catch((err) => { console.error('Error aggregating pending payments:', err); return { _sum: {} }; }),
       withDbRetry(() => prisma.payment.findMany({
         where: {
           OR: [
             { billingMonth: { contains: currentMonthName, mode: 'insensitive' } },
-            { createdAt: { gte: startOfCurrentMonth } }
+            { billingMonth: { contains: currentMonthShort, mode: 'insensitive' } },
+            { createdAt: { gte: startOfCurrentMonth } },
+            { paidAt: { gte: startOfCurrentMonth } }
           ]
         },
         select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true }
-      }))
+      })).catch((err) => { console.error('Error fetching current month fees:', err); return []; })
     ]);
 
-    const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0))), 0);
-    const totalExpenses = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
+    const totalRevenue = payments.reduce((acc: number, p: any) => {
+      const amt = p.paidAmount ?? (p.amount + (p.lateFine || 0) - (p.discount || 0));
+      return acc + (amt || 0);
+    }, 0);
+
+    const totalExpenses = expenses.reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
 
     const currentMonthCollected = currentMonthFees.reduce((acc: number, f: any) => {
       if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
-        return acc + (f.paidAmount || (f.amount + (f.lateFine || 0) - (f.discount || 0)));
+        return acc + (f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0)));
       }
       return acc + (f.paidAmount || 0);
     }, 0);
 
     const currentMonthPending = currentMonthFees.reduce((acc: number, f: any) => {
       if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return acc;
-      return acc + Math.max(0, f.amount + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0));
+      return acc + Math.max(0, (f.amount || 0) + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0));
     }, 0);
 
     // Sum the actual outstanding balance of all pending/partially paid payments
     const totalPending = Math.max(0,
-      (pendingAggregateResult._sum.amount || 0) +
-      (pendingAggregateResult._sum.lateFine || 0) -
-      (pendingAggregateResult._sum.discount || 0) -
-      (pendingAggregateResult._sum.paidAmount || 0)
+      ((pendingAggregateResult as any)?._sum?.amount || 0) +
+      ((pendingAggregateResult as any)?._sum?.lateFine || 0) -
+      ((pendingAggregateResult as any)?._sum?.discount || 0) -
+      ((pendingAggregateResult as any)?._sum?.paidAmount || 0)
     );
 
     // Monthly breakdown (last 6 months) using O(N) Hash Map lookup
@@ -95,17 +98,19 @@ export async function GET() {
 
     payments.forEach((p: any) => {
       const d = p.paidAt ? new Date(p.paidAt) : (p.createdAt ? new Date(p.createdAt) : null);
-      if (!d) return;
+      if (!d || isNaN(d.getTime())) return;
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       const entry = monthStatsMap.get(key);
       if (entry) {
-        entry.revenue += (p.paidAmount || (p.amount + (p.lateFine || 0) - (p.discount || 0)));
+        entry.revenue += (p.paidAmount ?? (p.amount + (p.lateFine || 0) - (p.discount || 0)));
       }
     });
 
     expenses.forEach((e: any) => {
-      if (!e.date) return;
-      const d = new Date(e.date);
+      const rawDate = e.date || e.createdAt;
+      if (!rawDate) return;
+      const d = new Date(rawDate);
+      if (isNaN(d.getTime())) return;
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       const entry = monthStatsMap.get(key);
       if (entry) {
@@ -134,9 +139,11 @@ export async function GET() {
       currentMonthPending,
       netProfit: totalRevenue - totalExpenses,
       monthlyData
+    }, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching finance summary:', error);
     return NextResponse.json({ error: 'Failed to fetch financial stats' }, { status: 500 });
   }
 }
