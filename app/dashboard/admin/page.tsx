@@ -204,24 +204,24 @@ function AdminDashboardContent() {
   };
   
   // User Creation State
-  const [overviewStats, setOverviewStats] = useState<{
-    totalStudents: number;
-    totalTeachers: number;
-    totalBatches: number;
-    totalCourses: number;
-    revenueThisMonth: number;
-    pendingDues: number;
-    classStats: Array<{ className: string; count: number }>;
-  }>({
-    totalStudents: 0,
-    totalTeachers: 0,
-    totalBatches: 0,
-    totalCourses: 0,
-    revenueThisMonth: 0,
-    pendingDues: 0,
-    classStats: []
+  const [overviewStats, setOverviewStats] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('st_overview_stats');
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return null;
   });
-  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
+  const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('st_overview_stats');
+        if (cached) return false;
+      } catch (e) {}
+    }
+    return true;
+  });
   const [overviewStatsError, setOverviewStatsError] = useState(false);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [newUserRole, setNewUserRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
@@ -2294,27 +2294,28 @@ function AdminDashboardContent() {
     } catch (err) { console.error(err); }
   };
 
-  const fetchOverviewStats = async () => {
-    setIsLoadingOverview(true);
+  const fetchOverviewStats = async (retryCount = 0) => {
+    if (!overviewStats) setIsLoadingOverview(true);
     setOverviewStatsError(false);
     try {
-      // cache: 'no-store' + timestamp param guarantees a fresh DB hit every call
-      const res = await fetch(`/api/admin/overview?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-      });
+      const res = await fetch(`/api/admin/overview?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         setOverviewStats(data);
         if (data.activityLogs) setActivityLogs(data.activityLogs);
+        try { sessionStorage.setItem('st_overview_stats', JSON.stringify(data)); } catch (e) {}
+      } else if (res.status === 401 && retryCount < 2) {
+        setTimeout(() => fetchOverviewStats(retryCount + 1), 400);
+        return;
       } else {
-        setOverviewStatsError(true);
+        if (!overviewStats) setOverviewStatsError(true);
       }
     } catch (err) {
       console.error(err);
-      setOverviewStatsError(true);
+      if (!overviewStats) setOverviewStatsError(true);
+    } finally {
+      setIsLoadingOverview(false);
     }
-    finally { setIsLoadingOverview(false); }
   };
 
   const fetchSettings = async () => {
@@ -3162,26 +3163,44 @@ function AdminDashboardContent() {
 
         @media (max-width: 768px) {
           .modal-overlay-container {
-            padding: 0.5rem !important;
+            padding: 0.75rem 0.5rem 2.5rem 0.5rem !important;
             align-items: flex-start !important;
             justify-content: center !important;
             overflow-x: hidden !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
             box-sizing: border-box !important;
           }
           .user-details-modal-card {
             padding: 1.25rem 0.85rem !important;
             border-radius: 16px !important;
-            margin: 0.5rem auto !important;
+            margin: 0.5rem auto 1.5rem auto !important;
             width: 100% !important;
             max-width: 100% !important;
             min-height: auto !important;
-            max-height: 90vh !important;
-            box-sizing: border-box !important;
+            max-height: 85vh !important;
+            overflow-y: auto !important;
             overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            box-sizing: border-box !important;
           }
-          .user-details-modal-grid-2col {
+          .user-details-modal-grid-2col,
+          .profile-editor-form-grid {
             grid-template-columns: 1fr !important;
             gap: 0.75rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .profile-editor-form-grid input,
+          .profile-editor-form-grid select,
+          .profile-editor-form-grid textarea,
+          .user-details-modal-card input,
+          .user-details-modal-card select,
+          .user-details-modal-card textarea {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
           }
         }
 
@@ -3467,7 +3486,7 @@ function AdminDashboardContent() {
                 <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Student Class Distribution</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
                   {overviewStats?.classStats && overviewStats.classStats.length > 0 ? (
-                    overviewStats.classStats.map((item, idx) => {
+                    overviewStats.classStats.map((item: any, idx: number) => {
                       const total = overviewStats.totalStudents || 1;
                       const percentage = Math.round((item.count / total) * 100);
                       
@@ -10671,10 +10690,24 @@ function AdminDashboardContent() {
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Pending Fee</div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ef4444', marginTop: '4px' }}>
                     ₹{((() => {
-                      const studentPayments = selectedUserDetail.payments || fees.filter(f => f.studentId === selectedUserDetail.id);
-                      const pendingPayments = studentPayments.filter((f: any) => f.status === 'PENDING');
+                      const studentPayments = fees.filter(f => 
+                        f.studentId === selectedUserDetail.id || 
+                        f.studentId === selectedUserDetail.username || 
+                        f.student?.username === selectedUserDetail.username || 
+                        f.student?.id === selectedUserDetail.id
+                      );
+                      const activePayments = studentPayments.length > 0 ? studentPayments : (selectedUserDetail.payments || []);
+                      const pendingPayments = activePayments.filter((f: any) => f.status === 'PENDING' || (f.status !== 'PAID' && f.status !== 'VERIFIED' && f.status !== 'PAID_ONLINE'));
                       if (pendingPayments.length > 0) {
-                        return pendingPayments.reduce((sum: number, f: any) => sum + Math.max(0, (f.amount + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0))), 0);
+                        return pendingPayments.reduce((sum: number, f: any) => {
+                          const fine = Math.max(
+                            f.lateFine || 0,
+                            f.currentLateFine || 0,
+                            calculateLiveLateFine ? calculateLiveLateFine(f.dueDate, f.paidAt, f.billingMonth) : 0
+                          );
+                          const netDue = Math.max(0, (f.amount || 0) + fine - (f.discount || 0) - (f.paidAmount || 0));
+                          return sum + netDue;
+                        }, 0);
                       }
                       return 0;
                     })()).toLocaleString('en-IN')}

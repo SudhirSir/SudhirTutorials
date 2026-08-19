@@ -6,11 +6,24 @@ import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
-export async function GET() {
+let cachedOverviewStats: { timestamp: number; data: any } | null = null;
+const CACHE_TTL_MS = 15000; // 15s in-memory cache
+
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const forceRefresh = searchParams.get('fresh') === 'true';
+    const nowTs = Date.now();
+
+    if (!forceRefresh && cachedOverviewStats && (nowTs - cachedOverviewStats.timestamp < CACHE_TTL_MS)) {
+      return NextResponse.json(cachedOverviewStats.data, {
+        headers: { 'Cache-Control': 'private, max-age=15' }
+      });
     }
 
     const now = new Date();
@@ -94,31 +107,22 @@ export async function GET() {
       };
     });
 
-    const totalStudents = statsResult?.totalStudents || 0;
-    const totalTeachers = statsResult?.totalTeachers || 0;
-    const totalBatches = statsResult?.totalBatches || 0;
-    const totalCourses = statsResult?.totalCourses || 0;
-    const revenueThisMonth = statsResult?.revenueThisMonth || 0;
-    const pendingDues = statsResult?.pendingDues || 0;
-    const classStats = statsResult?.classStats || [];
+    const payload = {
+      totalStudents: statsResult?.totalStudents || 0,
+      totalTeachers: statsResult?.totalTeachers || 0,
+      totalBatches: statsResult?.totalBatches || 0,
+      totalCourses: statsResult?.totalCourses || 0,
+      classStats: statsResult?.classStats || [],
+      revenueThisMonth: statsResult?.revenueThisMonth || 0,
+      pendingDues: statsResult?.pendingDues || 0,
+      activityLogs: []
+    };
 
-    const activityLogs: any[] = [];
+    cachedOverviewStats = { timestamp: nowTs, data: payload };
 
-    const response = NextResponse.json({
-      totalStudents,
-      totalTeachers,
-      totalBatches,
-      totalCourses,
-      classStats,
-      revenueThisMonth,
-      pendingDues,
-      activityLogs
+    return NextResponse.json(payload, {
+      headers: { 'Cache-Control': 'private, max-age=15' }
     });
-
-    // Prevent caching to guarantee real-time data delivery
-    response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    return response;
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch overview data' }, { status: 500 });
