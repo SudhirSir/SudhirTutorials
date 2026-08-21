@@ -5,17 +5,19 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 function getTunedDatabaseUrl(): string | undefined {
   const url = process.env.DATABASE_URL;
   if (!url) return undefined;
-  // Override low connection limits with tuned connection pool settings
-  let tunedUrl = url.replace(/connection_limit=\d+/, 'connection_limit=15');
+  // If pgbouncer=true, ensure connection_limit is set appropriately (max 5 for PgBouncer pooler)
+  if (url.includes('pgbouncer=true')) {
+    if (url.includes('connection_limit=')) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}connection_limit=5&pool_timeout=15`;
+  }
+  let tunedUrl = url.replace(/connection_limit=\d+/, 'connection_limit=5');
   if (!tunedUrl.includes('connection_limit=')) {
     const separator = tunedUrl.includes('?') ? '&' : '?';
-    tunedUrl = `${tunedUrl}${separator}connection_limit=15`;
+    tunedUrl = `${tunedUrl}${separator}connection_limit=5`;
   }
   if (!tunedUrl.includes('pool_timeout=')) {
-    tunedUrl = `${tunedUrl}&pool_timeout=30`;
-  }
-  if (!tunedUrl.includes('connect_timeout=')) {
-    tunedUrl = `${tunedUrl}&connect_timeout=15`;
+    tunedUrl = `${tunedUrl}&pool_timeout=15`;
   }
   return tunedUrl;
 }

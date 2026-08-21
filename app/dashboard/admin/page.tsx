@@ -1867,7 +1867,12 @@ function AdminDashboardContent() {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
       });
-      if (res.ok) setFinSummary(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (data.totalRevenue > 0 || data.totalPending > 0 || data.currentMonthCollected > 0 || !finSummary)) {
+          setFinSummary(data);
+        }
+      }
     } catch (err) { console.error(err); }
     finally { setIsLoadingFinSummary(false); }
   };
@@ -2319,22 +2324,27 @@ function AdminDashboardContent() {
       });
       if (res.ok) {
         const data = await res.json();
-        setOverviewStats((prev: any) => {
-          if (!prev) return data;
-          return {
-            ...data,
-            totalStudents: data.totalStudents || prev.totalStudents || 0,
-            totalTeachers: data.totalTeachers || prev.totalTeachers || 0,
-            totalBatches: data.totalBatches || prev.totalBatches || 0,
-            totalCourses: data.totalCourses || prev.totalCourses || 0,
-            revenueThisMonth: data.revenueThisMonth || prev.revenueThisMonth || 0,
-            pendingDues: data.pendingDues || prev.pendingDues || 0,
-            classStats: (data.classStats && data.classStats.length > 0) ? data.classStats : (prev.classStats || [])
-          };
-        });
+        const hasValidMetrics = (data.totalStudents > 0 || data.totalTeachers > 0 || data.revenueThisMonth > 0 || data.totalBatches > 0 || data.totalCourses > 0);
+        if (hasValidMetrics || !overviewStats) {
+          setOverviewStats((prev: any) => {
+            if (!prev) return data;
+            return {
+              ...data,
+              totalStudents: data.totalStudents || prev.totalStudents || 0,
+              totalTeachers: data.totalTeachers || prev.totalTeachers || 0,
+              totalBatches: data.totalBatches || prev.totalBatches || 0,
+              totalCourses: data.totalCourses || prev.totalCourses || 0,
+              revenueThisMonth: data.revenueThisMonth || prev.revenueThisMonth || 0,
+              pendingDues: data.pendingDues || prev.pendingDues || 0,
+              classStats: (data.classStats && data.classStats.length > 0) ? data.classStats : (prev.classStats || [])
+            };
+          });
+        }
         if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
-        if (data.totalStudents > 0 || data.totalTeachers > 0 || data.revenueThisMonth > 0) {
+        if (hasValidMetrics) {
           try { sessionStorage.setItem('st_overview_stats', JSON.stringify(data)); } catch (e) {}
+        } else if (retryCount < 3) {
+          setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 600);
         }
       } else if (res.status === 401 && retryCount < 2) {
         setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 400);
@@ -3533,10 +3543,10 @@ function AdminDashboardContent() {
           {/* Key Metrics Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {[
-              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : (isLoadingOverview ? '--' : 0), icon: '👥', color: '#ef4444' },
-              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : (isLoadingOverview ? '--' : 0), icon: '👨‍🏫', color: '#10b981' },
-              { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : (isLoadingOverview ? '--' : '₹0'), icon: '💰', color: '#3b82f6' },
-              { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : (isLoadingOverview ? '--' : '₹0'), icon: '⚠️', color: '#ef4444' }
+              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : '--', icon: '👥', color: '#ef4444' },
+              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : '--', icon: '👨‍🏫', color: '#10b981' },
+              { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : '--', icon: '💰', color: '#3b82f6' },
+              { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : '--', icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
               <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '0.85rem', right: '0.85rem', fontSize: '1.6rem', opacity: 0.12 }}>{stat.icon}</div>
@@ -4655,8 +4665,10 @@ function AdminDashboardContent() {
                     {/* View Mode: ALL RECORDS or PENDING FEES */}
                     {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (() => {
                       const effectiveStudents = (() => {
-                        if (allStudents && allStudents.length > 0) return allStudents;
                         const studentMap = new Map();
+                        (allStudents || []).forEach(s => {
+                          if (s && (s.id || s.username)) studentMap.set(s.id || s.username, s);
+                        });
                         fees.forEach(f => {
                           if (f.student && (f.student.id || f.student.username)) {
                             const key = f.student.id || f.student.username;
@@ -4669,7 +4681,11 @@ function AdminDashboardContent() {
                             if (!studentMap.has(key)) studentMap.set(key, u);
                           }
                         });
-                        return Array.from(studentMap.values());
+                        const list = Array.from(studentMap.values());
+                        if (list.length === 0) {
+                          fetchAllStudents();
+                        }
+                        return list;
                       })();
 
                       const filteredStudents = effectiveStudents.filter(s => {

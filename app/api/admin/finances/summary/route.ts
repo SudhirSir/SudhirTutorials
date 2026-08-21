@@ -24,42 +24,44 @@ export async function GET() {
 
     const currentMonthShort = now.toLocaleString('en-US', { month: 'short' });
 
-    // Parallelize all financial queries to drastically minimize database round-trip times
-    const [payments, expenses, pendingAggregateResult, currentMonthFees] = await Promise.all([
-      withDbRetry(() => prisma.payment.findMany({
-        where: {
-          status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
-        },
-        select: { paidAmount: true, paidAt: true, createdAt: true, amount: true, lateFine: true, discount: true }
-      })).catch((err) => { console.error('Error fetching paid payments:', err); return []; }),
-      withDbRetry(() => prisma.expense.findMany({
-        select: { amount: true, date: true, createdAt: true }
-      })).catch((err) => { console.error('Error fetching expenses:', err); return []; }),
-      withDbRetry(() => prisma.payment.aggregate({
-        _sum: {
-          amount: true,
-          paidAmount: true,
-          lateFine: true,
-          discount: true
-        },
-        where: {
-          NOT: {
+    // Parallelize all financial queries and wrap atomically with withDbRetry
+    const [payments, expenses, pendingAggregateResult, currentMonthFees] = await withDbRetry(async () => {
+      return await Promise.all([
+        prisma.payment.findMany({
+          where: {
             status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
+          },
+          select: { paidAmount: true, paidAt: true, createdAt: true, amount: true, lateFine: true, discount: true }
+        }),
+        prisma.expense.findMany({
+          select: { amount: true, date: true, createdAt: true }
+        }),
+        prisma.payment.aggregate({
+          _sum: {
+            amount: true,
+            paidAmount: true,
+            lateFine: true,
+            discount: true
+          },
+          where: {
+            NOT: {
+              status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
+            }
           }
-        }
-      })).catch((err) => { console.error('Error aggregating pending payments:', err); return { _sum: {} }; }),
-      withDbRetry(() => prisma.payment.findMany({
-        where: {
-          OR: [
-            { billingMonth: { contains: currentMonthName, mode: 'insensitive' } },
-            { billingMonth: { contains: currentMonthShort, mode: 'insensitive' } },
-            { createdAt: { gte: startOfCurrentMonth } },
-            { paidAt: { gte: startOfCurrentMonth } }
-          ]
-        },
-        select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true }
-      })).catch((err) => { console.error('Error fetching current month fees:', err); return []; })
-    ]);
+        }),
+        prisma.payment.findMany({
+          where: {
+            OR: [
+              { billingMonth: { contains: currentMonthName, mode: 'insensitive' } },
+              { billingMonth: { contains: currentMonthShort, mode: 'insensitive' } },
+              { createdAt: { gte: startOfCurrentMonth } },
+              { paidAt: { gte: startOfCurrentMonth } }
+            ]
+          },
+          select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true }
+        })
+      ]);
+    });
 
     const totalRevenue = payments.reduce((acc: number, p: any) => {
       const amt = p.paidAmount ?? (p.amount + (p.lateFine || 0) - (p.discount || 0));
