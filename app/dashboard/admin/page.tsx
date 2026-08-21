@@ -219,6 +219,20 @@ function AdminDashboardContent() {
           setIsLoadingOverview(false);
         }
       }
+      const cachedFin = sessionStorage.getItem('st_fin_summary');
+      if (cachedFin) {
+        const parsedFin = JSON.parse(cachedFin);
+        if (parsedFin && (parsedFin.totalRevenue > 0 || parsedFin.totalPending > 0 || parsedFin.currentMonthCollected > 0)) {
+          setFinSummary(parsedFin);
+        }
+      }
+      const cachedStudents = sessionStorage.getItem('st_all_students');
+      if (cachedStudents) {
+        const parsedStudents = JSON.parse(cachedStudents);
+        if (Array.isArray(parsedStudents) && parsedStudents.length > 0) {
+          setAllStudents(parsedStudents);
+        }
+      }
     } catch (e) {}
   }, []);
   const [overviewStatsError, setOverviewStatsError] = useState(false);
@@ -1743,6 +1757,7 @@ function AdminDashboardContent() {
         const data = await res.json();
         if (Array.isArray(data.users) && data.users.length > 0) {
           setAllStudents(data.users);
+          try { sessionStorage.setItem('st_all_students', JSON.stringify(data.users)); } catch (e) {}
         }
       }
     } catch (err) {
@@ -1871,6 +1886,9 @@ function AdminDashboardContent() {
         const data = await res.json();
         if (data && (data.totalRevenue > 0 || data.totalPending > 0 || data.currentMonthCollected > 0 || !finSummary)) {
           setFinSummary(data);
+          if (data.totalRevenue > 0 || data.totalPending > 0) {
+            try { sessionStorage.setItem('st_fin_summary', JSON.stringify(data)); } catch (e) {}
+          }
         }
       }
     } catch (err) { console.error(err); }
@@ -2088,9 +2106,14 @@ function AdminDashboardContent() {
         return isTargetMonth(e.date || e.createdAt, null);
       });
       
-      const totalIn = statementData?.totalInflow ?? inflow.reduce((sum, f) => sum + (f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0))), 0);
-      const totalExp = statementData?.totalExpenses ?? outExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-      const totalSal = statementData?.totalSalaries ?? outSalaries.reduce((sum, s) => sum + (s.netPaid || 0), 0);
+      const outSalaries = adminSalaries.filter((s: any) => {
+        if (s.status !== 'PAID') return false;
+        return isTargetMonth(s.paidAt || s.createdAt, s.month);
+      });
+      
+      const totalIn = statementData?.totalInflow ?? inflow.reduce((sum: number, f: any) => sum + (f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0))), 0);
+      const totalExp = statementData?.totalExpenses ?? outExpenses.reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
+      const totalSal = statementData?.totalSalaries ?? outSalaries.reduce((sum: number, s: any) => sum + (s.netPaid || 0), 0);
       const net = statementData?.netBalance ?? (totalIn - (totalExp + totalSal));
 
       tempElement = document.createElement('div');
@@ -2814,19 +2837,35 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
-    // Pre-load directory, finances, batches, courses, allStudents & overview stats upfront for 0ms tab switching
-    Promise.all([
-      handleSearchDirectory(),
-      fetchAllStudents(),
-      fetchFinances(),
-      fetchExpenses(),
-      fetchFinSummary(),
-      fetchAdminSalaries(),
-      fetchStatementData(),
-      fetchBatches(),
-      fetchCourses(),
-      fetchOverviewStats()
-    ]).catch(console.error);
+    // Staggered active-tab prioritized hydration to prevent database pool exhaustion
+    if (activeTab === 'overview') {
+      fetchOverviewStats();
+      setTimeout(() => {
+        handleSearchDirectory();
+        fetchAllStudents();
+      }, 150);
+      setTimeout(() => {
+        fetchFinances(true);
+        fetchFinSummary();
+        fetchBatches();
+      }, 400);
+    } else if (activeTab === 'finances') {
+      fetchFinSummary();
+      fetchFinances();
+      setTimeout(() => {
+        fetchAllStudents();
+        fetchExpenses();
+      }, 150);
+      setTimeout(() => {
+        fetchAdminSalaries();
+        fetchStatementData();
+        fetchBatches();
+      }, 400);
+    } else {
+      handleSearchDirectory();
+      fetchAllStudents();
+      setTimeout(() => fetchOverviewStats(true), 250);
+    }
       
     let isPolling = false;
     const pollRealtimeData = async () => {
@@ -2836,13 +2875,8 @@ function AdminDashboardContent() {
         if (activeTab === 'overview') {
           await fetchOverviewStats(true);
         } else if (activeTab === 'finances') {
-          await Promise.all([
-            fetchFinances(true),
-            fetchExpenses(),
-            fetchFinSummary(),
-            fetchAdminSalaries(),
-            fetchStatementData()
-          ]);
+          await fetchFinSummary();
+          await fetchFinances(true);
         }
       } catch (e) {
         console.error("Polling error:", e);
