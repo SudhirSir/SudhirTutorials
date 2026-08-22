@@ -24,6 +24,13 @@ export async function GET() {
 
     const currentMonthShort = now.toLocaleString('en-US', { month: 'short' });
 
+    const currentYearStr = String(now.getFullYear());
+    const isCurrentMonthBilling = (bm?: string | null) => {
+      if (!bm) return false;
+      const lower = bm.toLowerCase();
+      return (lower.includes(currentMonthName.toLowerCase()) || lower.includes(currentMonthShort.toLowerCase())) && lower.includes(currentYearStr);
+    };
+
     // Parallelize all financial queries and wrap atomically with withDbRetry
     const [payments, expenses, pendingAggregateResult, currentMonthFees] = await withDbRetry(async () => {
       return await Promise.all([
@@ -58,7 +65,7 @@ export async function GET() {
               { paidAt: { gte: startOfCurrentMonth } }
             ]
           },
-          select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true }
+          select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true, billingMonth: true, paidAt: true }
         })
       ]);
     });
@@ -71,15 +78,25 @@ export async function GET() {
     const totalExpenses = expenses.reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
 
     const currentMonthCollected = currentMonthFees.reduce((acc: number, f: any) => {
+      const isPaidThisMonth = f.paidAt && new Date(f.paidAt) >= startOfCurrentMonth;
+      const isCurrentMonthInvoice = isCurrentMonthBilling(f.billingMonth);
       if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) {
-        return acc + (f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0)));
+        if (isPaidThisMonth || isCurrentMonthInvoice) {
+          return acc + (f.paidAmount ?? (f.amount + (f.lateFine || 0) - (f.discount || 0)));
+        }
+      } else if (isPaidThisMonth) {
+        return acc + (f.paidAmount || 0);
       }
-      return acc + (f.paidAmount || 0);
+      return acc;
     }, 0);
 
     const currentMonthPending = currentMonthFees.reduce((acc: number, f: any) => {
       if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return acc;
-      return acc + Math.max(0, (f.amount || 0) + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0));
+      // Only count unpaid dues for invoices belonging specifically to current month's billing cycle
+      if (isCurrentMonthBilling(f.billingMonth)) {
+        return acc + Math.max(0, (f.amount || 0) + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0));
+      }
+      return acc;
     }, 0);
 
     // Sum the actual outstanding balance of all pending/partially paid payments

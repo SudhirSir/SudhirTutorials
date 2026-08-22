@@ -967,7 +967,7 @@ function StudentDashboardContent() {
                       const daySchedules: any[] = [];
                       dashboard?.batches?.forEach(b => {
                         b.schedules?.forEach((s: any) => {
-                          if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name });
+                          if ((s.dayOfWeek % 7) === idx) daySchedules.push({ ...s, batchName: b.name });
                         });
                       });
                       daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -2586,7 +2586,7 @@ function StudentDashboardContent() {
                 const daySchedules: any[] = [];
                 dashboard?.batches?.forEach(b => {
                   b.schedules?.forEach((s: any) => {
-                    if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name });
+                    if ((s.dayOfWeek % 7) === idx) daySchedules.push({ ...s, batchName: b.name });
                   });
                 });
                 daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));

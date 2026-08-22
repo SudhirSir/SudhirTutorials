@@ -1309,41 +1309,6 @@ function TeacherDashboardContent() {
                 <span style={{ fontSize: '1.2rem' }}>📚</span> Upload Materials
               </button>
             </div>
-
-            <div className="glass-card" style={{ padding: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Today's Classes</h3>
-                <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700, textTransform: 'uppercase' }}>{new Date().toLocaleDateString('en-US', { weekday: 'long' })}</span>
-              </div>
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                {(() => {
-                  const today = new Date().getDay();
-                  const todaysClasses: any[] = [];
-                  classes.forEach(b => {
-                    b.schedules?.forEach((s: any) => {
-                      if (s.dayOfWeek === today) todaysClasses.push({ ...s, batchName: b.name, courseName: b.course.name });
-                    });
-                  });
-
-                  if (todaysClasses.length === 0) return <p style={{ color: 'var(--text-muted)' }}>No classes scheduled for today.</p>;
-
-                  return todaysClasses.sort((a,b) => a.startTime.localeCompare(b.startTime)).map(c => (
-                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-                          {c.batchName} {c.subject && <span style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600 }}>{c.subject}</span>}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.courseName} • Room {c.room || 'TBA'}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 800, color: '#10b981', fontSize: '1.2rem' }}>{c.startTime}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ends {c.endTime}</div>
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
           </div>
 
           {/* Weekly Timetable Grid */}
@@ -1380,7 +1345,7 @@ function TeacherDashboardContent() {
                   const daySchedules: any[] = [];
                   classes.forEach(b => {
                     b.schedules?.forEach((s: any) => {
-                      if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
+                      if ((s.dayOfWeek % 7) === idx) daySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
                     });
                   });
                   daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -3539,7 +3504,7 @@ function TeacherDashboardContent() {
                 const daySchedules: any[] = [];
                 classes.forEach(b => {
                   b.schedules?.forEach((s: any) => {
-                    if (s.dayOfWeek === idx) daySchedules.push({ ...s, batchName: b.name });
+                    if ((s.dayOfWeek % 7) === idx) daySchedules.push({ ...s, batchName: b.name });
                   });
                 });
                 daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -3667,7 +3632,7 @@ function TeacherDashboardContent() {
               {selectedBatchDetails.schedules && selectedBatchDetails.schedules.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {[...selectedBatchDetails.schedules].sort((a, b) => {
-                    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+                    if ((a.dayOfWeek % 7) !== (b.dayOfWeek % 7)) return (a.dayOfWeek % 7) - (b.dayOfWeek % 7);
                     return a.startTime.localeCompare(b.startTime);
                   }).map((s: any) => (
                     <div 
@@ -3686,8 +3651,8 @@ function TeacherDashboardContent() {
                         <div style={{ 
                           width: '45px', 
                           height: '24px', 
-                          background: new Date().getDay() === s.dayOfWeek ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)', 
-                          color: new Date().getDay() === s.dayOfWeek ? '#10b981' : 'var(--text-muted)', 
+                          background: new Date().getDay() === (s.dayOfWeek % 7) ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)', 
+                          color: new Date().getDay() === (s.dayOfWeek % 7) ? '#10b981' : 'var(--text-muted)', 
                           borderRadius: '6px', 
                           fontSize: '0.75rem', 
                           fontWeight: 800, 
@@ -3695,7 +3660,7 @@ function TeacherDashboardContent() {
                           alignItems: 'center', 
                           justifyContent: 'center' 
                         }}>
-                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]}
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek % 7]}
                         </div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>
                           {s.subject || 'Lecture'}

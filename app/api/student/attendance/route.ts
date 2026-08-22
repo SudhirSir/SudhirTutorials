@@ -52,7 +52,7 @@ export async function GET() {
       const recordDate = new Date(a.date);
       const dayOfWeek = recordDate.getDay();
       const batchSchedules = a.batch?.schedules || [];
-      const daySchedules = batchSchedules.filter((s: any) => s.dayOfWeek === dayOfWeek);
+      const daySchedules = batchSchedules.filter((s: any) => (s.dayOfWeek % 7) === dayOfWeek);
       const activeSchedules = daySchedules.length > 0 ? daySchedules : batchSchedules;
 
       // 1. Time range: From first class start to last class end of the day

@@ -20,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const schedule = await withDbRetry(() => prisma.schedule.create({
       data: {
         batchId,
-        dayOfWeek: parseInt(dayOfWeek),
+        dayOfWeek: parseInt(dayOfWeek) % 7,
         startTime,
         endTime,
         room,

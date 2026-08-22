@@ -1726,7 +1726,9 @@ function AdminDashboardContent() {
   };
 
   const handleSearchDirectory = async () => {
-    setIsSearching(true);
+    if (directoryUsers.length === 0) {
+      setIsSearching(true);
+    }
     try {
       const res = await fetch(`/api/admin/directory?q=${encodeURIComponent(searchQuery)}&t=${Date.now()}`);
       const data = await res.json();
@@ -2837,36 +2839,50 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCounts();
-    // Staggered active-tab prioritized hydration to prevent database pool exhaustion
+
     if (activeTab === 'overview') {
       fetchOverviewStats();
-      setTimeout(() => {
-        handleSearchDirectory();
-        fetchAllStudents();
-      }, 150);
-      setTimeout(() => {
-        fetchFinances(true);
-        fetchFinSummary();
-        fetchBatches();
-      }, 400);
+      fetchPendingVerifications();
+    } else if (activeTab === 'users') {
+      handleSearchDirectory();
     } else if (activeTab === 'finances') {
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const now = new Date();
+      const currentMonth = `${months[now.getMonth()]} ${now.getFullYear()}`;
+      setAutoBillingMonth(currentMonth);
       fetchFinSummary();
       fetchFinances();
-      setTimeout(() => {
-        fetchAllStudents();
-        fetchExpenses();
-      }, 150);
-      setTimeout(() => {
-        fetchAdminSalaries();
-        fetchStatementData();
-        fetchBatches();
-      }, 400);
-    } else {
-      handleSearchDirectory();
-      fetchAllStudents();
-      setTimeout(() => fetchOverviewStats(true), 250);
+      fetchExpenses();
+      fetchStatementData();
+    } else if (activeTab === 'verifications') {
+      fetchPendingVerifications();
+      fetchBugReports();
+    } else if (activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) {
+      fetchCourses();
+      fetchBatches();
+      fetchTeachers();
+    } else if (activeTab === 'attendance' || (activeTab === 'academics' && academicSubTab === 'attendance')) {
+      fetchBatches();
+    } else if (activeTab === 'materials' || (activeTab === 'academics' && academicSubTab === 'materials')) {
+      fetchMaterials();
+      fetchCourses();
+    } else if (activeTab === 'tests' || (activeTab === 'academics' && academicSubTab === 'tests')) {
+      fetchTests();
+      fetchCourses();
+    } else if (activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) {
+      fetchReports();
+      fetchFinSummary();
+    } else if (activeTab === 'settings') {
+      fetchSettings();
+      fetchJobApplications();
+    } else if (activeTab === 'salary') {
+      fetchTeachers();
+      fetchAdminSalaries();
+    } else if (activeTab === 'guru-ai') {
+      fetchAdminGuruHistory();
+      setAdminGuruHistory([]);
     }
-      
+
     let isPolling = false;
     const pollRealtimeData = async () => {
       if (document.visibilityState !== 'visible' || isPolling) return;
@@ -2876,7 +2892,6 @@ function AdminDashboardContent() {
           await fetchOverviewStats(true);
         } else if (activeTab === 'finances') {
           await fetchFinSummary();
-          await fetchFinances(true);
         }
       } catch (e) {
         console.error("Polling error:", e);
@@ -2885,89 +2900,15 @@ function AdminDashboardContent() {
       }
     };
 
-    // Auto-refresh real-time data silently every 5 seconds in background
-    const bgPollingInterval = setInterval(pollRealtimeData, 5000);
+    // Auto-refresh real-time data silently every 30 seconds in background
+    const bgPollingInterval = setInterval(pollRealtimeData, 30000);
     document.addEventListener('visibilitychange', pollRealtimeData);
 
     return () => {
       clearInterval(bgPollingInterval);
       document.removeEventListener('visibilitychange', pollRealtimeData);
     };
-  }, [session, activeTab, statementMonth, statementYear]);
-
-  useEffect(() => {
-    if (!session?.user) return;
-    if (activeTab === 'users') handleSearchDirectory(); // always load all users on tab switch
-    if (activeTab === 'finances') {
-      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      const now = new Date();
-      const currentMonth = `${months[now.getMonth()]} ${now.getFullYear()}`;
-      setAutoBillingMonth(currentMonth);
-      Promise.all([
-        fetchFinances(),
-        fetchExpenses(),
-        fetchFinSummary(),
-        fetchAdminSalaries(),
-        fetchStatementData(),
-        fetchAllStudents(),
-        fetchBatches(),
-        fetchAutoBillingPreview(currentMonth)
-      ]).catch(console.error);
-    }
-    if (activeTab === 'verifications') {
-      Promise.all([
-        fetchPendingVerifications(),
-        fetchBugReports()
-      ]);
-    }
-
-    if (activeTab === 'courses' || (activeTab === 'academics' && academicSubTab === 'courses')) {
-      Promise.all([
-        fetchCourses(),
-        fetchBatches(),
-        fetchTeachers(),
-        fetch('/api/admin/directory?q=').then(res => res.json()).then(data => setDirectoryUsers(data.users || [])),
-        fetchAllStudents()
-      ]);
-    }
-    if (activeTab === 'attendance' || (activeTab === 'academics' && academicSubTab === 'attendance')) {
-      fetchBatches();
-    }
-    if (activeTab === 'materials' || (activeTab === 'academics' && academicSubTab === 'materials')) {
-      Promise.all([
-        fetchMaterials(),
-        fetchCourses()
-      ]);
-    }
-    if (activeTab === 'tests' || (activeTab === 'academics' && academicSubTab === 'tests')) {
-      Promise.all([
-        fetchTests(),
-        fetchCourses()
-      ]);
-    }
-    if (activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) {
-      Promise.all([
-        fetchReports(),
-        fetchFinSummary()
-      ]);
-    }
-    if (activeTab === 'settings') {
-      Promise.all([
-        fetchSettings(),
-        fetchJobApplications()
-      ]);
-    }
-    if (activeTab === 'salary') {
-      Promise.all([
-        fetchTeachers(),
-        fetchAdminSalaries()
-      ]);
-    }
-    if (activeTab === 'guru-ai') {
-      fetchAdminGuruHistory();
-      setAdminGuruHistory([]);
-    }
-  }, [activeTab, academicSubTab, session]);
+  }, [session, activeTab, academicSubTab, statementMonth, statementYear]);
 
   const fetchReports = async () => {
     setIsReportsLoading(true);
@@ -6607,8 +6548,8 @@ function AdminDashboardContent() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day, dayIdx) => {
-                  const dayNum = dayIdx + 1;
-                  const slots = batches.flatMap(b => (b.schedules || []).map((s: any) => ({ ...s, batchName: b.name, courseName: b.course?.name }))).filter(s => parseInt(s.dayOfWeek) === dayNum);
+                  const dayNum = (dayIdx + 1) % 7;
+                  const slots = batches.flatMap(b => (b.schedules || []).map((s: any) => ({ ...s, batchName: b.name, courseName: b.course?.name }))).filter(s => (parseInt(s.dayOfWeek) % 7) === dayNum);
                   
                   return (
                     <div key={day} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1.25rem' }}>
@@ -9117,7 +9058,15 @@ function AdminDashboardContent() {
                     <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '20px', border: '1px solid var(--border)' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                         <select value={newSchedule.dayOfWeek} onChange={e => setNewSchedule({...newSchedule, dayOfWeek: e.target.value})} style={{ width: '100%' }}>
-                          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, i) => <option key={i} value={i+1}>{d}</option>)}
+                          {[
+                            { label: "Monday", val: 1 },
+                            { label: "Tuesday", val: 2 },
+                            { label: "Wednesday", val: 3 },
+                            { label: "Thursday", val: 4 },
+                            { label: "Friday", val: 5 },
+                            { label: "Saturday", val: 6 },
+                            { label: "Sunday", val: 0 }
+                          ].map((d) => <option key={d.val} value={d.val}>{d.label}</option>)}
                         </select>
                         <input type="text" placeholder="Room (e.g. Hall A)" value={newSchedule.room} onChange={e => setNewSchedule({...newSchedule, room: e.target.value})} style={{ width: '100%' }} />
                         <input type="text" placeholder="Subject (e.g. Physics)" value={newSchedule.subject || ''} onChange={e => setNewSchedule({...newSchedule, subject: e.target.value})} style={{ gridColumn: '1 / -1', width: '100%' }} />
@@ -9148,11 +9097,11 @@ function AdminDashboardContent() {
                         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>Current Schedule</div>
                         <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
                           {editingBatch.schedules && editingBatch.schedules.length > 0 ? (
-                            [...editingBatch.schedules].sort((a:any, b:any) => parseInt(a.dayOfWeek) - parseInt(b.dayOfWeek)).map((s:any) => (
+                            [...editingBatch.schedules].sort((a:any, b:any) => ((parseInt(a.dayOfWeek) % 7 || 7) - (parseInt(b.dayOfWeek) % 7 || 7))).map((s:any) => (
                               <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', fontSize: '0.85rem', border: '1px solid rgba(255,255,255,0.05)', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
                                   <div style={{ width: '45px', textAlign: 'center', fontWeight: 800, color: 'var(--primary)', background: 'rgba(99, 102, 241, 0.1)', padding: '4px', borderRadius: '6px', flexShrink: 0 }}>
-                                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][s.dayOfWeek-1]}
+                                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][parseInt(s.dayOfWeek) % 7]}
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                                     <span style={{ fontWeight: 700, wordBreak: 'break-word', whiteSpace: 'normal' }}>
