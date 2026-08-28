@@ -10,6 +10,7 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
+import { safeSessionStorage } from "@/lib/safeStorage";
 
 export default function StoreLoginPage() {
   const { data: session, status } = useSession();
@@ -53,7 +54,7 @@ export default function StoreLoginPage() {
       }
 
       try {
-        sessionStorage.setItem("tabSessionActive", "true");
+        safeSessionStorage.setItem("tabSessionActive", "true");
         const res = await signIn("credentials", {
           redirect: false,
           username,
@@ -72,16 +73,16 @@ export default function StoreLoginPage() {
           } else {
             setError("Failed to sign in. Please check your credentials.");
           }
-          sessionStorage.removeItem("tabSessionActive");
+          safeSessionStorage.removeItem("tabSessionActive");
           setLoading(false);
         } else {
-          sessionStorage.setItem("onboarding_allowed", "true");
+          safeSessionStorage.setItem("onboarding_allowed", "true");
           router.push("/dashboard/store");
         }
       } catch (err) {
         console.error("Login error:", err);
         setError("An unexpected error occurred during sign in.");
-        sessionStorage.removeItem("tabSessionActive");
+        safeSessionStorage.removeItem("tabSessionActive");
         setLoading(false);
       }
     },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { safeLocalStorage } from '@/lib/safeStorage';
 
 function isVersionOlder(current: string, required: string): boolean {
   const cParts = current.split('.').map(val => parseInt(val, 10) || 0);
@@ -46,7 +47,7 @@ export function AppUpdateChecker() {
         setCurrentVersion(localVersion);
 
         // Check if this version has been dismissed already on this device
-        const dismissed = localStorage.getItem('dismissedAppVersion');
+        const dismissed = safeLocalStorage.getItem('dismissedAppVersion');
         if (dismissed === minVersion) {
           return;
         }
@@ -74,7 +75,7 @@ export function AppUpdateChecker() {
 
   const handleUpdateLater = () => {
     if (requiredVersion) {
-      localStorage.setItem('dismissedAppVersion', requiredVersion);
+      safeLocalStorage.setItem('dismissedAppVersion', requiredVersion);
     }
     setIsDismissed(true);
   };

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { safeLocalStorage } from "@/lib/safeStorage";
 
 type Theme = "dark" | "light";
 
@@ -16,8 +17,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial theme from DOM attribute set by the blocking script, or default to localStorage / dark
-    const storedTheme = localStorage.getItem("theme") as Theme;
-    const documentTheme = document.documentElement.getAttribute("data-theme") as Theme;
+    const storedTheme = safeLocalStorage.getItem("theme") as Theme;
+    const documentTheme = typeof document !== 'undefined' ? document.documentElement.getAttribute("data-theme") as Theme : null;
     
     if (storedTheme) {
       setTheme(storedTheme);
@@ -29,8 +30,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
-    localStorage.setItem("theme", nextTheme);
-    document.documentElement.setAttribute("data-theme", nextTheme);
+    safeLocalStorage.setItem("theme", nextTheme);
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute("data-theme", nextTheme);
+    }
   };
 
   return (

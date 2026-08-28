@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { Capacitor } from "@capacitor/core";
+import { safeSessionStorage } from "@/lib/safeStorage";
 
 
 type Role = "student" | "teacher" | "admin";
@@ -104,7 +105,7 @@ export default function LoginPage() {
     }
 
     const attemptSignIn = async () => {
-      sessionStorage.setItem('tabSessionActive', 'true');
+      safeSessionStorage.setItem('tabSessionActive', 'true');
       return signIn("credentials", {
         redirect: false,
         username,
@@ -115,7 +116,7 @@ export default function LoginPage() {
     };
 
     const applyError = (res: any) => {
-      sessionStorage.removeItem('tabSessionActive');
+      safeSessionStorage.removeItem('tabSessionActive');
       if (res.error === "USER_NOT_FOUND") {
         setError("This ID / Username is not registered.");
       } else if (res.error === "INVALID_PASSWORD") {
@@ -157,12 +158,12 @@ export default function LoginPage() {
       } else {
         // Navigate directly — no router.refresh() which caused a blank flash
         if (typeof window !== 'undefined') {
-          sessionStorage.setItem('onboarding_allowed', 'true');
+          safeSessionStorage.setItem('onboarding_allowed', 'true');
         }
         router.push(`/dashboard/${activeTab}`);
       }
     } catch (err) {
-      sessionStorage.removeItem('tabSessionActive');
+      safeSessionStorage.removeItem('tabSessionActive');
       setError("An unexpected error occurred.");
       setLoading(false);
     }
@@ -212,7 +213,7 @@ export default function LoginPage() {
         setRegLoading(false);
       } else {
         // Log them in immediately
-        sessionStorage.setItem('tabSessionActive', 'true');
+        safeSessionStorage.setItem('tabSessionActive', 'true');
         const loginRes = await signIn("credentials", {
           redirect: false,
           username: regEmail,
@@ -225,7 +226,7 @@ export default function LoginPage() {
           setRegError("Account created, but failed to log in automatically. Please go back to login.");
           setRegLoading(false);
         } else {
-          sessionStorage.setItem('onboarding_allowed', 'true');
+          safeSessionStorage.setItem('onboarding_allowed', 'true');
           router.push('/dashboard/store');
         }
       }

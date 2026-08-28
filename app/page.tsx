@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Storefront } from '@/components/Storefront';
+import { safeLocalStorage } from '@/lib/safeStorage';
 // Removed ScholarshipPredictor3D import
 
 // Math/science formulas for the floating background animation
@@ -64,7 +65,7 @@ export default function Home() {
   const [aiLimitReached, setAiLimitReached] = useState<boolean>(false);
 
   useEffect(() => {
-    const asked = parseInt(localStorage.getItem('st_guru_ji_asked') || '0', 10);
+    const asked = parseInt(safeLocalStorage.getItem('st_guru_ji_asked') || '0', 10);
     setAiQuestionsAsked(asked);
     if (asked >= 2) {
       setAiLimitReached(true);
@@ -223,7 +224,7 @@ export default function Home() {
 
     const newCount = aiQuestionsAsked + 1;
     setAiQuestionsAsked(newCount);
-    localStorage.setItem('st_guru_ji_asked', newCount.toString());
+    safeLocalStorage.setItem('st_guru_ji_asked', newCount.toString());
 
     if (newCount > 2) {
       setAiLimitReached(true);

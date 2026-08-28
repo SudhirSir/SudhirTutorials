@@ -17,28 +17,10 @@ export function CapacitorBackButtonManager() {
     if (typeof window === 'undefined') return;
 
     let backListener: any = null;
+    let originalPush: typeof window.history.pushState | null = null;
+    let originalReplace: typeof window.history.replaceState | null = null;
+    let locationHandler: (() => void) | null = null;
     const lastBackPress = { current: 0 };
-
-    // Track navigation count live via history pushState/replaceState and popstate
-    const handleLocationChange = () => {
-      navigationCount.current += 1;
-      console.log('[CapacitorBackButton] Navigation detected. New count:', navigationCount.current);
-    };
-
-    window.addEventListener('popstate', handleLocationChange);
-
-    const originalPush = window.history.pushState;
-    const originalReplace = window.history.replaceState;
-
-    window.history.pushState = function(...args) {
-      originalPush.apply(this, args);
-      handleLocationChange();
-    };
-
-    window.history.replaceState = function(...args) {
-      originalReplace.apply(this, args);
-      handleLocationChange();
-    };
 
     const setupListener = async () => {
       try {
@@ -48,6 +30,27 @@ export function CapacitorBackButtonManager() {
         }
 
         const { App } = await import('@capacitor/app');
+
+        // Track navigation count live via history pushState/replaceState and popstate
+        locationHandler = () => {
+          navigationCount.current += 1;
+          console.log('[CapacitorBackButton] Navigation detected. New count:', navigationCount.current);
+        };
+
+        window.addEventListener('popstate', locationHandler);
+
+        originalPush = window.history.pushState;
+        originalReplace = window.history.replaceState;
+
+        window.history.pushState = function(...args) {
+          if (originalPush) originalPush.apply(this, args);
+          if (locationHandler) locationHandler();
+        };
+
+        window.history.replaceState = function(...args) {
+          if (originalReplace) originalReplace.apply(this, args);
+          if (locationHandler) locationHandler();
+        };
 
         // Remove any existing backButton listener before adding a new one
         if (backListener) {
@@ -134,9 +137,15 @@ export function CapacitorBackButtonManager() {
     setupListener();
 
     return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-      window.history.pushState = originalPush;
-      window.history.replaceState = originalReplace;
+      if (locationHandler) {
+        window.removeEventListener('popstate', locationHandler);
+      }
+      if (originalPush) {
+        window.history.pushState = originalPush;
+      }
+      if (originalReplace) {
+        window.history.replaceState = originalReplace;
+      }
       if (backListener) {
         backListener.remove();
       }

@@ -3,6 +3,7 @@
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safeStorage";
 
 export default function WaitingVerificationPage() {
   const { data: session, status, update } = useSession();
@@ -11,16 +12,16 @@ export default function WaitingVerificationPage() {
   const handleLogout = async () => {
     if (typeof window !== "undefined") {
       (window as any).isLoggingOut = true;
-      sessionStorage.setItem('isLoggingOut', 'true');
+      safeSessionStorage.setItem('isLoggingOut', 'true');
       
       // Clear sessionStorage (tabSessionActive, etc.)
-      sessionStorage.clear();
+      safeSessionStorage.clear();
       
       // Keep theme but clear custom localStorage user-related keys
-      const theme = localStorage.getItem('theme');
-      localStorage.clear();
+      const theme = safeLocalStorage.getItem('theme');
+      safeLocalStorage.clear();
       if (theme) {
-        localStorage.setItem('theme', theme);
+        safeLocalStorage.setItem('theme', theme);
       }
     }
     await signOut({ redirect: false });
@@ -30,7 +31,7 @@ export default function WaitingVerificationPage() {
   useEffect(() => {
     const checkStatus = async () => {
        if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
-       if (sessionStorage.getItem('isLoggingOut') === 'true') return;
+       if (safeSessionStorage.getItem('isLoggingOut') === 'true') return;
        try {
          const res = await fetch('/api/auth/check-session');
          if (res.ok) {
@@ -42,7 +43,7 @@ export default function WaitingVerificationPage() {
          }
        } catch (err) {
          if (typeof window !== "undefined" && (window as any).isLoggingOut) return;
-         if (sessionStorage.getItem('isLoggingOut') === 'true') return;
+         if (safeSessionStorage.getItem('isLoggingOut') === 'true') return;
          console.error('Failed to poll status', err);
        }
     };

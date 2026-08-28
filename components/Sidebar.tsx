@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
+import { safeLocalStorage, safeSessionStorage } from '@/lib/safeStorage';
 
 
 interface SidebarProps {
@@ -20,16 +21,16 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   const handleLogout = async () => {
     if (typeof window !== "undefined") {
       (window as any).isLoggingOut = true;
-      sessionStorage.setItem('isLoggingOut', 'true');
+      safeSessionStorage.setItem('isLoggingOut', 'true');
       
       // Clear sessionStorage (tabSessionActive, etc.)
-      sessionStorage.clear();
+      safeSessionStorage.clear();
       
       // Keep theme but clear custom localStorage user-related keys
-      const theme = localStorage.getItem('theme');
-      localStorage.clear();
+      const theme = safeLocalStorage.getItem('theme');
+      safeLocalStorage.clear();
       if (theme) {
-        localStorage.setItem('theme', theme);
+        safeLocalStorage.setItem('theme', theme);
       }
     }
     await signOut({ redirect: false });

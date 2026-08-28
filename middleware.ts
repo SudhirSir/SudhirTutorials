@@ -74,6 +74,9 @@ export default withAuth(
         return !!token;
       },
     },
+    pages: {
+      signIn: "/login",
+    },
   }
 );
 

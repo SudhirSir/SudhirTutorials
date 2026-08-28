@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { safeSessionStorage } from "@/lib/safeStorage";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -10,13 +11,13 @@ export default function OnboardingPage() {
   
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const allowed = sessionStorage.getItem("onboarding_allowed");
+      const allowed = safeSessionStorage.getItem("onboarding_allowed");
       if (!allowed) {
         signOut({ redirect: false }).then(() => {
           window.location.href = "/login";
         });
       } else {
-        sessionStorage.removeItem("onboarding_allowed");
+        safeSessionStorage.removeItem("onboarding_allowed");
       }
     }
   }, []);

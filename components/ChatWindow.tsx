@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { safeLocalStorage } from '@/lib/safeStorage';
 
 // ─── Image compressor: max 600px, 70% JPEG ───────────────────────────────────
 function compressImage(file: File): Promise<string> {
@@ -138,7 +139,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // Load cached contacts & messages immediately on mount for sub-second instant load
   useEffect(() => {
     try {
-      const cachedContacts = localStorage.getItem(`st_chat_contacts_${currentUserId}`);
+      const cachedContacts = safeLocalStorage.getItem(`st_chat_contacts_${currentUserId}`);
       if (cachedContacts) {
         const parsed = JSON.parse(cachedContacts);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -146,7 +147,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           setInitialLoading(false);
         }
       }
-      const cachedMsgs = localStorage.getItem(`st_chat_msgs_${currentUserId}`);
+      const cachedMsgs = safeLocalStorage.getItem(`st_chat_msgs_${currentUserId}`);
       if (cachedMsgs) {
         const parsed = JSON.parse(cachedMsgs);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -159,13 +160,13 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // Persist updated contacts to local cache for instant future loads
   useEffect(() => {
     if (contacts.length > 0) {
-      try { localStorage.setItem(`st_chat_contacts_${currentUserId}`, JSON.stringify(contacts.slice(0, 30))); } catch (e) {}
+      safeLocalStorage.setItem(`st_chat_contacts_${currentUserId}`, JSON.stringify(contacts.slice(0, 30)));
     }
   }, [contacts, currentUserId]);
 
   useEffect(() => {
     if (messages.length > 0) {
-      try { localStorage.setItem(`st_chat_msgs_${currentUserId}`, JSON.stringify(messages.slice(0, 40))); } catch (e) {}
+      safeLocalStorage.setItem(`st_chat_msgs_${currentUserId}`, JSON.stringify(messages.slice(0, 40)));
     }
   }, [messages, currentUserId]);
 
@@ -208,7 +209,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // ── Load blocked list from localStorage ────────────────────────────────────
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('blocked_users');
+      const saved = safeLocalStorage.getItem('blocked_users');
       if (saved) setBlockedUsers(JSON.parse(saved));
     } catch {}
   }, []);
@@ -953,7 +954,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const handleToggleBlock = useCallback((userId: string) => {
     setBlockedUsers(prev => {
       const updated = prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId];
-      localStorage.setItem('blocked_users', JSON.stringify(updated));
+      safeLocalStorage.setItem('blocked_users', JSON.stringify(updated));
       alert(prev.includes(userId) ? '🔓 User unblocked.' : '🚫 User blocked.');
       return updated;
     });

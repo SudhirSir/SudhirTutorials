@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { safeLocalStorage } from '@/lib/safeStorage';
 
 interface ServiceOption {
   id: string;
@@ -82,7 +83,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem(`quick_services_${role.toLowerCase()}`);
+    const stored = safeLocalStorage.getItem(`quick_services_${role.toLowerCase()}`);
     if (stored) {
       try {
         setSelectedIds(JSON.parse(stored));
@@ -106,7 +107,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
       updated = [...selectedIds, id];
     }
     setSelectedIds(updated);
-    localStorage.setItem(`quick_services_${role.toLowerCase()}`, JSON.stringify(updated));
+    safeLocalStorage.setItem(`quick_services_${role.toLowerCase()}`, JSON.stringify(updated));
   };
 
   const activeServices = options.filter(opt => selectedIds.includes(opt.id));

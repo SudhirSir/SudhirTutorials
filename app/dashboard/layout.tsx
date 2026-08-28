@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safeStorage";
 
 const icons = {
   home: (
@@ -93,16 +93,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
       
       (window as any).isLoggingOut = true;
-      sessionStorage.setItem('isLoggingOut', 'true');
+      safeSessionStorage.setItem('isLoggingOut', 'true');
       
       // Clear sessionStorage (tabSessionActive, etc.)
-      sessionStorage.clear();
+      safeSessionStorage.clear();
       
       // Keep theme but clear custom localStorage user-related keys
-      const theme = localStorage.getItem('theme');
-      localStorage.clear();
+      const theme = safeLocalStorage.getItem('theme');
+      safeLocalStorage.clear();
       if (theme) {
-        localStorage.setItem('theme', theme);
+        safeLocalStorage.setItem('theme', theme);
       }
     }
     await signOut({ redirect: false });
