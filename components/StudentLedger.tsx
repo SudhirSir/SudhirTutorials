@@ -6,6 +6,7 @@ import { generateReceiptNo } from '@/lib/feeUtils';
 interface StudentLedgerProps {
   studentId?: string;
   refreshTrigger?: number;
+  initialViewType?: 'month' | 'year' | 'statement' | 'latest-payments';
   onPayOnline?: (fee: any) => void;
   onViewReceipt?: (feeId: string) => void;
   isAdmin?: boolean;
@@ -23,6 +24,7 @@ const MONTHS_LIST = [
 export function StudentLedger({
   studentId,
   refreshTrigger,
+  initialViewType,
   onPayOnline,
   onViewReceipt,
   isAdmin = false,
@@ -33,11 +35,17 @@ export function StudentLedger({
 }: StudentLedgerProps) {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>('month');
+  const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>(initialViewType || (studentId ? 'statement' : 'month'));
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>('ALL');
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(true);
   const [downloadingStatement, setDownloadingStatement] = useState(false);
+
+  useEffect(() => {
+    if (initialViewType) {
+      setViewType(initialViewType);
+    }
+  }, [initialViewType]);
 
   useEffect(() => {
     fetchLedger();

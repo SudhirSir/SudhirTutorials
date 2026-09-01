@@ -51,11 +51,27 @@ export async function GET(req: Request) {
     const where: any = {};
     if (status) where.status = status;
     if (month) where.billingMonth = month;
-    if (studentId) {
-      where.studentId = studentId;
-    } else if (studentUsername) {
-      const u = await withDbRetry(() => prisma.user.findUnique({ where: { username: studentUsername } }));
-      if (u) where.studentId = u.id;
+    
+    const targetStudent = studentId || studentUsername;
+    if (targetStudent) {
+      const studentUser = await withDbRetry(() => prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: targetStudent },
+            { username: targetStudent }
+          ]
+        },
+        select: { id: true, username: true }
+      }));
+
+      if (studentUser) {
+        where.OR = [
+          { studentId: studentUser.id },
+          { studentId: studentUser.username }
+        ];
+      } else {
+        where.studentId = targetStudent;
+      }
     }
 
     const fees = await withDbRetry(() => prisma.payment.findMany({

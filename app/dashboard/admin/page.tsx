@@ -2854,6 +2854,7 @@ function AdminDashboardContent() {
       fetchFinances();
       fetchExpenses();
       fetchStatementData();
+      if (allStudents.length === 0) fetchAllStudents();
     } else if (activeTab === 'verifications') {
       fetchPendingVerifications();
       fetchBugReports();
@@ -4530,164 +4531,44 @@ function AdminDashboardContent() {
                       Pending Fees
                     </button>
                   </div>
-
-                  {/* Search and Year/Month Controls */}
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (
-                      <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
-                        <input 
-                          type="text" 
-                          placeholder="🔍 Search Student Name or ID..." 
-                          value={feeSearchQuery}
-                          onChange={e => {
-                            setFeeSearchQuery(e.target.value);
-                            setShowLedgerSuggestions(true);
-                          }}
-                          onFocus={() => setShowLedgerSuggestions(true)}
-                          style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
-                        />
-                        {showLedgerSuggestions && (
-                          <>
-                            <div 
-                              onClick={() => setShowLedgerSuggestions(false)} 
-                              style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
-                            />
-                            <div style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              background: 'var(--surface)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '12px',
-                              marginTop: '0.5rem',
-                              maxHeight: '250px',
-                              overflowY: 'auto',
-                              zIndex: 9999,
-                              boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                              padding: '0.5rem'
-                            }}>
-                              {(() => {
-                                const matches = allStudents
-                                  .filter(u => 
-                                    u.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) ||
-                                    u.username?.toLowerCase().includes(feeSearchQuery.toLowerCase())
-                                  );
-                                if (matches.length === 0) {
-                                  return (
-                                    <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
-                                      No matching students found
-                                    </div>
-                                  );
-                                }
-                                return matches.map(s => (
-                                  <div 
-                                    key={s.id}
-                                    onClick={() => {
-                                      setFeeSearchQuery(s.name || '');
-                                      setShowLedgerSuggestions(false);
-                                    }}
-                                    style={{
-                                      padding: '0.5rem 0.75rem',
-                                      borderRadius: '6px',
-                                      cursor: 'pointer',
-                                      fontSize: '0.85rem',
-                                      color: 'var(--text)',
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      borderBottom: '1px solid rgba(255,255,255,0.01)'
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                  >
-                                    <span style={{ fontWeight: 600 }}>{s.name}</span>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</span>
-                                  </div>
-                                ));
-                              })()}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    <select
-                      value={ledgerFilterYear}
-                      onChange={e => setLedgerFilterYear(e.target.value)}
-                      style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, flex: '1 1 120px' }}
-                    >
-                      <option value="ALL">All Years</option>
-                      {(uniqueLedgerYears as string[]).map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={ledgerFilterMonth}
-                      onChange={e => setLedgerFilterMonth(e.target.value)}
-                      style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, flex: '1 1 140px' }}
-                    >
-                      <option value="ALL">All Months</option>
-                      {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
 
-                <div>
-
-                    {/* View Mode: ALL RECORDS or PENDING FEES */}
-                    {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (() => {
-                      const effectiveStudents = (() => {
-                        const studentMap = new Map();
-                        (allStudents || []).forEach(s => {
-                          if (s && (s.id || s.username)) studentMap.set(s.id || s.username, s);
-                        });
-                        fees.forEach(f => {
-                          if (f.student && (f.student.id || f.student.username)) {
-                            const key = f.student.id || f.student.username;
-                            if (!studentMap.has(key)) studentMap.set(key, f.student);
-                          }
-                        });
-                        directoryUsers.forEach(u => {
-                          if (u.role === 'STUDENT') {
-                            const key = u.id || u.username;
-                            if (!studentMap.has(key)) studentMap.set(key, u);
-                          }
-                        });
-                        const list = Array.from(studentMap.values());
-                        if (list.length === 0) {
-                          fetchAllStudents();
-                        }
-                        return list;
-                      })();
-
-                      const filteredStudents = effectiveStudents.filter(s => {
-                        const matchesSearch = !feeSearchQuery.trim() || 
-                                              s.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
-                                              s.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
-                        if (!matchesSearch) return false;
-
-                        if (ledgerViewMode === 'PENDING_FEES') {
-                          const hasPending = fees.some(f => 
-                            (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) && 
-                            f.status === 'PENDING' &&
-                            (
-                              (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
-                              (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
-                              (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
-                              (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`)
-                            )
-                          );
-                          return hasPending;
-                        }
-                        return true;
+                  {/* View Mode: ALL RECORDS or PENDING FEES */}
+                  {(ledgerViewMode === 'ALL' || ledgerViewMode === 'PENDING_FEES') && (() => {
+                    const effectiveStudents = (() => {
+                      const studentMap = new Map();
+                      (allStudents || []).forEach(s => {
+                        if (s && (s.id || s.username)) studentMap.set(s.id || s.username, s);
                       });
+                      fees.forEach(f => {
+                        if (f.student && (f.student.id || f.student.username)) {
+                          const key = f.student.id || f.student.username;
+                          if (!studentMap.has(key)) studentMap.set(key, f.student);
+                        }
+                      });
+                      directoryUsers.forEach(u => {
+                        if (u.role === 'STUDENT') {
+                          const key = u.id || u.username;
+                          if (!studentMap.has(key)) studentMap.set(key, u);
+                        }
+                      });
+                      const list = Array.from(studentMap.values());
+                      if (list.length === 0) {
+                        fetchAllStudents();
+                      }
+                      return list;
+                    })();
 
-                      const getSummary = (s: any) => {
-                        const studentInvoices = fees.filter(f => 
-                          (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
+                    const filteredStudents = effectiveStudents.filter(s => {
+                      const matchesSearch = !feeSearchQuery.trim() || 
+                                            s.name?.toLowerCase().includes(feeSearchQuery.toLowerCase()) || 
+                                            s.username?.toLowerCase().includes(feeSearchQuery.toLowerCase());
+                      if (!matchesSearch) return false;
+
+                      if (ledgerViewMode === 'PENDING_FEES') {
+                        const hasPending = fees.some(f => 
+                          (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) && 
+                          f.status === 'PENDING' &&
                           (
                             (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
                             (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
@@ -4695,42 +4576,161 @@ function AdminDashboardContent() {
                             (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`)
                           )
                         );
-                        const hasInvoices = studentInvoices.length > 0;
-                        const pendingInvoices = studentInvoices.filter(f => f.status === 'PENDING');
-                        const pendingCount = pendingInvoices.length;
-                        const totalBase = studentInvoices.reduce((acc, f) => acc + f.amount, 0);
-                        const totalDiscount = studentInvoices.reduce((acc, f) => acc + f.discount, 0);
-                        const totalFine = studentInvoices.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
-                        const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
-                        
-                        const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
-                          const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
-                          return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
-                        }, 0);
+                        return hasPending;
+                      }
+                      return true;
+                    });
 
-                        const isOverdue = pendingInvoices.some(f => (f.lateFine || 0) > 0 || (f.currentLateFine || 0) > 0);
-                        const baseFee = s.studentProfile?.baseFee || 0;
-                        const scholarship = s.studentProfile?.scholarship || 0;
-                        const finalBase = Math.max(0, baseFee - scholarship);
+                    const getSummary = (s: any) => {
+                      const studentInvoices = fees.filter(f => 
+                        (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
+                        (
+                          (ledgerFilterMonth === 'ALL' && ledgerFilterYear === 'ALL') ||
+                          (ledgerFilterMonth === 'ALL' && f.billingMonth?.endsWith(ledgerFilterYear)) ||
+                          (ledgerFilterYear === 'ALL' && f.billingMonth?.startsWith(ledgerFilterMonth)) ||
+                          (f.billingMonth === `${ledgerFilterMonth} ${ledgerFilterYear}`)
+                        )
+                      );
+                      const hasInvoices = studentInvoices.length > 0;
+                      const pendingInvoices = studentInvoices.filter(f => f.status === 'PENDING');
+                      const pendingCount = pendingInvoices.length;
+                      const totalBase = studentInvoices.reduce((acc, f) => acc + f.amount, 0);
+                      const totalDiscount = studentInvoices.reduce((acc, f) => acc + f.discount, 0);
+                      const totalFine = studentInvoices.reduce((acc, f) => acc + Math.max(f.lateFine || 0, f.currentLateFine || 0), 0);
+                      const totalPaid = studentInvoices.filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0)).reduce((acc, f) => acc + (f.paidAmount || 0), 0);
+                      
+                      const outstanding = studentInvoices.filter(f => f.status === 'PENDING').reduce((acc, f) => {
+                        const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
+                        return acc + Math.max(0, f.amount + fine - f.discount - (f.paidAmount || 0));
+                      }, 0);
 
-                        return {
-                          studentInvoices,
-                          hasInvoices,
-                          pendingInvoices,
-                          pendingCount,
-                          totalBase,
-                          totalDiscount,
-                          totalFine,
-                          totalPaid,
-                          outstanding,
-                          isOverdue,
-                          baseFee,
-                          scholarship,
-                          finalBase
-                        };
+                      const isOverdue = pendingInvoices.some(f => (f.lateFine || 0) > 0 || (f.currentLateFine || 0) > 0);
+                      const baseFee = s.studentProfile?.baseFee || 0;
+                      const scholarship = s.studentProfile?.scholarship || 0;
+                      const finalBase = Math.max(0, baseFee - scholarship);
+
+                      return {
+                        studentInvoices,
+                        hasInvoices,
+                        pendingInvoices,
+                        pendingCount,
+                        totalBase,
+                        totalDiscount,
+                        totalFine,
+                        totalPaid,
+                        outstanding,
+                        isOverdue,
+                        baseFee,
+                        scholarship,
+                        finalBase
                       };
+                    };
 
-                      return (
+                    return (
+                      <>
+                        {/* Search and Year/Month Controls */}
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
+                            <input 
+                              type="text" 
+                              placeholder="🔍 Search Student Name, Username, Class..." 
+                              value={feeSearchQuery}
+                              onChange={e => {
+                                setFeeSearchQuery(e.target.value);
+                                setShowLedgerSuggestions(true);
+                              }}
+                              onFocus={() => setShowLedgerSuggestions(true)}
+                              onBlur={() => setTimeout(() => setShowLedgerSuggestions(false), 200)}
+                              style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                            />
+                            {showLedgerSuggestions && feeSearchQuery.trim().length > 0 && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                right: 0,
+                                background: 'var(--surface)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '12px',
+                                marginTop: '0.5rem',
+                                maxHeight: '250px',
+                                overflowY: 'auto',
+                                zIndex: 9999,
+                                boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                padding: '0.5rem'
+                              }}>
+                                {(() => {
+                                  const q = feeSearchQuery.trim().toLowerCase();
+                                  const matches = (effectiveStudents || []).filter(u => {
+                                    if (!q) return true;
+                                    const nameMatch = u.name?.toLowerCase().includes(q);
+                                    const usernameMatch = u.username?.toLowerCase().includes(q);
+                                    const rollMatch = u.studentProfile?.rollNumber?.toLowerCase().includes(q);
+                                    const classMatch = u.studentProfile?.className?.toLowerCase().includes(q) || u.studentProfile?.grade?.toLowerCase().includes(q);
+                                    const fatherMatch = u.studentProfile?.fatherName?.toLowerCase().includes(q);
+                                    return nameMatch || usernameMatch || rollMatch || classMatch || fatherMatch;
+                                  }).slice(0, 15);
+
+                                  if (matches.length === 0) {
+                                    return (
+                                      <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
+                                        No matching students found
+                                      </div>
+                                    );
+                                  }
+                                  return matches.map(s => (
+                                    <div 
+                                      key={s.id || s.username}
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setFeeSearchQuery(s.name || s.username || '');
+                                        setShowLedgerSuggestions(false);
+                                      }}
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--text)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        borderBottom: '1px solid rgba(255,255,255,0.01)'
+                                      }}
+                                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                      <span style={{ fontWeight: 600 }}>{s.name}</span>
+                                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.username}</span>
+                                    </div>
+                                  ));
+                                })()}
+                              </div>
+                            )}
+                          </div>
+
+                          <select
+                            value={ledgerFilterYear}
+                            onChange={e => setLedgerFilterYear(e.target.value)}
+                            style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, flex: '1 1 120px' }}
+                          >
+                            <option value="ALL">All Years</option>
+                            {(uniqueLedgerYears as string[]).map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+
+                          <select
+                            value={ledgerFilterMonth}
+                            onChange={e => setLedgerFilterMonth(e.target.value)}
+                            style={{ padding: '0.65rem 1rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, flex: '1 1 140px' }}
+                          >
+                            <option value="ALL">All Months</option>
+                            {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                        </div>
+
                         <div>
                           {/* --- DESKTOP TABLE VIEW --- */}
                           <div className="ledger-desktop-view" style={{ overflowX: 'auto', maxHeight: '550px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', padding: '0.25rem' }}>
@@ -5070,8 +5070,9 @@ function AdminDashboardContent() {
                             )}
                           </div>
                         </div>
-                      );
-                    })()}
+                      </>
+                    );
+                  })()}
 
                     {/* View Mode: FIRST 10 TRANSACTIONS */}
                     {ledgerViewMode === 'FIRST_10' && (
@@ -5250,8 +5251,6 @@ function AdminDashboardContent() {
                         </table>
                       </div>
                     )}
-                  </div>
-              </div>
 
               {/* --- COLLECT PENDING BILLS SELECTOR MODAL --- */}
               {collectModalStudent && typeof window !== 'undefined' && createPortal(
@@ -5596,7 +5595,8 @@ function AdminDashboardContent() {
                 document.body
               )}
             </div>
-          )}
+          </div>
+        )}
 
           {financeSubTab === 'ASSIGN' && (
             <div className="glass-card" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
@@ -11200,6 +11200,7 @@ function AdminDashboardContent() {
                   <div className="scrollable-ledger-container">
                     <StudentLedger 
                       studentId={selectedUserDetail.id}
+                      initialViewType="statement"
                       isAdmin={true}
                       refreshTrigger={ledgerRefreshTrigger}
                       onCollect={(fee) => {
