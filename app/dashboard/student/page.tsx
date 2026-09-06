@@ -235,7 +235,7 @@ function StudentDashboardContent() {
   // Digital Guru Ji AI states
   const [guruQuestion, setGuruQuestion] = useState('');
   const [guruSubject, setGuruSubject] = useState('Mathematics');
-  const [guruLanguage, setGuruLanguage] = useState<'ENGLISH' | 'HINDI' | 'HINGLISH'>('ENGLISH');
+  const [guruLanguage, setGuruLanguage] = useState<'HINGLISH' | 'HINDI' | 'ENGLISH' | 'PUNJABI'>('HINGLISH');
   const [guruHistory, setGuruHistory] = useState<Array<{ role: 'user' | 'guru', content: string, subject?: string, file?: string, fileName?: string, image?: string, revealedSteps?: number }>>([]);
   const [guruFile, setGuruFile] = useState<string | null>(null);
   const [guruFileName, setGuruFileName] = useState<string>('');
@@ -248,6 +248,245 @@ function StudentDashboardContent() {
   const [mediaRecorder, setMediaRecorder] = useState<any | null>(null);
   const [audioChunks, setAudioChunks] = useState<any[]>([]);
   const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // Voice Synthesis & Audio Explanation states
+  const [guruMode, setGuruMode] = useState<'CHAT' | 'VOICE'>('VOICE');
+  const [showGuruMenu, setShowGuruMenu] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(null);
+  const [audioLoadingIndex, setAudioLoadingIndex] = useState<number | null>(null);
+  const [activeSpeakingText, setActiveSpeakingText] = useState<string | null>(null);
+  const [audioSpeed, setAudioSpeed] = useState<number>(1.0);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentUtteranceRef = useRef<any>(null);
+
+  const stopAudio = () => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setPlayingAudioIndex(null);
+    setAudioLoadingIndex(null);
+    setActiveSpeakingText(null);
+  };
+
+  const playVoiceExplanation = async (index: number, text: string) => {
+    if (!text || !text.trim()) return;
+
+    if (playingAudioIndex === index) {
+      stopAudio();
+      return;
+    }
+
+    stopAudio();
+    setAudioLoadingIndex(index);
+
+    try {
+      const res = await fetch('/api/student/guru-ji/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (res.ok) {
+        const contentType = res.headers.get('Content-Type') || '';
+        if (contentType.includes('audio/mpeg')) {
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          const audio = new Audio(audioUrl);
+          audio.playbackRate = audioSpeed;
+          currentAudioRef.current = audio;
+
+          audio.onplay = () => {
+            setAudioLoadingIndex(null);
+            setPlayingAudioIndex(index);
+          };
+          audio.onended = () => {
+            setPlayingAudioIndex(null);
+            currentAudioRef.current = null;
+          };
+          audio.onerror = () => {
+            fallbackWebSpeech(index, text);
+          };
+          await audio.play();
+          return;
+        } else {
+          const data = await res.json();
+          fallbackWebSpeech(index, data.cleanText || text);
+          return;
+        }
+      } else {
+        fallbackWebSpeech(index, text);
+      }
+    } catch (e) {
+      console.error("TTS fetch error, using Web Speech fallback:", e);
+      fallbackWebSpeech(index, text);
+    }
+  };
+
+  const getBestIndianHindiVoice = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+    let voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) {
+      window.speechSynthesis.getVoices();
+      voices = window.speechSynthesis.getVoices();
+    }
+    if (!voices || voices.length === 0) return null;
+
+    // Filter out female voices to match Sudhir Sir's Male Teacher voice
+    const maleVoices = voices.filter(v => {
+      const name = v.name.toLowerCase();
+      return !name.includes('female') && !name.includes('swara') && !name.includes('kalpana') && !name.includes('zira') && !name.includes('heera') && !name.includes('veena');
+    });
+
+    const candidates = maleVoices.length > 0 ? maleVoices : voices;
+
+    // 1. Prefer Hindi Male voice (hi-IN, Hemant, Ravi, Madhav, Male)
+    let voice = candidates.find(v => v.lang && (v.lang.includes('hi-IN') || v.lang.includes('hi_IN') || v.lang.startsWith('hi')) && (
+      v.name.toLowerCase().includes('male') || 
+      v.name.toLowerCase().includes('hemant') || 
+      v.name.toLowerCase().includes('ravi') || 
+      v.name.toLowerCase().includes('madhav') ||
+      v.name.toLowerCase().includes('google')
+    ));
+
+    // 2. Any Hindi voice from male candidates
+    if (!voice) {
+      voice = candidates.find(v => v.lang && (v.lang.includes('hi-IN') || v.lang.includes('hi_IN') || v.lang.startsWith('hi')));
+    }
+
+    // 3. Indian English Male voice
+    if (!voice) {
+      voice = candidates.find(v => (v.lang.includes('en-IN') || v.lang.includes('en_IN') || v.name.toLowerCase().includes('india')) && (
+        v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('prabhat') || v.name.toLowerCase().includes('ravi')
+      ));
+    }
+
+    // 4. Any Male voice fallback
+    if (!voice) {
+      voice = candidates.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('mark'));
+    }
+
+    return voice || candidates[0] || null;
+  };
+
+  const phoneticHinglishToHindi = (text: string) => {
+    if (!text) return '';
+    let clean = text;
+
+    const map: [RegExp, string][] = [
+      [/\blambai\b|\blambaii\b/gi, "लंबाई"],
+      [/\bchaudai\b|\bchoudai\b/gi, "चौड़ाई"],
+      [/\bunchai\b|\bunchaee\b/gi, "ऊंचाई"],
+      [/\bkshetrafal\b|\bareya\b/gi, "क्षेत्रफल"],
+      [/\bsamajh\b/gi, "समझ"],
+      [/\bsamajhte\b/gi, "समझते"],
+      [/\bsamajhao\b/gi, "समझाओ"],
+      [/\bsawal\b|\bsawalos\b/gi, "सवाल"],
+      [/\bsamikaran\b/gi, "समीकरण"],
+      [/\bgati\b/gi, "गति"],
+      [/\bbal\b/gi, "बल"],
+      [/\bdravyamān\b|\bdravyaman\b/gi, "द्रव्यमान"],
+      [/\btvaran\b/gi, "त्वरण"],
+      [/\baasan\b/gi, "आसान"],
+      [/\bsuno\b/gi, "सुनो"],
+      [/\bbeta\b/gi, "बेटा"],
+      [/\bpehle\b/gi, "पहले"],
+      [/\bphir\b/gi, "फिर"],
+      [/\bkaro\b/gi, "करो"],
+      [/\bkaran\b/gi, "कारण"],
+      [/\bdhyan\b/gi, "ध्यान"],
+      [/\bprakash\b/gi, "प्रकाश"],
+      [/\bnikalna\b|\bnikalo\b/gi, "निकालो"],
+      [/\bbarabar\b/gi, "बराबर"],
+      [/\bparinam\b/gi, "परिणाम"],
+      [/\bsootrad\b|\bsootra\b|\bsutra\b/gi, "सूत्र"],
+      [/\bgyat\b/gi, "ज्ञात"],
+      [/\bkaise\b/gi, "कैसे"],
+      [/\bhoga\b/gi, "होगा"],
+      [/\bhogi\b/gi, "होगी"],
+      [/\bhain\b/gi, "हैं"],
+      [/\bhai\b/gi, "है"]
+    ];
+
+    for (const [regex, val] of map) {
+      clean = clean.replace(regex, val);
+    }
+
+    return clean;
+  };
+
+  const speakSentenceRealtime = (sentenceText: string, messageIndex: number) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    let cleanText = sentenceText
+      .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/[*_#`]/g, '')
+      .replace(/²/g, ' squared ')
+      .replace(/³/g, ' cubed ')
+      .replace(/\+/g, ' plus ')
+      .replace(/=/g, ' barabar ')
+      .trim();
+
+    const highlightText = cleanText;
+    cleanText = phoneticHinglishToHindi(cleanText);
+
+    if (!cleanText || cleanText.length < 2) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = audioSpeed * 1.02;
+    utterance.pitch = 0.95;
+
+    const indianVoice = getBestIndianHindiVoice();
+    if (indianVoice) {
+      utterance.voice = indianVoice;
+    }
+
+    utterance.onstart = () => {
+      setAudioLoadingIndex(null);
+      setPlayingAudioIndex(messageIndex);
+      setActiveSpeakingText(highlightText);
+    };
+    utterance.onend = () => {
+      if (!window.speechSynthesis.pending && !window.speechSynthesis.speaking) {
+        setPlayingAudioIndex(null);
+        setActiveSpeakingText(null);
+      }
+    };
+    utterance.onerror = () => {
+      if (!window.speechSynthesis.pending && !window.speechSynthesis.speaking) {
+        setPlayingAudioIndex(null);
+        setActiveSpeakingText(null);
+      }
+    };
+
+    currentUtteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const fallbackWebSpeech = (index: number, textToSpeak: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      setAudioLoadingIndex(null);
+      alert("Voice playback is not supported on this browser.");
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    speakSentenceRealtime(textToSpeak, index);
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
 
   useEffect(() => {
     if (session?.user?.name) {
@@ -331,11 +570,21 @@ function StudentDashboardContent() {
     }
   };
 
-  const renderSimpleLines = (text: string, baseKey: any, animate: boolean = false) => {
+  const renderSimpleLines = (text: string, baseKey: any, animate: boolean = false, messageIndex: number = 0) => {
     return text.split('\n').map((line, idx) => {
       let lineText = line.trim();
       if (!lineText) return <div key={`${baseKey}_${idx}`} style={{ height: '0.3rem' }} />;
       
+      const cleanPlainLine = lineText
+        .replace(/<[^>]*>/g, '')
+        .replace(/[*_#`]/g, '')
+        .trim();
+
+      const isSpeakingThisLine = activeSpeakingText && playingAudioIndex === messageIndex && cleanPlainLine.length > 3 && (
+        activeSpeakingText.toLowerCase().includes(cleanPlainLine.toLowerCase().substring(0, 12)) ||
+        cleanPlainLine.toLowerCase().includes(activeSpeakingText.toLowerCase().substring(0, 12))
+      );
+
       // Markdown Images: ![alt](url)
       lineText = lineText.replace(/!\[(.*?)\]\((.*?)\)/gi, '<img src="$2" alt="$1" style="max-width:100%; border-radius:8px; margin: 0.5rem 0; display:block; box-shadow:var(--shadow-sm);" />');
       // Markdown Links: [label](url)
@@ -345,12 +594,27 @@ function StudentDashboardContent() {
       // Inline code formatting
       lineText = lineText.replace(/`(.*?)`/g, '<code style="background:var(--surface-light);padding:2px 6px;border-radius:4px;font-family:monospace;color:var(--primary);font-weight:600;">$1</code>');
 
+      const activeStyle = isSpeakingThisLine ? {
+        background: 'rgba(245, 158, 11, 0.15)',
+        borderLeft: '4px solid #f59e0b',
+        padding: '0.35rem 0.65rem',
+        borderRadius: '8px',
+        margin: '0.3rem 0',
+        boxShadow: '0 0 10px rgba(245, 158, 11, 0.25)',
+        transition: 'all 0.25s ease-in-out'
+      } : {};
+
       // Strip out markdown headings and format as bold header divs
       if (lineText.startsWith('#')) {
         const cleanHeading = lineText.replace(/^#+\s*/, '');
         const finalHeading = cleanHeading.replace(/#(?![0-9a-fA-F]{3}\b|[0-9a-fA-F]{6}\b)/g, '');
         return (
-          <div key={`${baseKey}_${idx}`} style={{ fontWeight: 800, fontSize: '1.02rem', color: '#f59e0b', margin: '0.6rem 0 0.3rem 0' }}>
+          <div key={`${baseKey}_${idx}`} style={{ fontWeight: 800, fontSize: '1.02rem', color: '#f59e0b', margin: '0.6rem 0 0.3rem 0', ...activeStyle }}>
+            {isSpeakingThisLine && (
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                👉 🔊 [Explaining this part...]
+              </span>
+            )}
             {animate ? <TypewriterText text={finalHeading} /> : <span dangerouslySetInnerHTML={{ __html: finalHeading }} />}
           </div>
         );
@@ -361,14 +625,24 @@ function StudentDashboardContent() {
 
       if (lineText.startsWith('👉 ')) {
         return (
-          <div key={`${baseKey}_${idx}`} style={{ background: 'rgba(245,158,11,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit' }}>
+          <div key={`${baseKey}_${idx}`} style={{ background: isSpeakingThisLine ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.06)', padding: '0.4rem 0.6rem', borderRadius: '8px', borderLeft: '3px solid #f59e0b', margin: '0.35rem 0', fontWeight: 700, color: 'var(--text)', fontSize: 'inherit', ...activeStyle }}>
+            {isSpeakingThisLine && (
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                👉 🔊 [Explaining this part...]
+              </span>
+            )}
             {animate ? <TypewriterText text={lineText.slice(2)} /> : <span dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />}
           </div>
         );
       }
       if (lineText.startsWith('* ') || lineText.startsWith('- ')) {
         return (
-          <li key={`${baseKey}_${idx}`} style={{ marginLeft: '0.75rem', marginBottom: '0.2rem', listStyleType: 'square', color: 'var(--text)', fontSize: 'inherit' }}>
+          <li key={`${baseKey}_${idx}`} style={{ marginLeft: '0.75rem', marginBottom: '0.2rem', listStyleType: 'square', color: 'var(--text)', fontSize: 'inherit', ...activeStyle }}>
+            {isSpeakingThisLine && (
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                👉 🔊 [Explaining this part...]
+              </span>
+            )}
             {animate ? <TypewriterText text={lineText.slice(2)} /> : <span dangerouslySetInnerHTML={{ __html: lineText.slice(2) }} />}
           </li>
         );
@@ -377,7 +651,12 @@ function StudentDashboardContent() {
         return <hr key={`${baseKey}_${idx}`} style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }} />;
       }
       return (
-        <p key={`${baseKey}_${idx}`} style={{ margin: '0.2rem 0', color: 'var(--text)', lineHeight: 1.45, fontSize: 'inherit' }}>
+        <p key={`${baseKey}_${idx}`} style={{ margin: '0.2rem 0', color: 'var(--text)', lineHeight: 1.45, fontSize: 'inherit', ...activeStyle }}>
+          {isSpeakingThisLine && (
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+              👉 🔊 [Explaining this part...]
+            </span>
+          )}
           {animate ? <TypewriterText text={lineText} /> : <span dangerouslySetInnerHTML={{ __html: lineText }} />}
         </p>
       );
@@ -387,8 +666,11 @@ function StudentDashboardContent() {
   const formatGuruResponse = (content: string, revealedSteps: number = 1, messageIndex: number = 0, isNew: boolean = false) => {
     if (!content) return null;
 
+    // Clean up any markdown code block wrappers around SVG (e.g. ```xml <svg>...</svg> ```)
+    let sanitizedContent = content.replace(/```(?:xml|html|svg)?\s*(<svg[\s\S]*?<\/svg>)\s*```/gi, '$1');
+
     // Split content into blocks of SVG and normal text
-    const parts = content.split(/(<svg[\s\S]*?<\/svg>)/gi);
+    const parts = sanitizedContent.split(/(<svg[\s\S]*?<\/svg>)/gi);
 
     return (
       <div style={{
@@ -398,34 +680,44 @@ function StudentDashboardContent() {
         background: 'var(--surface-light)',
         boxShadow: 'var(--shadow-sm)',
         width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
+        maxWidth: '100%'
       }} className="guru-response-card animate-fade-in">
         {parts.map((part, idx) => {
-          const isSvg = part.trim().toLowerCase().startsWith('<svg') && part.trim().toLowerCase().endsWith('</svg>');
+          const trimmed = part.trim();
+          const isSvg = trimmed.toLowerCase().startsWith('<svg') && trimmed.toLowerCase().endsWith('</svg>');
           if (isSvg) {
+            let svgMarkup = trimmed;
+            if (!svgMarkup.includes('width="100%"')) {
+              svgMarkup = svgMarkup.replace(/<svg\s+/i, '<svg width="100%" height="auto" ');
+            }
             return (
               <div 
                 key={idx} 
                 className="guru-svg-container"
                 style={{ 
-                  margin: '0.75rem 0', 
-                  background: 'rgba(255,255,255,0.03)', 
-                  padding: '1.25rem', 
-                  borderRadius: '12px', 
-                  border: '1px solid var(--border)',
+                  margin: '0.85rem 0', 
+                  background: '#0f172a', 
+                  padding: '1rem', 
+                  borderRadius: '16px', 
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
                   overflowX: 'auto',
-                  maxWidth: '100%'
+                  maxWidth: '100%',
+                  boxSizing: 'border-box'
                 }} 
-                dangerouslySetInnerHTML={{ __html: part.trim() }} 
+                dangerouslySetInnerHTML={{ __html: svgMarkup }} 
               />
             );
           }
           return (
-            <div key={idx} className="guru-card-text" style={{ fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5 }}>
-              {renderSimpleLines(part, idx, isNew)}
+            <div key={idx} className="guru-card-text" style={{ fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'break-word', maxWidth: '100%' }}>
+              {renderSimpleLines(part, idx, isNew, messageIndex)}
             </div>
           );
         })}
@@ -433,25 +725,35 @@ function StudentDashboardContent() {
     );
   };
 
-  const askGuruJi = async () => {
-    if (!guruQuestion.trim() && !guruFile) return;
-    const q = guruQuestion;
+  const askGuruJi = async (customQuery?: string | any) => {
+    const q = (typeof customQuery === 'string' && customQuery.trim()) ? customQuery : guruQuestion;
+    if (!q.trim() && !guruFile) return;
     const subj = guruSubject;
     const fl = guruFile;
     const fn = guruFileName;
-    setGuruQuestion('');
-    setGuruFile(null);
-    setGuruFileName('');
+    if (!customQuery) {
+      setGuruQuestion('');
+      setGuruFile(null);
+      setGuruFileName('');
+    }
     
     // Add user message to history
-    setGuruHistory(prev => [...prev, { role: 'user', content: q, subject: subj, file: fl || undefined, fileName: fn || undefined }]);
+    const newHistoryItem = { role: 'user' as const, content: q, subject: subj, file: fl || undefined, fileName: fn || undefined };
+    const currentHistorySnap = [...guruHistory, newHistoryItem];
+    setGuruHistory(currentHistorySnap);
     setGuruLoading(true);
 
     try {
       const res = await fetch('/api/student/guru-ji', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, subject: subj, language: guruLanguage, file: fl })
+        body: JSON.stringify({
+          question: q,
+          subject: subj,
+          language: guruLanguage,
+          file: fl,
+          history: currentHistorySnap.slice(-6)
+        })
       });
 
       if (!res.ok) {
@@ -467,13 +769,30 @@ function StudentDashboardContent() {
       const decoder = new TextDecoder();
       let accumulatedText = "";
 
+      let sentenceBuffer = "";
+
       if (reader) {
+        if (guruMode === 'VOICE' && typeof window !== 'undefined' && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
           accumulatedText += chunk;
+          sentenceBuffer += chunk;
+
+          // Real-time voice speech queue sentence-by-sentence
+          if (guruMode === 'VOICE') {
+            const parts = sentenceBuffer.split(/([।!?\n]|\.(?=\s|[A-Z]|$))/);
+            while (parts.length > 2) {
+              const fullSentence = parts.shift()! + parts.shift()!;
+              sentenceBuffer = parts.join('');
+              speakSentenceRealtime(fullSentence, currentHistorySnap.length);
+            }
+          }
 
           setGuruHistory(prev => {
             const updated = [...prev];
@@ -489,6 +808,11 @@ function StudentDashboardContent() {
           // Scroll chat feed
           const feed = document.getElementById('guru-chat-feed');
           if (feed) feed.scrollTop = feed.scrollHeight;
+        }
+
+        // Speak remaining sentence buffer at end of stream
+        if (guruMode === 'VOICE' && sentenceBuffer.trim()) {
+          speakSentenceRealtime(sentenceBuffer.trim(), currentHistorySnap.length);
         }
       }
     } catch (e) {
@@ -2023,12 +2347,12 @@ function StudentDashboardContent() {
       `}</style>
       {activeTab === 'guru-ji' && !isStoreUser && (
         <div 
-          className="animate-scale-up" 
+          className="animate-scale-up guru-ji-card-container" 
           style={{ 
             padding: '0', 
             display: 'flex', 
             flexDirection: 'column', 
-            height: 'calc(100vh - 170px)', 
+            height: 'calc(100vh - 90px)', 
             minHeight: '450px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 
@@ -2036,39 +2360,255 @@ function StudentDashboardContent() {
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             boxShadow: 'var(--shadow)',
-            marginBottom: '2rem', 
+            marginBottom: '0.25rem', 
             overflow: 'hidden' 
           }}
         >
           {/* ST Guru ji Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.4rem 1rem', background: 'var(--surface-light)' }}>
-            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(245, 158, 11, 0.4)', animation: 'pulse 2s infinite' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0.65rem 1.25rem', background: 'var(--surface-light)' }}>
+            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+              <div style={{ 
+                width: '42px', height: '42px', borderRadius: '14px', 
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                boxShadow: '0 4px 16px rgba(245, 158, 11, 0.45), inset 0 1px 1px rgba(255,255,255,0.4)', 
+                border: '1px solid rgba(255,255,255,0.25)',
+                position: 'relative', flexShrink: 0
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
+                <span style={{
+                  position: 'absolute', top: '-4px', right: '-4px',
+                  fontSize: '0.7rem'
+                }}>✨</span>
               </div>
               <div>
-                <h2 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f59e0b', margin: 0, whiteSpace: 'nowrap' }}>ST Guru ji</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.6rem', margin: '1px 0 0 0' }}>AI Tutor • Online</p>
+                <h2 style={{ fontSize: '1.02rem', fontWeight: 900, margin: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '0.4px', fontFamily: 'var(--font-sans, system-ui, sans-serif)' }}>
+                    ST Guru ji
+                  </span>
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.66rem', margin: '2px 0 0 0', fontWeight: 600 }}>Sudhir Sir's AI Master</p>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              <button 
-                onClick={() => {
-                  fetchGuruHistory();
-                  setShowGuruHistoryPanel(prev => !prev);
-                }}
-                style={{ background: 'none', border: 'none', color: '#f59e0b', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                📜 History
-              </button>
-              <button 
-                onClick={() => setGuruHistory([])}
-                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                🧹 Clear Chat
-              </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              {/* Three-Dots Menu Button Dropdown */}
+              <div style={{ position: 'relative' }}>
+                <button 
+                  onClick={() => setShowGuruMenu(prev => !prev)}
+                  style={{ 
+                    background: showGuruMenu ? 'var(--border)' : 'rgba(255, 255, 255, 0.08)', 
+                    border: '1px solid var(--border)', 
+                    color: showGuruMenu ? '#f59e0b' : 'var(--text)', 
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease-in-out',
+                    boxShadow: showGuruMenu ? '0 0 10px rgba(245, 158, 11, 0.3)' : 'none'
+                  }}
+                  title="Guru ji Options & Settings"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="5" r="1.5" />
+                    <circle cx="12" cy="19" r="1.5" />
+                  </svg>
+                </button>
+
+                {showGuruMenu && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: '125%',
+                      right: 0,
+                      zIndex: 100,
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '18px',
+                      boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
+                      padding: '0.5rem',
+                      minWidth: '220px',
+                      backdropFilter: 'blur(16px)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      animation: 'fadeInScale 0.15s ease-out'
+                    }}
+                  >
+                    {/* Mode Selection */}
+                    <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      ⚡ Interaction Mode
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', padding: '0 0.2rem 0.2rem 0.2rem' }}>
+                      <button
+                        onClick={() => {
+                          stopAudio();
+                          setGuruMode('CHAT');
+                        }}
+                        style={{
+                          padding: '0.45rem 0.5rem',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          background: guruMode === 'CHAT' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'var(--surface-light)',
+                          color: guruMode === 'CHAT' ? '#fff' : 'var(--text)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          textAlign: 'center'
+                        }}
+                      >
+                        💬 Chat Mode
+                      </button>
+                      <button
+                        onClick={() => setGuruMode('VOICE')}
+                        style={{
+                          padding: '0.45rem 0.5rem',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          background: guruMode === 'VOICE' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--surface-light)',
+                          color: guruMode === 'VOICE' ? '#fff' : 'var(--text)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          boxShadow: guruMode === 'VOICE' ? '0 2px 6px rgba(245, 158, 11, 0.3)' : 'none'
+                        }}
+                      >
+                        🎙️ Voice Mode
+                      </button>
+                    </div>
+
+                    <div style={{ height: '1px', background: 'var(--border)', margin: '0.2rem 0' }} />
+
+                    {/* Language Selection */}
+                    <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      🌐 Explanation Language
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', padding: '0 0.2rem 0.2rem 0.2rem' }}>
+                      {[
+                        { id: 'HINGLISH', label: '🗣️ Hinglish' },
+                        { id: 'HINDI', label: '🇮🇳 Hindi' },
+                        { id: 'ENGLISH', label: '🇬🇧 English' },
+                        { id: 'PUNJABI', label: '🌾 Punjabi' }
+                      ].map((langItem) => (
+                        <button
+                          key={langItem.id}
+                          onClick={() => setGuruLanguage(langItem.id as any)}
+                          style={{
+                            padding: '0.35rem 0.4rem',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)',
+                            background: guruLanguage === langItem.id ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--surface-light)',
+                            color: guruLanguage === langItem.id ? '#fff' : 'var(--text)',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {langItem.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div style={{ height: '1px', background: 'var(--border)', margin: '0.2rem 0' }} />
+
+                    {/* Voice Speed */}
+                    <div style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>
+                      ⚡ Voice Speed ({audioSpeed === 1.0 ? '1x' : audioSpeed === 0.5 ? '0.5x' : `${audioSpeed}x`})
+                    </div>
+                    <div style={{ display: 'flex', gap: '3px', padding: '0 0.2rem 0.2rem 0.2rem' }}>
+                      {[0.5, 1.0, 1.5, 2.0, 3.0].map((spd) => (
+                        <button
+                          key={spd}
+                          onClick={() => setAudioSpeed(spd)}
+                          style={{
+                            flex: 1,
+                            padding: '4px 0',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border)',
+                            background: audioSpeed === spd ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--surface-light)',
+                            color: audioSpeed === spd ? '#fff' : 'var(--text)',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {spd === 1.0 ? '1x' : spd === 0.5 ? '0.5x' : `${spd}x`}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div style={{ height: '1px', background: 'var(--border)', margin: '0.2rem 0' }} />
+
+                    {/* Actions */}
+                    <button 
+                      onClick={() => {
+                        setShowGuruMenu(false);
+                        fetchGuruHistory();
+                        setShowGuruHistoryPanel(prev => !prev);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        width: '100%',
+                        padding: '0.55rem 0.7rem',
+                        borderRadius: '10px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#f59e0b',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-light)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span>📜</span>
+                      <span>Doubt History</span>
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setShowGuruMenu(false);
+                        stopAudio();
+                        setGuruHistory([]);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        width: '100%',
+                        padding: '0.55rem 0.7rem',
+                        borderRadius: '10px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ef4444',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span>🧹</span>
+                      <span>Clear Current Chat</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
 
@@ -2081,9 +2621,12 @@ function StudentDashboardContent() {
             .chat-bubble {
               border-radius: 16px;
               padding: 0.6rem 0.85rem;
-              max-width: 80%;
+              max-width: 85%;
               line-height: 1.45;
               font-size: 0.88rem;
+              word-break: break-word;
+              overflow-wrap: break-word;
+              box-sizing: border-box;
             }
             .chat-bubble pre {
               background: var(--surface-light);
@@ -2093,6 +2636,9 @@ function StudentDashboardContent() {
               margin: 0.5rem 0;
               border: 1px solid var(--border);
               font-size: 0.82rem;
+              max-width: 100%;
+              white-space: pre-wrap;
+              word-break: break-word;
             }
             .chat-bubble code {
               font-family: monospace;
@@ -2101,11 +2647,32 @@ function StudentDashboardContent() {
               border-radius: 4px;
               color: var(--primary);
               font-weight: 600;
+              word-break: break-word;
             }
             .guru-card-text {
               font-size: 0.88rem;
               line-height: 1.45;
               color: var(--text);
+              word-break: break-word;
+              overflow-wrap: break-word;
+              max-width: 100%;
+            }
+            .guru-card-text p, .guru-card-text li, .guru-card-text div {
+              word-break: break-word;
+              overflow-wrap: break-word;
+              max-width: 100%;
+            }
+            .guru-card-text table {
+              display: block;
+              width: 100%;
+              overflow-x: auto;
+              max-width: 100%;
+              border-collapse: collapse;
+              margin: 0.5rem 0;
+            }
+            .guru-card-text th, .guru-card-text td {
+              padding: 6px 12px;
+              border: 1px solid var(--border);
             }
             .attachment-btn {
               transition: all 0.2s ease;
@@ -2189,11 +2756,16 @@ function StudentDashboardContent() {
               {/* Message Feed */}
               <div style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }} id="guru-chat-feed">
                 {guruHistory.length === 0 ? (
-                  <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.6 }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '0.5rem' }}>
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ask me your doubts</span>
+                  <div style={{ margin: 'auto', maxWidth: '480px', width: '100%', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(245, 158, 11, 0.4)', marginBottom: '1rem', animation: 'pulse 2.5s infinite' }}>
+                      <span style={{ fontSize: '1.85rem' }}>🤖</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 0.4rem 0' }}>
+                      Namaste! Main hoon Digital ST Guru ji 🙏
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>
+                      Sudhir Sir's AI Master for instant doubt resolution. Ask your question in text, record your voice, or upload a photo/PDF document below!
+                    </p>
                   </div>
                 ) : (
                   guruHistory.map((msg, i) => (
@@ -2230,7 +2802,111 @@ function StudentDashboardContent() {
                       >
                         <div>
                           {msg.role === 'guru' ? (
-                            formatGuruResponse(msg.content, msg.revealedSteps || 1, i, (msg as any).isNew)
+                            <>
+                              {formatGuruResponse(msg.content, msg.revealedSteps || 1, i, (msg as any).isNew)}
+                              {msg.content && (
+                                <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                  {/* Voice Player & Action Controls */}
+                                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.4rem 0.75rem', borderRadius: '12px', border: '1px solid var(--border)', width: 'fit-content' }}>
+                                    <button
+                                      onClick={() => playVoiceExplanation(i, msg.content)}
+                                      disabled={audioLoadingIndex === i}
+                                      style={{
+                                        background: playingAudioIndex === i ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                        border: 'none',
+                                        color: '#fff',
+                                        padding: '0.35rem 0.75rem',
+                                        borderRadius: '8px',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        boxShadow: '0 2px 6px rgba(245, 158, 11, 0.3)',
+                                        transition: 'all 0.2s'
+                                      }}
+                                    >
+                                      {audioLoadingIndex === i ? (
+                                        <>⏳ Generating Voice...</>
+                                      ) : playingAudioIndex === i ? (
+                                        <>⏸️ Pause Voice</>
+                                      ) : (
+                                        <>🔊 Listen in Sudhir Sir's Voice</>
+                                      )}
+                                    </button>
+
+                                    {/* Copy Response Text Button */}
+                                    <button
+                                      onClick={() => {
+                                        const cleanText = msg.content.replace(/<[^>]*>/g, '').replace(/[*_#`]/g, '');
+                                        navigator.clipboard.writeText(cleanText);
+                                        setCopiedIndex(i);
+                                        setTimeout(() => setCopiedIndex(null), 2000);
+                                      }}
+                                      style={{
+                                        background: 'var(--bg)',
+                                        border: '1px solid var(--border)',
+                                        color: copiedIndex === i ? '#10b981' : 'var(--text-muted)',
+                                        padding: '0.35rem 0.65rem',
+                                        borderRadius: '8px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'all 0.2s'
+                                      }}
+                                    >
+                                      {copiedIndex === i ? '✔ Copied!' : '📋 Copy'}
+                                    </button>
+
+                                    {playingAudioIndex === i && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                          <span style={{ display: 'inline-block', width: '3px', height: '12px', background: '#f59e0b', animation: 'pulse 0.8s infinite' }}></span>
+                                          <span style={{ display: 'inline-block', width: '3px', height: '16px', background: '#f59e0b', animation: 'pulse 0.6s infinite 0.2s' }}></span>
+                                          <span style={{ display: 'inline-block', width: '3px', height: '10px', background: '#f59e0b', animation: 'pulse 0.7s infinite 0.4s' }}></span>
+                                        </span>
+                                        <select
+                                          value={audioSpeed}
+                                          onChange={(e) => setAudioSpeed(parseFloat(e.target.value))}
+                                          style={{
+                                            background: 'var(--bg)',
+                                            border: '1px solid var(--border)',
+                                            color: 'var(--text)',
+                                            fontSize: '0.72rem',
+                                            borderRadius: '6px',
+                                            padding: '2px 4px',
+                                            cursor: 'pointer'
+                                          }}
+                                        >
+                                          <option value={0.5}>0.5x</option>
+                                          <option value={1.0}>1x</option>
+                                          <option value={1.5}>1.5x</option>
+                                          <option value={2.0}>2x</option>
+                                          <option value={3.0}>3x</option>
+                                        </select>
+                                        <button
+                                          onClick={stopAudio}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--text-muted)',
+                                            fontSize: '0.72rem',
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline'
+                                          }}
+                                        >
+                                          Stop
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </>
                           ) : (
                             <div>
                               {msg.image && (
@@ -2303,8 +2979,8 @@ function StudentDashboardContent() {
               </div>
 
               {/* Bottom Chat Input Bar */}
-              <div className="guru-input-bar" style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
-                <div style={{ maxWidth: '680px', margin: '0 auto', width: '100%' }}>
+              <div className="guru-input-bar" style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+                <div style={{ width: '100%', margin: '0' }}>
                   {guruFile && (
                     <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.75rem', marginLeft: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                       {guruFile.startsWith('data:application/pdf') ? (
@@ -2396,7 +3072,7 @@ function StudentDashboardContent() {
                     />
                     
                     <button 
-                      onClick={askGuruJi}
+                      onClick={() => askGuruJi()}
                       className="guru-send-btn"
                       disabled={guruLoading || (!guruQuestion.trim() && !guruFile) || isRecording || isTranscribing}
                       style={{ 

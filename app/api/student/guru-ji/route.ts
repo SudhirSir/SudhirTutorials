@@ -20,13 +20,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { question, subject, language, image, file } = await req.json();
+    const { question, subject, language, image, file, history } = await req.json();
     if (!question && !image && !file) {
       return NextResponse.json({ error: 'Either question text, image, or PDF file is required' }, { status: 400 });
     }
 
-    // Natively detect language of the question text. Ignore frontend hardcoded default.
-    const resolvedLanguage = detectLanguage(question || "");
+    // Language resolution: use explicit selection if valid, otherwise auto-detect
+    let resolvedLanguage = 'HINGLISH';
+    if (language && ['HINGLISH', 'HINDI', 'ENGLISH', 'PUNJABI'].includes(String(language).toUpperCase())) {
+      resolvedLanguage = String(language).toUpperCase();
+    } else if (question) {
+      resolvedLanguage = detectLanguage(question);
+    }
 
     let extractedPdfText = '';
     let isPdf = false;
@@ -49,7 +54,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fetch student's profile context (class & board) if the user is a student
+    // Fetch student's profile context (name, class & board) if the user is a student
+    let fullStudentName = session.user?.name || "";
+    let displayFirstName = fullStudentName ? fullStudentName.trim().split(' ')[0] : 'beta';
+    if (!displayFirstName || displayFirstName.toLowerCase() === 'student') displayFirstName = 'beta';
+
     let studentContext = "";
     if (session.user.role === 'STUDENT') {
       try {
@@ -57,17 +66,17 @@ export async function POST(req: Request) {
           where: { userId: session.user.id },
           select: { className: true, board: true }
         });
-        if (studentProfile) {
-          const parts = [];
-          if (studentProfile.className) parts.push(`Class/Grade: ${studentProfile.className}`);
-          if (studentProfile.board) parts.push(`Board: ${studentProfile.board}`);
-          if (parts.length > 0) {
-            studentContext = `\nSTUDENT PROFILE CONTEXT: The student asking this doubt is in ${parts.join(" and studying under ") || "general class"}. You MUST customize your explanation level, mathematical depth, syllabus context, and response terminology to match exactly this student's grade/class and board.`;
-          }
-        }
+        const details = [];
+        details.push(`Student First Name: ${displayFirstName}`);
+        if (studentProfile?.className) details.push(`Class/Grade: ${studentProfile.className}`);
+        if (studentProfile?.board) details.push(`Board: ${studentProfile.board}`);
+        
+        studentContext = `\nSTUDENT PROFILE CONTEXT:\n- ${details.join("\n- ")}\nCRITICAL NAME RULE: Address the student ONLY by their FIRST NAME: '${displayFirstName}' (e.g. "${displayFirstName} beta...", "Suniyen ${displayFirstName}..."). Do NOT use their full name or last name under any circumstance. Tailor explanation depth to their grade/class (${studentProfile?.className || 'their class'}) and board (${studentProfile?.board || 'their board'}).`;
       } catch (profileError) {
         console.error("Failed to fetch student profile for AI context:", profileError);
       }
+    } else if (displayFirstName) {
+      studentContext = `\nUSER CONTEXT: First Name: ${displayFirstName}. Address the user warmly by first name only.`;
     }
 
     const resolvedSubject = subject || (question ? detectSubject(question) : 'General Academics');
@@ -80,7 +89,7 @@ export async function POST(req: Request) {
     if (geminiApiKey) geminiApiKey = geminiApiKey.trim().replace(/^["']|["']$/g, '');
     if (groqApiKey) groqApiKey = groqApiKey.trim().replace(/^["']|["']$/g, '');
 
-    console.log("[Guru Ji AI Route] API Keys present - Gemini:", !!geminiApiKey, "Groq:", !!groqApiKey);
+    console.log("[Guru Ji AI Route] Language:", resolvedLanguage, "| First Name:", displayFirstName, "| Keys - Gemini:", !!geminiApiKey, "Groq:", !!groqApiKey);
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -88,56 +97,89 @@ export async function POST(req: Request) {
         let success = false;
         let fullResponse = "";
 
-        const systemPrompt = `You are 'Digital ST Guru ji', a highly professional, helpful, and premium AI doubt solver for the prestigious institute 'SUDHIR TUTORIALS'.
-A student has submitted an academic doubt (as text, image, or PDF document).${studentContext}
+        const systemPrompt = `You are 'Digital ST Guru ji', a highly professional, warm, encouraging, and master academic mentor for the prestigious institute 'SUDHIR TUTORIALS'. You embody Sudhir Sir himself solving doubts for his students in real life.
+A student has submitted an academic doubt or follow-up question.${studentContext}
 
 You MUST follow these critical instruction rules:
 1. ACADEMIC AND DECORUM POLICY: If the student asks anything offensive, inappropriate, abusive, bad, or non-academic (e.g. gaming, movies, entertainment, gossip, politics, personal questions, relationship advice, etc.), you MUST refuse to answer and strictly reply with the following exact message: "Please maintain decorum and focus on your studies. Any inappropriate queries will be reported to the administration."
-2. RESPONSE LANGUAGE: You MUST write your entire response in the same language as the student's query or the language used in the uploaded document/image (English, Hindi, or Hinglish).
-   - If the student's query or the uploaded document/image is in Hinglish (Hindi conversational phrasing written in the English/Latin alphabet, e.g. "mujhe ye samjhao"), you MUST write your explanation in Hinglish.
-   - If in Hindi (written in Devanagari script, e.g. "मुझे यह समझाओ"), you MUST write in clean Hindi using the Devanagari script.
-   - If in English, write strictly in plain, high-quality academic English.
-   Do NOT switch to or mix other languages under any circumstance.
-3. DIRECT, IN-DEPTH & EXACT: Provide a comprehensive, high-quality, exact, and detailed academic explanation. Do not include verbose, generic introductory or concluding remarks. Go straight to the explanation.
-4. DIAGRAMS, ILLUSTRATIONS & MATH FORMULAS: Whenever a diagram, flowchart, comparison, math formula, circuit, or chemical structure helps explain the concept (especially in Physics, Chemistry, Biology, Mathematics, or comparative topics), you MUST include it:
+2. RESPONSE LANGUAGE & HINGLISH EXCELLENCE (TARGET LANGUAGE: ${resolvedLanguage}):
+   - You MUST write your ENTIRE explanation strictly in ${resolvedLanguage}.
+   - If HINGLISH: Write in authentic, natural, fluent North-Indian teacher Hinglish as spoken in top coaching institutes (e.g., "Dekho ${displayFirstName} beta, simple shabdo me samjho...", "Aao is concept ko bilkul clear karte hain...", "Pehla point ye hai..."). Avoid robotic or literal Google-translated phrasing.
+   - If HINDI: Write in clean, warm Hindi using Devanagari script (e.g., "देखो ${displayFirstName} बेटा...").
+   - If PUNJABI: Write in authentic Punjabi (in Gurmukhi script or natural Punjabi Hinglish, e.g., "Dekho ${displayFirstName} puttar, aao samjhiye...").
+   - If ENGLISH: Write in clear, encouraging, high-quality academic English.
+3. QUICK, CRISP & TO-THE-POINT DOUBT RESOLUTION (MOST CRITICAL RULE):
+   - This feature is strictly designed for QUICK DOUBT RESOLUTION (under 30-45 seconds reading/listening time).
+   - NEVER give long textbook lectures, multi-page deep theoretical essays, or off-topic introductions!
+   - Directly answer the exact doubt asked in 3 to 5 concise, crystal-clear bullet points or short logical steps.
+   - Keep explanations sharp, specific, and focused strictly on resolving the immediate doubt.
+4. PERSONAL TEACHER PERSONA & ENGAGING TONE:
+   - Embody Sudhir Sir's famous energetic, interactive, and encouraging classroom teaching style.
+   - ALWAYS address the student by their FIRST NAME ONLY: "${displayFirstName}" (e.g., "${displayFirstName} beta...", "Suniyen ${displayFirstName}..."). NEVER use full name.
+   - Take full advantage of previous conversation history (chat turns) to track the student's learning progression like a real dedicated teacher.
+   - End with a quick, warm check-in: "Ab batao ${displayFirstName}, kya ye doubt ekdam clear ho gaya?"
+5. VISUAL DIAGRAMS & ILLUSTRATIONS (HIGH-QUALITY SVG GRAPHICS):
+   - Make the explanation visually rich and engaging! Whenever explaining concepts in Science (Physics rays, circuits, Chemistry molecules/reactions, Biology anatomical/process diagrams), Mathematics (graphs, geometric shapes, coordinate axes), or comparative concepts, generate a high-quality, professional, self-contained SVG diagram inside standard <svg>...</svg> tags.
+   - SVG DESIGN & CONTRAST RULES:
+     a) Always include a dark rounded background canvas rect inside the SVG: '<rect width="100%" height="100%" fill="#0f172a" rx="14"/>'.
+     b) Use a responsive viewBox (e.g. viewBox="0 0 500 280") with width="100%" height="auto".
+     c) All text elements MUST have high-contrast fill (fill="#f8fafc" or #ffffff), readable font size (font-size="13" or "14"), font-family="system-ui, sans-serif", and proper alignment (text-anchor="middle").
+     d) Use vibrant stroke and fill colors: Amber #f59e0b, Electric Blue #3b82f6, Emerald Green #10b981, Purple #8b5cf6, Rose #f43f5e. Use '<marker>' for clean arrows, gradients ('<linearGradient>'), and clear labels.
+     e) DO NOT wrap <svg> in markdown code fences. Write <svg>...</svg> inline directly in your response flow.
    - Use clean Markdown Tables for comparative data.
-   - NEVER use LaTeX math delimiters (like $$, $, \\(, \\)) or raw LaTeX formulas in the response or inside SVGs. Instead, write equations and chemical symbols using plain text and Unicode superscript/subscript characters (e.g. write e⁻, Na⁺, E°, ΔG = -nFE_cell, Cl₂). This is a critical rule to prevent formatting failures.
-   - For diagrams, flowcharts, or drawings, generate beautiful, self-contained SVG elements inside standard <svg>...</svg> tags. Ensure the SVG has sensible dimensions, viewBox, responsive styling, and colors so it renders nicely on both light and dark themes. Write valid, clean SVG code. Inside SVG <text> elements, write standard readable plain text (never write LaTeX formulas or dollar signs).
-5. FORMATTING (NO '#'): Use clean Markdown to structure your response. Do NOT use '#' or '##' symbols for headings, as they render poorly in the chat window. Instead, use bold text (e.g. **Heading**) or list items for structure. Do NOT use any artificial card-splitting headers (like '📝 Extracted Question', '🧮 Step-by-Step Solution', etc.) and do NOT use '[STEP]' delimiters. Just write a continuous, cohesive, and premium academic answer.`;
+   - NEVER use LaTeX math delimiters (like $$, $, \\(, \\)) or raw LaTeX formulas in the response or inside SVGs. Instead, write equations using plain text and Unicode superscript/subscript characters (e.g. write e⁻, Na⁺, E°, ΔG = -nFE_cell, Cl₂, x²).
+6. FORMATTING (NO '#'): Use clean Markdown to structure your response. Do NOT use '#' or '##' symbols for headings, as they render poorly in the chat window. Instead, use bold text (e.g. **Heading**) or list items for structure. Do NOT use any artificial card-splitting headers (like '📝 Extracted Question', '🧮 Step-by-Step Solution', etc.) and do NOT use '[STEP]' delimiters. Just write a continuous, cohesive, concise, visual, and premium academic answer.`;
+
+        // Prepare multi-turn dialogue contents for Gemini API
+        const geminiContents: any[] = [];
+        if (Array.isArray(history) && history.length > 0) {
+          for (const h of history.slice(-6)) {
+            if (h.role === 'user' && h.content) {
+              geminiContents.push({ role: 'user', parts: [{ text: h.content }] });
+            } else if ((h.role === 'guru' || h.role === 'model' || h.role === 'assistant') && h.content) {
+              geminiContents.push({ role: 'model', parts: [{ text: h.content }] });
+            }
+          }
+        }
+
+        const currentParts: any[] = [];
+        if (isPdf) {
+          const base64Data = file.split(';base64,').pop() || '';
+          currentParts.push({
+            inlineData: {
+              mimeType: "application/pdf",
+              data: base64Data
+            }
+          });
+          currentParts.push({
+            text: question || "Solve the academic problem in the attached PDF document step-by-step."
+          });
+        } else if (activeImage) {
+          const mimeType = activeImage.match(/^data:([^;]+);base64,/)?.[1] || 'image/png';
+          const base64Data = activeImage.split(';base64,').pop() || '';
+          currentParts.push({
+            inlineData: {
+              mimeType: mimeType,
+              data: base64Data
+            }
+          });
+          currentParts.push({
+            text: question || "Solve the attached academic question from the image."
+          });
+        } else {
+          currentParts.push({
+            text: question
+          });
+        }
+
+        geminiContents.push({
+          role: 'user',
+          parts: currentParts
+        });
 
         // Attempt 1: Gemini Streaming
         if (geminiApiKey) {
           try {
-            const parts: any[] = [];
-            if (isPdf) {
-              const base64Data = file.split(';base64,').pop() || '';
-              parts.push({
-                inlineData: {
-                  mimeType: "application/pdf",
-                  data: base64Data
-                }
-              });
-              parts.push({
-                text: question || "Solve the academic problem in the attached PDF document step-by-step."
-              });
-            } else if (activeImage) {
-              const mimeType = activeImage.match(/^data:([^;]+);base64,/)?.[1] || 'image/png';
-              const base64Data = activeImage.split(';base64,').pop() || '';
-              parts.push({
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Data
-                }
-              });
-              parts.push({
-                text: question || "Solve the attached academic question from the image."
-              });
-            } else {
-              parts.push({
-                text: question
-              });
-            }
-
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${geminiApiKey}`, {
               method: 'POST',
               headers: {
@@ -147,12 +189,7 @@ You MUST follow these critical instruction rules:
                 system_instruction: {
                   parts: [{ text: systemPrompt }]
                 },
-                contents: [
-                  {
-                    role: 'user',
-                    parts: parts
-                  }
-                ],
+                contents: geminiContents,
                 generationConfig: {
                   temperature: 0.7,
                   thinkingConfig: {
@@ -243,6 +280,18 @@ You MUST follow these critical instruction rules:
               ];
             }
 
+            const groqMessages: any[] = [{ role: 'system', content: systemPrompt }];
+            if (Array.isArray(history) && history.length > 0) {
+              for (const h of history.slice(-6)) {
+                if (h.role === 'user' && h.content) {
+                  groqMessages.push({ role: 'user', content: h.content });
+                } else if ((h.role === 'guru' || h.role === 'assistant' || h.role === 'model') && h.content) {
+                  groqMessages.push({ role: 'assistant', content: h.content });
+                }
+              }
+            }
+            groqMessages.push({ role: 'user', content: userContent });
+
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -251,10 +300,7 @@ You MUST follow these critical instruction rules:
               },
               body: JSON.stringify({
                 model: modelToUse,
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: userContent }
-                ],
+                messages: groqMessages,
                 temperature: 0.7,
                 stream: true
               })

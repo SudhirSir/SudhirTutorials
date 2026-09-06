@@ -575,7 +575,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         .dashboard-main {
           flex: 1;
-          padding: 3rem 4rem;
+          padding: 1.25rem 2.5rem;
           background: var(--background);
           overflow-y: auto;
           position: relative;
@@ -669,7 +669,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
 
           .dashboard-main {
-            padding: 1.5rem 1rem;
+            padding: 0.75rem 0.85rem;
             min-height: calc(100vh - 60px);
             height: auto !important;
             overflow-y: visible !important;
