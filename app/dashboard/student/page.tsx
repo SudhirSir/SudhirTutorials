@@ -288,7 +288,7 @@ function StudentDashboardContent() {
       const res = await fetch('/api/student/guru-ji/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, language: guruLanguage })
       });
 
       if (res.ok) {
@@ -327,7 +327,7 @@ function StudentDashboardContent() {
     }
   };
 
-  const getBestIndianHindiVoice = () => {
+  const getBestVoiceForLanguage = (targetLang: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return null;
     let voices = window.speechSynthesis.getVoices();
     if (!voices || voices.length === 0) {
@@ -336,41 +336,72 @@ function StudentDashboardContent() {
     }
     if (!voices || voices.length === 0) return null;
 
-    // Filter out female voices to match Sudhir Sir's Male Teacher voice
-    const maleVoices = voices.filter(v => {
-      const name = v.name.toLowerCase();
-      return !name.includes('female') && !name.includes('swara') && !name.includes('kalpana') && !name.includes('zira') && !name.includes('heera') && !name.includes('veena');
-    });
+    const normalizedLang = (targetLang || 'HINGLISH').toUpperCase();
 
-    const candidates = maleVoices.length > 0 ? maleVoices : voices;
+    if (normalizedLang === 'ENGLISH') {
+      let v = voices.find(voice => voice.lang && (voice.lang.includes('en-IN') || voice.lang.includes('en_IN')) && (
+        voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('prabhat') || voice.name.toLowerCase().includes('ravi')
+      ));
+      if (!v) v = voices.find(voice => voice.lang && (voice.lang.includes('en-IN') || voice.lang.includes('en_IN')));
+      if (!v) v = voices.find(voice => voice.lang && voice.lang.startsWith('en') && (
+        voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('david') || voice.name.toLowerCase().includes('google')
+      ));
+      if (!v) v = voices.find(voice => voice.lang && voice.lang.startsWith('en'));
+      return v || voices[0] || null;
+    }
 
-    // 1. Prefer Hindi Male voice (hi-IN, Hemant, Ravi, Madhav, Male)
-    let voice = candidates.find(v => v.lang && (v.lang.includes('hi-IN') || v.lang.includes('hi_IN') || v.lang.startsWith('hi')) && (
-      v.name.toLowerCase().includes('male') || 
-      v.name.toLowerCase().includes('hemant') || 
-      v.name.toLowerCase().includes('ravi') || 
-      v.name.toLowerCase().includes('madhav') ||
-      v.name.toLowerCase().includes('google')
+    if (normalizedLang === 'PUNJABI') {
+      let v = voices.find(voice => voice.lang && (voice.lang.includes('pa-IN') || voice.lang.includes('pa_IN') || voice.lang.includes('pa-PK') || voice.name.toLowerCase().includes('punjabi')));
+      if (!v) v = voices.find(voice => voice.lang && (voice.lang.includes('hi-IN') || voice.lang.includes('hi_IN')));
+      return v || voices[0] || null;
+    }
+
+    // HINDI or HINGLISH:
+    let v = voices.find(voice => voice.lang && (voice.lang.includes('hi-IN') || voice.lang.includes('hi_IN') || voice.lang.startsWith('hi')) && (
+      voice.name.toLowerCase().includes('male') || 
+      voice.name.toLowerCase().includes('hemant') || 
+      voice.name.toLowerCase().includes('ravi') || 
+      voice.name.toLowerCase().includes('madhav')
     ));
 
-    // 2. Any Hindi voice from male candidates
-    if (!voice) {
-      voice = candidates.find(v => v.lang && (v.lang.includes('hi-IN') || v.lang.includes('hi_IN') || v.lang.startsWith('hi')));
+    if (!v) v = voices.find(voice => voice.lang && (voice.lang.includes('hi-IN') || voice.lang.includes('hi_IN') || voice.lang.startsWith('hi')));
+    if (!v) v = voices.find(voice => voice.lang && (voice.lang.includes('en-IN') || voice.lang.includes('en_IN') || voice.name.toLowerCase().includes('india')));
+
+    return v || voices[0] || null;
+  };
+
+  const adaptGrammarForVoiceGender = (text: string, voice: SpeechSynthesisVoice | null) => {
+    if (!text || !voice) return text;
+
+    const isFemaleVoice = voice.name.toLowerCase().includes('female') ||
+                          voice.name.toLowerCase().includes('swara') ||
+                          voice.name.toLowerCase().includes('kalpana') ||
+                          voice.name.toLowerCase().includes('zira') ||
+                          voice.name.toLowerCase().includes('heera') ||
+                          voice.name.toLowerCase().includes('veena') ||
+                          voice.name.toLowerCase().includes('siri') ||
+                          voice.name.toLowerCase().includes('samantha') ||
+                          voice.name.toLowerCase().includes('victoria');
+
+    if (isFemaleVoice) {
+      return text
+        .replace(/\bsamjhata\b/gi, 'samjhati')
+        .replace(/\bbolta\b/gi, 'bolti')
+        .replace(/\bbatata\b/gi, 'batati')
+        .replace(/\bkarta\b/gi, 'karti')
+        .replace(/\bsakta\b/gi, 'sakti')
+        .replace(/\braha\b/gi, 'rahi')
+        .replace(/\bgyata\b/gi, 'gyati')
+        .replace(/\bsamjhayega\b/gi, 'samjhayegi')
+        .replace(/\bkarunga\b/gi, 'karungi')
+        .replace(/\bकरता\b/g, 'करती')
+        .replace(/\bसकता\b/g, 'सकती')
+        .replace(/\bबताता\b/g, 'बताती')
+        .replace(/\bसमझता\b/g, 'समझती')
+        .replace(/\bरहा\b/g, 'रही');
     }
 
-    // 3. Indian English Male voice
-    if (!voice) {
-      voice = candidates.find(v => (v.lang.includes('en-IN') || v.lang.includes('en_IN') || v.name.toLowerCase().includes('india')) && (
-        v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('prabhat') || v.name.toLowerCase().includes('ravi')
-      ));
-    }
-
-    // 4. Any Male voice fallback
-    if (!voice) {
-      voice = candidates.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('mark'));
-    }
-
-    return voice || candidates[0] || null;
+    return text;
   };
 
   const phoneticHinglishToHindi = (text: string) => {
@@ -422,6 +453,9 @@ function StudentDashboardContent() {
   const speakSentenceRealtime = (sentenceText: string, messageIndex: number) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
+    const currentLang = (guruLanguage || 'HINGLISH').toUpperCase();
+    const isEnglish = currentLang === 'ENGLISH';
+
     let cleanText = sentenceText
       .replace(/<svg[\s\S]*?<\/svg>/gi, '')
       .replace(/```[\s\S]*?```/g, '')
@@ -429,21 +463,41 @@ function StudentDashboardContent() {
       .replace(/²/g, ' squared ')
       .replace(/³/g, ' cubed ')
       .replace(/\+/g, ' plus ')
-      .replace(/=/g, ' barabar ')
+      .replace(/=/g, isEnglish ? ' equals ' : ' barabar ')
       .trim();
 
     const highlightText = cleanText;
-    cleanText = phoneticHinglishToHindi(cleanText);
+    const selectedVoice = getBestVoiceForLanguage(currentLang);
+
+    if (currentLang === 'HINDI' || currentLang === 'HINGLISH') {
+      cleanText = adaptGrammarForVoiceGender(cleanText, selectedVoice);
+      cleanText = phoneticHinglishToHindi(cleanText);
+    } else if (currentLang === 'PUNJABI') {
+      cleanText = adaptGrammarForVoiceGender(cleanText, selectedVoice);
+    }
 
     if (!cleanText || cleanText.length < 2) return;
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = audioSpeed * 1.02;
-    utterance.pitch = 0.95;
 
-    const indianVoice = getBestIndianHindiVoice();
-    if (indianVoice) {
-      utterance.voice = indianVoice;
+    const isFemaleVoice = selectedVoice && (
+      selectedVoice.name.toLowerCase().includes('female') ||
+      selectedVoice.name.toLowerCase().includes('swara') ||
+      selectedVoice.name.toLowerCase().includes('kalpana') ||
+      selectedVoice.name.toLowerCase().includes('zira') ||
+      selectedVoice.name.toLowerCase().includes('heera') ||
+      selectedVoice.name.toLowerCase().includes('veena')
+    );
+    utterance.pitch = isFemaleVoice ? 1.05 : 0.95;
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      if (selectedVoice.lang) utterance.lang = selectedVoice.lang;
+    } else {
+      if (currentLang === 'ENGLISH') utterance.lang = 'en-IN';
+      else if (currentLang === 'PUNJABI') utterance.lang = 'pa-IN';
+      else utterance.lang = 'hi-IN';
     }
 
     utterance.onstart = () => {

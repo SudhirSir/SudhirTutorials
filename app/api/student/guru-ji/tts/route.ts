@@ -12,13 +12,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { text } = await req.json();
+    const { text, language } = await req.json();
     if (!text || typeof text !== 'string') {
       return NextResponse.json({ error: 'Text content is required for speech synthesis' }, { status: 400 });
     }
 
     // Convert academic markdown/code into natural spoken script for TTS
-    const cleanSpeechText = prepareTextForSpeech(text);
+    const cleanSpeechText = prepareTextForSpeech(text, language);
 
     let elevenLabsApiKey = process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.trim().replace(/^["']|["']$/g, '') : undefined;
     let elevenLabsVoiceId = process.env.ELEVENLABS_VOICE_ID ? process.env.ELEVENLABS_VOICE_ID.trim().replace(/^["']|["']$/g, '') : undefined;
@@ -104,10 +104,11 @@ export async function POST(req: Request) {
   }
 }
 
-function prepareTextForSpeech(markdown: string): string {
+function prepareTextForSpeech(markdown: string, language?: string): string {
   if (!markdown) return '';
 
   let spoken = markdown;
+  const isEnglish = (language || '').toUpperCase() === 'ENGLISH';
 
   // Remove SVG diagrams completely from spoken audio
   spoken = spoken.replace(/<svg[\s\S]*?<\/svg>/gi, '');
@@ -129,7 +130,7 @@ function prepareTextForSpeech(markdown: string): string {
     .replace(/±/g, ' plus or minus ')
     .replace(/×/g, ' multiplied by ')
     .replace(/÷/g, ' divided by ')
-    .replace(/=/g, ' barabar ')
+    .replace(/=/g, isEnglish ? ' equals ' : ' barabar ')
     .replace(/≠/g, ' is not equal to ')
     .replace(/≈/g, ' is approximately equal to ');
 
@@ -142,15 +143,17 @@ function prepareTextForSpeech(markdown: string): string {
     .replace(/\[(.*?)\]\(.*?\)/g, '$1')
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
-  // Apply Hinglish to Devanagari phonetic mapping for perfect Hindi pronunciation
-  spoken = phoneticHinglishToHindi(spoken);
+  // Apply Hinglish to Devanagari phonetic mapping ONLY for Hindi/Hinglish
+  if (!isEnglish) {
+    spoken = phoneticHinglishToHindi(spoken);
+  }
 
   // Normalize excessive spacing and line breaks
   spoken = spoken.replace(/\s+/g, ' ').trim();
 
   // Limit speech duration length for smooth playback performance
   if (spoken.length > 1500) {
-    spoken = spoken.substring(0, 1500) + "... Iske aage ka detail aap written solution mein padh sakte hain.";
+    spoken = spoken.substring(0, 1500) + (isEnglish ? "... Please read the remaining details in written solution." : "... Iske aage ka detail aap written solution mein padh sakte hain.");
   }
 
   return spoken;
