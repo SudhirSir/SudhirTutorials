@@ -92,7 +92,18 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Fallback signal: Tell client UI to use Web Speech API with cleanSpeechText
+    // 3. Universal Audio Stream Fallback (Guarantees audio/mpeg response for all Mobile Apps, WebViews, Android & iOS)
+    const freeAudioBuffer = await generateFreeTtsAudioStream(cleanSpeechText, language);
+    if (freeAudioBuffer && freeAudioBuffer.length > 0) {
+      return new Response(new Uint8Array(freeAudioBuffer), {
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+
+    // 4. Client Web Speech Fallback as absolute last resort
     return NextResponse.json({
       success: true,
       fallback: true,
@@ -102,6 +113,53 @@ export async function POST(req: Request) {
     console.error("Guruji TTS route error:", error);
     return NextResponse.json({ error: "Failed to generate voice audio: " + error.message }, { status: 500 });
   }
+}
+
+async function generateFreeTtsAudioStream(text: string, language?: string): Promise<Buffer | null> {
+  try {
+    const normLang = (language || 'HINGLISH').toUpperCase();
+    let tl = 'hi';
+    if (normLang === 'ENGLISH') tl = 'en';
+    else if (normLang === 'PUNJABI') tl = 'pa';
+
+    // Split text into ~160 character chunks
+    const chunks: string[] = [];
+    let current = '';
+    const sentences = text.split(/(?<=[.?!,;।\n])\s+/);
+
+    for (const sentence of sentences) {
+      if ((current + ' ' + sentence).length > 160) {
+        if (current.trim()) chunks.push(current.trim());
+        current = sentence;
+      } else {
+        current += (current ? ' ' : '') + sentence;
+      }
+    }
+    if (current.trim()) chunks.push(current.trim());
+
+    if (chunks.length === 0) return null;
+
+    const audioBuffers: Buffer[] = [];
+    for (const chunk of chunks.slice(0, 10)) {
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=${tl}&client=tw-ob`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        audioBuffers.push(Buffer.from(ab));
+      }
+    }
+
+    if (audioBuffers.length > 0) {
+      return Buffer.concat(audioBuffers);
+    }
+  } catch (err) {
+    console.error("Free TTS stream generation error:", err);
+  }
+  return null;
 }
 
 function prepareTextForSpeech(markdown: string, language?: string): string {

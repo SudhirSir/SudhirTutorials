@@ -525,12 +525,16 @@ function StudentDashboardContent() {
   const fallbackWebSpeech = (index: number, textToSpeak: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
       setAudioLoadingIndex(null);
-      alert("Voice playback is not supported on this browser.");
       return;
     }
 
-    window.speechSynthesis.cancel();
-    speakSentenceRealtime(textToSpeak, index);
+    try {
+      window.speechSynthesis.cancel();
+      speakSentenceRealtime(textToSpeak, index);
+    } catch (e) {
+      console.warn("Speech synthesis fallback failed silently:", e);
+      setAudioLoadingIndex(null);
+    }
   };
 
   useEffect(() => {
