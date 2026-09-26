@@ -57,6 +57,7 @@ model User {
   @@index([isActive])
   @@index([role, isActive])
   @@index([createdAt])
+  @@index([role, isActive, createdAt])
 }
 
 model Message {
@@ -184,6 +185,8 @@ model Payment {
   @@index([receiptNo])
   @@index([studentId, billingMonth])
   @@index([studentId, status])
+  @@index([studentId, status, createdAt])
+  @@index([billingMonth, status])
 }
 
 model Expense {
@@ -222,6 +225,7 @@ model Batch {
   lectures  Lecture[]
 
   @@index([courseId])
+  @@index([courseId, className])
 }
 
 model Schedule {
@@ -254,6 +258,7 @@ model Material {
 
   @@index([courseId])
   @@index([teacherId])
+  @@index([courseId, createdAt])
 }
 
 model Notification {
@@ -273,6 +278,7 @@ model Notification {
   @@index([createdAt])
   @@index([userId, isRead])
   @@index([userId, createdAt])
+  @@index([userId, isRead, createdAt])
   @@index([senderId])
 }
 
@@ -318,6 +324,7 @@ model Attendance {
   
   @@unique([batchId, studentId, date])
   @@index([studentId, date])
+  @@index([batchId, date])
 }
 
 model Lecture {
@@ -333,6 +340,7 @@ model Lecture {
   createdAt    DateTime @default(now())
 
   @@index([batchId])
+  @@index([batchId, createdAt])
 }
 
 model SalaryRecord {

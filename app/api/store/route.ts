@@ -5,18 +5,22 @@ import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { appCache } from '@/lib/cache';
 
 export async function GET() {
   try {
-    const items = await withDbRetry(() => prisma.storeItem.findMany({
-      where: { isPublished: true },
-      include: {
-        onlineTests: {
-          select: { id: true, durationMinutes: true, totalMarks: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    }));
+    const items = await appCache.getOrSet('store:published_items', () =>
+      withDbRetry(() => prisma.storeItem.findMany({
+        where: { isPublished: true },
+        include: {
+          onlineTests: {
+            select: { id: true, durationMinutes: true, totalMarks: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      })),
+      60
+    );
 
     let purchasedItemIds: string[] = [];
     const session = await getServerSession(authOptions) as any;

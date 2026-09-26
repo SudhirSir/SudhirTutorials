@@ -148,7 +148,7 @@ export default function AdmissionsPage() {
           <Link href="/#about" className="nav-link">Why Us</Link>
           <Link href="/careers" className="nav-link">Careers</Link>
           <Link href="/login" className="login-portal-btn">
-            Portal Login <span className="arrow">→</span>
+            Login Portal <span className="arrow">→</span>
           </Link>
         </nav>
       </header>

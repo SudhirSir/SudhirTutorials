@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 
 export async function GET(req: Request) {
   try {
@@ -15,18 +16,22 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
+    const cacheKey = `admin:store:${type || 'all'}`;
 
-    const items = await withDbRetry(() => prisma.storeItem.findMany({
-      where: type ? { type } : {},
-      include: {
-        onlineTests: {
-          include: {
-            _count: { select: { questions: true } }
+    const items = await appCache.getOrSet(cacheKey, () =>
+      withDbRetry(() => prisma.storeItem.findMany({
+        where: type ? { type } : {},
+        include: {
+          onlineTests: {
+            include: {
+              _count: { select: { questions: true } }
+            }
           }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    }));
+        },
+        orderBy: { createdAt: 'desc' }
+      })),
+      60
+    );
 
     return NextResponse.json({ items });
   } catch (error) {
@@ -79,6 +84,9 @@ export async function POST(req: Request) {
       }));
     }
 
+    appCache.invalidate('store:');
+    appCache.invalidate('admin:store');
+
     return NextResponse.json({ success: true, item });
   } catch (error) {
     console.error(error);
@@ -121,6 +129,9 @@ export async function PUT(req: Request) {
       }
     }
 
+    appCache.invalidate('store:');
+    appCache.invalidate('admin:store');
+
     return NextResponse.json({ success: true, item });
   } catch (error) {
     console.error(error);
@@ -142,6 +153,9 @@ export async function DELETE(req: Request) {
     await withDbRetry(() => prisma.storeItem.delete({
       where: { id }
     }));
+
+    appCache.invalidate('store:');
+    appCache.invalidate('admin:store');
 
     return NextResponse.json({ success: true });
   } catch (error) {

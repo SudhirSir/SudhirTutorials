@@ -1878,23 +1878,23 @@ function StudentDashboardContent() {
               <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '0.65rem 0', marginBottom: '0.75rem', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#374151' }}>
                   <span>{receiptData.title} ({receiptData.billingMonth})</span>
-                  <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{receiptData.amount.toFixed(2)}</span>
+                  <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{Math.round(receiptData.amount)}</span>
                 </div>
                 {receiptData.lateFine > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#ef4444' }}>
                     <span>Late Fine</span>
-                    <span style={{ fontWeight: 700 }}>+₹{receiptData.lateFine.toFixed(2)}</span>
+                    <span style={{ fontWeight: 700 }}>+₹{Math.round(receiptData.lateFine)}</span>
                   </div>
                 )}
                 {receiptData.discount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#10b981' }}>
                     <span>Discount Applied</span>
-                    <span style={{ fontWeight: 700 }}>-₹{receiptData.discount.toFixed(2)}</span>
+                    <span style={{ fontWeight: 700 }}>-₹{Math.round(receiptData.discount)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{Math.round(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0)))}</span>
                 </div>
                 {(() => {
                   const totalPending = typeof receiptData.pendingBalance === 'number'
@@ -1904,7 +1904,7 @@ function StudentDashboardContent() {
                   return totalPending > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', color: '#ef4444' }}>
                       <span style={{ fontWeight: 800 }}>PENDING BALANCE</span>
-                      <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>₹{totalPending.toFixed(2)}</span>
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>₹{Math.round(totalPending)}</span>
                     </div>
                   );
                 })()}
@@ -2065,14 +2065,14 @@ function StudentDashboardContent() {
                     <div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>All Pending Dues (FIFO)</div>
                       <div style={{ fontSize: '0.75rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '0.5rem' }}>
-                        Total Outstanding: ₹{totalOutstanding.toFixed(2)}
+                        Total Outstanding: ₹{Math.round(totalOutstanding)}
                       </div>
                     </div>
                   ) : (
                     <div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{razorpayFee.title}</div>
                       <div style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '0.5rem' }}>
-                        {razorpayFee.billingMonth} (₹{razorpayFee.totalAmount.toFixed(2)} Due)
+                        {razorpayFee.billingMonth} (₹{Math.round(razorpayFee.totalAmount)} Due)
                       </div>
                     </div>
                   )}
@@ -2122,7 +2122,7 @@ function StudentDashboardContent() {
                       }}>
                         <span>Left Balance:</span>
                         <span style={{ fontWeight: 800, color: leftBalance > 0 ? '#f59e0b' : '#10b981', fontSize: '0.85rem' }}>
-                          ₹{leftBalance.toFixed(2)}
+                          ₹{Math.round(leftBalance)}
                         </span>
                       </div>
 
@@ -2138,7 +2138,7 @@ function StudentDashboardContent() {
                           lineHeight: '1.3',
                           backdropFilter: 'blur(4px)'
                         }}>
-                          ⚠️ <strong>Partial Payment Alert:</strong> The remaining balance of <strong>₹{leftBalance.toFixed(2)}</strong> will remain as outstanding dues.
+                          ⚠️ <strong>Partial Payment Alert:</strong> The remaining balance of <strong>₹{Math.round(leftBalance)}</strong> will remain as outstanding dues.
                         </div>
                       )}
                       {parseFloat(payAmount) > maxAmount && (
@@ -2152,7 +2152,7 @@ function StudentDashboardContent() {
                           color: '#ef4444',
                           lineHeight: '1.3'
                         }}>
-                          ❌ <strong>Error:</strong> Amount cannot exceed <strong>₹{maxAmount.toFixed(2)}</strong>.
+                          ❌ <strong>Error:</strong> Amount cannot exceed <strong>₹{Math.round(maxAmount)}</strong>.
                         </div>
                       )}
                     </div>

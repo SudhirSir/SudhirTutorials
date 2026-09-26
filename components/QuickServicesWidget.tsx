@@ -113,20 +113,17 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
   const activeServices = options.filter(opt => selectedIds.includes(opt.id));
 
   return (
-    <div className="glass-card animate-scale-up" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+    <div className="glass-card animate-scale-up" style={{ padding: '0.85rem 1.25rem', marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800, color: 'var(--text)' }}>
+          <h3 style={{ fontSize: '1.15rem', margin: 0, fontWeight: 800, color: 'var(--text)' }}>
             ⚡ Quick Services
           </h3>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
-            Instant shortcuts to your most frequently used workflows and submenus.
-          </p>
         </div>
         <button
           onClick={() => setIsEditing(!isEditing)}
           style={{
-            padding: '5px 12px',
+            padding: '4px 10px',
             borderRadius: '8px',
             fontSize: '0.75rem',
             fontWeight: 700,

@@ -1330,12 +1330,12 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   transform: translateY(-1px);
 }
 .login-portal-btn {
-  padding: 0.65rem 1.4rem;
+  padding: 0.35rem 0.95rem;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
   border-radius: 30px;
   color: #fff;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1384,11 +1384,23 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   height: 32px;
 }
 .footer-desc {
-  color: var(--text-muted);
+  color: #000000;
+  font-weight: 600;
   font-size: 0.88rem;
   line-height: 1.6;
   max-width: 320px;
   margin: 0;
+}
+:root[data-theme="dark"] .footer-desc {
+  color: #cbd5e1;
+}
+:root[data-theme="light"] .footer-desc {
+  color: #000000;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .footer-desc {
+    color: #cbd5e1;
+  }
 }
 .social-links {
   display: flex;
@@ -1466,14 +1478,14 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
 /* Floating Capsule Navbar Header */
 .vrsa-floating-nav {
   position: fixed;
-  top: 0.75rem;
+  top: 0.6rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  width: calc(100% - 2.5rem);
-  max-width: 1140px;
+  width: calc(100% - 3rem);
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 0.55rem 1rem 0.55rem 1.25rem;
+  padding: 0.32rem 1.25rem;
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1494,14 +1506,14 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
 
 .vrsa-nav-links {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: center;
 }
 
 .vrsa-nav-link {
   color: #000000 !important;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.83rem;
   text-decoration: none;
   display: inline-flex;
   align-items: center;

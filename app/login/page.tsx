@@ -193,9 +193,6 @@ export default function LoginPage() {
         setRegError(data.error || "Failed to send OTP.");
       } else {
         setOtpSent(true);
-        if (data.isMock) {
-          console.log("MOCK OTP:", data.mockOtp);
-        }
       }
     } catch (err) {
       setRegError("Network error. Please try again.");
@@ -302,7 +299,7 @@ export default function LoginPage() {
       <div className="login-right-form-panel" style={{ flex: '1', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '1.5rem', paddingBottom: '1.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem', position: 'relative', overflowY: 'auto' }}>
         
         {/* Top Brand Logo */}
-        <div style={{ width: '100%', maxWidth: '430px', marginBottom: '0.65rem', display: 'flex', justifyContent: 'flex-start', paddingLeft: '1.6rem' }}>
+        <div className="login-brand-header" style={{ width: '100%', maxWidth: '430px', marginBottom: '0.65rem', display: 'flex', justifyContent: 'flex-start', paddingLeft: '1.6rem' }}>
           <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.65rem' }}>
             <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
             <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '1.75rem', fontWeight: 900, lineHeight: '1', letterSpacing: '0.5px' }}>
@@ -657,14 +654,18 @@ export default function LoginPage() {
             overflow-y: visible !important;
           }
           .login-left-poster-panel {
-            min-height: 250px !important;
-            height: 250px !important;
-            padding: 0.5rem !important;
-            flex: none !important;
+            display: none !important;
           }
           .login-right-form-panel {
-            min-height: auto !important;
-            padding: 2rem 1rem !important;
+            min-height: 100vh !important;
+            justify-content: center !important;
+            padding: 1.5rem 1rem !important;
+          }
+          .login-brand-header {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            text-align: center !important;
+            margin-bottom: 1rem !important;
           }
         }
       `}</style>

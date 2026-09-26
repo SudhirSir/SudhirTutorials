@@ -17,6 +17,7 @@ import { UserProfileModal } from '@/components/UserProfileModal';
 import { AdmissionsSection } from '@/components/AdmissionsSection';
 import { AdminStoreManager } from '@/components/AdminStoreManager';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
+import { EduPredAI } from '@/components/EduPredAI';
 
 function formatDobDisplay(dobStr: string | null | undefined): string {
   if (!dobStr) return 'N/A';
@@ -3494,7 +3495,7 @@ function AdminDashboardContent() {
               { id: 'attendance', title: '✏️ Student Attendance', desc: 'Track daily attendance logs, view student check-in history, and download reports.', color: 'rgba(16, 185, 129, 0.05)', border: '#10b981', textColor: '#10b981' },
               { id: 'materials', title: '📚 Study Materials & Content', desc: 'Upload and organize syllabus books, worksheets, PDFs, notes, and lectures.', color: 'rgba(59, 130, 246, 0.05)', border: '#3b82f6', textColor: '#3b82f6' },
               { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
-              { id: 'analytics', title: '📈 Performance Analytics', desc: 'Get graphical insights on class progress, marks distribution, and attendance trends.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
+              { id: 'analytics', title: '📈 Performance Analytics (EduPred AI)', desc: 'AI-powered score forecasting, risk analysis, and graphical class insights.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
               { id: 'lectures', title: '📺 Lectures/Classes', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
               { id: 'admissions', title: 'Student Admission Enquiries', desc: '', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
             ].map(svc => (
@@ -3532,11 +3533,11 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <QuickServicesWidget role="ADMIN" setActiveTab={handleQuickServiceClick} />
           
           {/* Key Metrics Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+          <div className="admin-overview-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
             {[
               { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : '--', icon: '👥', color: '#ef4444' },
               { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : '--', icon: '👨‍🏫', color: '#10b981' },
@@ -3546,7 +3547,7 @@ function AdminDashboardContent() {
               <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '0.85rem', right: '0.85rem', fontSize: '1.6rem', opacity: 0.12 }}>{stat.icon}</div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.35rem', fontWeight: 700 }}>{stat.label}</div>
-                <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="stat-value" style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {stat.value}
                   {isLoadingOverview && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
                 </div>
@@ -3555,7 +3556,7 @@ function AdminDashboardContent() {
           </div>
 
           {/* Premium Widgets Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+          <div className="admin-batches-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
             {/* Class & Batch Analytics */}
             <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px', width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
@@ -4403,21 +4404,21 @@ function AdminDashboardContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
               {/* ── Top Level Stats Grid ── */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+              <div className="finance-hub-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
                  {[
                    { label: 'Collected Revenue', value: `₹${(finSummary?.totalRevenue || 0).toLocaleString()}`, color: 'var(--secondary)', desc: 'Received student dues (All Time)' },
                    { label: 'Current Month Pending', value: `₹${currentMonthPending.toLocaleString()}`, color: 'var(--primary)', desc: 'Pending dues this month' },
                    { label: 'Current Month Collected', value: `₹${currentMonthCollected.toLocaleString()}`, color: 'var(--secondary)', desc: 'Collected fees this month' },
                    { label: 'Pending Receivables', value: `₹${(finSummary?.totalPending || 0).toLocaleString()}`, color: 'var(--primary)', desc: 'Outstanding invoices (All Time)' }
                  ].map((s, i) => (
-                   <div key={i} className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div key={i} className="glass-card" style={{ padding: '1.25rem 1rem', borderLeft: `4px solid ${s.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ width: '100%' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+                        <div className="finance-stat-val" style={{ fontSize: '1.65rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           {s.value}
                           {isLoadingFinSummary && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: s.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{s.desc}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{s.desc}</div>
                       </div>
                    </div>
                  ))}
@@ -6611,7 +6612,10 @@ function AdminDashboardContent() {
       {(activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.5rem' }}>
+          {/* EduPred AI Machine Learning Predictor */}
+          <EduPredAI />
+
+          <div className="admin-performance-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.5rem' }}>
             
             {/* Revenue Trend Chart (Responsive CSS Bar Chart) */}
             <div className="glass-card" style={{ padding: '1.5rem', overflow: 'hidden' }}>
@@ -9406,23 +9410,23 @@ function AdminDashboardContent() {
               <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '0.65rem 0', marginBottom: '0.75rem', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#374151' }}>
                   <span>{activeReceipt.title} ({activeReceipt.billingMonth})</span>
-                  <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{activeReceipt.amount.toFixed(2)}</span>
+                  <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{Math.round(activeReceipt.amount)}</span>
                 </div>
                 {activeReceipt.lateFine > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#ef4444' }}>
                     <span>Late Fine</span>
-                    <span style={{ fontWeight: 700 }}>+₹{activeReceipt.lateFine.toFixed(2)}</span>
+                    <span style={{ fontWeight: 700 }}>+₹{Math.round(activeReceipt.lateFine)}</span>
                   </div>
                 )}
                 {activeReceipt.discount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: 'var(--secondary, #1d4ed8)' }}>
                     <span>Discount Applied</span>
-                    <span style={{ fontWeight: 700 }}>-₹{activeReceipt.discount.toFixed(2)}</span>
+                    <span style={{ fontWeight: 700 }}>-₹{Math.round(activeReceipt.discount)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0))).toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{Math.round(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0)))}</span>
                 </div>
                 {(() => {
                   const totalPending = typeof activeReceipt.pendingBalance === 'number'
@@ -9432,7 +9436,7 @@ function AdminDashboardContent() {
                   return totalPending > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', color: '#ef4444' }}>
                       <span style={{ fontWeight: 800 }}>PENDING BALANCE</span>
-                      <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>₹{totalPending.toFixed(2)}</span>
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>₹{Math.round(totalPending)}</span>
                     </div>
                   );
                 })()}
@@ -11490,6 +11494,45 @@ function AdminDashboardContent() {
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          .admin-overview-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+          }
+          .admin-overview-stats-grid > div {
+            padding: 0.85rem 0.65rem !important;
+          }
+          .admin-overview-stats-grid .stat-value {
+            font-size: 1.3rem !important;
+          }
+
+          .admin-batches-analytics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+          }
+          .admin-batches-analytics-grid > div {
+            padding: 1rem 0.75rem !important;
+          }
+
+          .admin-performance-analytics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+          }
+
+          .finance-hub-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+          }
+          .finance-hub-stats-grid > div {
+            padding: 0.85rem 0.65rem !important;
+          }
+          .finance-hub-stats-grid .finance-stat-val {
+            font-size: 1.25rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

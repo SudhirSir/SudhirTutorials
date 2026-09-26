@@ -38,12 +38,12 @@ const KMEANS_CENTERS = [
 ];
 
 export function EduPredAI() {
-  const [science, setScience] = useState<number>(75);
-  const [maths, setMaths] = useState<number>(70);
-  const [attendance, setAttendance] = useState<number>(85);
-  const [homework, setHomework] = useState<number>(80);
-  const [attention, setAttention] = useState<number>(75);
-  const [previous, setPrevious] = useState<number>(72);
+  const [science, setScience] = useState<number | ''>('');
+  const [maths, setMaths] = useState<number | ''>('');
+  const [attendance, setAttendance] = useState<number | ''>('');
+  const [homework, setHomework] = useState<number | ''>('');
+  const [attention, setAttention] = useState<number | ''>('');
+  const [previous, setPrevious] = useState<number | ''>('');
   const [targetMode, setTargetMode] = useState<string>('performance');
   
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
@@ -264,27 +264,27 @@ export function EduPredAI() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={LABEL_STYLE}>Science Marks (0-100)</label>
-                <input type="number" min="0" max="100" value={science} onChange={e => setScience(Number(e.target.value))} style={INPUT_STYLE} />
+                <input type="number" min="0" max="100" placeholder="e.g. 75" value={science} onChange={e => setScience(e.target.value === '' ? '' : Number(e.target.value))} style={INPUT_STYLE} />
               </div>
               <div>
                 <label style={LABEL_STYLE}>Maths Marks (0-100)</label>
-                <input type="number" min="0" max="100" value={maths} onChange={e => setMaths(Number(e.target.value))} style={INPUT_STYLE} />
+                <input type="number" min="0" max="100" placeholder="e.g. 70" value={maths} onChange={e => setMaths(e.target.value === '' ? '' : Number(e.target.value))} style={INPUT_STYLE} />
               </div>
               <div>
                 <label style={LABEL_STYLE}>Attendance % (0-100)</label>
-                <input type="number" min="0" max="100" value={attendance} onChange={e => setAttendance(Number(e.target.value))} style={INPUT_STYLE} />
+                <input type="number" min="0" max="100" placeholder="e.g. 85" value={attendance} onChange={e => setAttendance(e.target.value === '' ? '' : Number(e.target.value))} style={INPUT_STYLE} />
               </div>
               <div>
                 <label style={LABEL_STYLE}>Homework % (0-100)</label>
-                <input type="number" min="0" max="100" value={homework} onChange={e => setHomework(Number(e.target.value))} style={INPUT_STYLE} />
+                <input type="number" min="0" max="100" placeholder="e.g. 80" value={homework} onChange={e => setHomework(e.target.value === '' ? '' : Number(e.target.value))} style={INPUT_STYLE} />
               </div>
               <div>
                 <label style={LABEL_STYLE}>Class Attention %</label>
-                <input type="number" min="0" max="100" value={attention} onChange={e => setAttention(Number(e.target.value))} style={INPUT_STYLE} />
+                <input type="number" min="0" max="100" placeholder="e.g. 75" value={attention} onChange={e => setAttention(e.target.value === '' ? '' : Number(e.target.value))} style={INPUT_STYLE} />
               </div>
               <div>
                 <label style={LABEL_STYLE}>Previous Year %</label>
-                <input type="number" min="0" max="100" value={previous} onChange={e => setPrevious(Number(e.target.value))} style={INPUT_STYLE} />
+                <input type="number" min="0" max="100" placeholder="e.g. 72" value={previous} onChange={e => setPrevious(e.target.value === '' ? '' : Number(e.target.value))} style={INPUT_STYLE} />
               </div>
             </div>
 
@@ -303,7 +303,7 @@ export function EduPredAI() {
           </Card>
 
           {/* Results Output Card */}
-          <Card variant="glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)', background: 'var(--surface-light)' }}>
+          <Card variant="glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-heading)' }}>

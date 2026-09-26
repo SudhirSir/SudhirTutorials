@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 import { Storefront } from '@/components/Storefront';
 import { StudentPurchases } from '@/components/StudentPurchases';
 import { ProfileEditor } from '@/components/ProfileEditor';
@@ -158,13 +159,13 @@ function StoreDashboardContent() {
 
       {/* Top Navbar */}
       <header className="store-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
           <img src="/logo.png" alt="SUDHIR TUTORIALS Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }} />
           <div>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>SUDHIR TUTORIALS</h1>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px' }}>ST STORE PORTAL</span>
           </div>
-        </div>
+        </Link>
 
         <div className="topbar-right-controls" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>

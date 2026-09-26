@@ -281,18 +281,18 @@ export function NotificationsPanel({
   };
 
   return (
-    <div style={{ maxWidth: '720px' }}>
+    <div style={{ width: '100%', maxWidth: '720px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', paddingRight: '2.2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <h2 style={{ fontSize: '1.35rem', margin: 0, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             Notifications
             {unreadCount > 0 && (
               <Badge variant="danger">{unreadCount} new</Badge>
             )}
           </h2>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {unreadCount > 0 && (
             <Button variant="outline" size="sm" onClick={markAllRead}>
               Mark all read

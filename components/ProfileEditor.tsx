@@ -56,7 +56,6 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
   const [otpSentForEmail, setOtpSentForEmail] = useState(false);
   const [emailOtp, setEmailOtp] = useState('');
   const [emailVerificationError, setEmailVerificationError] = useState('');
-  const [mockOtpMsg, setMockOtpMsg] = useState('');
 
   useEffect(() => { fetchProfile(); }, []);
 
@@ -102,7 +101,6 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
       return;
     }
     setSendingEmailOtp(true);
-    setMockOtpMsg("");
     setEmailVerificationError("");
     try {
       const res = await fetch("/api/auth/send-otp", {
@@ -113,9 +111,6 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
       const data = await res.json();
       if (res.ok) {
         setOtpSentForEmail(true);
-        if (data.isMock && data.mockOtp) {
-          setMockOtpMsg(`Code: ${data.mockOtp} (shown for testing)`);
-        }
       } else {
         alert(data.error || "Failed to send OTP code.");
       }
@@ -464,11 +459,6 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                 <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   Enter the 6-digit OTP code sent to <strong>{form.email}</strong>:
                 </p>
-                {mockOtpMsg && (
-                  <div style={{ color: '#10b981', fontSize: '0.8rem', marginBottom: '0.5rem', fontWeight: 600 }}>
-                    {mockOtpMsg}
-                  </div>
-                )}
                 {emailVerificationError && (
                   <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
                     {emailVerificationError}

@@ -209,40 +209,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           title="Notifications (View & Send)"
           style={{
             position: 'relative',
-            background: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid var(--border)',
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: '50%',
-            width: '36px',
-            height: '36px',
+            width: '38px',
+            height: '38px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: 'var(--text)',
+            color: '#ef4444',
             zIndex: 10,
             flexShrink: 0
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
           {badges.unreadNotifications > 0 && (
             <span style={{
               position: 'absolute',
-              top: '-2px',
-              right: '-2px',
+              top: '-3px',
+              right: '-3px',
               background: '#ef4444',
               color: '#ffffff',
-              fontSize: '0.62rem',
+              fontSize: '0.65rem',
               fontWeight: 800,
-              minWidth: '16px',
-              height: '16px',
+              minWidth: '18px',
+              height: '18px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '0 3px'
+              padding: '0 4px',
+              border: '2px solid var(--background)',
+              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.5)'
             }}>
               {badges.unreadNotifications}
             </span>
@@ -450,6 +452,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Bell Notification Modal Overlay */}
       {isNotificationModalOpen && (
         <div 
+          className="notification-modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
@@ -460,11 +463,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1rem'
+            padding: '0.75rem'
           }}
           onClick={() => setIsNotificationModalOpen(false)}
         >
           <div 
+            className="notification-modal-card"
             style={{
               width: '100%',
               maxWidth: '740px',
@@ -472,8 +476,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               overflowY: 'auto',
               background: 'var(--background)',
               border: '1px solid var(--border)',
-              borderRadius: '24px',
-              padding: '1.5rem',
+              borderRadius: '20px',
+              padding: '1.25rem 1rem',
               position: 'relative',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
             }}
@@ -484,21 +488,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               aria-label="Close Notifications Modal"
               style={{
                 position: 'absolute',
-                top: '1.25rem',
-                right: '1.25rem',
+                top: '0.75rem',
+                right: '0.6rem',
                 background: 'var(--card-bg-alt)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 borderRadius: '50%',
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 fontSize: '1.1rem',
                 fontWeight: 'bold',
-                zIndex: 10
+                zIndex: 20
               }}
             >
               ✕
@@ -783,6 +787,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             height: auto !important;
             overflow-y: visible !important;
             overflow-x: hidden !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .notification-modal-backdrop {
+            padding: 0.35rem !important;
+          }
+          .notification-modal-card {
+            padding: 0.85rem 0.6rem !important;
+            border-radius: 16px !important;
+            max-height: 94vh !important;
           }
         }
       `}</style>

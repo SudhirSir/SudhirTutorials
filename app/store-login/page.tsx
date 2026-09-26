@@ -167,6 +167,7 @@ export default function StoreLoginPage() {
             email: regEmail.trim(),
             phone: regPhone.trim() || undefined,
             password: regPassword,
+            otp: regOtp.trim(),
             role: "STUDENT",
             isStoreRegistration: true
           })
@@ -213,10 +214,12 @@ export default function StoreLoginPage() {
       <div style={{ width: "100%", maxWidth: "440px" }}>
         {/* Header Title with Logo */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <Image src="/logo.png" alt="Sudhir Tutorials Logo" width={54} height={54} style={{ width: "54px", height: "54px", objectFit: "contain", margin: "0 auto 0.75rem auto", display: "block" }} />
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 900, margin: "0 0 0.25rem 0" }}>
-            <span style={{ color: "#ef4444" }}>SUDHIR</span> <span style={{ color: "#2563eb" }}>TUTORIALS</span>
-          </h1>
+          <Link href="/" style={{ textDecoration: 'none', display: 'inline-block', cursor: 'pointer' }}>
+            <Image src="/logo.png" alt="Sudhir Tutorials Logo" width={54} height={54} style={{ width: "54px", height: "54px", objectFit: "contain", margin: "0 auto 0.75rem auto", display: "block" }} />
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 900, margin: "0 0 0.25rem 0" }}>
+              <span style={{ color: "#ef4444" }}>SUDHIR</span> <span style={{ color: "#2563eb" }}>TUTORIALS</span>
+            </h1>
+          </Link>
           <div style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.5rem" }}>
             ST Store Portal
           </div>

@@ -130,7 +130,7 @@ export default function CareersPage() {
           <Link href="/#about" className="nav-link">Why Us</Link>
           <Link href="/careers" className="nav-link active" style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Careers</Link>
           <Link href="/login" className="login-portal-btn">
-            Portal Login <span className="arrow">→</span>
+            Login Portal <span className="arrow">→</span>
           </Link>
         </nav>
       </header>

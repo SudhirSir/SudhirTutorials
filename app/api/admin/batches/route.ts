@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 import { z } from 'zod';
 
 const batchSchema = z.object({
@@ -25,25 +26,28 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const batches = await withDbRetry(() => prisma.batch.findMany({
-      include: {
-        course: { select: { name: true } },
-        teachers: { select: { name: true, username: true } },
-        students: { 
-          select: { 
-            name: true, 
-            username: true,
-            studentProfile: {
-              select: {
-                baseFee: true
+    const batches = await appCache.getOrSet('admin:batches', () =>
+      withDbRetry(() => prisma.batch.findMany({
+        include: {
+          course: { select: { name: true } },
+          teachers: { select: { name: true, username: true } },
+          students: { 
+            select: { 
+              name: true, 
+              username: true,
+              studentProfile: {
+                select: {
+                  baseFee: true
+                }
               }
-            }
-          } 
+            } 
+          },
+          schedules: true,
+          _count: { select: { students: true } }
         },
-        schedules: true,
-        _count: { select: { students: true } }
-      },
-    }));
+      })),
+      60
+    );
     return NextResponse.json({ batches });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch batches' }, { status: 500 });
@@ -94,6 +98,8 @@ export async function POST(req: Request) {
       }
     }));
 
+    appCache.invalidate('admin:batches');
+
     return NextResponse.json({ success: true, batch });
   } catch (error) {
     console.error(error);
@@ -129,6 +135,8 @@ export async function PATCH(req: Request) {
       }
     }));
 
+    appCache.invalidate('admin:batches');
+
     return NextResponse.json({ success: true, batch });
   } catch (error) {
     console.error(error);
@@ -147,6 +155,9 @@ export async function DELETE(req: Request) {
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
     await withDbRetry(() => prisma.batch.delete({ where: { id } }));
+
+    appCache.invalidate('admin:batches');
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });

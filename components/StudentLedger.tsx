@@ -313,15 +313,15 @@ export function StudentLedger({
       // ── Summary boxes ──
       const BOX_W = (COL_W - 4) / 3;
       const summaryItems: { label: string; val: string; color: [number,number,number] }[] = [
-        { label: 'TOTAL CHARGED (Dr)', val: 'Rs. ' + totalDebit.toFixed(2),  color: [220, 38, 38] },
-        { label: 'TOTAL SETTLED (Cr)', val: 'Rs. ' + totalCredit.toFixed(2), color: [29, 78, 216] },
+        { label: 'TOTAL CHARGED (Dr)', val: 'Rs. ' + Math.round(totalDebit),  color: [220, 38, 38] },
+        { label: 'TOTAL SETTLED (Cr)', val: 'Rs. ' + Math.round(totalCredit), color: [29, 78, 216] },
         {
           label: 'OUTSTANDING BALANCE',
           val: finalBalance === 0
             ? 'Settled'
             : finalBalance > 0
-              ? '+Rs. ' + finalBalance.toFixed(2) + ' (Adv)'
-              : 'Rs. ' + Math.abs(finalBalance).toFixed(2) + ' Due',
+              ? '+Rs. ' + Math.round(finalBalance) + ' (Adv)'
+              : 'Rs. ' + Math.round(Math.abs(finalBalance)) + ' Due',
           color: finalBalance > 0 ? [16, 185, 129] : finalBalance < 0 ? [220, 38, 38] : [29, 78, 216],
         },
       ];
@@ -388,9 +388,9 @@ export function StudentLedger({
           { val: new Date(p.date).toLocaleDateString('en-GB'), color: [31,41,55],   w: cols[0].w, align: 'left'  },
           { val: p.reference,                                  color: [75,85,99],   w: cols[1].w, align: 'left'  },
           { val: p.description.length > 38 ? p.description.substring(0,38)+'...' : p.description, color: [31,41,55], w: cols[2].w, align: 'left' },
-          { val: p.debit  > 0 ? 'Rs. ' + p.debit.toFixed(2)  : '-', color: isDebit  ? [220,38,38]  : [107,114,128], w: cols[3].w, align: 'right' },
-          { val: p.credit > 0 ? 'Rs. ' + p.credit.toFixed(2) : '-', color: isCredit ? [29,78,216]  : [107,114,128], w: cols[4].w, align: 'right' },
-          { val: p.balance >= 0 ? 'Rs. '+p.balance.toFixed(2)+' Cr' : 'Rs. '+Math.abs(p.balance).toFixed(2)+' Dr',
+          { val: p.debit  > 0 ? 'Rs. ' + Math.round(p.debit)  : '-', color: isDebit  ? [220,38,38]  : [107,114,128], w: cols[3].w, align: 'right' },
+          { val: p.credit > 0 ? 'Rs. ' + Math.round(p.credit) : '-', color: isCredit ? [29,78,216]  : [107,114,128], w: cols[4].w, align: 'right' },
+          { val: p.balance >= 0 ? 'Rs. '+Math.round(p.balance)+' Cr' : 'Rs. '+Math.round(Math.abs(p.balance))+' Dr',
             color: p.balance >= 0 ? [29,78,216] : [220,38,38], w: cols[5].w, align: 'right' },
         ];
         cells.forEach(cell => {
@@ -587,7 +587,7 @@ export function StudentLedger({
       {/* 12-MONTH GRID */}
       {viewType === 'month' && (
         <div>
-          <div className="monthly-fee-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+          <div className="monthly-fee-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.75rem' }}>
                 {monthlyLedger.map(({ month, record }) => {
                   const hasRecord = !!record;
                   const status = record?.status || 'NO_RECORD';
@@ -617,21 +617,21 @@ export function StudentLedger({
                       key={month}
                       className="ledger-month-card"
                       style={{
-                        padding: '1.25rem', borderRadius: '14px',
+                        padding: '0.85rem 1rem', borderRadius: '12px',
                         background: hasRecord ? 'var(--surface-light)' : 'var(--surface)',
                         border: `1px solid var(--border)`, borderLeft: `4px solid ${borderColor}`,
                         opacity: hasRecord ? 1 : 0.55,
                         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                        minHeight: '190px', transition: 'all 0.25s',
+                        minHeight: '140px', transition: 'all 0.25s',
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>{month}</span>
-                          <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{statusText}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text)' }}>{month}</span>
+                          <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{statusText}</span>
                         </div>
                         {hasRecord ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.82rem' }}>
                             {(() => {
                               const scholarshipVal = record.discount || record.student?.studentProfile?.scholarship || 0;
                               const netMonthlyFee = Math.max(0, record.amount - scholarshipVal);
@@ -655,19 +655,19 @@ export function StudentLedger({
                               </div>
                             )}
                             {record.collectedBy && (
-                              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.15rem' }}>
                                 <span>Collected By</span>
                                 <span style={{ fontWeight: 600 }}>{record.collectedBy}</span>
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No bill generated.</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No bill generated.</div>
                         )}
                       </div>
 
                       {hasRecord && (
-                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginTop: '0.875rem' }}>
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                             {isPaid ? (
                               <div>
@@ -780,13 +780,13 @@ export function StudentLedger({
             {/* Summary cards */}
             <div className="statement-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               {[
-                { label: 'Total Charged', value: `₹${totalDebit.toFixed(2)}`, color: 'var(--primary)' },
-                { label: 'Total Settled', value: `₹${totalCredit.toFixed(2)}`, color: 'var(--secondary)' },
+                { label: 'Total Charged', value: `₹${Math.round(totalDebit)}`, color: 'var(--primary)' },
+                { label: 'Total Settled', value: `₹${Math.round(totalCredit)}`, color: 'var(--secondary)' },
                 { 
                   label: 'Net Balance', 
                   value: finalBalance >= 0 
-                    ? `+₹${finalBalance.toFixed(2)} Cr` 
-                    : `₹${Math.abs(finalBalance).toFixed(2)} Dr`, 
+                    ? `+₹${Math.round(finalBalance)} Cr` 
+                    : `₹${Math.round(Math.abs(finalBalance))} Dr`, 
                   color: finalBalance >= 0 ? 'var(--secondary)' : '#ef4444' 
                 },
               ].map(s => (
@@ -825,10 +825,10 @@ export function StudentLedger({
                       <td style={{ padding: '1.1rem 1.5rem', color: 'var(--text)' }}>{new Date(p.date).toLocaleDateString('en-GB')}</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>{p.reference}</td>
                       <td style={{ color: 'var(--text)', fontWeight: 600 }}>{p.description}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{p.debit > 0 ? `₹${p.debit.toFixed(2)}` : '–'}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{p.credit > 0 ? `₹${p.credit.toFixed(2)}` : '–'}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--primary)', fontWeight: 700 }}>{p.debit > 0 ? `₹${Math.round(p.debit)}` : '–'}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--secondary)', fontWeight: 700 }}>{p.credit > 0 ? `₹${Math.round(p.credit)}` : '–'}</td>
                       <td style={{ textAlign: 'right', paddingRight: '1.5rem', fontWeight: 800, color: p.balance >= 0 ? 'var(--secondary)' : '#ef4444' }}>
-                        {p.balance >= 0 ? `₹${p.balance.toFixed(2)} Cr` : `₹${Math.abs(p.balance).toFixed(2)} Dr`}
+                        {p.balance >= 0 ? `₹${Math.round(p.balance)} Cr` : `₹${Math.round(Math.abs(p.balance))} Dr`}
                       </td>
                       {(isAdmin || !!onViewReceipt) && (
                         <td style={{ textAlign: 'center', paddingRight: '1.5rem' }}>
@@ -922,7 +922,7 @@ export function StudentLedger({
                       {p.collectedBy && <div style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 600 }}>By: {p.collectedBy}</div>}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--secondary)' }}>
-                      ₹{(p.paidAmount || p.amount).toFixed(2)}
+                      ₹{Math.round(p.paidAmount || p.amount)}
                     </td>
                     <td>
                       <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: 'rgba(59,130,246,0.1)', color: 'var(--secondary)' }}>

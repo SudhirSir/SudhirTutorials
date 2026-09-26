@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 
 // Extract YouTube Video ID from any standard or live YouTube URL
 function extractYoutubeVideoId(url: string): string | null {
@@ -28,62 +29,66 @@ export async function GET(req: Request) {
     const role = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    const where: any = {};
+    const cacheKey = `lectures:${role}:${userId}:${batchId || 'all'}:${subject || 'all'}`;
 
-    if (role === 'STUDENT') {
-      // Find batches this student belongs to
-      const student = await withDbRetry(() => prisma.user.findUnique({
-        where: { id: userId },
-        include: { studentBatches: true }
-      }));
-      const batchIds = student?.studentBatches.map(b => b.id) || [];
-      where.batchId = { in: batchIds };
-    } else if (role === 'TEACHER') {
-      // Teachers can see lectures assigned to their batches, or filter by batchId
-      if (batchId) {
-        where.batchId = batchId;
-      } else {
-        const teacher = await withDbRetry(() => prisma.user.findUnique({
+    const enriched = await appCache.getOrSet(cacheKey, async () => {
+      const where: any = {};
+
+      if (role === 'STUDENT') {
+        // Find batches this student belongs to
+        const student = await withDbRetry(() => prisma.user.findUnique({
           where: { id: userId },
-          include: { teacherBatches: true }
+          include: { studentBatches: true }
         }));
-        const batchIds = teacher?.teacherBatches.map(b => b.id) || [];
+        const batchIds = student?.studentBatches.map(b => b.id) || [];
         where.batchId = { in: batchIds };
-      }
-    } else if (role === 'ADMIN') {
-      // Admin sees everything unless filtered by batchId
-      if (batchId) {
-        where.batchId = batchId;
-      }
-    }
-
-    if (subject) {
-      where.subject = subject;
-    }
-
-    const lectures = await withDbRetry(() => prisma.lecture.findMany({
-      where,
-      include: {
-        batch: {
-          select: {
-            name: true,
-            className: true
-          }
+      } else if (role === 'TEACHER') {
+        // Teachers can see lectures assigned to their batches, or filter by batchId
+        if (batchId) {
+          where.batchId = batchId;
+        } else {
+          const teacher = await withDbRetry(() => prisma.user.findUnique({
+            where: { id: userId },
+            include: { teacherBatches: true }
+          }));
+          const batchIds = teacher?.teacherBatches.map(b => b.id) || [];
+          where.batchId = { in: batchIds };
         }
-      },
-      orderBy: { createdAt: 'desc' }
-    }));
+      } else if (role === 'ADMIN') {
+        // Admin sees everything unless filtered by batchId
+        if (batchId) {
+          where.batchId = batchId;
+        }
+      }
 
-    const enriched = lectures.map(lecture => {
-      const videoId = extractYoutubeVideoId(lecture.youtubeUrl);
-      return {
-        ...lecture,
-        videoId,
-        thumbnailUrl: videoId 
-          ? `https://img.youtube.com/vi/${videoId}/0.jpg` 
-          : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&q=80'
-      };
-    });
+      if (subject) {
+        where.subject = subject;
+      }
+
+      const lectures = await withDbRetry(() => prisma.lecture.findMany({
+        where,
+        include: {
+          batch: {
+            select: {
+              name: true,
+              className: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }));
+
+      return lectures.map(lecture => {
+        const videoId = extractYoutubeVideoId(lecture.youtubeUrl);
+        return {
+          ...lecture,
+          videoId,
+          thumbnailUrl: videoId 
+            ? `https://img.youtube.com/vi/${videoId}/0.jpg` 
+            : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&q=80'
+        };
+      });
+    }, 30);
 
     return NextResponse.json({ success: true, lectures: enriched });
   } catch (error) {
@@ -128,6 +133,8 @@ export async function POST(req: Request) {
         assignedById: (session.user as any).id
       }
     }));
+
+    appCache.invalidate('lectures:');
 
     // Notify students of the batch about the new lecture
     try {
@@ -190,6 +197,9 @@ export async function DELETE(req: Request) {
     }
 
     await withDbRetry(() => prisma.lecture.delete({ where: { id } }));
+
+    appCache.invalidate('lectures:');
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting lecture:', error);

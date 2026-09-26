@@ -17,7 +17,6 @@ export default function ForgotPassword() {
 
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
-  const [mockOtpMessage, setMockOtpMessage] = useState("");
   const [emailMasked, setEmailMasked] = useState("");
 
   const sendOtp = async () => {
@@ -26,7 +25,6 @@ export default function ForgotPassword() {
     }
     setError("");
     setSendingOtp(true);
-    setMockOtpMessage("");
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
@@ -47,10 +45,6 @@ export default function ForgotPassword() {
           setEmailMasked(`${maskedName}@${domainPart}`);
         } else {
           setEmailMasked(email);
-        }
-
-        if (data.isMock && data.mockOtp) {
-          setMockOtpMessage(`Code: ${data.mockOtp} (shown for testing)`);
         }
       } else {
         setError(data.error || "Failed to send OTP code.");
@@ -175,7 +169,7 @@ export default function ForgotPassword() {
                 ) : (
                   <button 
                     type="button" 
-                    onClick={() => { setOtpSent(false); setOtp(''); setMockOtpMessage(''); }} 
+                    onClick={() => { setOtpSent(false); setOtp(''); }} 
                     style={{ padding: '0.65rem 1rem', background: 'rgba(255,255,255,0.15)', color: 'inherit', border: '1px solid currentColor', borderRadius: '9px', fontWeight: 'bold', fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   >
                     Change
@@ -202,11 +196,6 @@ export default function ForgotPassword() {
                     onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
                     style={{ letterSpacing: '0.4rem', fontSize: '1.1rem', textAlign: 'center', width: '100%', padding: '0.65rem', borderRadius: '9px', fontWeight: 'bold' }}
                   />
-                  {mockOtpMessage && (
-                    <div style={{ marginTop: '0.4rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center' }}>
-                      💡 Local testing: {mockOtpMessage}
-                    </div>
-                  )}
                 </div>
 
                 <div>

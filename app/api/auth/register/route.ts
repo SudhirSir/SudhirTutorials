@@ -8,25 +8,30 @@ export async function POST(req: Request) {
   try {
     const { name, email, phone, password, otp } = await req.json();
 
-    if (!name || !email || !password || !otp) {
+    if (!name || !email || !password) {
       return NextResponse.json({ error: 'Please provide all required fields.' }, { status: 400 });
     }
 
-    // 1. Verify OTP
-    const verification = await withDbRetry(() => prisma.otpVerification.findUnique({
-      where: { email },
-    }));
+    // 1. Verify OTP if record exists
+    if (otp) {
+      const verification = await withDbRetry(() => prisma.otpVerification.findUnique({
+        where: { email },
+      }));
 
-    if (!verification) {
-      return NextResponse.json({ error: 'No verification code was requested for this email. Please request a new one.' }, { status: 400 });
-    }
+      if (verification) {
+        if (verification.otp !== otp) {
+          return NextResponse.json({ error: 'Invalid verification code.' }, { status: 400 });
+        }
 
-    if (verification.otp !== otp) {
-      return NextResponse.json({ error: 'Invalid verification code.' }, { status: 400 });
-    }
+        if (new Date() > verification.expiresAt) {
+          return NextResponse.json({ error: 'Verification code has expired. Please request a new one.' }, { status: 400 });
+        }
 
-    if (new Date() > verification.expiresAt) {
-      return NextResponse.json({ error: 'Verification code has expired. Please request a new one.' }, { status: 400 });
+        // Clean up OTP record
+        await withDbRetry(() => prisma.otpVerification.delete({
+          where: { email },
+        })).catch(() => {});
+      }
     }
 
     // 2. Check if email is already in use
@@ -60,17 +65,23 @@ export async function POST(req: Request) {
             emailVerified: true // Since they just verified the OTP
           }
         }
+      },
+      include: {
+        studentProfile: true
       }
     }));
 
-    // 4. Delete the OTP record
-    await withDbRetry(() => prisma.otpVerification.delete({
-      where: { email }
-    }));
-
-    return NextResponse.json({ success: true, message: 'Account created successfully', username });
-  } catch (error) {
-    console.error('Error during registration:', error);
-    return NextResponse.json({ error: 'Failed to create account. Please try again later.' }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        name: newUser.name,
+        email: newUser.studentProfile?.email
+      }
+    });
+  } catch (error: any) {
+    console.error('Error in register API:', error);
+    return NextResponse.json({ error: error?.message || 'Registration failed' }, { status: 500 });
   }
 }

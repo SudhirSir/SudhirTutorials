@@ -290,15 +290,15 @@ export default function Home() {
 
       {/* VRSA Floating Capsule Navbar with Single Row Brand & Mobile Hamburger Drawer */}
       <header className="vrsa-floating-nav" style={{ position: 'fixed', top: '0.75rem', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}>
-        <Link href="/" className="navbar-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.65rem', whiteSpace: 'nowrap' }}>
-          <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={38} height={38} style={{ width: '38px', height: '38px', objectFit: 'contain', flexShrink: 0 }} priority />
-          <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '1.18rem', fontWeight: 900 }}>
+        <Link href="/" className="navbar-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem', whiteSpace: 'nowrap' }}>
+          <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={36} height={36} style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} priority />
+          <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '1.22rem', fontWeight: 900 }}>
             <span className="text-red">SUDHIR</span> <span className="text-blue">TUTORIALS</span>
           </span>
         </Link>
 
         {/* Right Actions & Navigation Links */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginLeft: 'auto' }}>
           {/* Desktop Navigation Links */}
           <nav className="vrsa-nav-links">
             <Link href="#programs" className="vrsa-nav-link">Flagship Programs</Link>
@@ -310,7 +310,7 @@ export default function Home() {
           </nav>
 
           <Link href="/login" className="login-portal-btn desktop-only">
-            Portal Login <span className="arrow">→</span>
+            Login Portal <span className="arrow">→</span>
           </Link>
 
           {/* Mobile 3-Lines / 3-Dots Hamburger Toggle */}
@@ -329,12 +329,14 @@ export default function Home() {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '1.1rem',
+              fontSize: '1.25rem',
               fontWeight: 800,
-              flexShrink: 0
+              flexShrink: 0,
+              position: 'relative',
+              zIndex: 1002
             }}
           >
-            {mobileMenuOpen ? '✕' : '☰'}
+            {mobileMenuOpen ? '✕' : '⋮'}
           </button>
         </div>
 
@@ -342,41 +344,41 @@ export default function Home() {
         {mobileMenuOpen && (
           <div style={{
             position: 'absolute',
-            top: 'calc(100% + 0.6rem)',
-            left: 0,
-            right: 0,
+            top: 'calc(100% + 0.4rem)',
+            left: '0.5rem',
+            right: '0.5rem',
             background: 'var(--card-bg)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '20px',
+            borderRadius: '16px',
             border: '1px solid var(--border)',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-            padding: '1.1rem 1rem',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.35)',
+            padding: '0.6rem 0.65rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.65rem',
+            gap: '0.3rem',
             zIndex: 1001,
             animation: 'fadeIn 0.2s ease-out'
           }}>
-            <Link href="/admissions" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--hp-badge-bg)', color: 'var(--hp-badge-text)', fontWeight: 800, textDecoration: 'none', fontSize: '0.88rem' }}>
+            <Link href="/admissions" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--hp-badge-bg)', color: 'var(--hp-badge-text)', fontWeight: 800, textDecoration: 'none', fontSize: '0.82rem' }}>
               🎯 Admissions 2026-27 (Apply Now)
             </Link>
-            <Link href="/careers" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+            <Link href="/careers" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.82rem' }}>
               💼 Careers & Faculty Jobs
             </Link>
-            <Link href="#programs" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+            <Link href="#programs" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.82rem' }}>
               📚 Flagship Programs (JEE / NEET / Boards)
             </Link>
-            <Link href="#about" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+            <Link href="#about" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.82rem' }}>
               💡 Why SUDHIR TUTORIALS
             </Link>
-            <Link href="#edupred-ai" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
-              🤖 EduPred AI™ (Student Predictor)
+            <Link href="#edupred-ai" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.82rem' }}>
+              🤖 EduPred AI™ Predictor
             </Link>
-            <Link href="#storefront" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+            <Link href="#storefront" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.82rem' }}>
               🛒 Storefront (Notes & Test Series)
             </Link>
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem 1rem', borderRadius: '12px', background: 'var(--hp-gradient-btn)', color: '#ffffff', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.2rem' }}>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '10px', background: 'var(--hp-gradient-btn)', color: '#ffffff', fontWeight: 800, textDecoration: 'none', fontSize: '0.84rem', marginTop: '0.15rem' }}>
               🔑 Student & Staff Login →
             </Link>
           </div>
@@ -401,18 +403,19 @@ export default function Home() {
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
-          padding: '0.5rem 1.35rem',
+          padding: '0.45rem 1rem',
           borderRadius: '100px',
           background: 'var(--hp-badge-bg)',
           border: '1px solid var(--hp-badge-border)',
-          fontSize: 'clamp(1rem, 2.5vw, 1.35rem)',
+          fontSize: 'clamp(0.78rem, 3.2vw, 1.35rem)',
           fontWeight: 800,
           color: 'var(--hp-badge-text)',
           margin: '0.25rem 0 1.5rem',
           fontStyle: 'italic',
           boxShadow: 'var(--shadow)',
           maxWidth: '100%',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          whiteSpace: 'nowrap'
         }} className="hero-tagline-quote">
           “साहब हम जबरदस्ती नहीं, जबरदस्त पढ़ाते हैं”
         </div>
@@ -706,20 +709,23 @@ export default function Home() {
 
       {/* Mobile App Promotion Section */}
       <section className="mobile-app-section" id="mobile-app" style={{
-        padding: '6rem 2rem',
-        background: 'var(--surface-light)',
+        padding: '5.5rem 2rem',
+        background: 'var(--background)',
         borderTop: '1px solid var(--border)',
-        borderBottom: '1px solid var(--border)'
+        borderBottom: '1px solid var(--border)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
         <div className="section-container" style={{
-          maxWidth: '1200px',
+          maxWidth: '1250px',
           margin: '0 auto',
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: '4rem',
+          gap: '3.5rem',
           alignItems: 'center'
         }}>
-          <div className="mobile-app-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Left Column: App Info & Impressive Feature Grid */}
+          <div className="mobile-app-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <span style={{
               background: 'var(--hp-badge-bg)',
               color: 'var(--primary)',
@@ -732,79 +738,97 @@ export default function Home() {
               alignSelf: 'flex-start',
               border: '1px solid var(--hp-badge-border)'
             }}>
-              Now on Android
+              📱 Official Companion App
             </span>
             
             <h2 style={{
-              fontSize: '2.5rem',
+              fontSize: 'clamp(2rem, 4vw, 2.75rem)',
               fontWeight: 900,
               lineHeight: '1.2',
               margin: 0,
-              color: 'var(--text)',
+              color: 'var(--text-heading)',
               letterSpacing: '-1px'
             }}>
               Download Our <span className="text-gradient">Mobile App</span>
             </h2>
 
             <p style={{
-              fontSize: '1.05rem',
+              fontSize: '1rem',
               lineHeight: '1.6',
               color: 'var(--text-muted)',
               margin: 0
             }}>
-              Take your learning workspace wherever you go! With the official Sudhir Tutorials mobile companion, students can join live online batches, chat directly with teachers, receive instant notice board broadcasts, check schedules, and review fee ledger status on the move.
+              Empower your learning journey with our all-in-one mobile workspace! Designed to give students and parents instant control over academics, doubts, timetable, fees, and real-time communication.
             </p>
 
-            <ul style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: '0.5rem 0',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem'
+            {/* Impressive Feature Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '0.85rem',
+              marginTop: '0.5rem'
             }}>
               {[
-                '📅 Scrollable Daily/Weekly Batch Timetables',
-                '💬 Safe & Secure Single-Sided Chat Deletion',
-                '🔴 Live Broadcast Stream Player & Video Archive',
-                '💵 Instant Online Fee Payments & PDF Receipt Downloads'
-              ].map((benefit, idx) => (
-                <li key={idx} style={{
+                { icon: '🔔', title: 'Live Notifications', desc: 'Instant real-time broadcast alerts & notice board updates.' },
+                { icon: '📅', title: 'Daily Timetable', desc: 'Real-time schedule tracking for daily classes & faculty assignments.' },
+                { icon: '🤖', title: 'ST Guru Ji (AI)', desc: '24/7 instant AI-powered doubt solving for complex concepts.' },
+                { icon: '📊', title: 'Exam Results & Analytics', desc: 'Detailed test marksheets, score distributions, and performance graphs.' },
+                { icon: '💳', title: 'Online Fee Payment', desc: 'Secure 1-click Razorpay fee payments & instant PDF receipt downloads.' },
+                { icon: '💬', title: 'Teacher My-Chat', desc: 'Direct 1-on-1 private chat with assigned faculty to clarify doubts.' }
+              ].map((feat, idx) => (
+                <div key={idx} className="glass-card animate-scale-up" style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: '14px',
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border)',
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  fontSize: '0.95rem',
-                  color: 'var(--text)',
-                  fontWeight: 600
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  transition: 'all 0.25s ease'
                 }}>
-                  {benefit}
-                </li>
+                  <div style={{
+                    fontSize: '1.35rem',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: '1px solid rgba(239, 68, 68, 0.2)'
+                  }}>{feat.icon}</div>
+                  <div>
+                    <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-heading)' }}>{feat.title}</h4>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>{feat.desc}</p>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
 
-            <div style={{ marginTop: '1rem' }}>
+            <div style={{ marginTop: '0.75rem' }}>
               <a 
                 href="https://drive.google.com/drive/folders/1q1hIGvl-ilAepbElMnR3y96IRqnh32Gw?usp=sharing" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="btn-primary"
                 style={{
-                  padding: '1rem 2rem',
-                  borderRadius: '16px',
+                  padding: '0.9rem 2rem',
+                  borderRadius: '50px',
                   fontWeight: 800,
                   fontSize: '1rem',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.75rem',
                   textDecoration: 'none',
-                  boxShadow: 'var(--shadow-lg)',
+                  boxShadow: '0 8px 25px rgba(239, 68, 68, 0.35)',
                   background: 'var(--hp-gradient-btn)',
                   border: 'none',
                   color: 'white',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.25s ease'
                 }}
               >
-                🤖 Download Mobile App
+                🤖 Download Mobile App →
               </a>
             </div>
           </div>
@@ -818,10 +842,10 @@ export default function Home() {
             {/* Background glowing aura */}
             <div style={{
               position: 'absolute',
-              width: '350px',
-              height: '350px',
-              background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(239,68,68,0.05) 50%, transparent 100%)',
-              filter: 'blur(40px)',
+              width: '380px',
+              height: '380px',
+              background: 'radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(59, 130, 246, 0.08) 50%, transparent 100%)',
+              filter: 'blur(50px)',
               zIndex: 0
             }}></div>
 
@@ -834,11 +858,10 @@ export default function Home() {
               boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
               border: '1px solid var(--border)',
               transition: 'transform 0.4s ease'
-            }}
-            >
+            }}>
               <Image 
                 src="/mobile_app_promo.png" 
-                alt="Sudhir Sir and the Mobile App" 
+                alt="Sudhir Tutorials Official Mobile App" 
                 width={450} 
                 height={450}
                 style={{
@@ -1080,8 +1103,8 @@ export default function Home() {
 
         <div className="programs-grid">
           {[
-            { title: 'JEE Main & Advanced', subtitle: 'Class 11, 12 & Droppers', desc: 'Rigorous engineering preparation focusing on fundamental physics, organic chemistry, and advanced calculus.', color: 'var(--primary)' },
-            { title: 'NEET (UG) Medical', subtitle: 'Class 11, 12 & Droppers', desc: 'Focused pre-medical training detailing human physiology, botanical systems, and organic chemistry mechanisms.', color: 'var(--secondary)' },
+            { title: 'JEE & NEET (Competitive Excellence)', subtitle: 'Class 11, 12 & Droppers', desc: 'Integrated engineering and medical entrance coaching with rigorous Physics, Chemistry, Maths & Biology frameworks.', color: 'var(--primary)' },
+            { title: 'Class 11 & 12 Boards', subtitle: 'CBSE / PSEB / ICSE', desc: 'Comprehensive board examination curriculum mastering core concepts, subjective answer writing, and NCERT exemplars.', color: 'var(--secondary)' },
             { title: 'Pre-Foundation Academy', subtitle: 'Class 6 to 10', desc: 'Pre-enrollment program constructing analytical frameworks for NTSE, Olympiads, and future competitive courses.', color: 'var(--primary)' }
           ].map((prog, i) => (
             <div key={i} className="glass-card program-card">
@@ -1102,7 +1125,7 @@ export default function Home() {
 
       {/* Founder's Message Section */}
       <section className="features-section" style={{
-        background: 'var(--surface-light)',
+        background: 'var(--background)',
         borderTop: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)',
         zIndex: 2,
@@ -1246,7 +1269,47 @@ export default function Home() {
       </section>
 
       {/* EduPred AI Performance Predictor Section */}
-      <EduPredAI />
+      <section className="edupred-section" id="edupred-ai" style={{
+        padding: '4.5rem 2rem',
+        background: 'var(--background)',
+        borderTop: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
+        textAlign: 'center',
+        position: 'relative',
+        zIndex: 2
+      }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', borderRadius: '100px', background: 'var(--hp-badge-bg)', border: '1px solid var(--hp-badge-border)', color: 'var(--primary)', fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase' }}>
+            🤖 AI-Powered Academic Forecasting
+          </div>
+          <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 900, color: 'var(--text-heading)', margin: 0, lineHeight: 1.2 }}>
+            EduPred AI™ <span className="text-gradient">Academic Performance Predictor</span>
+          </h2>
+          <p style={{ fontSize: '1rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, maxWidth: '640px' }}>
+            Forecast your exam scores, pass probability, and performance tier using our advanced machine learning trained algorithms.
+          </p>
+          <a
+            href="https://sudhirtutorials-edupred-ai.onrender.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary-hero"
+            style={{
+              textDecoration: 'none',
+              marginTop: '0.5rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              padding: '0.9rem 2.2rem',
+              fontSize: '1.05rem',
+              fontWeight: 800,
+              borderRadius: '50px',
+              boxShadow: '0 8px 25px rgba(239, 68, 68, 0.35)'
+            }}
+          >
+            🚀 Click to Predict Academic Performance →
+          </a>
+        </div>
+      </section>
 
       {/* Premium Storefront Section */}
       <Storefront />
@@ -1417,12 +1480,12 @@ export default function Home() {
           transform: translateY(-1px);
         }
         .login-portal-btn {
-          padding: 0.65rem 1.4rem;
+          padding: 0.35rem 0.95rem;
           background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
           border-radius: 30px;
           color: #fff;
           font-weight: 700;
-          font-size: 0.88rem;
+          font-size: 0.8rem;
           box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -2022,11 +2085,23 @@ export default function Home() {
           height: 32px;
         }
         .footer-desc {
-          color: var(--text-muted);
+          color: #000000;
+          font-weight: 600;
           font-size: 0.88rem;
           line-height: 1.6;
           max-width: 320px;
           margin: 0;
+        }
+        :root[data-theme="dark"] .footer-desc {
+          color: #cbd5e1;
+        }
+        :root[data-theme="light"] .footer-desc {
+          color: #000000;
+        }
+        @media (prefers-color-scheme: dark) {
+          :root:not([data-theme="light"]) .footer-desc {
+            color: #cbd5e1;
+          }
         }
         .social-links {
           display: flex;
@@ -2054,17 +2129,21 @@ export default function Home() {
           display: flex;
           flex-direction: column;
           gap: 0.85rem;
-          color: var(--text-heading);
+          color: var(--text-heading) !important;
           font-weight: 700;
           font-size: 0.88rem;
         }
-        .footer-link {
-          color: var(--text-heading);
+        .footer-links-col ul li,
+        .footer-link,
+        .contact-col a {
+          color: var(--text-heading) !important;
           font-weight: 700;
+          text-decoration: none;
           transition: color 0.2s;
         }
-        .footer-link:hover {
-          color: var(--primary);
+        .footer-link:hover,
+        .contact-col a:hover {
+          color: var(--primary) !important;
         }
         .footer-bottom {
           border-top: 1px solid var(--border);
@@ -2075,7 +2154,6 @@ export default function Home() {
           font-weight: 600;
         }
 
-        /* 3D Animations & Tilts classes */
         /* 3D Animations & Tilts classes */
         .stat-3d-card:hover {
           transform: translateY(-8px) rotateX(8deg) rotateY(-8deg) translateZ(10px) !important;
@@ -2144,6 +2222,12 @@ export default function Home() {
         }
 
         @media (max-width: 768px) {
+          .vrsa-hero-container {
+            padding-top: 6.75rem !important;
+          }
+          .vrsa-top-badge {
+            margin-top: 0.5rem !important;
+          }
           .navbar-links {
             display: none;
           }

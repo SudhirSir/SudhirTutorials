@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 import { clearLateFineSettingsCache } from '@/lib/feeSettings';
+import { appCache } from '@/lib/cache';
 
 async function ensureSystemSettingTable() {
   try {
@@ -29,34 +30,38 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await ensureSystemSettingTable();
+    const res = await appCache.getOrSet('admin:settings', async () => {
+      await ensureSystemSettingTable();
 
-    const settings = await withDbRetry(() => prisma.systemSetting.findMany());
-    const settingsMap = settings.reduce((acc: any, s) => {
-      acc[s.key] = s.value;
-      return acc;
-    }, {});
+      const settings = await withDbRetry(() => prisma.systemSetting.findMany());
+      const settingsMap = settings.reduce((acc: any, s) => {
+        acc[s.key] = s.value;
+        return acc;
+      }, {});
 
-    // Ensure defaults are present
-    const perDayFine = settingsMap.perDayFine || "10";
-    const flatFineAfter10Days = settingsMap.flatFineAfter10Days || "100";
-    const feeDueDay = settingsMap.feeDueDay || "12";
+      // Ensure defaults are present
+      const perDayFine = settingsMap.perDayFine || "10";
+      const flatFineAfter10Days = settingsMap.flatFineAfter10Days || "100";
+      const feeDueDay = settingsMap.feeDueDay || "12";
 
-    const classFees: Record<string, number> = {};
-    for (const key of Object.keys(settingsMap)) {
-      if (key.startsWith('classFee_')) {
-        const className = key.replace('classFee_', '');
-        classFees[className] = parseFloat(settingsMap[key]) || 0;
+      const classFees: Record<string, number> = {};
+      for (const key of Object.keys(settingsMap)) {
+        if (key.startsWith('classFee_')) {
+          const className = key.replace('classFee_', '');
+          classFees[className] = parseFloat(settingsMap[key]) || 0;
+        }
       }
-    }
 
-    return NextResponse.json({
-      perDayFine: parseFloat(perDayFine),
-      flatFineAfter10Days: parseFloat(flatFineAfter10Days),
-      feeDueDay: parseInt(feeDueDay, 10),
-      minAppVersion: settingsMap.minAppVersion || "1.0.0",
-      classFees,
-    });
+      return {
+        perDayFine: parseFloat(perDayFine),
+        flatFineAfter10Days: parseFloat(flatFineAfter10Days),
+        feeDueDay: parseInt(feeDueDay, 10),
+        minAppVersion: settingsMap.minAppVersion || "1.0.0",
+        classFees,
+      };
+    }, 300);
+
+    return NextResponse.json(res);
   } catch (error) {
     console.error('Error fetching settings:', error);
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -139,6 +144,7 @@ export async function POST(req: Request) {
 
     // Invalidate the late fine settings cache
     clearLateFineSettingsCache();
+    appCache.invalidate('admin:settings');
 
     return NextResponse.json({ success: true });
   } catch (error) {

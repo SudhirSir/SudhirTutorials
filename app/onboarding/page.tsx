@@ -39,7 +39,6 @@ export default function OnboardingPage() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
-  const [mockOtpMessage, setMockOtpMessage] = useState("");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -52,7 +51,6 @@ export default function OnboardingPage() {
     }
     setError("");
     setSendingOtp(true);
-    setMockOtpMessage("");
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
@@ -62,9 +60,6 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (res.ok) {
         setOtpSent(true);
-        if (data.isMock && data.mockOtp) {
-          setMockOtpMessage(`Code: ${data.mockOtp} (shown for testing)`);
-        }
       } else {
         setError(data.error || "Failed to send OTP code.");
       }
@@ -424,7 +419,7 @@ export default function OnboardingPage() {
                 ) : (!(session.user as any)?.email && otpSent) ? (
                   <button 
                     type="button" 
-                    onClick={() => { setOtpSent(false); setOtp(''); setMockOtpMessage(''); }} 
+                    onClick={() => { setOtpSent(false); setOtp(''); }} 
                     style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     Change
@@ -447,11 +442,6 @@ export default function OnboardingPage() {
                   onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
                   style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center', width: '100%', padding: '0.75rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
-                {mockOtpMessage && (
-                  <div style={{ marginTop: '0.5rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>
-                    💡 Local testing: {mockOtpMessage}
-                  </div>
-                )}
               </div>
             )}
           </div>

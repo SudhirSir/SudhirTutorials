@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 
 export async function GET() {
   try {
@@ -13,13 +14,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const courses = await withDbRetry(() => prisma.course.findMany({
-      include: {
-        _count: {
-          select: { batches: true },
+    const courses = await appCache.getOrSet('admin:courses', () =>
+      withDbRetry(() => prisma.course.findMany({
+        include: {
+          _count: {
+            select: { batches: true },
+          },
         },
-      },
-    }));
+      })),
+      60
+    );
     return NextResponse.json({ courses });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 });
@@ -43,6 +47,8 @@ export async function POST(req: Request) {
       data: { name, description },
     }));
 
+    appCache.invalidate('admin:courses');
+
     return NextResponse.json({ success: true, course });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create course' }, { status: 500 });
@@ -64,6 +70,9 @@ export async function PUT(req: Request) {
       where: { id },
       data: { name, description },
     }));
+
+    appCache.invalidate('admin:courses');
+
     return NextResponse.json({ success: true, course });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update course' }, { status: 500 });
@@ -134,6 +143,8 @@ export async function DELETE(req: Request) {
     await withDbRetry(() => prisma.course.delete({
       where: { id }
     }));
+
+    appCache.invalidate('admin:courses');
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
