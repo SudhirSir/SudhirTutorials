@@ -183,7 +183,7 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
           {activeServices.map(service => (
             <div
               key={service.id}
@@ -191,13 +191,13 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.85rem',
-                padding: '1rem',
-                borderRadius: '16px',
+                gap: '0.5rem',
+                padding: '0.55rem 0.65rem',
+                borderRadius: '12px',
                 background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
                 border: '1px solid var(--border)',
                 cursor: 'pointer',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'all 0.2s ease',
                 position: 'relative',
                 overflow: 'hidden'
               }}
@@ -214,24 +214,22 @@ export function QuickServicesWidget({ role, setActiveTab }: QuickServicesWidgetP
               }}
             >
               <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '12px',
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
                 background: 'rgba(255,255,255,0.05)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.25rem',
-                border: '1px solid var(--border)'
+                fontSize: '1rem',
+                border: '1px solid var(--border)',
+                flexShrink: 0
               }}>
                 {service.icon}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.78rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {service.label}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {service.subTab ? `${service.tab} / ${service.subTab.toLowerCase()}` : 'Open tab shortcut'}
                 </span>
               </div>
             </div>

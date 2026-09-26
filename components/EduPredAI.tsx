@@ -195,43 +195,26 @@ export function EduPredAI() {
   const currentOptionObj = PREDICTION_OPTIONS.find(o => o.id === targetMode) || PREDICTION_OPTIONS[0];
 
   return (
-    <section id="edupred-ai" className="edupred-section" style={{ padding: '4rem 6%', position: 'relative', zIndex: 2 }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <section id="edupred-ai" className="edupred-section" style={{ padding: '1rem 0', position: 'relative', zIndex: 2, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <Badge variant="warning">EDUPRED AI™ PREDICTIVE SYSTEM</Badge>
           </div>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 900, margin: '0 0 0.75rem 0', color: 'var(--text-heading)' }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'var(--text-heading)' }}>
             Predict Your Academic Outcomes with <span style={{ color: '#ef4444' }}>EduPred</span> <span style={{ color: '#2563eb' }}>AI</span>
           </h2>
-          <p style={{ color: 'var(--text-muted)', maxWidth: '680px', margin: '0 auto', fontSize: '1.05rem', lineHeight: 1.6 }}>
-            Select what you want to predict from the dropdown menu, enter your academic marks & attendance, and click <strong>"Predict Performance Now"</strong> to execute our trained machine learning models.
-          </p>
         </div>
 
         {/* Input Form & Predict Trigger Area */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.5rem', width: '100%', boxSizing: 'border-box' }}>
           {/* Inputs Card */}
-          <Card variant="glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: '1px solid var(--border)' }}>
+          <Card variant="glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: '1px solid var(--border)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-heading)' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-heading)' }}>
                 1. Select What to Predict & Enter Details
               </h3>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sample Profiles:</span>
-            </div>
-
-            {/* Presets */}
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => loadPreset('high')} style={PRESET_BTN_STYLE}>
-                High Scores Profile
-              </button>
-              <button type="button" onClick={() => loadPreset('average')} style={PRESET_BTN_STYLE}>
-                Average Profile
-              </button>
-              <button type="button" onClick={() => loadPreset('support')} style={PRESET_BTN_STYLE}>
-                Needs Support Profile
-              </button>
             </div>
 
             {/* Dropdown Menu for Target Selection */}
@@ -303,10 +286,10 @@ export function EduPredAI() {
           </Card>
 
           {/* Results Output Card */}
-          <Card variant="glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
+          <Card variant="glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-heading)' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-heading)' }}>
                   2. Generated Prediction Output
                 </h3>
                 <Badge variant={hasPredicted ? "success" : "info"}>
@@ -315,13 +298,10 @@ export function EduPredAI() {
               </div>
 
               {!hasPredicted ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text)' }}>
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
                     No Prediction Generated Yet
                   </div>
-                  <p style={{ fontSize: '0.88rem', margin: 0 }}>
-                    Select your prediction target from the dropdown above, adjust your academic scores, and click the <strong>"Predict Now"</strong> button to execute the trained model.
-                  </p>
                 </div>
               ) : (
                 <>

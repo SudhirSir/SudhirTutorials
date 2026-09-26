@@ -1368,7 +1368,7 @@ function AdminDashboardContent() {
   const [allStudents, setAllStudents] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [directoryFilter, setDirectoryFilter] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'>('ALL');
-  const [showPendingVerificationsList, setShowPendingVerificationsList] = useState(false);
+  const [showPendingVerificationsList, setShowPendingVerificationsList] = useState(true);
   const [showAdmissionsInquiriesList, setShowAdmissionsInquiriesList] = useState(false);
   const [bugReports, setBugReports] = useState<any[]>([]);
   const [isLoadingBugReports, setIsLoadingBugReports] = useState(false);
@@ -3495,7 +3495,7 @@ function AdminDashboardContent() {
               { id: 'attendance', title: '✏️ Student Attendance', desc: 'Track daily attendance logs, view student check-in history, and download reports.', color: 'rgba(16, 185, 129, 0.05)', border: '#10b981', textColor: '#10b981' },
               { id: 'materials', title: '📚 Study Materials & Content', desc: 'Upload and organize syllabus books, worksheets, PDFs, notes, and lectures.', color: 'rgba(59, 130, 246, 0.05)', border: '#3b82f6', textColor: '#3b82f6' },
               { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
-              { id: 'analytics', title: '📈 Performance Analytics (EduPred AI)', desc: 'AI-powered score forecasting, risk analysis, and graphical class insights.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
+              { id: 'analytics', title: '📈 Performance Analytics', desc: 'AI-powered score forecasting, risk analysis, and graphical class insights.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
               { id: 'lectures', title: '📺 Lectures/Classes', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
               { id: 'admissions', title: 'Student Admission Enquiries', desc: '', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
             ].map(svc => (
@@ -3530,10 +3530,12 @@ function AdminDashboardContent() {
           <QuickServicesWidget role="ADMIN" setActiveTab={handleQuickServiceClick} />
           
           {/* Key Metrics Row */}
-          <div className="admin-overview-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+          <div className="admin-overview-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
             {[
               { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : '--', icon: '👥', color: '#ef4444' },
               { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : '--', icon: '👨‍🏫', color: '#10b981' },
+              { label: 'Total Batches', value: overviewStats ? (overviewStats.totalBatches ?? '--') : '--', icon: '📚', color: '#8b5cf6' },
+              { label: 'Total Courses', value: overviewStats ? (overviewStats.totalCourses ?? '--') : '--', icon: '🎓', color: '#ec4899' },
               { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : '--', icon: '💰', color: '#3b82f6' },
               { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : '--', icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
@@ -3617,7 +3619,14 @@ function AdminDashboardContent() {
           {/* Collapsible Section Toggles */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }} className="no-print">
             <button 
-              onClick={() => setShowPendingVerificationsList(!showPendingVerificationsList)}
+              onClick={() => {
+                const next = !showPendingVerificationsList;
+                setShowPendingVerificationsList(next);
+                if (next) {
+                  setShowAdmissionsInquiriesList(false);
+                  setShowBugReportsList(false);
+                }
+              }}
               style={{
                 padding: '0.75rem 1.25rem',
                 borderRadius: '12px',
@@ -3647,7 +3656,14 @@ function AdminDashboardContent() {
               )}
             </button>
             <button 
-              onClick={() => setShowAdmissionsInquiriesList(!showAdmissionsInquiriesList)}
+              onClick={() => {
+                const next = !showAdmissionsInquiriesList;
+                setShowAdmissionsInquiriesList(next);
+                if (next) {
+                  setShowPendingVerificationsList(false);
+                  setShowBugReportsList(false);
+                }
+              }}
               style={{
                 padding: '0.75rem 1.25rem',
                 borderRadius: '12px',
@@ -3667,8 +3683,13 @@ function AdminDashboardContent() {
             </button>
             <button 
               onClick={() => {
-                setShowBugReportsList(!showBugReportsList);
-                if (!showBugReportsList) fetchBugReports();
+                const next = !showBugReportsList;
+                setShowBugReportsList(next);
+                if (next) {
+                  setShowPendingVerificationsList(false);
+                  setShowAdmissionsInquiriesList(false);
+                  fetchBugReports();
+                }
               }}
               style={{
                 padding: '0.75rem 1.25rem',
@@ -6175,22 +6196,22 @@ function AdminDashboardContent() {
 
                 return (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--secondary)' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Collected Revenue (Cr)</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--secondary)' }}>₹{totalIn.toLocaleString()}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.85rem' }}>
+                      <div className="glass-card" style={{ padding: '0.85rem 1rem', borderLeft: '4px solid var(--secondary)' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Collected Revenue (Cr)</div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text)' }}>₹{totalIn.toLocaleString()}</div>
                       </div>
-                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Expenses paid (Dr)</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--primary)' }}>₹{totalExp.toLocaleString()}</div>
+                      <div className="glass-card" style={{ padding: '0.85rem 1rem', borderLeft: '4px solid var(--primary)' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Expenses paid (Dr)</div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text)' }}>₹{totalExp.toLocaleString()}</div>
                       </div>
-                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Salaries Disbursed (Dr)</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--primary)' }}>₹{totalSal.toLocaleString()}</div>
+                      <div className="glass-card" style={{ padding: '0.85rem 1rem', borderLeft: '4px solid var(--primary)' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Salaries Disbursed (Dr)</div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text)' }}>₹{totalSal.toLocaleString()}</div>
                       </div>
-                      <div className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${net >= 0 ? 'var(--secondary)' : 'var(--primary)'}` }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Net cash balance</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: net >= 0 ? 'var(--secondary)' : 'var(--primary)' }}>₹{net.toLocaleString()}</div>
+                      <div className="glass-card" style={{ padding: '0.85rem 1rem', borderLeft: `4px solid ${net >= 0 ? 'var(--secondary)' : 'var(--primary)'}` }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Net cash balance</div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text)' }}>₹{net.toLocaleString()}</div>
                       </div>
                     </div>
 

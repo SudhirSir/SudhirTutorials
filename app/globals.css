@@ -1991,16 +1991,21 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   }
 
   .admin-batches-analytics-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.65rem !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
   }
   .admin-batches-analytics-grid > div {
     padding: 1rem 0.75rem !important;
+    max-width: 100% !important;
   }
 
   .admin-performance-analytics-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.65rem !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  .admin-performance-analytics-grid > div {
+    max-width: 100% !important;
+    width: 100% !important;
   }
 
   .finance-hub-stats-grid {
