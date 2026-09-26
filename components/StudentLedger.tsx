@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { generateReceiptNo } from '@/lib/feeUtils';
+import { generateReceiptNo, formatDate } from '@/lib/feeUtils';
 
 interface StudentLedgerProps {
   studentId?: string;
@@ -35,7 +35,7 @@ export function StudentLedger({
 }: StudentLedgerProps) {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>(initialViewType || (studentId ? 'statement' : 'month'));
+  const [viewType, setViewType] = useState<'month' | 'year' | 'statement' | 'latest-payments'>(initialViewType || 'month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>('ALL');
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(true);
@@ -632,16 +632,16 @@ export function StudentLedger({
                         </div>
                         {hasRecord ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
-                              <span>Base Fee</span>
-                              <span style={{ fontWeight: 600, color: 'var(--text)' }}>₹{record.amount}</span>
-                            </div>
-                            {record.discount > 0 && (
-                              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary)', fontWeight: 600 }}>
-                                <span>Discount (Cr)</span>
-                                <span>-₹{record.discount}</span>
-                              </div>
-                            )}
+                            {(() => {
+                              const scholarshipVal = record.discount || record.student?.studentProfile?.scholarship || 0;
+                              const netMonthlyFee = Math.max(0, record.amount - scholarshipVal);
+                              return (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
+                                  <span>Monthly Fee</span>
+                                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>₹{netMonthlyFee}</span>
+                                </div>
+                              );
+                            })()}
                             {fineVal > 0 && (
                               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary)', fontWeight: 600 }}>
                                 <span>Late Fine (Dr)</span>
@@ -669,12 +669,21 @@ export function StudentLedger({
                       {hasRecord && (
                         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginTop: '0.875rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div>
-                              <span style={{ fontSize: '0.7rem', color: status === 'PENDING' ? '#ef4444' : 'var(--text-muted)', display: 'block', fontWeight: status === 'PENDING' ? 700 : 500 }}>Net Amount Due</span>
-                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: status === 'PENDING' ? '#ef4444' : 'var(--text)' }}>
-                                ₹{Math.max(0, record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0))}
-                              </span>
-                            </div>
+                            {isPaid ? (
+                              <div>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--secondary)', display: 'block', fontWeight: 600 }}>Payment Date</span>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text)' }}>
+                                  {formatDate(record.paidAt || record.createdAt)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div>
+                                <span style={{ fontSize: '0.7rem', color: '#ef4444', display: 'block', fontWeight: 700 }}>Net Amount Due</span>
+                                <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ef4444' }}>
+                                  ₹{Math.max(0, record.amount + fineVal - (record.discount || 0) - (record.paidAmount || 0))}
+                                </span>
+                              </div>
+                            )}
                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                               {isAdmin && (
                                 <>
@@ -958,6 +967,22 @@ export function StudentLedger({
         }
         th {
           color: var(--text-muted) !important;
+        }
+        @media (max-width: 640px) {
+          .student-ledger-main-card {
+            padding: 0.75rem !important;
+            margin-top: 0.75rem !important;
+            border-radius: 12px !important;
+          }
+          .monthly-fee-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.65rem !important;
+          }
+          .ledger-month-card {
+            padding: 0.75rem 0.85rem !important;
+            min-height: auto !important;
+            border-radius: 10px !important;
+          }
         }
       `}</style>
     </div>

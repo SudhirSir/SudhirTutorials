@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Button from "./ui/Button";
 import Modal from "./ui/Modal";
 import Card from "./ui/Card";
@@ -9,8 +10,13 @@ import Input from "./ui/Input";
 import Badge from "./ui/Badge";
 import Spinner from "./ui/Spinner";
 
-export function Storefront() {
+interface StorefrontProps {
+  onGoToLibrary?: () => void;
+}
+
+export function Storefront({ onGoToLibrary }: StorefrontProps = {}) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [purchasedItemIds, setPurchasedItemIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,11 +97,11 @@ export function Storefront() {
   }
 
   return (
-    <section id="storefront" className="storefront-section" style={{ padding: "4rem 6%", zIndex: 2 }}>
+    <section id="storefront" className="storefront-section" style={{ padding: "2.25rem 6%", zIndex: 2 }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+        <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
           <Badge variant="info">OFFICIAL STORE</Badge>
-          <h2 style={{ fontSize: "2.25rem", fontWeight: 800, margin: "0.5rem 0 1rem 0", color: "var(--text-heading)" }}>
+          <h2 style={{ fontSize: "2.25rem", fontWeight: 800, margin: "0.5rem 0 0.5rem 0", color: "var(--text-heading)" }}>
             Study Materials & Online Test Series
           </h2>
           <p style={{ color: "var(--text-muted)", maxWidth: "600px", margin: "0 auto", fontSize: "1.05rem" }}>
@@ -138,7 +144,11 @@ export function Storefront() {
                       variant="secondary"
                       size="md"
                       onClick={() => {
-                        window.location.href = "/dashboard/store";
+                        if (onGoToLibrary) {
+                          onGoToLibrary();
+                        } else {
+                          router.push("?tab=purchases");
+                        }
                       }}
                     >
                       Go to Library
@@ -171,7 +181,11 @@ export function Storefront() {
               size="lg"
               fullWidth
               onClick={() => {
-                window.location.href = "/dashboard/store";
+                if (onGoToLibrary) {
+                  onGoToLibrary();
+                } else {
+                  router.push("?tab=purchases");
+                }
               }}
             >
               Open My Library

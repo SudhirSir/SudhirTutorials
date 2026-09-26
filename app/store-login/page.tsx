@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { Capacitor } from "@capacitor/core";
 import Button from "@/components/ui/Button";
@@ -22,6 +23,7 @@ export default function StoreLoginPage() {
   // Sign In State
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -30,6 +32,7 @@ export default function StoreLoginPage() {
   const [regEmail, setRegEmail] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [regOtp, setRegOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [regError, setRegError] = useState("");
@@ -208,12 +211,15 @@ export default function StoreLoginPage() {
   return (
     <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 1rem", position: "relative" }}>
       <div style={{ width: "100%", maxWidth: "440px" }}>
-        {/* Header Title */}
+        {/* Header Title with Logo */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🛍️</div>
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-heading)", margin: "0 0 0.5rem 0" }}>
-            ST Store Login
+          <Image src="/logo.png" alt="Sudhir Tutorials Logo" width={54} height={54} style={{ width: "54px", height: "54px", objectFit: "contain", margin: "0 auto 0.75rem auto", display: "block" }} />
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 900, margin: "0 0 0.25rem 0" }}>
+            <span style={{ color: "#ef4444" }}>SUDHIR</span> <span style={{ color: "#2563eb" }}>TUTORIALS</span>
           </h1>
+          <div style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+            ST Store Portal
+          </div>
           <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", margin: 0 }}>
             {isRegistering
               ? "Create your account to access tests & notes"
@@ -244,15 +250,34 @@ export default function StoreLoginPage() {
                 required
               />
 
-              <div>
+              <div style={{ position: "relative" }}>
                 <Input
                   label="Password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "38px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "1.1rem",
+                    color: "var(--text-muted)",
+                    padding: "2px 4px",
+                    zIndex: 5
+                  }}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
                 <div style={{ textAlign: "right", marginTop: "0.35rem" }}>
                   <Link href="/forgot-password" style={{ fontSize: "0.85rem", color: "var(--primary)", fontWeight: 600, textDecoration: "none" }}>
                     Forgot Password?
@@ -271,7 +296,35 @@ export default function StoreLoginPage() {
                   <Input label="Full Name" placeholder="John Doe" value={regName} onChange={(e) => setRegName(e.target.value)} required />
                   <Input label="Email Address" type="email" placeholder="name@example.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required />
                   <Input label="Phone Number (Optional)" placeholder="10-digit mobile number" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} maxLength={10} />
-                  <Input label="Password" type="password" placeholder="Min 6 characters" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required />
+                  <div style={{ position: "relative" }}>
+                    <Input
+                      label="Password"
+                      type={showRegPassword ? "text" : "password"}
+                      placeholder="Min 6 characters"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "38px",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "var(--text-muted)",
+                        padding: "2px 4px",
+                        zIndex: 5
+                      }}
+                      title={showRegPassword ? "Hide password" : "Show password"}
+                    >
+                      {showRegPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
 
                   <Button type="submit" variant="primary" size="lg" fullWidth isLoading={regLoading}>
                     Send Email OTP

@@ -6,111 +6,141 @@
 
 /* Default Light Theme */
 :root {
-  --primary:        hsl(0,   78%, 50%);
-  --primary-hover:  hsl(0,   78%, 40%);
-  --secondary:      hsl(217, 80%, 45%);
-  --secondary-hover:hsl(217, 80%, 35%);
-  --accent:         hsl(217, 70%, 55%);
-  --background:     hsl(210, 20%, 97%);
-  --surface:        hsl(210, 20%, 96%);
-  --surface-light:  hsl(210, 18%, 94%);
-  --text:           hsl(220, 25%, 10%);
-  --text-muted:     hsl(220, 12%, 38%);
-  --text-heading:   hsl(220, 25%, 8%);
-  --border:         hsl(220, 14%, 82%);
-  --glass-bg:       rgba(240, 244, 248, 0.95);
-  --glass-border:   rgba(15, 23, 42, 0.08);
-  --shadow:         0 8px 30px -10px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.04);
-  --shadow-lg:      0 20px 50px -15px rgba(15,23,42,0.12);
-  --logo-gradient:  linear-gradient(90deg, hsl(0,78%,50%), hsl(217,80%,45%));
-  --card-bg-alt:    hsl(210, 18%, 93%);
-  --card-bg:        hsl(210, 20%, 96.5%);
-  --input-bg:       hsl(210, 20%, 96%);
-  --input-focus-bg: hsl(210, 20%, 95%);
-  --login-overlay:  linear-gradient(135deg, rgba(240,244,248,0.95) 0%, rgba(240,244,248,0.70) 100%);
+  --primary:        #ef4444;
+  --primary-hover:  #dc2626;
+  --secondary:      #000000;
+  --secondary-hover:#1e293b;
+  --accent:         #ef4444;
+  --background:     #ffffff;
+  --surface:        #f8fafc;
+  --surface-light:  #f1f5f9;
+  --text:           #0f172a;
+  --text-muted:     #334155;
+  --text-heading:   #000000;
+  --border:         #000000;
+  --glass-bg:       rgba(255, 255, 255, 0.95);
+  --glass-border:   rgba(0, 0, 0, 0.15);
+  --shadow:         0 8px 30px -10px rgba(0,0,0,0.12);
+  --shadow-lg:      0 20px 50px -15px rgba(0,0,0,0.18);
+  --logo-gradient:  linear-gradient(90deg, #ef4444, #000000);
+  --card-bg-alt:    #f8fafc;
+  --card-bg:        #ffffff;
+  --input-bg:       #f8fafc;
+  --input-focus-bg: #f1f5f9;
+  --login-overlay:  linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.70) 100%);
   --radius:         16px;
+  --brand-sudhir:   #ef4444;
+  --brand-tutorials:#2563eb;
+  --hp-gradient-text: linear-gradient(135deg, #ef4444 0%, #000000 100%);
+  --hp-gradient-btn:  linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --hp-badge-bg:     rgba(239, 68, 68, 0.08);
+  --hp-badge-border: rgba(239, 68, 68, 0.3);
+  --hp-badge-text:   #ef4444;
 }
 
-/* Dark Theme via System Preference (Default fallback if not explicitly chosen otherwise) */
+/* Dark Theme via System Preference */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --primary:        hsl(0,   85%, 60%);   
-    --primary-hover:  hsl(0,   85%, 48%);   
-    --secondary:      hsl(217, 91%, 60%);   
-    --secondary-hover:hsl(217, 91%, 50%);   
-    --accent:         hsl(217, 80%, 70%);   
-    --accent-hover:   hsl(217, 80%, 55%);
-    --background:     hsl(222, 47%, 11%);    
-    --surface:        hsl(222, 40%, 15%);    
-    --surface-light:  hsl(222, 35%, 20%);    
-    --text:           hsl(0, 0%, 97%);
-    --text-muted:     hsl(222, 10%, 70%);
-    --text-heading:   hsl(0, 0%, 100%);
-    --border:         hsl(222, 20%, 24%);
-    --glass-bg:       rgba(15, 23, 42, 0.75);
-    --glass-border:   rgba(255, 255, 255, 0.07);
-    --shadow:         0 10px 40px -10px rgba(0, 0, 0, 0.55);
-    --shadow-lg:      0 20px 60px -15px rgba(0, 0, 0, 0.65);
-    --logo-gradient:  linear-gradient(90deg, hsl(0,85%,60%), hsl(217,91%,60%));
-    --card-bg-alt:    rgba(255, 255, 255, 0.025);
-    --card-bg:        hsl(222, 40%, 16%);
+    --primary:        #2563eb;   
+    --primary-hover:  #1d4ed8;   
+    --secondary:      #3b82f6;   
+    --secondary-hover:#60a5fa;   
+    --accent:         #60a5fa;   
+    --accent-hover:   #93c5fd;
+    --background:     #090d16;    
+    --surface:        #0f172a;    
+    --surface-light:  #1e293b;    
+    --text:           #ffffff;
+    --text-muted:     #94a3b8;
+    --text-heading:   #ffffff;
+    --border:         rgba(59, 130, 246, 0.35);
+    --glass-bg:       rgba(15, 23, 42, 0.85);
+    --glass-border:   rgba(59, 130, 246, 0.35);
+    --shadow:         0 10px 40px -10px rgba(0, 0, 0, 0.70);
+    --shadow-lg:      0 20px 60px -15px rgba(0, 0, 0, 0.85);
+    --logo-gradient:  linear-gradient(90deg, #ef4444, #2563eb);
+    --card-bg-alt:    #1e293b;
+    --card-bg:        #0f172a;
     --input-bg:       rgba(30, 41, 59, 0.6);
     --input-focus-bg: rgba(30, 41, 59, 0.85);
     --login-overlay:  linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 100%);
+    --brand-sudhir:   #ef4444;
+    --brand-tutorials:#2563eb;
+    --hp-gradient-text: linear-gradient(135deg, #ffffff 0%, #3b82f6 100%);
+    --hp-gradient-btn:  linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    --hp-badge-bg:     rgba(37, 99, 235, 0.15);
+    --hp-badge-border: rgba(59, 130, 246, 0.35);
+    --hp-badge-text:   #60a5fa;
   }
 }
 
 /* Explicit Dark Theme Selector */
-:root[data-theme="dark"] {
-  --primary:        hsl(0,   85%, 60%);   
-  --primary-hover:  hsl(0,   85%, 48%);   
-  --secondary:      hsl(217, 91%, 60%);   
-  --secondary-hover:hsl(217, 91%, 50%);   
-  --accent:         hsl(217, 80%, 70%);   
-  --accent-hover:   hsl(217, 80%, 55%);
-  --background:     hsl(222, 47%, 11%);    
-  --surface:        hsl(222, 40%, 15%);    
-  --surface-light:  hsl(222, 35%, 20%);    
-  --text:           hsl(0, 0%, 97%);
-  --text-muted:     hsl(222, 10%, 70%);
-  --text-heading:   hsl(0, 0%, 100%);
-  --border:         hsl(222, 20%, 24%);
-  --glass-bg:       rgba(15, 23, 42, 0.75);
-  --glass-border:   rgba(255, 255, 255, 0.07);
-  --shadow:         0 10px 40px -10px rgba(0, 0, 0, 0.55);
-  --shadow-lg:      0 20px 60px -15px rgba(0, 0, 0, 0.65);
-  --logo-gradient:  linear-gradient(90deg, hsl(0,85%,60%), hsl(217,91%,60%));
-  --card-bg-alt:    rgba(255, 255, 255, 0.025);
-  --card-bg:        hsl(222, 40%, 16%);
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --primary:        #2563eb;   
+  --primary-hover:  #1d4ed8;   
+  --secondary:      #3b82f6;   
+  --secondary-hover:#60a5fa;   
+  --accent:         #60a5fa;   
+  --accent-hover:   #93c5fd;
+  --background:     #090d16;    
+  --surface:        #0f172a;    
+  --surface-light:  #1e293b;    
+  --text:           #ffffff;
+  --text-muted:     #94a3b8;
+  --text-heading:   #ffffff;
+  --border:         rgba(59, 130, 246, 0.35);
+  --glass-bg:       rgba(15, 23, 42, 0.85);
+  --glass-border:   rgba(59, 130, 246, 0.35);
+  --shadow:         0 10px 40px -10px rgba(0, 0, 0, 0.70);
+  --shadow-lg:      0 20px 60px -15px rgba(0, 0, 0, 0.85);
+  --logo-gradient:  linear-gradient(90deg, #ef4444, #2563eb);
+  --card-bg-alt:    #1e293b;
+  --card-bg:        #0f172a;
   --input-bg:       rgba(30, 41, 59, 0.6);
   --input-focus-bg: rgba(30, 41, 59, 0.85);
   --login-overlay:  linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 100%);
+  --brand-sudhir:   #ef4444;
+  --brand-tutorials:#2563eb;
+  --hp-gradient-text: linear-gradient(135deg, #ffffff 0%, #3b82f6 100%);
+  --hp-gradient-btn:  linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --hp-badge-bg:     rgba(37, 99, 235, 0.15);
+  --hp-badge-border: rgba(59, 130, 246, 0.35);
+  --hp-badge-text:   #60a5fa;
 }
 
 /* Explicit Light Theme Selector */
-:root[data-theme="light"] {
-  --primary:        hsl(0,   78%, 50%);
-  --primary-hover:  hsl(0,   78%, 40%);
-  --secondary:      hsl(217, 80%, 45%);
-  --secondary-hover:hsl(217, 80%, 35%);
-  --accent:         hsl(217, 70%, 55%);
-  --background:     hsl(210, 20%, 97%);
-  --surface:        hsl(210, 20%, 96%);
-  --surface-light:  hsl(210, 18%, 94%);
-  --text:           hsl(220, 25%, 10%);
-  --text-muted:     hsl(220, 12%, 38%);
-  --text-heading:   hsl(220, 25%, 8%);
-  --border:         hsl(220, 14%, 82%);
-  --glass-bg:       rgba(240, 244, 248, 0.95);
-  --glass-border:   rgba(15, 23, 42, 0.08);
-  --shadow:         0 8px 30px -10px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.04);
-  --shadow-lg:      0 20px 50px -15px rgba(15,23,42,0.12);
-  --logo-gradient:  linear-gradient(90deg, hsl(0,78%,50%), hsl(217,80%,45%));
-  --card-bg-alt:    hsl(210, 18%, 94%);
-  --card-bg:        hsl(210, 20%, 96.5%);
-  --input-bg:       hsl(210, 20%, 96%);
-  --input-focus-bg: hsl(210, 20%, 95%);
-  --login-overlay:  linear-gradient(135deg, rgba(240,244,248,0.95) 0%, rgba(240,244,248,0.70) 100%);
+:root[data-theme="light"],
+[data-theme="light"] {
+  --primary:        #ef4444;
+  --primary-hover:  #dc2626;
+  --secondary:      #000000;
+  --secondary-hover:#1e293b;
+  --accent:         #ef4444;
+  --background:     #ffffff;
+  --surface:        #f8fafc;
+  --surface-light:  #f1f5f9;
+  --text:           #0f172a;
+  --text-muted:     #334155;
+  --text-heading:   #000000;
+  --border:         #000000;
+  --glass-bg:       rgba(255, 255, 255, 0.95);
+  --glass-border:   rgba(0, 0, 0, 0.15);
+  --shadow:         0 8px 30px -10px rgba(0,0,0,0.12);
+  --shadow-lg:      0 20px 50px -15px rgba(0,0,0,0.18);
+  --logo-gradient:  linear-gradient(90deg, #ef4444, #000000);
+  --card-bg-alt:    #f8fafc;
+  --card-bg:        #ffffff;
+  --input-bg:       #f8fafc;
+  --input-focus-bg: #f1f5f9;
+  --login-overlay:  linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.70) 100%);
+  --brand-sudhir:   #ef4444;
+  --brand-tutorials:#2563eb;
+  --hp-gradient-text: linear-gradient(135deg, #ef4444 0%, #000000 100%);
+  --hp-gradient-btn:  linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --hp-badge-bg:     rgba(239, 68, 68, 0.08);
+  --hp-badge-border: rgba(239, 68, 68, 0.3);
+  --hp-badge-text:   #ef4444;
 }
 
 * {
@@ -146,6 +176,14 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
+}
+
+.text-red, .brand-sudhir {
+  color: #ef4444 !important;
+}
+
+.text-blue, .brand-tutorials, .brand-tutorials-dynamic {
+  color: #2563eb !important;
 }
 
 /* Background Effects */
@@ -1030,14 +1068,14 @@ textarea:focus {
 }
 
 .receipt-inner-container {
-  padding: 1rem;
-  border: 3px solid #f3f4f6;
+  padding: 1.25rem 1.25rem 1rem;
+  border: 2px solid #f3f4f6;
 }
 
 /* Responsive and scroll styles */
 @media (max-width: 600px) {
   .receipt-inner-container {
-    padding: 1rem !important;
+    padding: 0.85rem !important;
     border-width: 2px !important;
   }
   .flex-mobile-stack {
@@ -1427,19 +1465,21 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
 
 /* Floating Capsule Navbar Header */
 .vrsa-floating-nav {
-  position: sticky;
-  top: 1rem;
+  position: fixed;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
   width: calc(100% - 2.5rem);
   max-width: 1140px;
-  margin: 1rem auto 0 auto;
+  margin: 0 auto;
   padding: 0.55rem 1rem 0.55rem 1.25rem;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 9999px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-lg);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1447,9 +1487,9 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
 }
 
 [data-theme='dark'] .vrsa-floating-nav {
-  background: rgba(15, 23, 42, 0.92);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  background: var(--glass-bg);
+  border-color: var(--border);
+  box-shadow: var(--shadow-lg);
 }
 
 .vrsa-nav-links {
@@ -1459,8 +1499,8 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
 }
 
 .vrsa-nav-link {
-  color: #475569;
-  font-weight: 600;
+  color: #000000 !important;
+  font-weight: 700;
   font-size: 0.88rem;
   text-decoration: none;
   display: inline-flex;
@@ -1470,15 +1510,15 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
 }
 
 [data-theme='dark'] .vrsa-nav-link {
-  color: #cbd5e1;
+  color: #ffffff !important;
 }
 
 .vrsa-nav-link:hover {
-  color: #0f172a;
+  color: #ef4444 !important;
 }
 
 [data-theme='dark'] .vrsa-nav-link:hover {
-  color: #fff;
+  color: #60a5fa !important;
 }
 
 .vrsa-launch-btn {

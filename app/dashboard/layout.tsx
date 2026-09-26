@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { safeLocalStorage, safeSessionStorage } from "@/lib/safeStorage";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
 
 const icons = {
   home: (
@@ -82,6 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const [badges, setBadges] = useState({ unreadMessages: 0, unreadNotifications: 0 });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   const handleLogout = async () => {
@@ -200,8 +202,52 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }} />
           <span style={{ whiteSpace: 'nowrap', fontSize: '1.05rem', fontWeight: 900 }}>SUDHIR <span style={{ color: 'hsl(346, 84%, 49%)' }}>TUTORIALS</span></span>
         </Link>
-        {/* Spacer to balance layout */}
-        <div style={{ width: '36px', flexShrink: 0 }} />
+        {/* Bell notification icon in top right corner beside brand name */}
+        <button
+          onClick={() => setIsNotificationModalOpen(true)}
+          aria-label="View and Send Notifications"
+          title="Notifications (View & Send)"
+          style={{
+            position: 'relative',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid var(--border)',
+            borderRadius: '50%',
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--text)',
+            zIndex: 10,
+            flexShrink: 0
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          {badges.unreadNotifications > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              background: '#ef4444',
+              color: '#ffffff',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              minWidth: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 3px'
+            }}>
+              {badges.unreadNotifications}
+            </span>
+          )}
+        </button>
       </header>
 
       {/* Mobile Sidebar Backdrop Overlay */}
@@ -400,6 +446,69 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="dashboard-main">
         {children}
       </main>
+
+      {/* Bell Notification Modal Overlay */}
+      {isNotificationModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={() => setIsNotificationModalOpen(false)}
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '740px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: 'var(--background)',
+              border: '1px solid var(--border)',
+              borderRadius: '24px',
+              padding: '1.5rem',
+              position: 'relative',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsNotificationModalOpen(false)}
+              aria-label="Close Notifications Modal"
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: 'var(--card-bg-alt)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                zIndex: 10
+              }}
+            >
+              ✕
+            </button>
+            <NotificationsPanel 
+              onUnreadChange={(count) => setBadges(prev => ({ ...prev, unreadNotifications: count }))} 
+            />
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .sidebar-user-info-card:hover {

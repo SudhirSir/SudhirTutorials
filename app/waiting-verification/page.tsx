@@ -82,9 +82,15 @@ export default function WaitingVerificationPage() {
       <div className="bg-glow"></div>
       
       <div className="glass-card" style={{ width: '100%', maxWidth: '500px', padding: '3rem', zIndex: 10, textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.5rem' }}>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+          <span style={{ fontSize: '1.85rem', fontWeight: 900, lineHeight: '1', letterSpacing: '0.5px' }}>
+            <span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span>
+          </span>
+        </div>
         <div style={{ marginBottom: '2rem' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⏳</div>
-          <h2 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Verification Pending</h2>
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>⏳</div>
+          <h2 style={{ fontSize: '1.8rem', marginBottom: '0.75rem', fontWeight: 800 }}>Verification Pending</h2>
           <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>
             Thank you for completing your profile! Your account is now being reviewed by the administration.
           </p>

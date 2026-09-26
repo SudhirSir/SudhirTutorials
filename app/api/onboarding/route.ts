@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { password, email, phone, parentName, parentContact, otp } = await req.json();
+    const { password, email, phone, parentName, parentContact, className, board, school, address, dob, gender, aadhaarNumber, otp } = await req.json();
 
     if (!email) {
       return NextResponse.json({ error: 'Email address is required for verification.' }, { status: 400 });
@@ -83,6 +83,9 @@ export async function POST(req: Request) {
       isProfileVerified: false
     };
 
+    if (email) updateData.email = email;
+    if (phone) updateData.phone = phone;
+
     if (password && user.mustChangePassword) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
       updateData.mustChangePassword = false;
@@ -96,24 +99,45 @@ export async function POST(req: Request) {
     if (user.role === 'STUDENT') {
       await withDbRetry(() => prisma.studentProfile.upsert({
         where: { userId: user.id },
-        update: { email, phone, fatherName: parentName, parentContact, emailVerified: true },
+        update: { 
+          email, 
+          phone, 
+          fatherName: parentName || undefined, 
+          parentContact: parentContact || undefined,
+          className: className || undefined,
+          board: board || undefined,
+          school: school || undefined,
+          address: address || undefined,
+          dob: dob || undefined,
+          gender: gender || undefined,
+          aadhaarNumber: aadhaarNumber || undefined,
+          emailVerified: true 
+        },
         create: {
           userId: user.id,
           email,
           phone,
-          fatherName: parentName,
-          parentContact,
+          fatherName: parentName || undefined,
+          parentContact: parentContact || undefined,
+          className: className || undefined,
+          board: board || undefined,
+          school: school || undefined,
+          address: address || undefined,
+          dob: dob || undefined,
+          gender: gender || undefined,
+          aadhaarNumber: aadhaarNumber || undefined,
           emailVerified: true
         }
       }));
     } else if (user.role === 'TEACHER') {
       await withDbRetry(() => prisma.teacherProfile.upsert({
         where: { userId: user.id },
-        update: { email, phone, emailVerified: true },
+        update: { email, phone, address: address || undefined, emailVerified: true },
         create: {
           userId: user.id,
           email,
           phone,
+          address: address || undefined,
           emailVerified: true
         }
       }));

@@ -377,6 +377,10 @@ model AdmissionApplication {
   status       String   @default("PENDING")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model JobApplication {
@@ -408,6 +412,7 @@ model DoubtHistory {
   createdAt  DateTime @default(now())
 
   @@index([studentId])
+  @@index([studentId, createdAt])
 }
 
 model OtpVerification {
@@ -416,6 +421,8 @@ model OtpVerification {
   otp       String
   createdAt DateTime @default(now())
   expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 // ------------------------------------------------------
@@ -449,6 +456,9 @@ model StoreItem {
 
   purchases   StorePurchase[]
   onlineTests OnlineTest[]    // Relation if it's a test series
+
+  @@index([isPublished])
+  @@index([isPublished, className])
 }
 
 model StorePurchase {
@@ -464,6 +474,8 @@ model StorePurchase {
 
   @@index([studentId])
   @@index([itemId])
+  @@index([studentId, status])
+  @@index([createdAt])
 }
 
 model OnlineTest {

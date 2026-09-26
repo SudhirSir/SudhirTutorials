@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       if (baseFee <= 0) continue; // safety guard to exclude 0 base fee
       const discount = student.studentProfile?.scholarship || 0;
       const gradeCode = getGradeLetterCode(student.studentProfile?.className);
-      const receiptNo = `${targetYear}/${gradeCode}/${1001 + currentTotalPayments + assignedCount}`;
+      const receiptNo = `${String(targetYear).slice(-2)}/${gradeCode}/${1001 + currentTotalPayments + assignedCount}`;
       
       paymentsToCreate.push({
         studentId: student.id,

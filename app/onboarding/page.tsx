@@ -24,10 +24,18 @@ export default function OnboardingPage() {
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [email, setEmail] = useState((session?.user as any)?.email || "");
   const [phone, setPhone] = useState("");
   const [parentName, setParentName] = useState(""); // Only for students
   const [parentContact, setParentContact] = useState(""); // Only for students
+  const [className, setClassName] = useState("");
+  const [board, setBoard] = useState("");
+  const [school, setSchool] = useState("");
+  const [address, setAddress] = useState("");
+
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -69,41 +77,55 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password) {
-      if (password !== confirmPassword) {
+    const cleanPassword = password.trim();
+    const cleanConfirmPassword = confirmPassword.trim();
+    const cleanPhone = phone.trim();
+    const cleanParentName = parentName.trim();
+    const cleanParentContact = parentContact.trim();
+    const cleanClassName = className.trim();
+    const cleanBoard = board.trim();
+    const cleanSchool = school.trim();
+    const cleanAddress = address.trim();
+    const cleanEmail = email.trim();
+
+    if (cleanPassword) {
+      if (cleanPassword !== cleanConfirmPassword) {
         return setError("Passwords do not match");
       }
-      if (password.length < 8) {
+      if (cleanPassword.length < 8) {
         return setError("Password must be at least 8 characters long.");
       }
-      if (!/[a-z]/.test(password)) {
+      if (!/[a-z]/.test(cleanPassword)) {
         return setError("Password must contain at least one lowercase letter.");
       }
-      if (!/[A-Z]/.test(password)) {
+      if (!/[A-Z]/.test(cleanPassword)) {
         return setError("Password must contain at least one uppercase letter.");
       }
-      if (!/[0-9]/.test(password)) {
+      if (!/[0-9]/.test(cleanPassword)) {
         return setError("Password must contain at least one numeric digit.");
       }
-      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) {
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(cleanPassword)) {
         return setError("Password must contain at least one special symbol (e.g. @, #, $, etc.).");
       }
     }
-    if ((session?.user as any)?.mustChangePassword && !password) {
+    if ((session?.user as any)?.mustChangePassword && !cleanPassword) {
       return setError("Please set a new password");
     }
     if (role === 'STUDENT') {
-      if (!parentName.trim()) {
+      if (!cleanParentName) {
         return setError("Parent/Guardian name is required.");
       }
-      if (parentName.length > 150) {
+      if (cleanParentName.length > 150) {
         return setError("Parent/Guardian name must be at most 150 characters.");
       }
-      if (!/^[a-zA-Z\s]+$/.test(parentName)) {
+      if (!/^[a-zA-Z\s]+$/.test(cleanParentName)) {
         return setError("Parent/Guardian name must contain only alphabets and spaces.");
       }
+      if (cleanParentContact && !/^\d{10}$/.test(cleanParentContact)) {
+        return setError("Parent contact number must be exactly 10 digits.");
+      }
     }
-    if (phone && !/^\d{10}$/.test(phone.trim())) {
+    if (cleanPhone && !/^\d{10}$/.test(cleanPhone)) {
       return setError("Phone number must be exactly 10 digits.");
     }
     if (!(session?.user as any)?.email) {
@@ -122,7 +144,18 @@ export default function OnboardingPage() {
       const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, email, phone, parentName, parentContact, otp })
+        body: JSON.stringify({ 
+          password: cleanPassword, 
+          email: cleanEmail, 
+          phone: cleanPhone, 
+          parentName: cleanParentName, 
+          parentContact: cleanParentContact || cleanPhone, 
+          className: cleanClassName,
+          board: cleanBoard,
+          school: cleanSchool,
+          address: cleanAddress,
+          otp 
+        })
       });
 
       if (res.ok) {
@@ -143,13 +176,19 @@ export default function OnboardingPage() {
   if (!session) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--background)' }}><div className="spinner"></div></div>;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: 'var(--background)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: 'var(--background)', padding: '2rem 1rem' }}>
       <div className="bg-glow"></div>
       
-      <div className="glass-card onboarding-card" style={{ width: '100%', maxWidth: '550px', padding: '3rem', zIndex: 10 }}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: 800 }}>Complete Your Profile</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Welcome! Please update your default password and complete your profile before proceeding to the dashboard.</p>
+      <div className="glass-card onboarding-card" style={{ width: '100%', maxWidth: '600px', padding: '3rem', zIndex: 10 }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
+            <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+            <span style={{ fontSize: '1.85rem', fontWeight: 900, lineHeight: '1', letterSpacing: '0.5px' }}>
+              <span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span>
+            </span>
+          </div>
+          <h2 style={{ fontSize: '1.6rem', marginBottom: '0.35rem', fontWeight: 800 }}>Complete Your Profile</h2>
+          <p style={{ color: 'var(--text-muted)' }}>Welcome! Please set your password and fill in your details for verification.</p>
         </div>
 
         {error && (
@@ -162,50 +201,207 @@ export default function OnboardingPage() {
           
           {(session.user as any)?.mustChangePassword && (
             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#fff' }}>1. Set New Password</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--primary)', fontWeight: 800 }}>1. Set New Password</h3>
+              
               <div className="input-group">
-                <label>New Password</label>
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%' }} />
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>New Password</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    placeholder="Enter new strong password"
+                    style={{ width: '100%', paddingRight: '2.75rem', borderRadius: '10px', padding: '0.75rem 2.75rem 0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '1.1rem',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? "👁️" : "🙈"}
+                  </button>
+                </div>
               </div>
+
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label>Confirm Password</label>
-                <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={{ width: '100%' }} />
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Confirm Password</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    required 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)} 
+                    placeholder="Re-enter new password"
+                    style={{ width: '100%', paddingRight: '2.75rem', borderRadius: '10px', padding: '0.75rem 2.75rem 0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '1.1rem',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? "👁️" : "🙈"}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {!(session.user as any)?.isProfileVerified && (
             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#fff' }}>2. Contact Information</h3>
-              <div className="onboarding-form-row">
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--primary)', fontWeight: 800 }}>2. Profile & Contact Information</h3>
+              
+              <div className="onboarding-form-row" style={{ display: 'flex', gap: '1rem' }}>
                 <div className="input-group" style={{ flex: 1 }}>
-                  <label>Phone Number</label>
-                  <input type="text" required value={phone} maxLength={10} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} style={{ width: '100%' }} />
+                  <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Phone Number</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="10-digit mobile number"
+                    value={phone} 
+                    maxLength={10} 
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} 
+                    style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                  />
                 </div>
               </div>
               
               {role === 'STUDENT' && (
-                <div className="onboarding-form-row" style={{ marginTop: '1.25rem' }}>
-                  <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
-                    <label>Parent/Guardian Name</label>
-                    <input type="text" required value={parentName} maxLength={150} onChange={e => {
-                      const val = e.target.value;
-                      if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
-                        setParentName(val);
-                      }
-                    }} style={{ width: '100%' }} />
+                <>
+                  <div className="onboarding-form-row" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Parent/Guardian Name *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="Father or Mother Name"
+                        value={parentName} 
+                        maxLength={150} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                            setParentName(val);
+                          }
+                        }} 
+                        style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                      />
+                    </div>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Parent Contact Number</label>
+                      <input 
+                        type="text" 
+                        placeholder="10-digit phone number"
+                        value={parentContact} 
+                        maxLength={10} 
+                        onChange={e => setParentContact(e.target.value.replace(/\D/g, ''))} 
+                        style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  <div className="onboarding-form-row" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Class / Grade</label>
+                      <select 
+                        value={className} 
+                        onChange={e => setClassName(e.target.value)}
+                        style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
+                        <option value="">Select Class</option>
+                        <option value="Class 6">Class 6</option>
+                        <option value="Class 7">Class 7</option>
+                        <option value="Class 8">Class 8</option>
+                        <option value="Class 9">Class 9</option>
+                        <option value="Class 10">Class 10</option>
+                        <option value="Class 11">Class 11</option>
+                        <option value="Class 12">Class 12</option>
+                        <option value="NEET / JEE Target">NEET / JEE Target</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Education Board</label>
+                      <select 
+                        value={board} 
+                        onChange={e => setBoard(e.target.value)}
+                        style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      >
+                        <option value="">Select Board</option>
+                        <option value="CBSE">CBSE</option>
+                        <option value="ICSE">ICSE</option>
+                        <option value="UP Board">UP Board</option>
+                        <option value="Bihar Board">Bihar Board</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="onboarding-form-row" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>School Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="Current school name"
+                        value={school} 
+                        onChange={e => setSchool(e.target.value)} 
+                        style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                      />
+                    </div>
+                  </div>
+                </>
               )}
+
+              <div className="onboarding-form-row" style={{ marginTop: '1rem' }}>
+                <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Address</label>
+                  <textarea 
+                    placeholder="Full residential address"
+                    value={address} 
+                    rows={2}
+                    onChange={e => setAddress(e.target.value)} 
+                    style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', resize: 'vertical' }} 
+                  />
+                </div>
+              </div>
             </div>
           )}
 
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#fff' }}>3. Email Verification</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--primary)', fontWeight: 800 }}>3. Email Verification</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Verify your email address to secure your account.</p>
             
             <div className="input-group" style={{ marginBottom: otpSent ? '1rem' : 0 }}>
-              <label>Email Address</label>
+              <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Email Address</label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input 
                   type="email" 
@@ -241,7 +437,7 @@ export default function OnboardingPage() {
 
             {(!(session.user as any)?.email && otpSent) && (
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label style={{ marginTop: '0.5rem' }}>6-Digit Verification OTP</label>
+                <label style={{ marginTop: '0.5rem', display: 'block', fontWeight: 600, fontSize: '0.85rem' }}>6-Digit Verification OTP</label>
                 <input 
                   type="text" 
                   maxLength={6} 
@@ -249,7 +445,7 @@ export default function OnboardingPage() {
                   required 
                   value={otp} 
                   onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
-                  style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center', width: '100%' }}
+                  style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center', width: '100%', padding: '0.75rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
                 {mockOtpMessage && (
                   <div style={{ marginTop: '0.5rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>
@@ -266,7 +462,7 @@ export default function OnboardingPage() {
             cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             boxShadow: '0 4px 20px -5px rgba(99, 102, 241, 0.5)', marginTop: '0.5rem'
           }}>
-            {loading ? "Saving & Verifying..." : "Save & Continue to Dashboard"}
+            {loading ? "Saving & Submitting Details..." : "Save Profile & Request Verification"}
           </button>
         </form>
       </div>
@@ -288,7 +484,7 @@ export default function OnboardingPage() {
           }
           .onboarding-form-row {
             flex-direction: column;
-            gap: 1.25rem;
+            gap: 1rem;
           }
           h2 {
             font-size: 1.6rem !important;

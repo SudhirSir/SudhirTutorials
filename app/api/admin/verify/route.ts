@@ -44,19 +44,35 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId } = await req.json();
+    const { userId, action } = await req.json();
     if (!userId) return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+
+    if (action === 'reject') {
+      const updatedUser = await withDbRetry(() => prisma.user.update({
+        where: { id: userId },
+        data: { onboardingCompleted: false, isProfileVerified: false },
+        select: { name: true, role: true }
+      }));
+
+      await logActivity(
+        session.user.id,
+        'REJECT_USER_VERIFICATION',
+        `Rejected profile verification for ${updatedUser.role} ${updatedUser.name || 'User'} (ID: ${userId})`
+      );
+
+      return NextResponse.json({ success: true, message: 'Verification rejected' });
+    }
 
     const updatedUser = await withDbRetry(() => prisma.user.update({
       where: { id: userId },
-      data: { isProfileVerified: true },
+      data: { isProfileVerified: true, onboardingCompleted: true },
       select: { name: true, role: true }
     }));
 
     await logActivity(
       session.user.id,
       'VERIFY_USER',
-      `Verified ${updatedUser.role} profile for ${updatedUser.name} (ID: ${userId})`
+      `Verified ${updatedUser.role} profile for ${updatedUser.name || 'User'} (ID: ${userId})`
     );
 
     return NextResponse.json({ success: true });

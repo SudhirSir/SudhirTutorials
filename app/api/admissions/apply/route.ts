@@ -62,6 +62,30 @@ export async function POST(req: Request) {
       }
     }));
 
+    // Notify all ADMIN users about the new admission inquiry
+    try {
+      const admins = await withDbRetry(() => prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true }
+      }));
+
+      if (admins.length > 0) {
+        const notifications = admins.map(admin => ({
+          userId: admin.id,
+          title: `🏫 New Admission Query (${appNumber}): ${data.name}`,
+          message: `New admission query received from ${data.name} (S/o ${data.fatherName}) for ${data.className} (${data.board}). Phone: ${data.phone}.`,
+          type: 'SYSTEM',
+          isRead: false,
+        }));
+
+        await withDbRetry(() => prisma.notification.createMany({
+          data: notifications,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to notify admins of new admission query:', err);
+    }
+
     return NextResponse.json({ success: true, appNumber: newApp.appNumber }, { status: 201 });
   } catch (error: any) {
     console.error("Error creating admission application:", error);

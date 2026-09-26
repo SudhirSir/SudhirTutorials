@@ -222,13 +222,13 @@ function StoreDashboardContent() {
       <main className="store-content-area">
         {activeTab === 'store' && (
           <div className="fade-in">
-            <Storefront />
+            <Storefront onGoToLibrary={() => handleTabChange('purchases')} />
           </div>
         )}
 
         {activeTab === 'purchases' && (
           <div className="fade-in">
-            <StudentPurchases />
+            <StudentPurchases onBrowseStore={() => handleTabChange('store')} />
           </div>
         )}
 

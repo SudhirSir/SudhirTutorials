@@ -1296,8 +1296,9 @@ function TeacherDashboardContent() {
       {activeTab === 'classes' && (
         <>
           <QuickServicesWidget role="TEACHER" setActiveTab={handleTabChange} />
-          <div className="resp-grid-2col" style={{ marginBottom: '3rem' }}>
-            <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Side-by-Side Quick Actions & Timetable Cards on Desktop */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            <div className="glass-card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Quick Actions</h3>
               <button onClick={() => handleTabChange('attendance')} style={{ width: '100%', padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', color: '#34d399', fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'}>
                 <span style={{ fontSize: '1.2rem' }}>📝</span> Mark Attendance
@@ -1309,92 +1310,92 @@ function TeacherDashboardContent() {
                 <span style={{ fontSize: '1.2rem' }}>📚</span> Upload Materials
               </button>
             </div>
-          </div>
 
-          {/* Weekly Timetable Grid */}
-          <div className="glass-card" style={{ padding: '2rem', marginBottom: '3rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Timetable</h2>
-              <button
-                onClick={() => setShowFullWeekModal(true)}
-                style={{
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  color: '#10b981',
-                  padding: '4px 12px',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                📅 Full Week
-              </button>
-            </div>
-            
-            {/* Unified Today-First Scrollable Schedule Area */}
-            <div style={{ maxHeight: '350px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '4px' }}>
-              {(() => {
-                const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                const todayIdx = new Date().getDay();
-                const orderedDayIndices = Array.from({ length: 7 }, (_, i) => (todayIdx + i) % 7);
+            {/* Weekly Timetable Card Beside Quick Actions */}
+            <div className="glass-card" style={{ padding: '1.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Weekly Timetable</h2>
+                <button
+                  onClick={() => setShowFullWeekModal(true)}
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    color: '#10b981',
+                    padding: '4px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  📅 Full Week
+                </button>
+              </div>
+              
+              {/* Unified Today-First Scrollable Schedule Area */}
+              <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '4px' }}>
+                {(() => {
+                  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                  const todayIdx = new Date().getDay();
+                  const orderedDayIndices = Array.from({ length: 7 }, (_, i) => (todayIdx + i) % 7);
 
-                return orderedDayIndices.map(idx => {
-                  const day = daysOfWeek[idx];
-                  const daySchedules: any[] = [];
-                  classes.forEach(b => {
-                    b.schedules?.forEach((s: any) => {
-                      if ((s.dayOfWeek % 7) === idx) daySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
+                  return orderedDayIndices.map(idx => {
+                    const day = daysOfWeek[idx];
+                    const daySchedules: any[] = [];
+                    classes.forEach(b => {
+                      b.schedules?.forEach((s: any) => {
+                        if ((s.dayOfWeek % 7) === idx) daySchedules.push({ ...s, batchName: b.name, courseName: b.course?.name });
+                      });
                     });
-                  });
-                  daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
-                  const isToday = idx === todayIdx;
+                    daySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+                    const isToday = idx === todayIdx;
 
-                  return (
-                    <div 
-                      key={day} 
-                      style={{ 
-                        background: isToday ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.01)', 
-                        borderRadius: '16px', 
-                        padding: '1.25rem', 
-                        border: isToday ? '2px solid #10b981' : '1px solid var(--border)',
-                        boxShadow: isToday ? '0 8px 24px rgba(16, 185, 129, 0.15)' : 'none',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.75rem' : 0 }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text-heading)' }}>
-                          {isToday ? '📅 Today\'s Schedule' : `📅 ${day}`}
-                        </span>
-                        {isToday && (
-                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: 900, textTransform: 'uppercase' }}>
-                            {day}
+                    return (
+                      <div 
+                        key={day} 
+                        style={{ 
+                          background: isToday ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.01)', 
+                          borderRadius: '16px', 
+                          padding: '1rem 1.25rem', 
+                          border: isToday ? '2px solid #10b981' : '1px solid var(--border)',
+                          boxShadow: isToday ? '0 8px 24px rgba(16, 185, 129, 0.15)' : 'none',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.75rem' : 0 }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 800, color: isToday ? '#10b981' : 'var(--text-heading)' }}>
+                            {isToday ? '📅 Today\'s Schedule' : `📅 ${day}`}
                           </span>
+                          {isToday && (
+                            <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: 900, textTransform: 'uppercase' }}>
+                              {day}
+                            </span>
+                          )}
+                        </div>
+
+                        {daySchedules.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {daySchedules.map(ds => (
+                              <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
+                                </div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem 0', fontStyle: 'italic' }}>
+                            No classes scheduled.
+                          </p>
                         )}
                       </div>
-
-                      {daySchedules.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          {daySchedules.map(ds => (
-                            <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div>
-                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
-                              </div>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem 0', fontStyle: 'italic' }}>
-                          No classes scheduled.
-                        </p>
-                      )}
-                    </div>
-                  );
-                });
-              })()}
+                    );
+                  });
+                })()}
+              </div>
             </div>
           </div>
 
@@ -2158,7 +2159,7 @@ function TeacherDashboardContent() {
             padding: '0', 
             display: 'flex', 
             flexDirection: 'column', 
-            height: 'calc(100vh - 170px)', 
+            height: 'calc(100vh - 95px)', 
             minHeight: '480px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 
@@ -2166,7 +2167,7 @@ function TeacherDashboardContent() {
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             boxShadow: 'var(--shadow)',
-            marginBottom: '2rem', 
+            marginBottom: '0.25rem', 
             overflow: 'hidden' 
           }}
         >

@@ -13,10 +13,10 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    // Get initial theme from DOM attribute set by the blocking script, or default to localStorage / dark
+    // Get initial theme from DOM attribute set by the blocking script, or default to localStorage / light
     const storedTheme = safeLocalStorage.getItem("theme") as Theme;
     const documentTheme = typeof document !== 'undefined' ? document.documentElement.getAttribute("data-theme") as Theme : null;
     
@@ -24,6 +24,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setTheme(storedTheme);
     } else if (documentTheme) {
       setTheme(documentTheme);
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
     }
   }, []);
 

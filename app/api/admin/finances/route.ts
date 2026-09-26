@@ -189,7 +189,8 @@ export async function POST(req: Request) {
         const sDiscount = Math.max(discount || 0, sScholarship);
         const finalAssignedAmount = amount || s.studentProfile?.baseFee || 0;
         const gradeCode = getGradeLetterCode(s.studentProfile?.className);
-        const receiptNo = `${finalCreatedAt.getFullYear()}/${gradeCode}/${1001 + currentTotalPayments + count}`;
+        const yearCode = String(finalCreatedAt.getFullYear()).slice(-2);
+        const receiptNo = `${yearCode}/${gradeCode}/${1001 + currentTotalPayments + count}`;
 
         await withDbRetry(() => prisma.payment.create({
           data: {
@@ -260,7 +261,7 @@ export async function POST(req: Request) {
       }
 
       const gradeCode = getGradeLetterCode(student.studentProfile?.className);
-      const receiptNo = `${finalCreatedAt.getFullYear()}/${gradeCode}/${1001 + currentTotalPayments}`;
+      const receiptNo = `${String(finalCreatedAt.getFullYear()).slice(-2)}/${gradeCode}/${1001 + currentTotalPayments}`;
 
       const payment = await withDbRetry(() => prisma.payment.create({
         data: {

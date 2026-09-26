@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Storefront } from '@/components/Storefront';
+import { EduPredAI } from '@/components/EduPredAI';
 import { safeLocalStorage } from '@/lib/safeStorage';
 // Removed ScholarshipPredictor3D import
 
@@ -288,7 +289,7 @@ export default function Home() {
       </div>
 
       {/* VRSA Floating Capsule Navbar with Single Row Brand & Mobile Hamburger Drawer */}
-      <header className="vrsa-floating-nav" style={{ position: 'relative' }}>
+      <header className="vrsa-floating-nav" style={{ position: 'fixed', top: '0.75rem', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}>
         <Link href="/" className="navbar-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.65rem', whiteSpace: 'nowrap' }}>
           <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="logo-img" width={38} height={38} style={{ width: '38px', height: '38px', objectFit: 'contain', flexShrink: 0 }} priority />
           <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '1.18rem', fontWeight: 900 }}>
@@ -301,6 +302,7 @@ export default function Home() {
           {/* Desktop Navigation Links */}
           <nav className="vrsa-nav-links">
             <Link href="#programs" className="vrsa-nav-link">Flagship Programs</Link>
+            <Link href="#edupred-ai" className="vrsa-nav-link">EduPred AI™</Link>
             <Link href="/admissions" className="vrsa-nav-link">Admissions</Link>
             <Link href="#storefront" className="vrsa-nav-link">Notes/Test Series</Link>
             <Link href="#about" className="vrsa-nav-link">Why Us</Link>
@@ -356,7 +358,7 @@ export default function Home() {
             zIndex: 1001,
             animation: 'fadeIn 0.2s ease-out'
           }}>
-            <Link href="/admissions" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.08)', color: 'var(--primary)', fontWeight: 800, textDecoration: 'none', fontSize: '0.88rem' }}>
+            <Link href="/admissions" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--hp-badge-bg)', color: 'var(--hp-badge-text)', fontWeight: 800, textDecoration: 'none', fontSize: '0.88rem' }}>
               🎯 Admissions 2026-27 (Apply Now)
             </Link>
             <Link href="/careers" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
@@ -368,10 +370,13 @@ export default function Home() {
             <Link href="#about" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
               💡 Why SUDHIR TUTORIALS
             </Link>
+            <Link href="#edupred-ai" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+              🤖 EduPred AI™ (Student Predictor)
+            </Link>
             <Link href="#storefront" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', borderRadius: '12px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
               🛒 Storefront (Notes & Test Series)
             </Link>
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem 1rem', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', color: '#ffffff', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.2rem' }}>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem 1rem', borderRadius: '12px', background: 'var(--hp-gradient-btn)', color: '#ffffff', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.2rem' }}>
               🔑 Student & Staff Login →
             </Link>
           </div>
@@ -379,7 +384,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section with VRSA Layout & Original Brand Content */}
-      <section className="vrsa-hero-container">
+      <section className="vrsa-hero-container" style={{ paddingTop: '5.5rem' }}>
         {/* Admission Status Badge */}
         <Link href="/admissions" className="vrsa-top-badge animate-float" style={{ cursor: 'pointer', textDecoration: 'none' }}>
           <span className="red-dot"></span>
@@ -398,14 +403,14 @@ export default function Home() {
           alignItems: 'center',
           padding: '0.5rem 1.35rem',
           borderRadius: '100px',
-          background: 'rgba(239, 68, 68, 0.08)',
-          border: '1px solid rgba(239, 68, 68, 0.25)',
+          background: 'var(--hp-badge-bg)',
+          border: '1px solid var(--hp-badge-border)',
           fontSize: 'clamp(1rem, 2.5vw, 1.35rem)',
           fontWeight: 800,
-          color: 'var(--primary)',
+          color: 'var(--hp-badge-text)',
           margin: '0.25rem 0 1.5rem',
           fontStyle: 'italic',
-          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.1)',
+          boxShadow: 'var(--shadow)',
           maxWidth: '100%',
           boxSizing: 'border-box'
         }} className="hero-tagline-quote">
@@ -437,7 +442,7 @@ export default function Home() {
           WebkitBackdropFilter: 'blur(20px)',
           borderRadius: '28px',
           border: '1.5px solid var(--glass-border)',
-          boxShadow: '0 25px 60px -15px rgba(239, 68, 68, 0.12), 0 10px 30px rgba(0, 0, 0, 0.08)',
+          boxShadow: 'var(--shadow-lg)',
           padding: '2rem 2.25rem',
           display: 'flex',
           flexDirection: 'column',
@@ -453,8 +458,9 @@ export default function Home() {
             right: '-50px',
             width: '200px',
             height: '200px',
-            background: 'radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)',
             filter: 'blur(30px)',
+            opacity: 0.2,
             pointerEvents: 'none'
           }}></div>
           <div style={{
@@ -463,8 +469,9 @@ export default function Home() {
             left: '-50px',
             width: '200px',
             height: '200px',
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, var(--secondary) 0%, transparent 70%)',
             filter: 'blur(30px)',
+            opacity: 0.2,
             pointerEvents: 'none'
           }}></div>
 
@@ -472,7 +479,7 @@ export default function Home() {
           <div className="guru-ji-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <span style={{
-                background: 'linear-gradient(135deg, #ef4444 0%, #3b82f6 100%)',
+                background: 'var(--hp-gradient-btn)',
                 color: '#ffffff',
                 fontSize: '0.72rem',
                 fontWeight: 800,
@@ -487,7 +494,7 @@ export default function Home() {
                 ST <span style={{ color: 'var(--primary)' }}>GURU</span> <span style={{ color: 'var(--secondary)' }}>JI</span>
               </h3>
             </div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 12px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', background: 'var(--hp-badge-bg)', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--hp-badge-border)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span>🔊</span> Speaks & Explains in Sudhir Sir's Human Voice!
             </div>
           </div>
@@ -501,7 +508,7 @@ export default function Home() {
           <div className="guru-ji-modes-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
             {/* Mode 1: Photo Scan */}
             <div style={{ padding: '1.1rem', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '1.5rem', background: 'rgba(239, 68, 68, 0.12)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: '1.5rem', background: 'var(--hp-badge-bg)', color: 'var(--primary)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 📸
               </div>
               <div>
@@ -514,7 +521,7 @@ export default function Home() {
 
             {/* Mode 2: Voice Notes */}
             <div style={{ padding: '1.1rem', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '1.5rem', background: 'rgba(59, 130, 246, 0.12)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: '1.5rem', background: 'var(--hp-badge-bg)', color: 'var(--secondary)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 🎙️
               </div>
               <div>
@@ -527,7 +534,7 @@ export default function Home() {
 
             {/* Mode 3: Sudhir Sir Voice Audio */}
             <div style={{ padding: '1.1rem', background: 'var(--card-bg-alt)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '1.5rem', background: 'rgba(16, 185, 129, 0.12)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: '1.5rem', background: 'var(--hp-badge-bg)', color: 'var(--primary)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 🔊
               </div>
               <div>
@@ -553,7 +560,7 @@ export default function Home() {
               type="submit" 
               disabled={typingDoubt || !doubtText.trim()} 
               className="btn-primary" 
-              style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', color: '#fff' }}
+              style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', border: 'none', background: 'var(--hp-gradient-btn)', color: '#fff' }}
             >
               {typingDoubt ? 'Solving...' : '✨ Ask ST Guru Ji'}
             </button>
@@ -640,7 +647,7 @@ export default function Home() {
                 <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>Interactive Smart Classroom</div>
                 <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>Sudhir Tutorials Main Campus, Ludhiana</div>
               </div>
-              <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#ffffff', padding: '5px 14px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 4px 12px rgba(239,68,68,0.4)', flexShrink: 0 }}>
+              <span style={{ background: 'var(--hp-gradient-btn)', color: '#ffffff', padding: '5px 14px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: 'var(--shadow)', flexShrink: 0 }}>
                 ● Active Batches
               </span>
             </div>
@@ -649,7 +656,7 @@ export default function Home() {
           {/* Right Column: Campus Details & Highlights */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
             <span style={{
-              background: 'linear-gradient(90deg, rgba(239,68,68,0.15) 0%, rgba(37,99,235,0.15) 100%)',
+              background: 'var(--hp-badge-bg)',
               color: 'var(--primary)',
               padding: '5px 14px',
               borderRadius: '20px',
@@ -658,7 +665,7 @@ export default function Home() {
               textTransform: 'uppercase',
               letterSpacing: '1px',
               alignSelf: 'flex-start',
-              border: '1px solid rgba(239,68,68,0.2)'
+              border: '1px solid var(--hp-badge-border)'
             }}>
               CAMPUS & FACULTY SPOTLIGHT
             </span>
@@ -700,7 +707,7 @@ export default function Home() {
       {/* Mobile App Promotion Section */}
       <section className="mobile-app-section" id="mobile-app" style={{
         padding: '6rem 2rem',
-        background: 'linear-gradient(180deg, var(--background) 0%, rgba(99, 102, 241, 0.05) 50%, var(--background) 100%)',
+        background: 'var(--surface-light)',
         borderTop: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)'
       }}>
@@ -714,7 +721,7 @@ export default function Home() {
         }}>
           <div className="mobile-app-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <span style={{
-              background: 'linear-gradient(90deg, rgba(239,68,68,0.15) 0%, rgba(37,99,235,0.15) 100%)',
+              background: 'var(--hp-badge-bg)',
               color: 'var(--primary)',
               padding: '6px 16px',
               borderRadius: '20px',
@@ -722,7 +729,8 @@ export default function Home() {
               fontWeight: 800,
               textTransform: 'uppercase',
               letterSpacing: '1.5px',
-              alignSelf: 'flex-start'
+              alignSelf: 'flex-start',
+              border: '1px solid var(--hp-badge-border)'
             }}>
               Now on Android
             </span>
@@ -735,7 +743,7 @@ export default function Home() {
               color: 'var(--text)',
               letterSpacing: '-1px'
             }}>
-              Download Our <span className="gradient-text">Mobile App</span>
+              Download Our <span className="text-gradient">Mobile App</span>
             </h2>
 
             <p style={{
@@ -789,8 +797,8 @@ export default function Home() {
                   alignItems: 'center',
                   gap: '0.75rem',
                   textDecoration: 'none',
-                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.25)',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  boxShadow: 'var(--shadow-lg)',
+                  background: 'var(--hp-gradient-btn)',
                   border: 'none',
                   color: 'white',
                   transition: 'all 0.2s ease'
@@ -896,8 +904,8 @@ export default function Home() {
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                 </svg>
               ), 
-              border: '#f59e0b', 
-              shadow: 'rgba(245, 158, 11, 0.2)' 
+              border: 'var(--primary)', 
+              shadow: 'var(--hp-badge-border)' 
             },
             { 
               value: '10K+', 
@@ -908,8 +916,8 @@ export default function Home() {
                   <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path>
                 </svg>
               ), 
-              border: '#10b981', 
-              shadow: 'rgba(16, 185, 129, 0.2)' 
+              border: 'var(--secondary)', 
+              shadow: 'var(--hp-badge-border)' 
             }
           ].map((stat, idx) => (
             <div 
@@ -919,7 +927,7 @@ export default function Home() {
                 padding: '2rem 1.5rem',
                 textAlign: 'center',
                 borderRadius: '20px',
-                border: `1px solid ${stat.border}33`,
+                border: `1.5px solid ${stat.border}`,
                 background: 'var(--glass-bg)',
                 transformStyle: 'preserve-3d',
                 transform: 'translateZ(0)',
@@ -986,7 +994,7 @@ export default function Home() {
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>IIT / Medical Selections</div>
               </div>
               <div style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', gridColumn: 'span 2' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#10b981' }}>10,000+</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--primary)' }}>10,000+</div>
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Students Mentored</div>
               </div>
             </div>
@@ -1011,15 +1019,15 @@ export default function Home() {
                       let btnBorder = 'var(--border)';
                       if (quizSubmitted) {
                         if (opt.correct) {
-                          btnBg = 'rgba(16, 185, 129, 0.15)';
-                          btnBorder = '#10b981';
+                          btnBg = 'var(--hp-badge-bg)';
+                          btnBorder = 'var(--secondary)';
                         } else if (quizAnswer === opt.id) {
-                          btnBg = 'rgba(239, 68, 68, 0.15)';
-                          btnBorder = '#ef4444';
+                          btnBg = 'var(--hp-badge-bg)';
+                          btnBorder = 'var(--primary)';
                         }
                       } else if (quizAnswer === opt.id) {
-                        btnBg = 'rgba(37, 99, 235, 0.15)';
-                        btnBorder = 'var(--secondary)';
+                        btnBg = 'var(--hp-badge-bg)';
+                        btnBorder = 'var(--primary)';
                       }
 
                       return (
@@ -1040,14 +1048,14 @@ export default function Home() {
                     <button 
                       onClick={() => quizAnswer && setQuizSubmitted(true)}
                       className="btn-primary"
-                      style={{ width: '100%', marginTop: '1rem', border: 'none' }}
+                      style={{ width: '100%', marginTop: '1rem', border: 'none', background: 'var(--hp-gradient-btn)', color: '#ffffff' }}
                       disabled={!quizAnswer}
                     >
                       Submit Answer
                     </button>
                   ) : (
                     <div className="quiz-explanation-box">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: quizQuestion.options.find(o => o.id === quizAnswer)?.correct ? '#10b981' : '#ef4444', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.5rem' }}>
                         {quizQuestion.options.find(o => o.id === quizAnswer)?.correct ? "🎉 Correct Answer!" : "❌ Incorrect. Try again!"}
                       </div>
                       <p className="explanation-text">{quizQuestion.explanation}</p>
@@ -1074,7 +1082,7 @@ export default function Home() {
           {[
             { title: 'JEE Main & Advanced', subtitle: 'Class 11, 12 & Droppers', desc: 'Rigorous engineering preparation focusing on fundamental physics, organic chemistry, and advanced calculus.', color: 'var(--primary)' },
             { title: 'NEET (UG) Medical', subtitle: 'Class 11, 12 & Droppers', desc: 'Focused pre-medical training detailing human physiology, botanical systems, and organic chemistry mechanisms.', color: 'var(--secondary)' },
-            { title: 'Pre-Foundation Academy', subtitle: 'Class 6 to 10', desc: 'Pre-enrollment program constructing analytical frameworks for NTSE, Olympiads, and future competitive courses.', color: '#f59e0b' }
+            { title: 'Pre-Foundation Academy', subtitle: 'Class 6 to 10', desc: 'Pre-enrollment program constructing analytical frameworks for NTSE, Olympiads, and future competitive courses.', color: 'var(--primary)' }
           ].map((prog, i) => (
             <div key={i} className="glass-card program-card">
               <div className="card-top-accent" style={{ backgroundColor: prog.color }}></div>
@@ -1102,15 +1110,36 @@ export default function Home() {
         overflow: 'hidden'
       }}>
         <div className="features-layout" style={{ gridTemplateColumns: '1fr 1fr', position: 'relative', zIndex: 1, alignItems: 'center' }}>
-          {/* Founder Image on Left */}
+          {/* Founder Text on Left */}
+          <div className="features-left" style={{ gap: '1.25rem' }}>
+            <div className="admission-pill" style={{ margin: 0, alignSelf: 'flex-start', background: 'var(--hp-badge-bg)', color: 'var(--primary)', border: '1px solid var(--hp-badge-border)' }}>
+              🎯 Leadership Message
+            </div>
+            <h2 style={{ fontSize: '2.25rem', fontWeight: 900, margin: 0, color: 'var(--text-heading)' }}>
+              A Message from Our Founder
+            </h2>
+            <p style={{ fontSize: '1.05rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, fontStyle: 'italic', borderLeft: '4px solid var(--primary)', paddingLeft: '1rem' }}>
+              "At <span style={{ fontWeight: 800, color: 'var(--brand-sudhir)' }}>SUDHIR</span> <span style={{ fontWeight: 800, color: 'var(--brand-tutorials)' }}>TUTORIALS</span>, we believe that education is not merely the transmission of textbook knowledge, but the ignition of a lifelong passion for critical thinking."
+            </p>
+            <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
+              Over the last decade, we have watched thousands of students walk through our doors, overcome their academic anxieties, and secure premium results in their respective board and competitive examinations. Our pedagogy is built strictly on three core pillars: structured offline practice, transparent cognitive tracking, and empathetic personal mentorship. We don't just prepare you for examinations; we teach you how to think, learn, and conquer any analytical hurdle. Welcome to your bridge to academic excellence.
+            </p>
+            <div style={{ marginTop: '0.5rem' }}>
+              <strong style={{ fontSize: '1.2rem', color: 'var(--text-heading)', display: 'block' }}>Sudhir Singh,</strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 650, display: 'block' }}>Founder & Educator,</span>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 800 }}><span style={{ color: 'var(--brand-sudhir)' }}>SUDHIR</span> <span style={{ color: 'var(--brand-tutorials)' }}>TUTORIALS</span></span>
+            </div>
+          </div>
+
+          {/* Founder Image on Right */}
           <div className="features-right" style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{
-              maxWidth: '450px',
+              maxWidth: '420px',
               width: '100%',
-              padding: '1rem',
+              padding: '0.75rem',
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              borderRadius: '24px',
+              borderRadius: '20px',
               boxShadow: 'var(--shadow)',
               position: 'relative'
             }}>
@@ -1120,33 +1149,12 @@ export default function Home() {
                 width={450}
                 height={450}
                 style={{
-                  borderRadius: '16px',
+                  borderRadius: '14px',
                   display: 'block',
                   width: '100%',
                   height: 'auto'
                 }}
               />
-            </div>
-          </div>
-
-          {/* Founder Text on Right */}
-          <div className="features-left" style={{ gap: '1.5rem' }}>
-            <div className="admission-pill" style={{ margin: 0, alignSelf: 'flex-start' }}>
-              🎯 Leadership Message
-            </div>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0, color: 'var(--text-heading)' }}>
-              A Message from Our Founder
-            </h2>
-            <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, fontStyle: 'italic', borderLeft: '4px solid var(--primary)', paddingLeft: '1rem' }}>
-              "At <span style={{ fontWeight: 800, color: 'var(--primary)' }}>SUDHIR</span> <span style={{ fontWeight: 800, color: 'var(--secondary)' }}>TUTORIALS</span>, we believe that education is not merely the transmission of textbook knowledge, but the ignition of a lifelong passion for critical thinking."
-            </p>
-            <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
-              Over the last decade, we have watched thousands of students walk through our doors, overcome their academic anxieties, and secure premium results in their respective board and competitive examinations. Our pedagogy is built strictly on three core pillars: structured offline practice, transparent cognitive tracking, and empathetic personal mentorship. We don't just prepare you for examinations; we teach you how to think, learn, and conquer any analytical hurdle. Welcome to your bridge to academic excellence.
-            </p>
-            <div style={{ marginTop: '1rem' }}>
-              <strong style={{ fontSize: '1.25rem', color: 'var(--text-heading)', display: 'block' }}>Sudhir Singh,</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 650, display: 'block' }}>Founder & Educator,</span>
-              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 800 }}><span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span></span>
             </div>
           </div>
         </div>
@@ -1155,7 +1163,7 @@ export default function Home() {
       {/* Why Us / Features Section */}
       <section id="about" className="features-section">
         <div className="section-header">
-          <h2 className="section-title">Why Choose <span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span>?</h2>
+          <h2 className="section-title">Why Choose <span style={{ color: 'var(--brand-sudhir)' }}>SUDHIR</span> <span style={{ color: 'var(--brand-tutorials)' }}>TUTORIALS</span>?</h2>
           <p className="section-subtitle" style={{ maxWidth: '800px' }}>
             We don't just teach subjects; we engineer learning habits. Discover how our hybrid ecosystem changes students' and parents' minds.
           </p>
@@ -1203,7 +1211,7 @@ export default function Home() {
                 transition: 'all 0.3s ease',
                 cursor: 'pointer'
               }}>
-                <div className="feature-icon" style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)', color: 'var(--primary)' }}>{feat.icon}</div>
+                <div className="feature-icon" style={{ background: 'var(--hp-badge-bg)', color: 'var(--primary)' }}>{feat.icon}</div>
                 <div>
                   <h3 className="feature-row-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 0.25rem 0' }}>{feat.title}</h3>
                   <p className="feature-row-desc" style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>{feat.desc}</p>
@@ -1228,7 +1236,7 @@ export default function Home() {
                 className="features-img"
                 style={{
                   borderRadius: '20px',
-                  boxShadow: '0 15px 35px rgba(37, 99, 235, 0.15)',
+                  boxShadow: 'var(--shadow)',
                   border: '1px solid var(--border)'
                 }}
               />
@@ -1237,7 +1245,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* EduPred AI Performance Predictor Section */}
+      <EduPredAI />
+
       {/* Premium Storefront Section */}
       <Storefront />
 
@@ -1246,7 +1256,7 @@ export default function Home() {
           <div className="footer-brand-col">
             <div className="footer-logo">
               <Image src="/logo.png" alt="Sudhir Tutorials Logo" className="footer-logo-img" width={32} height={32} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-              <span><span style={{ color: 'var(--primary)', fontWeight: 900 }}>SUDHIR</span> <span style={{ color: 'var(--secondary)', fontWeight: 900 }}>TUTORIALS</span></span>
+              <span><span style={{ color: 'var(--brand-sudhir)', fontWeight: 900 }}>SUDHIR</span> <span style={{ color: 'var(--brand-tutorials)', fontWeight: 900 }}>TUTORIALS</span></span>
             </div>
             <p className="footer-desc">Constructing foundational excellence and securing top-tier competitive results for over a decade.</p>
             <div className="social-links">
@@ -1396,14 +1406,14 @@ export default function Home() {
           gap: 2rem;
           align-items: center;
         }
-        .nav-link {
-          color: var(--text-muted);
-          font-weight: 600;
+        .nav-link, .vrsa-nav-link {
+          color: var(--text-heading);
+          font-weight: 700;
           font-size: 0.9rem;
           transition: color 0.2s, transform 0.2s;
         }
-        .nav-link:hover {
-          color: var(--text-heading);
+        .nav-link:hover, .vrsa-nav-link:hover {
+          color: var(--primary);
           transform: translateY(-1px);
         }
         .login-portal-btn {
@@ -1611,22 +1621,22 @@ export default function Home() {
         }
 
         .interactive-arena-section {
-          padding: 6rem 6%;
+          padding: 2.25rem 6% 1.25rem 6%;
           position: relative;
           z-index: 2;
         }
         .section-header {
           text-align: center;
-          margin-bottom: 4rem;
+          margin-bottom: 1.5rem;
         }
         .section-title {
-          font-size: 2.6rem;
+          font-size: 2.2rem;
           font-weight: 900;
-          margin-bottom: 1rem;
+          margin-bottom: 0.35rem;
         }
         .section-subtitle {
           color: var(--text-muted);
-          font-size: 1.1rem;
+          font-size: 1rem;
           max-width: 600px;
           margin: 0 auto;
         }
@@ -1634,11 +1644,11 @@ export default function Home() {
         .arena-grid {
           display: grid;
           grid-template-columns: 1.2fr 0.8fr;
-          gap: 2.5rem;
+          gap: 1.25rem;
         }
         .arena-card {
-          padding: 2.5rem;
-          border-radius: 24px;
+          padding: 1.5rem;
+          border-radius: 20px;
           background: var(--glass-bg);
           border: 1px solid var(--glass-border);
           backdrop-filter: blur(12px);
@@ -1651,20 +1661,20 @@ export default function Home() {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.5rem;
         }
         .card-header-icon .icon {
-          font-size: 2rem;
+          font-size: 1.75rem;
         }
         .card-header-icon h3 {
           margin: 0;
-          font-size: 1.4rem;
+          font-size: 1.3rem;
           font-weight: 850;
         }
         .card-desc {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           color: var(--text-muted);
-          margin: 0 0 2rem 0;
+          margin: 0 0 1rem 0;
         }
         .input-group {
           display: flex;
@@ -1684,7 +1694,7 @@ export default function Home() {
           gap: 0.5rem;
         }
         .selector-btn {
-          padding: 0.75rem 0.5rem;
+          padding: 0.6rem 0.5rem;
           border-radius: 10px;
           background: var(--input-bg);
           border: 1px solid var(--border);
@@ -1704,7 +1714,7 @@ export default function Home() {
           border-radius: 5px;
           background: var(--border);
           outline: none;
-          margin: 0.75rem 0;
+          margin: 0.5rem 0;
         }
         .slider-input::-webkit-slider-thumb {
           -webkit-appearance: none;
@@ -1739,16 +1749,16 @@ export default function Home() {
         .fee-output-box {
           background: rgba(0,0,0,0.15);
           border-radius: 16px;
-          padding: 1.5rem;
-          margin-top: 2rem;
+          padding: 1.25rem;
+          margin-top: 1.25rem;
           border: 1px solid var(--border);
         }
         .fee-row {
           display: flex;
           justify-content: space-between;
-          font-size: 0.95rem;
+          font-size: 0.92rem;
           color: var(--text-muted);
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.5rem;
         }
         .fee-row.discount {
           color: var(--primary);
@@ -1757,7 +1767,7 @@ export default function Home() {
         .fee-divider {
           border: 0;
           border-top: 1px dashed var(--border);
-          margin: 1rem 0;
+          margin: 0.75rem 0;
         }
         .fee-row.total {
           align-items: center;
@@ -1766,7 +1776,7 @@ export default function Home() {
           font-weight: 800;
         }
         .fee-net-price {
-          font-size: 1.7rem;
+          font-size: 1.5rem;
           color: var(--secondary);
           font-weight: 900;
         }
@@ -1779,34 +1789,34 @@ export default function Home() {
         .quiz-question-box {
           display: flex;
           flex-direction: column;
-          gap: 1.25rem;
+          gap: 1rem;
         }
         .quiz-question-text {
-          font-size: 1.05rem;
+          font-size: 1rem;
           font-weight: 700;
           color: var(--text-heading);
-          line-height: 1.5;
+          line-height: 1.45;
         }
         .quiz-options-list {
           display: flex;
           flex-direction: column;
-          gap: 0.75rem;
+          gap: 0.6rem;
         }
         .quiz-option-btn {
           width: 100%;
           text-align: left;
-          padding: 1rem;
+          padding: 0.75rem 0.85rem;
           border-radius: 12px;
           border: 1px solid var(--border);
           background: var(--card-bg-alt);
           color: var(--text);
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.25s;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.65rem;
         }
         .opt-letter {
           font-weight: 800;
@@ -1814,10 +1824,10 @@ export default function Home() {
         }
         .quiz-explanation-box {
           background: var(--surface-light);
-          padding: 1.25rem;
+          padding: 1rem;
           border-radius: 14px;
           border: 1px solid var(--border);
-          margin-top: 0.5rem;
+          margin-top: 0.35rem;
           animation: slide-down 0.3s ease-out;
         }
         @keyframes slide-down {
@@ -1832,18 +1842,18 @@ export default function Home() {
         }
 
         .programs-section {
-          padding: 6rem 6%;
+          padding: 1.25rem 6% 2.25rem 6%;
           position: relative;
           z-index: 2;
         }
         .programs-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 2rem;
+          gap: 1.25rem;
         }
         .program-card {
-          padding: 2.5rem 2rem;
-          border-radius: 20px;
+          padding: 1.5rem 1.35rem;
+          border-radius: 18px;
           background: var(--glass-bg);
           border: 1px solid var(--glass-border);
           backdrop-filter: blur(12px);
@@ -1853,7 +1863,7 @@ export default function Home() {
           transition: transform 0.3s, border-color 0.3s;
         }
         .program-card:hover {
-          transform: translateY(-5px);
+          transform: translateY(-4px);
           border-color: rgba(255,255,255,0.15);
         }
         .card-top-accent {
@@ -1861,40 +1871,39 @@ export default function Home() {
           top: 0;
           left: 0;
           right: 0;
-          height: 5px;
+          height: 4px;
         }
         .program-title {
-          font-size: 1.5rem;
+          font-size: 1.35rem;
           font-weight: 850;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.35rem;
         }
         .program-subtitle {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 1.5rem;
+          letter-spacing: 0.8px;
+          margin-bottom: 1rem;
         }
         .program-desc {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           color: var(--text-muted);
-          line-height: 1.6;
-          margin-bottom: 2rem;
-          min-height: 70px;
+          line-height: 1.5;
+          margin-bottom: 1rem;
         }
         .program-bullets {
           list-style: none;
           padding: 0;
-          margin: 0 0 2.5rem 0;
+          margin: 0 0 1.25rem 0;
           display: flex;
           flex-direction: column;
-          gap: 0.75rem;
+          gap: 0.5rem;
         }
         .program-bullets li {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          font-size: 0.9rem;
+          gap: 0.6rem;
+          font-size: 0.88rem;
           font-weight: 600;
         }
         .bullet-check {
@@ -1904,13 +1913,13 @@ export default function Home() {
           display: block;
           text-align: center;
           width: 100%;
-          padding: 1rem;
+          padding: 0.75rem 1rem;
           background: var(--surface-light);
           border: 1px solid var(--border);
           border-radius: 12px;
           color: var(--text);
           font-weight: 800;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           transition: all 0.25s;
         }
         .program-btn:hover {
@@ -1921,7 +1930,7 @@ export default function Home() {
         }
 
         .features-section {
-          padding: 6rem 6%;
+          padding: 2.5rem 6%;
           position: relative;
           z-index: 2;
           background: linear-gradient(180deg, transparent 0%, var(--surface) 100%);
@@ -1931,59 +1940,59 @@ export default function Home() {
         .features-layout {
           display: grid;
           grid-template-columns: 1.2fr 0.8fr;
-          gap: 4rem;
+          gap: 2rem;
           align-items: center;
         }
         .features-left {
           display: flex;
           flex-direction: column;
-          gap: 2.5rem;
+          gap: 1.25rem;
         }
         .feature-row {
           display: flex;
-          gap: 1.5rem;
+          gap: 1rem;
           align-items: flex-start;
         }
         .feature-icon {
-          font-size: 1.8rem;
-          width: 54px;
-          height: 54px;
+          font-size: 1.5rem;
+          width: 46px;
+          height: 46px;
           background: var(--surface-light);
           border: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 14px;
+          border-radius: 12px;
           flex-shrink: 0;
         }
         .feature-row-title {
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           font-weight: 800;
-          margin-bottom: 0.4rem;
+          margin-bottom: 0.25rem;
         }
         .feature-row-desc {
           color: var(--text-muted);
-          font-size: 0.95rem;
-          line-height: 1.5;
+          font-size: 0.88rem;
+          line-height: 1.45;
           margin: 0;
         }
         .image-card {
-          padding: 0.5rem;
+          padding: 0.4rem;
           background: rgba(255,255,255,0.02);
           border: 1px solid var(--glass-border);
-          border-radius: 24px;
+          border-radius: 20px;
         }
         .features-img {
           width: 100%;
           height: auto;
-          border-radius: 20px;
+          border-radius: 16px;
           object-fit: cover;
           display: block;
         }
 
         .footer-container {
           background: var(--background);
-          padding: 5rem 6% 3rem 6%;
+          padding: 3rem 6% 2rem 6%;
           position: relative;
           z-index: 2;
           border-top: 1px solid var(--border);
@@ -1991,8 +2000,8 @@ export default function Home() {
         .footer-grid {
           display: grid;
           grid-template-columns: 1.5fr 1fr 1fr 1fr;
-          gap: 4rem;
-          margin-bottom: 4rem;
+          gap: 2rem;
+          margin-bottom: 2rem;
         }
         .footer-brand-col {
           display: flex;
@@ -2045,14 +2054,17 @@ export default function Home() {
           display: flex;
           flex-direction: column;
           gap: 0.85rem;
-          color: var(--text-muted);
+          color: var(--text-heading);
+          font-weight: 700;
           font-size: 0.88rem;
         }
         .footer-link {
+          color: var(--text-heading);
+          font-weight: 700;
           transition: color 0.2s;
         }
         .footer-link:hover {
-          color: var(--text-heading);
+          color: var(--primary);
         }
         .footer-bottom {
           border-top: 1px solid var(--border);
@@ -2155,21 +2167,21 @@ export default function Home() {
           width: 42px;
           height: 42px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--primary), #b91c1c);
+          background: var(--hp-gradient-btn);
           color: white;
           font-size: 1.15rem;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
+          box-shadow: var(--shadow);
           z-index: 1000;
           transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
           border: 2px solid var(--glass-border);
         }
         .report-fab:hover {
           transform: scale(1.1) translateY(-3px);
-          box-shadow: 0 12px 28px rgba(239, 68, 68, 0.5);
+          box-shadow: var(--shadow-lg);
         }
 
         .report-modal-overlay {
@@ -2213,11 +2225,11 @@ export default function Home() {
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Found an issue or have an idea to improve the platform? Let our admins know!</p>
             
             {reportSuccess ? (
-              <div style={{ padding: '2rem', textAlign: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', borderRadius: '12px', color: '#10b981' }}>
+              <div style={{ padding: '2rem', textAlign: 'center', background: 'var(--hp-badge-bg)', border: '1px solid var(--hp-badge-border)', borderRadius: '12px', color: 'var(--primary)' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
                 <h3 style={{ margin: 0, fontWeight: 700 }}>Thank you!</h3>
                 <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Your report has been sent directly to the administrative team.</p>
-                <button onClick={() => { setShowReportBugModal(false); setReportSuccess(false); setReportTitle(''); setReportMessage(''); setReportEmail(''); setReportScreenshot(null); }} className="btn-primary" style={{ marginTop: '1.5rem', width: '100%', background: '#10b981' }}>Close</button>
+                <button onClick={() => { setShowReportBugModal(false); setReportSuccess(false); setReportTitle(''); setReportMessage(''); setReportEmail(''); setReportScreenshot(null); }} className="btn-primary" style={{ marginTop: '1.5rem', width: '100%', background: 'var(--hp-gradient-btn)' }}>Close</button>
               </div>
             ) : (
               <form onSubmit={async (e) => {
@@ -2292,8 +2304,8 @@ export default function Home() {
                   {reportScreenshot && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <img src={reportScreenshot} alt="Preview" style={{ width: '50px', height: 'auto', borderRadius: '4px', border: '1px solid var(--border)' }} />
-                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>✓ Attached</span>
-                      <button type="button" onClick={() => setReportScreenshot(null)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}>Remove</button>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>✓ Attached</span>
+                      <button type="button" onClick={() => setReportScreenshot(null)} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}>Remove</button>
                     </div>
                   )}
                 </div>
@@ -2301,7 +2313,7 @@ export default function Home() {
                   <label className="input-label" style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem' }}>Description</label>
                   <textarea required value={reportMessage} onChange={e => setReportMessage(e.target.value)} className="modal-input" placeholder="Describe the bug in detail..." rows={4} style={{ width: '100%', resize: 'none' }}></textarea>
                 </div>
-                <button type="submit" disabled={reportLoading} className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.85rem' }}>
+                <button type="submit" disabled={reportLoading} className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.85rem', background: 'var(--hp-gradient-btn)', color: '#ffffff' }}>
                   {reportLoading ? 'Sending...' : 'Submit Report 🚀'}
                 </button>
               </form>

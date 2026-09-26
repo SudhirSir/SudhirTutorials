@@ -57,12 +57,16 @@ export function getGradeLetterCode(classNameStr?: string | null): string {
 }
 
 export function generateReceiptNo(payment: any, serial?: number | string): string {
-  if (!payment) return '2026/A/1001';
+  if (!payment) return '26/A/1001';
   if (payment.receiptNo && typeof payment.receiptNo === 'string' && payment.receiptNo.trim().length > 0) {
+    const parts = payment.receiptNo.trim().split('/');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[0].slice(-2)}/${parts[1]}/${parts[2]}`;
+    }
     return payment.receiptNo;
   }
 
-  const paidYear = new Date(payment.paidAt || payment.createdAt || new Date()).getFullYear();
+  const paidYear = String(new Date(payment.paidAt || payment.createdAt || new Date()).getFullYear()).slice(-2);
   const studentProfile = payment.student?.studentProfile || payment.studentProfile;
   const className = studentProfile?.className || studentProfile?.grade || '1st';
   const gradeCode = getGradeLetterCode(className);

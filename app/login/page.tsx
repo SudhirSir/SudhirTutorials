@@ -95,10 +95,15 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
+    if (cleanUsername !== username) setUsername(cleanUsername);
+    if (cleanPassword !== password) setPassword(cleanPassword);
+
     setLoading(true);
     setError("");
 
-    if (!username || !password) {
+    if (!cleanUsername || !cleanPassword) {
       setError("Please enter both username and password.");
       setLoading(false);
       return;
@@ -108,8 +113,8 @@ export default function LoginPage() {
       safeSessionStorage.setItem('tabSessionActive', 'true');
       return signIn("credentials", {
         redirect: false,
-        username,
-        password,
+        username: cleanUsername,
+        password: cleanPassword,
         role: activeTab,
         isApp: Capacitor.isNativePlatform().toString()
       });
@@ -171,6 +176,9 @@ export default function LoginPage() {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = regEmail.trim();
+    if (cleanEmail !== regEmail) setRegEmail(cleanEmail);
+
     setRegError("");
     setRegLoading(true);
 
@@ -178,7 +186,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: regEmail, type: 'EMAIL_VERIFICATION' })
+        body: JSON.stringify({ email: cleanEmail, type: 'EMAIL_VERIFICATION' })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -197,6 +205,18 @@ export default function LoginPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanName = regName.trim();
+    const cleanEmail = regEmail.trim();
+    const cleanPhone = regPhone.trim();
+    const cleanPassword = regPassword.trim();
+    const cleanOtp = regOtp.trim();
+
+    if (cleanName !== regName) setRegName(cleanName);
+    if (cleanEmail !== regEmail) setRegEmail(cleanEmail);
+    if (cleanPhone !== regPhone) setRegPhone(cleanPhone);
+    if (cleanPassword !== regPassword) setRegPassword(cleanPassword);
+    if (cleanOtp !== regOtp) setRegOtp(cleanOtp);
+
     setRegError("");
     setRegLoading(true);
 
@@ -204,7 +224,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: regName, email: regEmail, phone: regPhone, password: regPassword, otp: regOtp })
+        body: JSON.stringify({ name: cleanName, email: cleanEmail, phone: cleanPhone, password: cleanPassword, otp: cleanOtp })
       });
       const data = await res.json();
 
@@ -216,8 +236,8 @@ export default function LoginPage() {
         safeSessionStorage.setItem('tabSessionActive', 'true');
         const loginRes = await signIn("credentials", {
           redirect: false,
-          username: regEmail,
-          password: regPassword,
+          username: cleanEmail,
+          password: cleanPassword,
           role: "student",
           isApp: Capacitor.isNativePlatform().toString()
         });
@@ -245,227 +265,278 @@ export default function LoginPage() {
   const activeColor = tabs.find(t => t.id === activeTab)?.color || "var(--primary)";
 
   return (
-    <div className="login-container-parent" style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--background)' }}>
-      {/* Left Form Section */}
-      <div className="login-form-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3rem', position: 'relative' }}>
+    <div className="login-root-split" style={{ minHeight: '100vh', width: '100vw', display: 'flex', overflow: 'hidden' }}>
+      
+      {/* LEFT SIDE: Poster Image & Testimonial Panel */}
+      <div className="login-left-poster-panel" style={{ flex: '0.65', position: 'relative', minHeight: '100vh', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '1rem' }}>
+        <div style={{ position: 'relative', width: '100%', borderRadius: '0 0 20px 20px', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+          <img 
+            src="/campus_news.png" 
+            alt="Sudhir Tutorials Campus News Poster" 
+            style={{ width: '100%', maxHeight: 'calc(100vh - 160px)', objectFit: 'contain', objectPosition: 'top', borderRadius: '0 0 16px 16px', display: 'block' }} 
+          />
+        </div>
 
-        <div style={{ marginBottom: '3rem' }}>
-          <Link href="/" className="logo" style={{ fontSize: '1.6rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
-            <img src="/logo.png" alt="SUDHIR TUTORIALS Logo" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '8px' }} />
-            <span><span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span></span>
+        {/* Shilpy Ranker Message Card directly below image */}
+        <div className="shilpy-ranker-card" style={{
+          width: '100%',
+          maxWidth: '440px',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: '18px',
+          padding: '0.9rem 1.15rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '1rem', flexShrink: 0 }}>S</div>
+            <div>
+              <div className="shilpy-title" style={{ fontWeight: 800, fontSize: '0.92rem' }}>Shilpy — PSEB AIR 14 Ranker</div>
+              <div className="shilpy-quote" style={{ fontSize: '0.8rem', fontWeight: 500, marginTop: '2px' }}>
+                "SUDHIR TUTORIALS built my strong conceptual foundation for my top AIR rank."
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE: Brand Header & Floating Login Form Card */}
+      <div className="login-right-form-panel" style={{ flex: '1', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '1.5rem', paddingBottom: '1.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem', position: 'relative', overflowY: 'auto' }}>
+        
+        {/* Top Brand Logo */}
+        <div style={{ width: '100%', maxWidth: '430px', marginBottom: '0.65rem', display: 'flex', justifyContent: 'flex-start', paddingLeft: '1.6rem' }}>
+          <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.65rem' }}>
+            <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
+            <span className="logo-text" style={{ whiteSpace: 'nowrap', fontSize: '1.75rem', fontWeight: 900, lineHeight: '1', letterSpacing: '0.5px' }}>
+              <span style={{ color: '#ef4444' }}>SUDHIR</span> <span className="brand-tutorials-dynamic">TUTORIALS</span>
+            </span>
           </Link>
         </div>
 
-        <div style={{ maxWidth: '420px', width: '100%', margin: '0' }}>
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h1 className="login-title-h1" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
-              {isRegistering ? 'Create Account' : 'Welcome Back'}
+        {/* Floating Login Card */}
+        <div className="login-card-floating" style={{
+          width: '100%',
+          maxWidth: '430px',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: '20px',
+          padding: '1.4rem 1.6rem'
+        }}>
+          
+          {/* Card Title & Subtitle */}
+          <div style={{ marginBottom: '0.85rem' }}>
+            <h1 className="card-title-text" style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 0.25rem 0' }}>
+              {isRegistering ? 'Create Account' : 'Welcome Back!'}
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-              {isRegistering ? 'Sign up to access Notes and Test Series.' : 'Enter your credentials to access your account.'}
+            <p className="card-subtitle-text" style={{ fontSize: '0.86rem', margin: 0 }}>
+              {isRegistering ? 'Sign up to access Notes and Test Series.' : `Login as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} to access your portal.`}
             </p>
           </div>
 
-          {/* Role Selection (Only if not registering) */}
+          {/* Role Tabs */}
           {!isRegistering && (
-            <div className="login-tabs-header" style={{ display: 'flex', background: 'var(--card-bg-alt)', padding: '0.4rem', borderRadius: '16px', marginBottom: '2.5rem', border: '1px solid var(--border)' }}>
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => { setActiveTab(tab.id as Role); setError(""); setUsername(""); setPassword(""); }}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  border: 'none',
-                  background: activeTab === tab.id ? tab.color : 'transparent',
-                  color: activeTab === tab.id ? '#fff' : 'var(--text-muted)',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.3s ease',
-                  boxShadow: activeTab === tab.id ? `0 4px 15px -3px ${tab.color}66` : 'none'
-                }}
-              >
-                <span>{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </div>
+            <div className="login-tabs-header" style={{ display: 'flex', background: '#ffffff', padding: '0.2rem', borderRadius: '10px', marginBottom: '1rem', border: '1.5px solid #000000' }}>
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id as Role); setError(""); setUsername(""); setPassword(""); }}
+                  className={`login-tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                  style={{
+                    flex: 1,
+                    padding: '0.45rem 0.5rem',
+                    border: 'none',
+                    background: activeTab === tab.id ? tab.color : 'transparent',
+                    color: activeTab === tab.id ? '#ffffff' : '#334155',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.25s ease',
+                    boxShadow: activeTab === tab.id ? `0 3px 10px -2px ${tab.color}66` : 'none'
+                  }}
+                >
+                  <span style={{ fontSize: '0.85rem' }}>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           )}
 
           {!isRegistering && error && (
-            <div className="animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', padding: '1rem', borderRadius: '12px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', padding: '0.65rem 0.85rem', borderRadius: '10px', marginBottom: '1rem', fontSize: '0.82rem', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               ⚠️ {error}
             </div>
           )}
 
           {isRegistering && regError && (
-            <div className="animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', padding: '1rem', borderRadius: '12px', marginBottom: '2rem', fontSize: '0.9rem', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', padding: '0.65rem 0.85rem', borderRadius: '10px', marginBottom: '1rem', fontSize: '0.82rem', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               ⚠️ {regError}
             </div>
           )}
 
           {!isRegistering ? (
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Username / ID</label>
-              <input
-                type="text"
-                placeholder={activeTab === 'teacher' ? 'e.g. FAC12345' : activeTab === 'student' ? 'e.g. STU12345' : 'Admin Username'}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '1rem 1.25rem',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '12px',
-                  color: 'var(--text)',
-                  fontSize: '1rem',
-                  transition: 'border-color 0.2s'
-                }}
-                onFocus={e => e.currentTarget.style.borderColor = activeColor}
-                onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
-              />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <label style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Password</label>
-                <Link 
-                  href="/forgot-password"
-                  style={{ fontSize: '0.85rem', color: activeColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-              <div style={{ position: 'relative' }}>
+                <label className="card-label-text" style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, fontSize: '0.82rem' }}>Username / ID</label>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  type="text"
+                  className="card-input-field"
+                  placeholder={activeTab === 'teacher' ? 'e.g. FAC12345' : activeTab === 'student' ? 'e.g. STU12345' : 'Admin Username'}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                   style={{
                     width: '100%',
-                    padding: '1rem 3.5rem 1rem 1.25rem',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '12px',
-                    color: 'var(--text)',
-                    fontSize: '1rem',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '9px',
+                    fontSize: '0.88rem',
                     transition: 'border-color 0.2s'
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = activeColor}
-                  onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '1.25rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '4px',
-                    transition: 'color 0.2s'
+                  onBlur={e => {
+                    setUsername(e.target.value.trim());
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.815 7.815 3 3m-3-3-3.671-3.671m0 0a3 3 0 0 1-4.243-4.243m4.242 4.242L9.88 9.88" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                    </svg>
-                  )}
-                </button>
+                />
               </div>
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <input type="checkbox" id="remember" style={{ width: '18px', height: '18px', accentColor: activeColor, cursor: 'pointer' }} />
-              <label htmlFor="remember" style={{ fontSize: '0.9rem', color: 'var(--text-muted)', cursor: 'pointer' }}>Remember me for 30 days</label>
-            </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label className="card-label-text" style={{ fontWeight: 600, fontSize: '0.82rem' }}>Password</label>
+                  <Link 
+                    href="/forgot-password"
+                    style={{ fontSize: '0.78rem', color: activeColor, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="card-input-field"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 2.5rem 0.65rem 0.85rem',
+                      borderRadius: '9px',
+                      fontSize: '0.88rem',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={e => e.currentTarget.style.borderColor = activeColor}
+                    onBlur={e => {
+                      setPassword(e.target.value.trim());
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px'
+                    }}
+                  >
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '16px', height: '16px' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.815 7.815 3 3m-3-3-3.671-3.671m0 0a3 3 0 0 1-4.243-4.243m4.242 4.242L9.88 9.88" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '16px', height: '16px' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
 
-            <button 
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <input type="checkbox" id="remember" style={{ width: '14px', height: '14px', accentColor: activeColor, cursor: 'pointer' }} />
+                <label htmlFor="remember" className="card-checkbox-label" style={{ fontSize: '0.8rem', cursor: 'pointer' }}>Remember me for 30 days</label>
+              </div>
+
+              {/* Login Button */}
+              <button 
                 type="submit" 
                 disabled={loading}
                 style={{ 
-                  width: '100%', 
-                  padding: '1.2rem', 
+                  padding: '0.55rem 1.25rem', 
                   background: activeColor,
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '12px',
+                  borderRadius: '8px',
                   fontWeight: 700,
-                  fontSize: '1.1rem',
+                  fontSize: '0.86rem',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.7 : 1,
-                  boxShadow: `0 4px 20px -5px ${activeColor}80`,
-                  marginTop: '1rem',
+                  boxShadow: `0 3px 12px -2px ${activeColor}66`,
+                  marginTop: '0.25rem',
+                  width: 'fit-content',
+                  alignSelf: 'center',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
                   transition: 'transform 0.2s'
                 }}
                 onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                 onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
               >
-                {loading ? "Authenticating..." : `Sign In as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+                {loading ? "Logging in..." : `Login as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
               </button>
             </form>
           ) : (
-            <form onSubmit={otpSent ? handleRegister : handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={otpSent ? handleRegister : handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               {!otpSent ? (
                 <>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Full Name</label>
-                    <input type="text" placeholder="Your Name" value={regName} onChange={(e) => setRegName(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-muted)' }}>Full Name</label>
+                    <input type="text" placeholder="Your Name" value={regName} onChange={(e) => setRegName(e.target.value)} required style={{ width: '100%', padding: '0.85rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '0.95rem' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Email Address</label>
-                    <input type="email" placeholder="student@example.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-muted)' }}>Email Address</label>
+                    <input type="email" placeholder="student@example.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required style={{ width: '100%', padding: '0.85rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '0.95rem' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Phone Number (Optional)</label>
-                    <input type="tel" placeholder="1234567890" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-muted)' }}>Phone Number (Optional)</label>
+                    <input type="tel" placeholder="1234567890" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} style={{ width: '100%', padding: '0.85rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '0.95rem' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Create a Password</label>
-                    <input type="password" placeholder="••••••••" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1rem' }} />
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-muted)' }}>Create a Password</label>
+                    <input type="password" placeholder="••••••••" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required style={{ width: '100%', padding: '0.85rem 1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '0.95rem' }} />
                   </div>
-                  <button type="submit" disabled={regLoading} style={{ width: '100%', padding: '1.2rem', background: activeColor, color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '1.1rem', cursor: regLoading ? 'not-allowed' : 'pointer', opacity: regLoading ? 0.7 : 1, marginTop: '1rem' }}>
+                  <button type="submit" disabled={regLoading} style={{ padding: '0.8rem 1.75rem', width: 'fit-content', background: activeColor, color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.95rem', cursor: regLoading ? 'not-allowed' : 'pointer', opacity: regLoading ? 0.7 : 1, marginTop: '0.5rem' }}>
                     {regLoading ? "Sending Code..." : "Send Verification Code"}
                   </button>
                 </>
               ) : (
                 <>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontSize: '0.9rem', border: '1px solid rgba(16,185,129,0.2)', textAlign: 'center' }}>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.85rem', borderRadius: '12px', marginBottom: '0.85rem', fontSize: '0.88rem', border: '1px solid rgba(16,185,129,0.2)', textAlign: 'center' }}>
                     Verification code sent to <strong>{regEmail}</strong>
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Enter 6-digit Code</label>
-                    <input type="text" placeholder="123456" value={regOtp} onChange={(e) => setRegOtp(e.target.value)} required style={{ width: '100%', padding: '1rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1.2rem', textAlign: 'center', letterSpacing: '4px', fontWeight: 'bold' }} maxLength={6} />
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-muted)' }}>Enter 6-digit Code</label>
+                    <input type="text" placeholder="123456" value={regOtp} onChange={(e) => setRegOtp(e.target.value)} required style={{ width: '100%', padding: '0.85rem', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text)', fontSize: '1.1rem', textAlign: 'center', letterSpacing: '4px', fontWeight: 'bold' }} maxLength={6} />
                   </div>
-                  <button type="submit" disabled={regLoading} style={{ width: '100%', padding: '1.2rem', background: activeColor, color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '1.1rem', cursor: regLoading ? 'not-allowed' : 'pointer', opacity: regLoading ? 0.7 : 1, marginTop: '1rem' }}>
+                  <button type="submit" disabled={regLoading} style={{ padding: '0.8rem 1.75rem', width: 'fit-content', background: activeColor, color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.95rem', cursor: regLoading ? 'not-allowed' : 'pointer', opacity: regLoading ? 0.7 : 1, marginTop: '0.5rem' }}>
                     {regLoading ? "Verifying..." : "Verify & Register"}
                   </button>
-                  <button type="button" onClick={() => setOtpSent(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                  <button type="button" onClick={() => setOtpSent(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}>
                     Change email address
                   </button>
                 </>
@@ -474,96 +545,127 @@ export default function LoginPage() {
           )}
 
           {isRegistering && (
-            <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+            <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
               Already have an account?{' '}
               <button onClick={() => { setIsRegistering(false); setRegError(""); }} style={{ background: 'none', border: 'none', color: activeColor, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
-                Sign In
+                Login
               </button>
             </p>
           )}
 
           {activeTab !== 'admin' && !isRegistering && (
-             <p style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+             <p className="card-subnote-text" style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.82rem', margin: '1.25rem 0 0 0' }}>
                 First time login? Please use the default credentials provided by the institute administration.
              </p>
           )}
         </div>
 
-        <div style={{ marginTop: 'auto', paddingTop: '3rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          © 2026 <span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span>
+        {/* Bottom Copyright */}
+        <div style={{ marginTop: '1.75rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+          © 2026 <span className="text-red">SUDHIR</span> <span className="brand-tutorials-dynamic">TUTORIALS</span>
         </div>
       </div>
 
-      {/* Right Image Section */}
-      <div style={{ flex: 1.2, position: 'relative', display: 'none' }} className="hide-on-mobile">
-        {/* Fixed Background Image and Overlay */}
-        <div style={{ position: 'absolute', inset: 0, background: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop) center/cover', zIndex: 0 }}></div>
-        <div style={{ position: 'absolute', inset: 0, background: 'var(--login-overlay)', zIndex: 1 }}></div>
-        
-        {/* Scrollable Content Wrapper */}
-        <div className="right-panel-scroll" style={{ position: 'absolute', inset: 0, zIndex: 2, overflowY: 'auto', padding: '3rem' }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%', maxWidth: '650px', margin: '0 auto' }}>
-            
-            {/* News & Updates Section */}
-            <div style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: 'var(--shadow)' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                 <span style={{ fontSize: '1.3rem' }}>📢</span>
-                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '1px', color: 'var(--text)' }}>INSTITUTE NEWS</h3>
-               </div>
-               
-               <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border)', height: '620px', display: 'flex', justifyContent: 'center' }}>
-                  <iframe 
-                    src="https://www.instagram.com/p/DYSZKfBKZkv/embed" 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="auto" 
-                    style={{ border: 'none', width: '100%', height: '100%', display: 'block' }}
-                  ></iframe>
-               </div>
-               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '1rem', textAlign: 'center', fontWeight: 500 }}>
-                 Stay updated with our latest achievements and announcements.
-               </p>
-            </div>
-
-            {/* Smaller, Elegant Shilpy Quote Card */}
-            <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(20px)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-               <div style={{ color: activeColor, fontSize: '1.5rem', marginBottom: '0.25rem', lineHeight: 1 }}>❝</div>
-                <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: '1rem', fontWeight: 500 }}>
-                  "<span style={{ color: 'var(--primary)' }}>SUDHIR</span> <span style={{ color: 'var(--secondary)' }}>TUTORIALS</span> didn't just teach me formulas; they built my conceptual foundation. The dedicated faculty and competitive environment were the true catalysts for my AIR 14 rank."
-                </p>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff', fontSize: '1rem' }}>S</div>
-                 <div>
-                   <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '1rem' }}>Shilpy</div>
-                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>PSEB AIR 14</div>
-                 </div>
-               </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-      
       <style jsx>{`
-        @media (min-width: 900px) {
-          .hide-on-mobile {
-            display: block !important;
+        .brand-tutorials-dynamic {
+          color: #2563eb !important;
+        }
+
+        /* DARK THEME RULES (Blue Glass Card + Dark Navy Background) */
+        :root[data-theme="dark"] .login-right-form-panel {
+          background-color: #0b1329 !important;
+        }
+        :root[data-theme="dark"] .login-root-split {
+          background-color: #0f1729 !important;
+        }
+        :root[data-theme="dark"] .login-card-floating,
+        :root[data-theme="dark"] .shilpy-ranker-card {
+          background: linear-gradient(145deg, #1e293b 0%, #0f1729 100%) !important;
+          color: #ffffff !important;
+          border: 1px solid rgba(255, 255, 255, 0.14) !important;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.12) !important;
+        }
+        :root[data-theme="dark"] .card-title-text,
+        :root[data-theme="dark"] .shilpy-title { color: #ffffff !important; }
+        :root[data-theme="dark"] .card-subtitle-text,
+        :root[data-theme="dark"] .card-label-text,
+        :root[data-theme="dark"] .shilpy-quote { color: #cbd5e1 !important; }
+        :root[data-theme="dark"] .card-checkbox-label,
+        :root[data-theme="dark"] .card-subnote-text { color: #94a3b8 !important; }
+        :root[data-theme="dark"] .card-input-field {
+          background: rgba(255, 255, 255, 0.08) !important;
+          border: 1px solid rgba(255, 255, 255, 0.18) !important;
+          color: #ffffff !important;
+        }
+        :root[data-theme="dark"] .login-tabs-header {
+          background: rgba(15, 23, 42, 0.65) !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* LIGHT THEME RULES (White Background Card + Black Border) */
+        :root[data-theme="light"] .login-right-form-panel,
+        :root:not([data-theme="dark"]) .login-right-form-panel {
+          background-color: #f8fafc !important;
+        }
+        :root[data-theme="light"] .login-root-split,
+        :root:not([data-theme="dark"]) .login-root-split {
+          background-color: #f1f5f9 !important;
+        }
+        :root[data-theme="light"] .login-card-floating,
+        :root[data-theme="light"] .shilpy-ranker-card,
+        :root:not([data-theme="dark"]) .login-card-floating,
+        :root:not([data-theme="dark"]) .shilpy-ranker-card {
+          background: #ffffff !important;
+          color: #000000 !important;
+          border: 1.5px solid #000000 !important;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08) !important;
+        }
+        :root[data-theme="light"] .card-title-text,
+        :root[data-theme="light"] .card-label-text,
+        :root[data-theme="light"] .shilpy-title,
+        :root:not([data-theme="dark"]) .card-title-text,
+        :root:not([data-theme="dark"]) .card-label-text,
+        :root:not([data-theme="dark"]) .shilpy-title {
+          color: #000000 !important;
+        }
+        :root[data-theme="light"] .card-subtitle-text,
+        :root[data-theme="light"] .card-checkbox-label,
+        :root[data-theme="light"] .card-subnote-text,
+        :root[data-theme="light"] .shilpy-quote,
+        :root:not([data-theme="dark"]) .card-subtitle-text,
+        :root:not([data-theme="dark"]) .card-checkbox-label,
+        :root[data-theme="dark"] .card-subnote-text,
+        :root:not([data-theme="dark"]) .shilpy-quote {
+          color: #334155 !important;
+        }
+        :root[data-theme="light"] .card-input-field,
+        :root:not([data-theme="dark"]) .card-input-field {
+          background: #ffffff !important;
+          border: 1.5px solid #000000 !important;
+          color: #000000 !important;
+        }
+        :root[data-theme="light"] .login-tabs-header,
+        :root:not([data-theme="dark"]) .login-tabs-header {
+          background: #ffffff !important;
+          border: 1.5px solid #000000 !important;
+        }
+        @media (max-width: 900px) {
+          .login-root-split {
+            flex-direction: column !important;
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: visible !important;
           }
-        }
-        .right-panel-scroll::-webkit-scrollbar {
-          width: 6px;
-        }
-        .right-panel-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .right-panel-scroll::-webkit-scrollbar-thumb {
-          background: rgba(150, 150, 150, 0.3);
-          border-radius: 10px;
-        }
-        .right-panel-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(150, 150, 150, 0.5);
+          .login-left-poster-panel {
+            min-height: 250px !important;
+            height: 250px !important;
+            padding: 0.5rem !important;
+            flex: none !important;
+          }
+          .login-right-form-panel {
+            min-height: auto !important;
+            padding: 2rem 1rem !important;
+          }
         }
       `}</style>
     </div>

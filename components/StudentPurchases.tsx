@@ -7,7 +7,11 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 
-export function StudentPurchases() {
+interface StudentPurchasesProps {
+  onBrowseStore?: () => void;
+}
+
+export function StudentPurchases({ onBrowseStore }: StudentPurchasesProps = {}) {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -18,7 +22,7 @@ export function StudentPurchases() {
         const res = await fetch('/api/student/purchases');
         if (res.ok) {
           const data = await res.json();
-          setPurchases(data.purchases);
+          setPurchases(data.purchases || []);
         }
       } catch (e) {
         console.error(e);
@@ -41,8 +45,14 @@ export function StudentPurchases() {
     return (
       <Card variant="glass" style={{ padding: '3rem', textAlign: 'center', marginTop: '1rem' }}>
         <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--text-heading)' }}>No Purchases Yet</h3>
-        <p className="input-label" style={{ marginBottom: '1.5rem' }}>Browse our premium Test Series and Notes from the homepage storefront.</p>
-        <Button variant="primary" onClick={() => router.push('/#store')}>Browse Store</Button>
+        <p className="input-label" style={{ marginBottom: '1.5rem' }}>Browse our premium Test Series and Notes from the storefront.</p>
+        <Button variant="primary" onClick={() => {
+          if (onBrowseStore) {
+            onBrowseStore();
+          } else {
+            router.push('?tab=store');
+          }
+        }}>Browse Store</Button>
       </Card>
     );
   }

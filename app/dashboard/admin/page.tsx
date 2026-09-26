@@ -2705,6 +2705,7 @@ function AdminDashboardContent() {
 
   const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
   const [isVerifying, setIsVerifying] = useState<string | null>(null);
+  const [viewingVerificationUser, setViewingVerificationUser] = useState<any | null>(null);
 
   const fetchPendingVerifications = async () => {
     try {
@@ -2725,6 +2726,24 @@ function AdminDashboardContent() {
         body: JSON.stringify({ userId })
       });
       if (res.ok) {
+        if (viewingVerificationUser?.id === userId) setViewingVerificationUser(null);
+        fetchPendingVerifications();
+        fetchOverviewStats();
+      }
+    } catch (err) { console.error(err); } finally { setIsVerifying(null); }
+  };
+
+  const handleRejectVerification = async (userId: string) => {
+    if (!confirm("Are you sure you want to reject this verification request?")) return;
+    setIsVerifying(userId);
+    try {
+      const res = await fetch('/api/admin/verify', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'reject' })
+      });
+      if (res.ok) {
+        if (viewingVerificationUser?.id === userId) setViewingVerificationUser(null);
         fetchPendingVerifications();
         fetchOverviewStats();
       }
@@ -3696,35 +3715,44 @@ function AdminDashboardContent() {
               ) : (
                 <div style={{ display: 'grid', gap: '1rem' }}>
                   {pendingVerifications.map(u => (
-                    <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                    <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '14px', background: 'rgba(255,255,255,0.02)' }}>
+                      <div style={{ flex: 1, minWidth: '280px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
                           <span 
-                            onClick={() => setActiveProfileUserId(u.id)}
+                            onClick={() => setViewingVerificationUser(u)}
                             style={{ fontWeight: 700, fontSize: '1.1rem', cursor: 'pointer' }}
                             className="clickable-name"
                           >
-                            {u.name || 'Anonymous'}
+                            {u.name || u.studentProfile?.fatherName ? `${u.name || 'Student'} (${u.studentProfile?.fatherName ? `S/o ${u.studentProfile.fatherName}` : ''})` : (u.name || 'Anonymous')}
                           </span>
                           <span className="role-badge" style={{ fontSize: '0.65rem' }}>{u.role}</span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
                           Username: <strong>{u.username}</strong> • Joined {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                         </div>
-                        {u.studentProfile && (
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                            📞 {u.studentProfile.phone} • ✉️ {u.studentProfile.email}
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {(u.studentProfile?.phone || u.phone) && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--border)' }}>📞 {u.studentProfile?.phone || u.phone}</span>}
+                          {(u.studentProfile?.email || u.email) && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--border)' }}>✉️ {u.studentProfile?.email || u.email}</span>}
+                          {u.studentProfile?.className && <span style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(59,130,246,0.2)', fontWeight: 600 }}>🎓 {u.studentProfile.className}</span>}
+                          {u.studentProfile?.board && <span style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 600 }}>🏫 {u.studentProfile.board}</span>}
+                        </div>
                       </div>
-                      <button 
-                        className="btn-primary" 
-                        disabled={isVerifying === u.id}
-                        onClick={() => handleVerifyUser(u.id)}
-                        style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', background: '#10b981' }}
-                      >
-                        {isVerifying === u.id ? 'Verifying...' : 'Approve & Verify'}
-                      </button>
+
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => setViewingVerificationUser(u)}
+                          style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '9px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                        >
+                          👁️ View & Verify Details
+                        </button>
+                        <button 
+                          disabled={isVerifying === u.id}
+                          onClick={() => handleVerifyUser(u.id)}
+                          style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '9px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 12px -3px rgba(16, 185, 129, 0.4)' }}
+                        >
+                          {isVerifying === u.id ? 'Verifying...' : 'Approve & Verify'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -7369,7 +7397,7 @@ function AdminDashboardContent() {
             padding: '0', 
             display: 'flex', 
             flexDirection: 'column', 
-            height: 'calc(100vh - 170px)', 
+            height: 'calc(100vh - 95px)', 
             minHeight: '480px', 
             background: 'var(--glass-bg)', 
             border: '1px solid var(--glass-border)', 
@@ -7377,7 +7405,7 @@ function AdminDashboardContent() {
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             boxShadow: 'var(--shadow)',
-            marginBottom: '2rem', 
+            marginBottom: '0.25rem', 
             overflow: 'hidden' 
           }}
         >
@@ -9335,9 +9363,9 @@ function AdminDashboardContent() {
       )}
       {/* ── Receipt Modal ───────────────────────────── */}
       {activeReceipt && typeof window !== 'undefined' && createPortal(
-        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000000, overflowY: 'auto', padding: '2rem 1rem' }}>
+        <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000000, overflowY: 'auto', padding: '1.5rem 1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
-            width: '100%', maxWidth: '500px', padding: 0, overflow: 'hidden', margin: '2rem auto', 
+            width: '100%', maxWidth: '420px', padding: 0, overflow: 'hidden', margin: '1.5rem auto', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px', 
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative' 
           }}>
@@ -9346,23 +9374,23 @@ function AdminDashboardContent() {
               <div style={{
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)',
                 border: '6px solid rgba(16, 185, 129, 0.04)', color: 'rgba(16, 185, 129, 0.04)',
-                fontSize: '6rem', fontWeight: 900, padding: '1rem 2rem', borderRadius: '1rem',
-                pointerEvents: 'none', zIndex: 0, textTransform: 'uppercase', letterSpacing: '10px'
+                fontSize: '5rem', fontWeight: 900, padding: '1rem 1.5rem', borderRadius: '1rem',
+                pointerEvents: 'none', zIndex: 0, textTransform: 'uppercase', letterSpacing: '8px'
               }}>
                 PAID
               </div>
             )}
 
-            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2.5rem 1.5rem 1.5rem' }}>
-              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
-                <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Empowering Minds, Shaping Futures</p>
-                <div style={{ height: '1px', background: '#e5e7eb', width: '30px', margin: '0.5rem auto' }}></div>
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0', whiteSpace: 'nowrap' }}>FEE PAYMENT RECEIPT</h2>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '1.5rem 1.4rem 1.25rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '34px', height: '34px', objectFit: 'contain', borderRadius: '8px', margin: '0 auto 0.25rem', display: 'block' }} />
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.1rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
+                <p style={{ fontSize: '0.62rem', color: '#6b7280', margin: '1px 0' }}>Empowering Minds, Shaping Futures</p>
+                <div style={{ height: '1px', background: '#e5e7eb', width: '25px', margin: '0.3rem auto' }}></div>
+                <h2 style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', color: '#374151', margin: '0.15rem 0', whiteSpace: 'nowrap' }}>FEE PAYMENT RECEIPT</h2>
               </div>
 
-              <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ marginBottom: '0.75rem', fontSize: '0.78rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
                   <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.receiptNo || generateReceiptNo(activeReceipt)}</span></div>
                   <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.paidAt ? formatDateDisplay(activeReceipt.paidAt) : formatDateDisplay(new Date())}</span></div>
@@ -9370,62 +9398,63 @@ function AdminDashboardContent() {
                 <div style={{ color: '#1a1a1a' }}>
                   <strong>Student Name:</strong> <span style={{ fontWeight: 700 }}>{activeReceipt.student?.name}</span>
                 </div>
-                <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                <div style={{ color: '#6b7280', fontSize: '0.72rem' }}>
                   <strong>Student ID:</strong> <span style={{ fontWeight: 650 }}>{activeReceipt.student?.username}</span>
                 </div>
               </div>
 
-              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '0.85rem 0', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#374151' }}>
+              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '0.65rem 0', marginBottom: '0.75rem', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#374151' }}>
                   <span>{activeReceipt.title} ({activeReceipt.billingMonth})</span>
                   <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{activeReceipt.amount.toFixed(2)}</span>
                 </div>
                 {activeReceipt.lateFine > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#ef4444' }}>
                     <span>Late Fine</span>
                     <span style={{ fontWeight: 700 }}>+₹{activeReceipt.lateFine.toFixed(2)}</span>
                   </div>
                 )}
                 {activeReceipt.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: 'var(--secondary, #1d4ed8)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: 'var(--secondary, #1d4ed8)' }}>
                     <span>Discount Applied</span>
                     <span style={{ fontWeight: 700 }}>-₹{activeReceipt.discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0))).toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{(activeReceipt.paidAmount || (activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0))).toFixed(2)}</span>
                 </div>
                 {(() => {
-                  const netDue = activeReceipt.amount + (activeReceipt.lateFine || 0) - (activeReceipt.discount || 0);
-                  const paid = activeReceipt.paidAmount || 0;
-                  const remaining = Math.max(0, netDue - paid);
-                  return remaining > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', color: '#ef4444' }}>
-                      <span style={{ fontWeight: 800 }}>REMAINING DUE</span>
-                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{remaining.toFixed(2)}</span>
+                  const totalPending = typeof activeReceipt.pendingBalance === 'number'
+                    ? activeReceipt.pendingBalance
+                    : 0;
+
+                  return totalPending > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', color: '#ef4444' }}>
+                      <span style={{ fontWeight: 800 }}>PENDING BALANCE</span>
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>₹{totalPending.toFixed(2)}</span>
                     </div>
                   );
                 })()}
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1.25rem' }}>
-                <div style={{ marginBottom: '0.2rem' }}><strong>Method:</strong> {activeReceipt.paymentMethod || 'CASH'}</div>
-                {activeReceipt.transactionId && <div style={{ marginBottom: '0.2rem' }}><strong>TXN ID:</strong> {activeReceipt.transactionId}</div>}
+              <div style={{ fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+                <div style={{ marginBottom: '0.15rem' }}><strong>Method:</strong> {activeReceipt.paymentMethod || 'CASH'}</div>
+                {activeReceipt.transactionId && <div style={{ marginBottom: '0.15rem' }}><strong>TXN ID:</strong> {activeReceipt.transactionId}</div>}
                 {activeReceipt.collectedBy && <div><strong>Collected/Verified By:</strong> {activeReceipt.collectedBy}</div>}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem' }}>
-                <div style={{ fontSize: '0.65rem', color: '#9ca3af', fontStyle: 'italic' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', borderTop: '1px solid #f3f4f6', paddingTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.6rem', color: '#9ca3af', fontStyle: 'italic' }}>
                   * This is a computer-generated receipt. No signature is required.
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></div>
-                  <div style={{ fontSize: '0.5rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '2px' }}>Online Fee Desk</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></div>
+                  <div style={{ fontSize: '0.48rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '1px' }}>Online Fee Desk</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }} className="no-print">
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }} className="no-print">
                 <button 
                   onClick={() => setActiveReceipt(null)}
                   style={{ 
@@ -11200,7 +11229,7 @@ function AdminDashboardContent() {
                   <div className="scrollable-ledger-container">
                     <StudentLedger 
                       studentId={selectedUserDetail.id}
-                      initialViewType="statement"
+                      initialViewType="month"
                       isAdmin={true}
                       refreshTrigger={ledgerRefreshTrigger}
                       onCollect={(fee) => {
@@ -11330,6 +11359,94 @@ function AdminDashboardContent() {
             handleTabChange('messages');
           }}
         />
+      )}
+
+      {/* ── View & Verify Student Details Modal ─────────────────── */}
+      {viewingVerificationUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, padding: '1rem' }} className="no-print">
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', border: '1px solid var(--border)', background: 'var(--card-bg)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'var(--primary)' }}>📋 View & Verify Student Details</h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>Review details submitted by student during first-time setup before verifying.</p>
+              </div>
+              <button 
+                onClick={() => setViewingVerificationUser(null)} 
+                style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'var(--text)', cursor: 'pointer', fontWeight: 700 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              {/* Account Details */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--primary)', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>👤 ACCOUNT DETAILS</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Name:</strong> {viewingVerificationUser.name || 'Not provided'}</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Username:</strong> {viewingVerificationUser.username}</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Role:</strong> <span className="role-badge" style={{ fontSize: '0.65rem' }}>{viewingVerificationUser.role}</span></div>
+                <div style={{ fontSize: '0.85rem' }}><strong>Joined:</strong> {new Date(viewingVerificationUser.createdAt).toLocaleDateString('en-GB')}</div>
+              </div>
+
+              {/* Contact Information */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#10b981', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>📞 CONTACT INFO</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Student Phone:</strong> {viewingVerificationUser.studentProfile?.phone || viewingVerificationUser.phone || 'Not provided'}</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Email:</strong> {viewingVerificationUser.studentProfile?.email || viewingVerificationUser.email || 'Not provided'}</div>
+                <div style={{ fontSize: '0.85rem' }}>
+                  <strong>Email Verification:</strong> {viewingVerificationUser.studentProfile?.emailVerified ? '✅ Verified' : '⚠️ Pending'}
+                </div>
+              </div>
+
+              {/* Parent/Guardian Info */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#f59e0b', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>👨‍👩‍👦 PARENT / GUARDIAN</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Parent Name:</strong> {viewingVerificationUser.studentProfile?.fatherName || 'Not provided'}</div>
+                <div style={{ fontSize: '0.85rem' }}><strong>Parent Contact:</strong> {viewingVerificationUser.studentProfile?.parentContact || 'Not provided'}</div>
+              </div>
+
+              {/* Academic Info */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#3b82f6', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>🏫 ACADEMIC DETAILS</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Class / Grade:</strong> {viewingVerificationUser.studentProfile?.className || 'Not specified'}</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Board:</strong> {viewingVerificationUser.studentProfile?.board || 'Not specified'}</div>
+                <div style={{ fontSize: '0.85rem' }}><strong>School Name:</strong> {viewingVerificationUser.studentProfile?.school || 'Not specified'}</div>
+              </div>
+
+              {/* Residential Address */}
+              <div style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ec4899', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>📍 RESIDENTIAL ADDRESS & DETAILS</div>
+                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Address:</strong> {viewingVerificationUser.studentProfile?.address || 'Not provided'}</div>
+                {viewingVerificationUser.studentProfile?.dob && (
+                  <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Date of Birth:</strong> {viewingVerificationUser.studentProfile.dob}</div>
+                )}
+                {viewingVerificationUser.studentProfile?.gender && (
+                  <div style={{ fontSize: '0.85rem' }}><strong>Gender:</strong> {viewingVerificationUser.studentProfile.gender}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+              <button
+                type="button"
+                onClick={() => handleRejectVerification(viewingVerificationUser.id)}
+                disabled={isVerifying === viewingVerificationUser.id}
+                style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 700, cursor: 'pointer' }}
+              >
+                ❌ Reject Request
+              </button>
+              <button
+                type="button"
+                onClick={() => handleVerifyUser(viewingVerificationUser.id)}
+                disabled={isVerifying === viewingVerificationUser.id}
+                style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: '#10b981', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 15px -3px rgba(16, 185, 129, 0.4)' }}
+              >
+                {isVerifying === viewingVerificationUser.id ? 'Verifying...' : '✅ Approve & Verify Details'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Batch Messaging Broadcast Modal ─────────────────── */}

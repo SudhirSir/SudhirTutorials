@@ -1746,13 +1746,13 @@ function StudentDashboardContent() {
 
       {activeTab === 'store' && (
         <div className="fade-in">
-          <Storefront />
+          <Storefront onGoToLibrary={() => handleTabChange('purchases')} />
         </div>
       )}
 
       {activeTab === 'purchases' && (
         <div className="fade-in">
-          <StudentPurchases />
+          <StudentPurchases onBrowseStore={() => handleTabChange('store')} />
         </div>
       )}
 
@@ -1837,7 +1837,7 @@ function StudentDashboardContent() {
       {isReceiptOpen && receiptData && typeof window !== 'undefined' && createPortal(
         <div className="receipt-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, overflowY: 'auto', overflowX: 'hidden', padding: '1rem' }}>
           <div className="glass-card receipt-print-area" style={{ 
-            width: '100%', maxWidth: '500px', padding: 0, overflow: 'visible', 
+            width: '100%', maxWidth: '420px', padding: 0, overflow: 'visible', 
             background: '#fff', color: '#1a1a1a', borderRadius: '12px',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', position: 'relative', margin: 'auto'
           }}>
@@ -1846,23 +1846,23 @@ function StudentDashboardContent() {
               <div style={{
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)',
                 border: '6px solid rgba(16, 185, 129, 0.04)', color: 'rgba(16, 185, 129, 0.04)',
-                fontSize: '6rem', fontWeight: 900, padding: '1rem 2rem', borderRadius: '1rem',
-                pointerEvents: 'none', zIndex: 0, textTransform: 'uppercase', letterSpacing: '10px'
+                fontSize: '5rem', fontWeight: 900, padding: '1rem 1.5rem', borderRadius: '1rem',
+                pointerEvents: 'none', zIndex: 0, textTransform: 'uppercase', letterSpacing: '8px'
               }}>
                 PAID
               </div>
             )}
 
-            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '2.5rem 1.5rem 1.5rem' }}>
-              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '12px', margin: '0 auto 0.4rem', display: 'block' }} />
-                <h1 style={{ color: '#1a1a1a', fontSize: '1.2rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
-                <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0' }}>Empowering Minds, Shaping Futures</p>
-                <div style={{ height: '1px', background: '#e5e7eb', width: '30px', margin: '0.5rem auto' }}></div>
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#374151', margin: '0.25rem 0', whiteSpace: 'nowrap' }}>FEE PAYMENT RECEIPT</h2>
+            <div className="receipt-inner-container" style={{ position: 'relative', zIndex: 2, padding: '1.5rem 1.4rem 1.25rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+                <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '34px', height: '34px', objectFit: 'contain', borderRadius: '8px', margin: '0 auto 0.25rem', display: 'block' }} />
+                <h1 style={{ color: '#1a1a1a', fontSize: '1.1rem', margin: 0, letterSpacing: '1px', fontWeight: 800 }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></h1>
+                <p style={{ fontSize: '0.62rem', color: '#6b7280', margin: '1px 0' }}>Empowering Minds, Shaping Futures</p>
+                <div style={{ height: '1px', background: '#e5e7eb', width: '25px', margin: '0.3rem auto' }}></div>
+                <h2 style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', color: '#374151', margin: '0.15rem 0', whiteSpace: 'nowrap' }}>FEE PAYMENT RECEIPT</h2>
               </div>
 
-              <div style={{ marginBottom: '1rem', fontSize: '0.8rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ marginBottom: '0.75rem', fontSize: '0.78rem', borderBottom: '1px dashed #e5e7eb', paddingBottom: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#1a1a1a' }}>
                   <div><strong>Receipt No.:</strong> <span style={{ fontWeight: 700 }}>{receiptData.receiptNo || generateReceiptNo(receiptData)}</span></div>
                   <div><strong>Date:</strong> <span style={{ fontWeight: 700 }}>{receiptData.paidAt ? formatDateDisplay(receiptData.paidAt) : formatDateDisplay(new Date())}</span></div>
@@ -1870,62 +1870,63 @@ function StudentDashboardContent() {
                 <div style={{ color: '#1a1a1a' }}>
                   <strong>Student Name:</strong> <span style={{ fontWeight: 700 }}>{receiptData.student?.name}</span>
                 </div>
-                <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                <div style={{ color: '#6b7280', fontSize: '0.72rem' }}>
                   <strong>Student ID:</strong> <span style={{ fontWeight: 650 }}>{receiptData.student?.username}</span>
                 </div>
               </div>
 
-              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '0.85rem 0', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#374151' }}>
+              <div style={{ borderTop: '2px solid #f3f4f6', borderBottom: '2px solid #f3f4f6', padding: '0.65rem 0', marginBottom: '0.75rem', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#374151' }}>
                   <span>{receiptData.title} ({receiptData.billingMonth})</span>
                   <span style={{ fontWeight: 700, color: '#1a1a1a' }}>₹{receiptData.amount.toFixed(2)}</span>
                 </div>
                 {receiptData.lateFine > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#ef4444' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#ef4444' }}>
                     <span>Late Fine</span>
                     <span style={{ fontWeight: 700 }}>+₹{receiptData.lateFine.toFixed(2)}</span>
                   </div>
                 )}
                 {receiptData.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#10b981' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#10b981' }}>
                     <span>Discount Applied</span>
                     <span style={{ fontWeight: 700 }}>-₹{receiptData.discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed #e5e7eb', color: '#1a1a1a' }}>
                   <span style={{ fontWeight: 800 }}>TOTAL PAID</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.15rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{(receiptData.paidAmount || (receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0))).toFixed(2)}</span>
                 </div>
                 {(() => {
-                  const netDue = receiptData.amount + (receiptData.lateFine || 0) - (receiptData.discount || 0);
-                  const paid = receiptData.paidAmount || 0;
-                  const remaining = Math.max(0, netDue - paid);
-                  return remaining > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', color: '#ef4444' }}>
-                      <span style={{ fontWeight: 800 }}>REMAINING DUE</span>
-                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{remaining.toFixed(2)}</span>
+                  const totalPending = typeof receiptData.pendingBalance === 'number'
+                    ? receiptData.pendingBalance
+                    : 0;
+
+                  return totalPending > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', color: '#ef4444' }}>
+                      <span style={{ fontWeight: 800 }}>PENDING BALANCE</span>
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>₹{totalPending.toFixed(2)}</span>
                     </div>
                   );
                 })()}
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1.25rem' }}>
-                <div style={{ marginBottom: '0.2rem' }}><strong>Method:</strong> {receiptData.paymentMethod || 'ONLINE'}</div>
-                {receiptData.transactionId && <div style={{ marginBottom: '0.2rem' }}><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
+              <div style={{ fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+                <div style={{ marginBottom: '0.15rem' }}><strong>Method:</strong> {receiptData.paymentMethod || 'ONLINE'}</div>
+                {receiptData.transactionId && <div style={{ marginBottom: '0.15rem' }}><strong>TXN ID:</strong> {receiptData.transactionId}</div>}
                 {receiptData.collectedBy && <div><strong>Collected/Verified By:</strong> {receiptData.collectedBy}</div>}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem' }}>
-                <div style={{ fontSize: '0.65rem', color: '#9ca3af', fontStyle: 'italic' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', borderTop: '1px solid #f3f4f6', paddingTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.6rem', color: '#9ca3af', fontStyle: 'italic' }}>
                   * This is a computer-generated receipt. No signature is required.
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></div>
-                  <div style={{ fontSize: '0.5rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '2px' }}>Online Fee Desk</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#4b5563', letterSpacing: '0.5px' }}><span style={{ color: '#ef4444' }}>SUDHIR</span> <span style={{ color: '#2563eb' }}>TUTORIALS</span></div>
+                  <div style={{ fontSize: '0.48rem', color: '#9ca3af', textTransform: 'uppercase', marginTop: '1px' }}>Online Fee Desk</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }} className="no-print">
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }} className="no-print">
                 <button 
                   onClick={() => setIsReceiptOpen(false)}
                   style={{ 
