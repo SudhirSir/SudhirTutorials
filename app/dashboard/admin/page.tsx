@@ -3522,13 +3522,6 @@ function AdminDashboardContent() {
               </div>
             ))}
           </div>
-          <style jsx>{`
-            .academic-service-card:hover {
-              transform: translateY(-5px);
-              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-              border-color: #ef4444 !important;
-            }
-          `}</style>
         </div>
       )}
 
@@ -11494,45 +11487,6 @@ function AdminDashboardContent() {
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        @media (max-width: 768px) {
-          .admin-overview-stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.65rem !important;
-          }
-          .admin-overview-stats-grid > div {
-            padding: 0.85rem 0.65rem !important;
-          }
-          .admin-overview-stats-grid .stat-value {
-            font-size: 1.3rem !important;
-          }
-
-          .admin-batches-analytics-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.65rem !important;
-          }
-          .admin-batches-analytics-grid > div {
-            padding: 1rem 0.75rem !important;
-          }
-
-          .admin-performance-analytics-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.65rem !important;
-          }
-
-          .finance-hub-stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.65rem !important;
-          }
-          .finance-hub-stats-grid > div {
-            padding: 0.85rem 0.65rem !important;
-          }
-          .finance-hub-stats-grid .finance-stat-val {
-            font-size: 1.25rem !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
