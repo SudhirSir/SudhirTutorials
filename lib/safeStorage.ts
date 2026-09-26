@@ -73,3 +73,9 @@ export const safeSessionStorage = {
     }
   }
 };
+
+export function cleanDisplayName(name: string | null | undefined): string {
+  if (!name) return '';
+  return name.replace(/\s*(maths?\s*(&|and)?\s*science|science\s*(&|and)?\s*maths?)$/gi, '').trim();
+}
+

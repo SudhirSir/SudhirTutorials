@@ -18,6 +18,7 @@ import { AdmissionsSection } from '@/components/AdmissionsSection';
 import { AdminStoreManager } from '@/components/AdminStoreManager';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 import { EduPredAI } from '@/components/EduPredAI';
+import { cleanDisplayName } from '@/lib/safeStorage';
 
 function formatDobDisplay(dobStr: string | null | undefined): string {
   if (!dobStr) return 'N/A';
@@ -3404,7 +3405,7 @@ function AdminDashboardContent() {
         <header className="dashboard-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', fontWeight: 800 }}>
-              जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{session?.user?.name || 'Admin'}</span>
+              जय सियाराम 🙏 <span style={{ color: '#ef4444' }}>{cleanDisplayName(session?.user?.name) || 'Admin'}</span>
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Manage your Institute here.</p>
           </div>
@@ -3548,64 +3549,70 @@ function AdminDashboardContent() {
             ))}
           </div>
 
-          {/* Premium Widgets Grid */}
-          <div className="admin-batches-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
-            {/* Class & Batch Analytics */}
-            <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px', width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  📊 Class & Batch Analytics
+          {/* Premium Widgets Grid - Class & Batch Analytics Split in 2 side-by-side cards */}
+          <div className="admin-batches-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', width: '100%' }}>
+            {/* Part 1: Batches & Courses Stat Cards */}
+            <div className="glass-card animate-scale-up" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', background: 'var(--card-bg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '0.85rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  📊 Class & Batch Overview
                 </h3>
                 <span className="role-badge" style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>REAL-TIME</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? '--'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', flex: 1, alignItems: 'center' }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
+                  <div className="stat-value" style={{ fontSize: '2rem', fontWeight: 900, margin: '6px 0 0 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? '--'}</div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? '--'}</div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
+                  <div className="stat-value" style={{ fontSize: '2rem', fontWeight: 900, margin: '6px 0 0 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? '--'}</div>
                 </div>
               </div>
+            </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Student Class Distribution</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
-                  {overviewStats?.classStats && overviewStats.classStats.length > 0 ? (
-                    overviewStats.classStats.map((item: any, idx: number) => {
-                      const total = overviewStats?.totalStudents || 1;
-                      const percentage = Math.round((item.count / total) * 100);
-                      
-                      // Harmonious, premium HSL gradients for progress bars
-                      const hslGradients = [
-                        'linear-gradient(135deg, hsl(263, 85%, 65%), hsl(263, 85%, 45%))',
-                        'linear-gradient(135deg, hsl(330, 85%, 65%), hsl(330, 85%, 45%))',
-                        'linear-gradient(135deg, hsl(142, 75%, 50%), hsl(142, 75%, 35%))',
-                        'linear-gradient(135deg, hsl(217, 95%, 60%), hsl(217, 95%, 40%))',
-                        'linear-gradient(135deg, hsl(35, 95%, 55%), hsl(35, 95%, 40%))'
-                      ];
-                      const gradient = hslGradients[idx % hslGradients.length];
+            {/* Part 2: Student Class Distribution Card */}
+            <div className="glass-card animate-scale-up" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', background: 'var(--card-bg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '0.85rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🎓 Student Class Distribution
+                </h3>
+                <span className="role-badge" style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>BREAKDOWN</span>
+              </div>
 
-                      return (
-                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700 }}>
-                            <span style={{ color: 'var(--text)' }}>{item.className}</span>
-                            <span style={{ color: 'var(--text-muted)' }}>{item.count} student{item.count !== 1 ? 's' : ''} ({percentage}%)</span>
-                          </div>
-                          <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.02)' }}>
-                            <div style={{ width: `${percentage}%`, height: '100%', background: gradient, borderRadius: '4px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
-                          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+                {overviewStats?.classStats && overviewStats.classStats.length > 0 ? (
+                  overviewStats.classStats.map((item: any, idx: number) => {
+                    const total = overviewStats?.totalStudents || 1;
+                    const percentage = Math.round((item.count / total) * 100);
+                    
+                    const hslGradients = [
+                      'linear-gradient(135deg, hsl(263, 85%, 65%), hsl(263, 85%, 45%))',
+                      'linear-gradient(135deg, hsl(330, 85%, 65%), hsl(330, 85%, 45%))',
+                      'linear-gradient(135deg, hsl(142, 75%, 50%), hsl(142, 75%, 35%))',
+                      'linear-gradient(135deg, hsl(217, 95%, 60%), hsl(217, 95%, 40%))',
+                      'linear-gradient(135deg, hsl(35, 95%, 55%), hsl(35, 95%, 40%))'
+                    ];
+                    const gradient = hslGradients[idx % hslGradients.length];
+
+                    return (
+                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700 }}>
+                          <span style={{ color: 'var(--text)' }}>{item.className}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{item.count} student{item.count !== 1 ? 's' : ''} ({percentage}%)</span>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      No class-wise data available.
-                    </div>
-                  )}
-                </div>
+                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.02)' }}>
+                          <div style={{ width: `${percentage}%`, height: '100%', background: gradient, borderRadius: '4px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    No class-wise data available.
+                  </div>
+                )}
               </div>
             </div>
           </div>

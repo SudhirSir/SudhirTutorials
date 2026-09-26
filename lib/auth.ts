@@ -211,13 +211,14 @@ export const authOptions: NextAuthOptions = {
           token.isProfileVerified = (user as any).isProfileVerified;
           token.activeToken = (user as any).activeToken;
         }
-      } else if (token?.id && (!token.isProfileVerified || !token.onboardingCompleted)) {
+      } else if (token?.id) {
         try {
           const dbUser = await withDbRetry(() => prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { isProfileVerified: true, onboardingCompleted: true }
+            select: { name: true, isProfileVerified: true, onboardingCompleted: true }
           }), 2, 100);
           if (dbUser) {
+            if (dbUser.name) token.name = dbUser.name;
             token.isProfileVerified = dbUser.isProfileVerified;
             token.onboardingCompleted = dbUser.onboardingCompleted;
           }
@@ -226,6 +227,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
       if (trigger === 'update' && session) {
+        if (session.name !== undefined) token.name = session.name;
         if (session.mustChangePassword !== undefined) token.mustChangePassword = session.mustChangePassword;
         if (session.onboardingCompleted !== undefined) token.onboardingCompleted = session.onboardingCompleted;
         if (session.isProfileVerified !== undefined) token.isProfileVerified = session.isProfileVerified;

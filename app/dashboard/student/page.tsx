@@ -13,6 +13,7 @@ import { StudentTakeTest } from '@/components/StudentTakeTest';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
+import { cleanDisplayName } from '@/lib/safeStorage';
 import { StudentLedger } from '@/components/StudentLedger';
 import { LecturesSection } from '@/components/LecturesSection';
 import { useTheme } from '@/components/ThemeProvider';
@@ -1261,7 +1262,7 @@ function StudentDashboardContent() {
         <header className="dashboard-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', fontWeight: 800 }}>
-              जय सियाराम 🙏 <span style={{ color: 'var(--primary)' }}>{dashboard?.name || 'Student'}</span>
+              जय सियाराम 🙏 <span style={{ color: 'var(--primary)' }}>{cleanDisplayName(dashboard?.name) || 'Student'}</span>
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Here is a summary of your academic progress and dues.</p>
           </div>

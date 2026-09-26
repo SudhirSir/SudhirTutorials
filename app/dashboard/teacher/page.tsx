@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
+import { cleanDisplayName } from '@/lib/safeStorage';
 
 function formatDateDisplay(dateInput: any): string {
   if (!dateInput) return 'N/A';
@@ -1254,7 +1255,7 @@ function TeacherDashboardContent() {
         <header className="dashboard-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', fontWeight: 800 }}>
-              जय सियाराम 🙏 <span style={{ color: '#10b981' }}>{session?.user?.name || 'Teacher'}</span>
+              जय सियाराम 🙏 <span style={{ color: '#10b981' }}>{cleanDisplayName(session?.user?.name) || 'Teacher'}</span>
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Manage your classes, students, and materials.</p>
           </div>
