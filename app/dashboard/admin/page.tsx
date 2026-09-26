@@ -3534,8 +3534,6 @@ function AdminDashboardContent() {
             {[
               { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : '--', icon: '👥', color: '#ef4444' },
               { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : '--', icon: '👨‍🏫', color: '#10b981' },
-              { label: 'Total Batches', value: overviewStats ? (overviewStats.totalBatches ?? '--') : '--', icon: '📚', color: '#8b5cf6' },
-              { label: 'Total Courses', value: overviewStats ? (overviewStats.totalCourses ?? '--') : '--', icon: '🎓', color: '#ec4899' },
               { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : '--', icon: '💰', color: '#3b82f6' },
               { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : '--', icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
@@ -3561,14 +3559,14 @@ function AdminDashboardContent() {
                 <span className="role-badge" style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>REAL-TIME</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? '--'}</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? '--'}</div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? '--'}</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '4px 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? '--'}</div>
                 </div>
               </div>
 
