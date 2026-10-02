@@ -145,6 +145,7 @@ git push origin feature/new-feature
 🌐 Website: https://sudhir.tutorials.app
 
 📧 Email: [sudhir.tutorials.ludhiana@gmail.com](mailto:sudhir.tutorials.ludhiana@gmail.com)
+📧 Email: [contact@sudhirtutorials.me](mailto:contact@sudhirtutorials.me)
 
 For suggestions, bug reports, or collaboration opportunities, feel free to contact us.
 
