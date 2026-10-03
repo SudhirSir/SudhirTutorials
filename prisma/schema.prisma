@@ -53,6 +53,10 @@ model User {
   assignmentSubmissions AssignmentSubmission[]
   onlineTestSubmissions OnlineTestSubmission[]
 
+  // Chapter-wise Mock Tests
+  createdMockTests       ChapterMockTest[]       @relation("CreatedMockTests")
+  chapterMockSubmissions ChapterMockSubmission[]
+
   @@index([role])
   @@index([isActive])
   @@index([role, isActive])
@@ -527,4 +531,67 @@ model OnlineTestSubmission {
 
   @@unique([onlineTestId, studentId])
   @@index([studentId])
+}
+
+// ------------------------------------------------------
+// NEW MODELS: Chapter-Wise Board Specific Mock Tests
+// ------------------------------------------------------
+
+model ChapterMockTest {
+  id              String   @id @default(cuid())
+  title           String
+  className       String   // e.g., "10th", "12th", "9th", "11th"
+  board           String   // e.g., "CBSE", "ICSE", "UP Board", "All Boards"
+  subject         String   // e.g., "Mathematics", "Science", "Physics", "Chemistry", "Biology"
+  chapterName     String   // e.g., "Quadratic Equations", "Light - Reflection and Refraction"
+  description     String?  @db.Text
+  durationMinutes Int      @default(15)
+  totalMarks      Float    @default(10)
+  passingMarks    Float?   @default(4)
+  allowedAttempts Int      @default(3)
+  isPublished     Boolean  @default(true)
+  createdById     String?
+  createdBy       User?    @relation("CreatedMockTests", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  questions       ChapterMockQuestion[]
+  submissions     ChapterMockSubmission[]
+
+  @@index([className, board, subject])
+  @@index([chapterName])
+  @@index([isPublished])
+  @@index([createdAt])
+}
+
+model ChapterMockQuestion {
+  id            String          @id @default(cuid())
+  mockTestId    String
+  mockTest      ChapterMockTest @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  questionText  String          @db.Text
+  options       String          // JSON string array of options: ["Option A", "Option B", "Option C", "Option D"]
+  correctOption Int             // Index of correct option (0, 1, 2, 3)
+  marks         Float           @default(1)
+  explanation   String?         @db.Text
+  boardTag      String?         // e.g., "CBSE 2023", "UP Board 2024", "ICSE Specimen"
+
+  @@index([mockTestId])
+}
+
+model ChapterMockSubmission {
+  id            String          @id @default(cuid())
+  mockTestId    String
+  mockTest      ChapterMockTest @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       User            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  score         Float
+  totalMarks    Float
+  timeTaken     Int             // seconds
+  autoSubmitted Boolean         @default(false)
+  answers       String?         @db.Text // JSON map of questionId -> selectedOptionIdx
+  createdAt     DateTime        @default(now())
+
+  @@index([studentId])
+  @@index([mockTestId])
+  @@index([studentId, mockTestId])
 }

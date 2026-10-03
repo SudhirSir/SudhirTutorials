@@ -18,7 +18,8 @@ import { AdmissionsSection } from '@/components/AdmissionsSection';
 import { AdminStoreManager } from '@/components/AdminStoreManager';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 import { EduPredAI } from '@/components/EduPredAI';
-import { cleanDisplayName } from '@/lib/safeStorage';
+import { ChapterMockTestManager } from '@/components/ChapterMockTestManager';
+import { cleanDisplayName, safeSessionStorage } from '@/lib/safeStorage';
 
 function formatDobDisplay(dobStr: string | null | undefined): string {
   if (!dobStr) return 'N/A';
@@ -108,21 +109,37 @@ function AdminDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab');
+      if (urlTab) return urlTab;
+      const stored = safeSessionStorage.getItem('st_active_tab_admin');
+      if (stored) return stored;
+    }
+    return 'overview';
+  });
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
-
-
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', newTab);
-    router.push(pathname + '?' + params.toString());
+    safeSessionStorage.setItem('st_active_tab_admin', newTab);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', newTab);
+      window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+    }
   };
   const [userSubTab, setUserSubTab] = useState<'DIRECTORY' | 'CREATE'>('DIRECTORY');
   const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
-  const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions'>('menu');
+  const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions' | 'mock-tests'>(() => {
+    if (typeof window !== 'undefined') {
+      const storedSub = safeSessionStorage.getItem('st_academic_subtab_admin');
+      if (storedSub) return storedSub as any;
+    }
+    return 'menu';
+  });
   const [lectureSubTab, setLectureSubTab] = useState<'DASHBOARD' | 'LIVE' | 'RECORDED' | 'ASSIGN'>('DASHBOARD');
   const [ledgerViewMode, setLedgerViewMode] = useState<'ALL' | 'FIRST_10' | 'ASSIGNED_FEES' | 'PENDING_FEES'>('ALL');
   const [statementMonth, setStatementMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
@@ -135,9 +152,11 @@ function AdminDashboardContent() {
 
   useEffect(() => {
     // Intercept separate tab clicks to open nested sub-tab layout under academics
-    if (['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'admissions'].includes(activeTab)) {
+    if (['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'admissions', 'mock-tests'].includes(activeTab)) {
       setAcademicSubTab(activeTab as any);
+      safeSessionStorage.setItem('st_academic_subtab_admin', activeTab);
       setActiveTab('academics');
+      safeSessionStorage.setItem('st_active_tab_admin', 'academics');
     }
   }, [activeTab]);
 
@@ -185,8 +204,11 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     const tab = searchParams.get('tab');
-    if (tab) setActiveTab(tab);
-    if (tab === 'courses') {
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+      safeSessionStorage.setItem('st_active_tab_admin', tab);
+    }
+    if (tab === 'courses' || activeTab === 'courses') {
       Promise.all([
         fetchCourses(),
         fetchBatches(),
@@ -3496,6 +3518,7 @@ function AdminDashboardContent() {
               { id: 'attendance', title: '✏️ Student Attendance', desc: 'Track daily attendance logs, view student check-in history, and download reports.', color: 'rgba(16, 185, 129, 0.05)', border: '#10b981', textColor: '#10b981' },
               { id: 'materials', title: '📚 Study Materials & Content', desc: 'Upload and organize syllabus books, worksheets, PDFs, notes, and lectures.', color: 'rgba(59, 130, 246, 0.05)', border: '#3b82f6', textColor: '#3b82f6' },
               { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
+              { id: 'mock-tests', title: '🎯 Chapter Mock Tests', desc: 'Set chapter-wise board-specific MCQ mock tests with timer, questions bank & AI solutions.', color: 'rgba(99, 102, 241, 0.05)', border: '#6366f1', textColor: '#6366f1' },
               { id: 'analytics', title: '📈 Performance Analytics', desc: 'AI-powered score forecasting, risk analysis, and graphical class insights.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
               { id: 'lectures', title: '📺 Lectures/Classes', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
               { id: 'admissions', title: 'Student Admission Enquiries', desc: '', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
@@ -4225,11 +4248,23 @@ function AdminDashboardContent() {
               <h2 style={{ fontSize: '1.5rem', marginBottom: '2.25rem' }}>Create New Users</h2>
               
               {createdUser && (
-                <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
-                  <h3 style={{ color: '#34d399', marginBottom: '1rem' }}>✅ Successfully created {createdUser.role}!</h3>
-                  <p style={{ marginBottom: '0.5rem' }}>Please share these credentials securely with the user:</p>
-                  <p><strong>Username / ID:</strong> <span style={{ background: '#000', padding: '2px 8px', borderRadius: '4px' }}>{createdUser.username}</span></p>
-                  <p><strong>Password:</strong> <span style={{ background: '#000', padding: '2px 8px', borderRadius: '4px' }}>{createdUser.password}</span></p>
+                <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
+                  <h3 style={{ color: '#059669', marginBottom: '1rem', fontWeight: 800 }}>✅ Successfully created {createdUser.role}!</h3>
+                  <p style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>Please share these credentials securely with the user:</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.75rem 0' }}>
+                    <p style={{ margin: 0, color: 'var(--text)' }}>
+                      <strong>Username / ID:</strong>{' '}
+                      <span style={{ background: '#0f172a', color: '#38bdf8', padding: '4px 10px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 'bold', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        {createdUser.username}
+                      </span>
+                    </p>
+                    <p style={{ margin: 0, color: 'var(--text)' }}>
+                      <strong>Password:</strong>{' '}
+                      <span style={{ background: '#0f172a', color: '#4ade80', padding: '4px 10px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 'bold', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        {createdUser.password}
+                      </span>
+                    </p>
+                  </div>
                   <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>*User will be prompted to change their password on first login.</p>
                 </div>
               )}
@@ -7410,6 +7445,12 @@ function AdminDashboardContent() {
       {activeTab === 'store-manager' && (
         <div className="fade-in">
           <AdminStoreManager />
+        </div>
+      )}
+
+      {(activeTab === 'mock-tests' || (activeTab === 'academics' && academicSubTab === 'mock-tests')) && (
+        <div className="fade-in">
+          <ChapterMockTestManager />
         </div>
       )}
 
@@ -11045,18 +11086,18 @@ function AdminDashboardContent() {
                   <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Subject Expertise</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.subject || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.subject || 'N/A'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Qualification</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.qualification || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.qualification || 'N/A'}</div>
                     </div>
                   </div>
 
                   <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Experience</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.experience || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.experience || 'N/A'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Monthly Salary</div>
@@ -11066,34 +11107,34 @@ function AdminDashboardContent() {
 
                   <div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Email</div>
-                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.email || 'N/A'}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.email || 'N/A'}</div>
                   </div>
 
                   <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Phone</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.phone || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.phone || 'N/A'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
-                      <div style={{ fontWeight: 600 }}>{formatDobDisplay(selectedUserDetail.teacherProfile.dob)}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{formatDobDisplay(selectedUserDetail.teacherProfile.dob)}</div>
                     </div>
                   </div>
 
                   <div className="user-details-modal-grid-2col">
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Gender</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.gender || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.gender || 'N/A'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Religion</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.religion || 'N/A'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.religion || 'N/A'}</div>
                     </div>
                   </div>
 
                   <div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
-                    <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.address || 'N/A'}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.address || 'N/A'}</div>
                   </div>
                 </>
               )}
@@ -11104,34 +11145,34 @@ function AdminDashboardContent() {
                     <>
                       <div>
                         <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Email</div>
-                        <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.email || 'N/A'}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.email || 'N/A'}</div>
                       </div>
 
                       <div className="user-details-modal-grid-2col">
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Phone</div>
-                          <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.phone || 'N/A'}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.phone || 'N/A'}</div>
                         </div>
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Date of Birth</div>
-                          <div style={{ fontWeight: 600 }}>{formatDobDisplay(selectedUserDetail.teacherProfile.dob)}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text)' }}>{formatDobDisplay(selectedUserDetail.teacherProfile.dob)}</div>
                         </div>
                       </div>
 
                       <div className="user-details-modal-grid-2col">
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Gender</div>
-                          <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.gender || 'N/A'}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.gender || 'N/A'}</div>
                         </div>
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Religion</div>
-                          <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.religion || 'N/A'}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.religion || 'N/A'}</div>
                         </div>
                       </div>
 
                       <div>
                         <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>Address</div>
-                        <div style={{ fontWeight: 600 }}>{selectedUserDetail.teacherProfile.address || 'N/A'}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedUserDetail.teacherProfile.address || 'N/A'}</div>
                       </div>
                     </>
                   ) : (

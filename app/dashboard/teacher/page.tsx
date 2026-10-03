@@ -11,7 +11,8 @@ import { Sidebar } from '@/components/Sidebar';
 import { LecturesSection } from '@/components/LecturesSection';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
-import { cleanDisplayName } from '@/lib/safeStorage';
+import { ChapterMockTestManager } from '@/components/ChapterMockTestManager';
+import { cleanDisplayName, safeSessionStorage } from '@/lib/safeStorage';
 
 function formatDateDisplay(dateInput: any): string {
   if (!dateInput) return 'N/A';
@@ -81,17 +82,28 @@ function TeacherDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [activeTab, setActiveTab] = useState('classes');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab');
+      if (urlTab) return urlTab;
+      const stored = safeSessionStorage.getItem('st_active_tab_teacher');
+      if (stored) return stored;
+    }
+    return 'classes';
+  });
 
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
-
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', newTab);
-    router.push(pathname + '?' + params.toString());
+    safeSessionStorage.setItem('st_active_tab_teacher', newTab);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', newTab);
+      window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+    }
   };
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -137,7 +149,10 @@ function TeacherDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     const tab = searchParams.get('tab');
-    if (tab) setActiveTab(tab);
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+      safeSessionStorage.setItem('st_active_tab_teacher', tab);
+    }
   }, [searchParams, session]);
   
   // States
@@ -1265,7 +1280,7 @@ function TeacherDashboardContent() {
 
 
       <div className="dashboard-tab-bar no-scrollbar no-print">
-        {['classes', 'materials', 'students', 'attendance', 'tests', 'salary', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
+        {['classes', 'materials', 'mock-tests', 'students', 'attendance', 'tests', 'salary', 'lectures', 'guru-ai', 'messages', 'notifications', 'profile'].map(tab => (
           <button 
             key={tab}
             onClick={() => handleTabChange(tab)}
@@ -1280,6 +1295,7 @@ function TeacherDashboardContent() {
             )}
             {tab === 'classes' ? 'Classes & Batches' :
              tab === 'materials' ? 'Study Materials' :
+             tab === 'mock-tests' ? 'Mock Test' :
              tab === 'students' ? 'My Students' :
              tab === 'attendance' ? 'Mark Attendance' :
              tab === 'tests' ? 'Tests & Marks' :
@@ -1868,6 +1884,11 @@ function TeacherDashboardContent() {
                 </div>
               )}
            </div>
+        </div>
+      )}
+      {activeTab === 'mock-tests' && (
+        <div className="fade-in">
+          <ChapterMockTestManager />
         </div>
       )}
       {activeTab === 'tests' && (

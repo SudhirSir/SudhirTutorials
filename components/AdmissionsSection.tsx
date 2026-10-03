@@ -373,49 +373,49 @@ export function AdmissionsSection({
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Student Name</span>
-                <strong>{selectedApp.name}</strong>
+                <strong style={{ color: 'var(--text)' }}>{selectedApp.name}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Father's Name</span>
-                <strong>{selectedApp.fatherName}</strong>
+                <strong style={{ color: 'var(--text)' }}>{selectedApp.fatherName}</strong>
               </div>
               {selectedApp.message && (
                 <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Message / Query</span>
-                  <strong style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>{selectedApp.message}</strong>
+                  <strong style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: 'var(--text)' }}>{selectedApp.message}</strong>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Date of Birth</span>
-                <strong>{formatDobDisplay(selectedApp.dob)}</strong>
+                <strong style={{ color: 'var(--text)' }}>{formatDobDisplay(selectedApp.dob)}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Contact Phone</span>
-                <strong>{selectedApp.phone}</strong>
+                <strong style={{ color: 'var(--text)' }}>{selectedApp.phone}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Email Address</span>
-                <strong>{selectedApp.email || 'N/A'}</strong>
+                <strong style={{ color: 'var(--text)' }}>{selectedApp.email || 'N/A'}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Class / Grade</span>
-                <strong>{selectedApp.className}</strong>
+                <strong style={{ color: 'var(--text)' }}>{selectedApp.className}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Board</span>
-                <strong>{selectedApp.board}</strong>
+                <strong style={{ color: 'var(--text)' }}>{selectedApp.board}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Academic Program</span>
-                <strong>{selectedApp.program}</strong>
+                <strong style={{ color: 'var(--text)' }}>{selectedApp.program}</strong>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Residential Address</span>
-                <span style={{ lineHeight: 1.4 }}>{selectedApp.address}</span>
+                <span style={{ lineHeight: 1.4, color: 'var(--text)' }}>{selectedApp.address}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Applied On</span>
-                <strong>{formatDateDisplay(selectedApp.createdAt)}</strong>
+                <strong style={{ color: 'var(--text)' }}>{formatDateDisplay(selectedApp.createdAt)}</strong>
               </div>
             </div>
 

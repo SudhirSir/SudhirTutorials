@@ -185,6 +185,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return null;
   }
 
+  const isMockTestArena = pathname.includes('/mock-test/');
+
+  if (isMockTestArena) {
+    return (
+      <div className="dashboard-container fullscreen-test-mode" style={{ minHeight: '100vh', background: 'var(--background)', width: '100vw', overflowX: 'hidden' }}>
+        <main style={{ flex: 1, padding: 0, minHeight: '100vh', width: '100%' }}>
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className={`dashboard-container ${role.toLowerCase()}-portal`}>
       {/* Mobile Top Header */}
@@ -342,6 +354,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <span className="icon">{icons.courses}</span>
                   Courses & Batches
                 </Link>
+                <Link href="/dashboard/admin?tab=mock-tests" className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.tests}</span>
+                  Mock Tests
+                </Link>
                 <Link href="/dashboard/admin?tab=salary" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.finances}</span>
                   Staff Salaries
@@ -364,6 +380,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <span className="icon">{icons.materials}</span>
                   Materials
                 </Link>
+                <Link href="/dashboard/teacher?tab=mock-tests" className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.tests}</span>
+                  Mock Tests
+                </Link>
                 <Link href="/dashboard/teacher?tab=students" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.users}</span>
                   My Students
@@ -381,6 +401,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link href="/dashboard/student?tab=materials" className="nav-link-modern" onClick={handleNavLinkClick}>
                   <span className="icon">{icons.materials}</span>
                   Study Materials
+                </Link>
+                <Link href="/dashboard/student?tab=mock-tests" className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.tests}</span>
+                  Mock Tests
                 </Link>
                 {!isStoreUser && (
                   <Link href="/dashboard/student?tab=fees" className="nav-link-modern" onClick={handleNavLinkClick}>

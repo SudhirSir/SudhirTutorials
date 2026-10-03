@@ -28,7 +28,8 @@ const SERVICE_OPTIONS: Record<string, ServiceOption[]> = {
     { id: 'finance_statement', label: 'Monthly Statement', icon: '📅', tab: 'finances', subTab: 'STATEMENT' },
     { id: 'finance_billing_engine', label: 'Billing Engine', icon: '⚙️', tab: 'finances', subTab: 'BILLING_ENGINE' },
     // Academics submenus
-    { id: 'academic_courses', label: 'Courses & Batches', icon: '📚', tab: 'academics', subTab: 'courses' },
+    { id: 'academic_courses', label: 'Courses & Batches', icon: '🏫', tab: 'academics', subTab: 'courses' },
+    { id: 'academic_mock_tests', label: 'Mock Tests', icon: '🎯', tab: 'academics', subTab: 'mock-tests' },
     { id: 'academic_attendance', label: 'Attendance Logs', icon: '📅', tab: 'academics', subTab: 'attendance' },
     { id: 'academic_materials', label: 'Study Materials', icon: '📄', tab: 'academics', subTab: 'materials' },
     { id: 'academic_tests', label: 'Tests & Exams', icon: '📝', tab: 'academics', subTab: 'tests' },
@@ -43,6 +44,7 @@ const SERVICE_OPTIONS: Record<string, ServiceOption[]> = {
     { id: 'chats', label: 'My Chats', icon: '💬', tab: 'messages' },
     { id: 'classes', label: 'My Classes', icon: '🏫', tab: 'classes' },
     { id: 'materials', label: 'Study Materials', icon: '📄', tab: 'materials' },
+    { id: 'mock_tests', label: 'Mock Tests', icon: '🎯', tab: 'mock-tests' },
     { id: 'students', label: 'Student Directory', icon: '👥', tab: 'students' },
     { id: 'attendance', label: 'Record Attendance', icon: '✏️', tab: 'attendance' },
     { id: 'tests', label: 'Tests & Marks', icon: '📝', tab: 'tests' },
@@ -54,6 +56,7 @@ const SERVICE_OPTIONS: Record<string, ServiceOption[]> = {
   STUDENT: [
     { id: 'chats', label: 'My Chats', icon: '💬', tab: 'messages' },
     { id: 'dashboard', label: 'Dashboard Home', icon: '🏡', tab: 'dashboard' },
+    { id: 'mock_tests', label: 'Mock Tests', icon: '🎯', tab: 'mock-tests' },
     { id: 'attendance', label: 'My Attendance', icon: '📅', tab: 'attendance' },
     { id: 'materials', label: 'Study Materials', icon: '📄', tab: 'materials' },
     { id: 'fees', label: 'Pay / View Fees', icon: '💰', tab: 'fees' },

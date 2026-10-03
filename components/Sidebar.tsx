@@ -74,6 +74,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   const adminLinks = [
     { id: 'overview', label: 'Dashboard' },
     { id: 'courses', label: 'Batches & Fees' },
+    { id: 'mock-tests', label: 'Mock Tests' },
     { id: 'finances', label: 'Revenue' },
     { id: 'directory', label: 'Directory' },
     { id: 'salary', label: 'Staff Salary Management' },
@@ -85,6 +86,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   const teacherLinks = [
     { id: 'classes', label: 'My Batches' },
     { id: 'materials', label: 'Materials' },
+    { id: 'mock-tests', label: 'Mock Tests' },
     { id: 'students', label: 'Student Roster' },
     { id: 'attendance', label: 'Attendance' },
     { id: 'salary', label: 'Salary Records' },
@@ -95,6 +97,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   const studentLinks = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'materials', label: 'Study Material' },
+    { id: 'mock-tests', label: 'Mock Tests' },
     { id: 'tests', label: 'My Tests' },
     { id: 'fees', label: 'Pay/View fees' },
     { id: 'messages', label: 'My Chats' },

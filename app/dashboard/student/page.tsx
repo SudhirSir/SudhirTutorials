@@ -13,13 +13,14 @@ import { StudentTakeTest } from '@/components/StudentTakeTest';
 import { useSession } from 'next-auth/react';
 import { LiveClock } from '@/components/LiveClock';
 import { Sidebar } from '@/components/Sidebar';
-import { cleanDisplayName } from '@/lib/safeStorage';
+import { cleanDisplayName, safeSessionStorage } from '@/lib/safeStorage';
 import { StudentLedger } from '@/components/StudentLedger';
 import { LecturesSection } from '@/components/LecturesSection';
 import { useTheme } from '@/components/ThemeProvider';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 import { Storefront } from '@/components/Storefront';
+import { StudentChapterMockTests } from '@/components/StudentChapterMockTests';
 
 function formatDateDisplay(dateInput: any): string {
   if (!dateInput) return 'N/A';
@@ -91,16 +92,28 @@ function StudentDashboardContent() {
   const router = useRouter();
   const pathname = usePathname();
   const isStoreUser = (session?.user as any)?.isStoreUser || false;
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab');
+      if (urlTab) return urlTab;
+      const stored = safeSessionStorage.getItem('st_active_tab_student');
+      if (stored) return stored;
+    }
+    return 'dashboard';
+  });
+
   const [activeProfileUserId, setActiveProfileUserId] = useState<string | null>(null);
   const [chatSelectedUserId, setChatSelectedUserId] = useState<string | null>(null);
 
-
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', newTab);
-    router.push(pathname + '?' + params.toString(), { scroll: false });
+    safeSessionStorage.setItem('st_active_tab_student', newTab);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', newTab);
+      window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+    }
   };
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -150,13 +163,14 @@ function StudentDashboardContent() {
     if (isStoreUser) {
       if (!tab || !['store', 'purchases', 'profile'].includes(tab)) {
         setActiveTab('store');
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('tab', 'store');
-        router.replace(pathname + '?' + params.toString());
+        safeSessionStorage.setItem('st_active_tab_student', 'store');
         return;
       }
     }
-    if (tab) setActiveTab(tab);
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+      safeSessionStorage.setItem('st_active_tab_student', tab);
+    }
   }, [searchParams, session, router, pathname]);
 
   const [dashboard, setDashboard] = useState<{
@@ -1275,7 +1289,7 @@ function StudentDashboardContent() {
       <div className="dashboard-tab-bar no-scrollbar no-print">
         {(isStoreUser
           ? ['store', 'purchases', 'profile']
-          : ['dashboard', 'attendance', 'materials', 'tests', 'fees', 'purchases', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile']
+          : ['dashboard', 'attendance', 'materials', 'mock-tests', 'tests', 'fees', 'purchases', 'lectures', 'guru-ji', 'messages', 'notifications', 'profile']
         ).map(tab => (
           <button 
             key={tab}
@@ -1292,6 +1306,7 @@ function StudentDashboardContent() {
             {tab === 'dashboard' ? 'Dashboard' :
              tab === 'attendance' ? 'My Attendance' :
              tab === 'materials' ? 'Study Materials' :
+             tab === 'mock-tests' ? 'Mock Test' :
              tab === 'tests' ? 'Tests & Marks' :
              tab === 'fees' ? 'Pay/View fees' :
              tab === 'purchases' ? (isStoreUser ? 'Purchased Tests/Notes' : 'My Purchases') :
@@ -1760,6 +1775,12 @@ function StudentDashboardContent() {
       {activeTab === 'take-test' && (
         <div className="fade-in">
           <StudentTakeTest />
+        </div>
+      )}
+
+      {activeTab === 'mock-tests' && !isStoreUser && (
+        <div className="fade-in">
+          <StudentChapterMockTests />
         </div>
       )}
 

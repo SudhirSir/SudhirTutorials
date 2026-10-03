@@ -10,7 +10,7 @@ import { AppUpdateChecker } from "./AppUpdateChecker";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <SessionProvider>
+      <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
         <SessionGuard />
         <PushNotificationManager />
         <CapacitorBackButtonManager />

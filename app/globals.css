@@ -1482,10 +1482,10 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  width: calc(100% - 3rem);
-  max-width: 1080px;
+  width: calc(100% - 2rem);
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 0.32rem 1.25rem;
+  padding: 0.45rem 1.6rem;
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1506,23 +1506,26 @@ input[type="text"], input[type="password"], input[type="number"], input[type="em
 
 .vrsa-nav-links {
   display: flex;
-  gap: 1rem;
+  gap: 1.15rem;
   align-items: center;
+  white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 .vrsa-nav-link {
-  color: #000000 !important;
+  color: var(--text-heading) !important;
   font-weight: 700;
-  font-size: 0.83rem;
+  font-size: 0.78rem !important;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  white-space: nowrap !important;
   gap: 0.25rem;
   transition: color 0.2s;
 }
 
 [data-theme='dark'] .vrsa-nav-link {
-  color: #ffffff !important;
+  color: var(--text-heading) !important;
 }
 
 .vrsa-nav-link:hover {

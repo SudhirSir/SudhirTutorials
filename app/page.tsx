@@ -301,6 +301,7 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginLeft: 'auto' }}>
           {/* Desktop Navigation Links */}
           <nav className="vrsa-nav-links">
+            <Link href="/ncert-solutions" className="vrsa-nav-link" style={{ color: '#ef4444', fontWeight: 800 }}>NCERT Solutions</Link>
             <Link href="#programs" className="vrsa-nav-link">Flagship Programs</Link>
             <Link href="#edupred-ai" className="vrsa-nav-link">EduPred AI™</Link>
             <Link href="/admissions" className="vrsa-nav-link">Admissions</Link>
@@ -360,6 +361,9 @@ export default function Home() {
             zIndex: 1001,
             animation: 'fadeIn 0.2s ease-out'
           }}>
+            <Link href="/ncert-solutions" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontWeight: 800, textDecoration: 'none', fontSize: '0.82rem' }}>
+              📚 NCERT Solutions (Class 9th CBSE)
+            </Link>
             <Link href="/admissions" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--hp-badge-bg)', color: 'var(--hp-badge-text)', fontWeight: 800, textDecoration: 'none', fontSize: '0.82rem' }}>
               🎯 Admissions 2026-27 (Apply Now)
             </Link>
@@ -437,8 +441,8 @@ export default function Home() {
 
         {/* ST Guru Ji AI Showcase Card (Photo, Voice, Text & Sudhir Sir Voice Audio) */}
         <div className="guru-ji-showcase-card" style={{
-          width: 'calc(100% - 2rem)',
-          maxWidth: '1080px',
+          width: '100%',
+          maxWidth: '1380px',
           margin: '0 auto',
           background: 'var(--glass-bg)',
           backdropFilter: 'blur(20px)',
@@ -588,7 +592,7 @@ export default function Home() {
         borderTop: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
+        <div style={{ maxWidth: '1380px', width: '100%', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
           
           {/* Left Column: Ultra-Realistic Classroom Photo Showcase Card */}
           <div style={{
@@ -707,9 +711,117 @@ export default function Home() {
         </div>
       </section>
 
+      {/* NCERT Solutions Feature Intro Banner Section */}
+      <section className="ncert-showcase-section" id="ncert-solutions" style={{
+        padding: '3.5rem 1.5rem',
+        background: 'radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.08) 0%, rgba(37, 99, 235, 0.05) 50%, transparent 100%)',
+        borderTop: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{ maxWidth: '1380px', width: '100%', margin: '0 auto' }}>
+          
+          <div style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '28px',
+            border: '1.5px solid var(--border)',
+            boxShadow: 'var(--shadow-lg)',
+            padding: '2.5rem 3rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '2.5rem',
+            flexWrap: 'wrap',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Ambient Lighting Orbs */}
+            <div style={{
+              position: 'absolute',
+              top: '-40px',
+              right: '-40px',
+              width: '180px',
+              height: '180px',
+              background: 'radial-gradient(circle, rgba(239, 68, 68, 0.2) 0%, transparent 70%)',
+              filter: 'blur(30px)',
+              pointerEvents: 'none'
+            }} />
+
+            {/* Left Column: Info & Highlights */}
+            <div style={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
+                  padding: '4px 14px',
+                  borderRadius: '50px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  border: '1px solid rgba(239, 68, 68, 0.25)'
+                }}>
+                  📚 NCERT Solutions Portal
+                </span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 12px', borderRadius: '50px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                  100% Free Access
+                </span>
+              </div>
+
+              <h2 style={{
+                fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)',
+                fontWeight: 900,
+                margin: 0,
+                color: 'var(--text-heading)',
+                lineHeight: 1.25,
+                letterSpacing: '-0.5px'
+              }}>
+                Step-by-Step New NCERT Solutions for <span style={{ color: '#ef4444' }}>Class 6th to 12th</span> & Boards
+              </h2>
+
+              <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
+                Comprehensive, exercise-wise and question-wise explanations for CBSE Class 6th to 12th. Complete with step-by-step logic, key formulas, and instant audio explanations!
+              </p>
+
+              <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginTop: '0.35rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>
+                <span>✨ Step-by-Step Logic</span>
+                <span>📐 KaTeX Math Rendering</span>
+                <span>🔊 Voice Audio Explainer</span>
+              </div>
+            </div>
+
+            {/* Right Column: CTA Button */}
+            <div style={{ flexShrink: 0 }}>
+              <Link href="/ncert-solutions" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                padding: '1rem 2.2rem',
+                borderRadius: '18px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '1rem',
+                textDecoration: 'none',
+                boxShadow: '0 8px 25px rgba(239, 68, 68, 0.35)',
+                transition: 'all 0.3s ease',
+                whiteSpace: 'nowrap'
+              }}>
+                Check NCERT Solutions ➔
+              </Link>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
       {/* Mobile App Promotion Section */}
       <section className="mobile-app-section" id="mobile-app" style={{
-        padding: '5.5rem 2rem',
+        padding: '5.5rem 1.5rem',
         background: 'var(--background)',
         borderTop: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)',
@@ -717,7 +829,8 @@ export default function Home() {
         overflow: 'hidden'
       }}>
         <div className="section-container" style={{
-          maxWidth: '1250px',
+          maxWidth: '1380px',
+          width: '100%',
           margin: '0 auto',
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -1472,7 +1585,8 @@ export default function Home() {
         .nav-link, .vrsa-nav-link {
           color: var(--text-heading);
           font-weight: 700;
-          font-size: 0.9rem;
+          font-size: 0.78rem;
+          white-space: nowrap;
           transition: color 0.2s, transform 0.2s;
         }
         .nav-link:hover, .vrsa-nav-link:hover {
@@ -2001,9 +2115,11 @@ export default function Home() {
           border-bottom: 1px solid var(--glass-border);
         }
         .features-layout {
+          max-width: 1380px;
+          margin: 0 auto;
           display: grid;
           grid-template-columns: 1.2fr 0.8fr;
-          gap: 2rem;
+          gap: 2.5rem;
           align-items: center;
         }
         .features-left {
@@ -2061,10 +2177,11 @@ export default function Home() {
           border-top: 1px solid var(--border);
         }
         .footer-grid {
+          max-width: 1380px;
+          margin: 0 auto 2rem auto;
           display: grid;
           grid-template-columns: 1.5fr 1fr 1fr 1fr;
           gap: 2rem;
-          margin-bottom: 2rem;
         }
         .footer-brand-col {
           display: flex;
