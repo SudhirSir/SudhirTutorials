@@ -1011,18 +1011,36 @@ textarea:focus {
   align-items: center !important;
   justify-content: flex-start !important;
   gap: 0.55rem !important;
-  padding: 0.42rem 0.65rem !important;
-  font-size: 0.81rem !important;
+  padding: 0.45rem 0.7rem !important;
+  font-size: 0.82rem !important;
   font-weight: 600 !important;
   border-radius: 9px !important;
+  color: var(--text-muted) !important;
   white-space: nowrap !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
 }
 .nav-link-modern .icon {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   flex-shrink: 0 !important;
+  transition: transform 0.2s ease, color 0.2s ease !important;
+}
+
+/* Hover & Focus state */
+.nav-link-modern:hover {
+  background: var(--card-bg-alt) !important;
+  color: var(--text) !important;
+  transform: translateX(4px) !important;
+}
+.nav-link-modern:hover .icon {
+  color: var(--primary) !important;
+  transform: scale(1.15) !important;
+}
+[data-theme="light"] .nav-link-modern:hover {
+  background: rgba(59, 130, 246, 0.08) !important;
+  color: var(--primary) !important;
 }
 
 /* Active nav link */
@@ -1033,7 +1051,7 @@ textarea:focus {
   box-shadow: 0 4px 15px -4px rgba(239,68,68,0.22) !important;
   font-weight: 700 !important;
   transform: translateX(4px);
-  padding-left: 1rem !important;
+  padding-left: 0.85rem !important;
 }
 [data-theme="light"] .nav-link-modern.active {
   background: linear-gradient(135deg, rgba(239,68,68,0.07) 0%, rgba(59,130,246,0.04) 100%) !important;
@@ -1043,6 +1061,18 @@ textarea:focus {
   color: var(--primary) !important;
   filter: drop-shadow(0 0 5px var(--primary));
   transform: scale(1.1);
+}
+
+.btn-logout-modern {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+}
+.btn-logout-modern:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #ef4444 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2) !important;
 }
 
 [data-theme="light"] .glass-card {

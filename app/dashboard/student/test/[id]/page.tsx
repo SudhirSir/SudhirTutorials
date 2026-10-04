@@ -26,10 +26,12 @@ export default function OnlineTestArena() {
   const [unattemptedCount, setUnattemptedCount] = useState(0);
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [loadingAi, setLoadingAi] = useState<Record<string, boolean>>({});
+  const [hasStarted, setHasStarted] = useState(false);
 
   const submittedRef = useRef(false);
 
   useEffect(() => {
+    if (!hasStarted || submitted) return;
     // Basic anti-cheat: disable right click
     const handleContextMenu = (e: Event) => e.preventDefault();
     document.addEventListener('contextmenu', handleContextMenu);
@@ -47,7 +49,7 @@ export default function OnlineTestArena() {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [testData]);
+  }, [testData, hasStarted, submitted]);
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -78,7 +80,7 @@ export default function OnlineTestArena() {
   }, [testId]);
 
   useEffect(() => {
-    if (timeLeft === null || submitted) return;
+    if (timeLeft === null || submitted || !hasStarted) return;
 
     if (timeLeft <= 0) {
       alert("Time is up! Submitting automatically.");
@@ -91,7 +93,7 @@ export default function OnlineTestArena() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, submitted]);
+  }, [timeLeft, submitted, hasStarted]);
 
   const handleAnswerChange = (questionId: string, optionIndex: number) => {
     if (submitted) return;
@@ -260,7 +262,80 @@ export default function OnlineTestArena() {
         </div>
       </header>
 
-      {submitted ? (
+      {!submitted && !hasStarted ? (
+        /* Pre-Test Instructions Screen */
+        <div style={{ maxWidth: '800px', margin: '1rem auto', width: '100%', paddingBottom: '3rem' }}>
+          <div className="glass-card animate-scale-up" style={{ padding: '2rem 1.75rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--primary)', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 900 }}>
+                  ONLINE TEST SERIES
+                </span>
+              </div>
+              <h1 style={{ fontSize: '1.6rem', fontWeight: 900, margin: '0.3rem 0', color: 'var(--text-heading)' }}>
+                {testData.title || 'Online Test'}
+              </h1>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>⏱ Duration</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary)', marginTop: '0.2rem' }}>{testData.durationMinutes || 15} Mins</div>
+              </div>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>📝 Questions</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-heading)', marginTop: '0.2rem' }}>{questions.length}</div>
+              </div>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>🎯 Total Marks</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', marginTop: '0.2rem' }}>{testData.totalMarks || 10}</div>
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '1.25rem', borderRadius: '12px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary)', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>📋</span> Test Instructions & Rules
+              </h3>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5 }}>
+                <li>The timer starts immediately after clicking <strong>"Start Now"</strong>.</li>
+                <li>Do not refresh or navigate away from the test page while the test is active.</li>
+                <li>You can flag questions to review them before final submission.</li>
+                <li>Your answers are saved automatically upon selection.</li>
+              </ul>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/student?tab=store')}
+                style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                ← Back
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHasStarted(true)}
+                style={{
+                  padding: '0.85rem 2rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '1.05rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)'
+                }}
+              >
+                Start Now 🚀
+              </button>
+            </div>
+
+          </div>
+        </div>
+      ) : submitted ? (
         /* Evaluation & Result Showcase Screen */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '900px', margin: '0 auto', width: '100%', paddingBottom: '4rem' }}>
           

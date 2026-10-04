@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { safeLocalStorage, safeSessionStorage } from "@/lib/safeStorage";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
@@ -74,41 +74,39 @@ const icons = {
   )
 };
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const role = pathname.includes("admin") ? "Admin" : pathname.includes("teacher") ? "Teacher" : "Student";
   const isVerified = (session?.user as any)?.isProfileVerified;
   const isStoreUser = (session?.user as any)?.isStoreUser;
+
+  const defaultTab = role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard';
+  const activeTab = searchParams.get('tab') || defaultTab;
+  const isActive = (tab: string) => activeTab === tab;
 
   const [badges, setBadges] = useState({ unreadMessages: 0, unreadNotifications: 0 });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (typeof window !== "undefined") {
-      try {
-        await fetch('/api/user/push-token', { method: 'DELETE' });
-      } catch (e) {
-        console.warn("Soft warning: failed to clear push token on logout", e);
-      }
-      
       (window as any).isLoggingOut = true;
       safeSessionStorage.setItem('isLoggingOut', 'true');
-      
-      // Clear sessionStorage (tabSessionActive, etc.)
+      fetch('/api/user/push-token', { method: 'DELETE' }).catch(() => {});
       safeSessionStorage.clear();
-      
-      // Keep theme but clear custom localStorage user-related keys
       const theme = safeLocalStorage.getItem('theme');
       safeLocalStorage.clear();
       if (theme) {
         safeLocalStorage.setItem('theme', theme);
       }
     }
-    await signOut({ redirect: false });
-    window.location.href = '/login';
+    signOut({ callbackUrl: '/login' });
+    if (typeof window !== "undefined") {
+      window.location.href = '/login';
+    }
   };
 
   const handleNavLinkClick = () => {
@@ -332,7 +330,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {(!isStoreUser || role !== "Student") && (
               <div className="nav-group">
                 <div className="nav-label">Main Menu</div>
-                <Link href={`/dashboard/${role.toLowerCase()}?tab=${role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard'}`} className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href={`/dashboard/${role.toLowerCase()}?tab=${role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard'}`} className={`nav-link-modern ${isActive(role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.home}</span>
                   Dashboard Home
                 </Link>
@@ -342,27 +340,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {role === "Admin" && (
               <div className="nav-group">
                 <div className="nav-label">Management</div>
-                <Link href="/dashboard/admin?tab=users" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/admin?tab=users" className={`nav-link-modern ${isActive('users') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.users}</span>
                   Manage Users
                 </Link>
-                <Link href="/dashboard/admin?tab=finances" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/admin?tab=finances" className={`nav-link-modern ${isActive('finances') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.finances}</span>
                   Fee Ledger
                 </Link>
-                <Link href="/dashboard/admin?tab=courses" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/admin?tab=courses" className={`nav-link-modern ${isActive('courses') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.courses}</span>
                   Courses & Batches
                 </Link>
-                <Link href="/dashboard/admin?tab=mock-tests" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/admin?tab=mock-tests" className={`nav-link-modern ${isActive('mock-tests') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.tests}</span>
                   Mock Tests
                 </Link>
-                <Link href="/dashboard/admin?tab=salary" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/admin?tab=salary" className={`nav-link-modern ${isActive('salary') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.finances}</span>
                   Staff Salaries
                 </Link>
-                <Link href="/dashboard/admin?tab=settings" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/admin?tab=settings" className={`nav-link-modern ${isActive('settings') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.settings}</span>
                   System Settings
                 </Link>
@@ -372,23 +370,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {role === "Teacher" && (
               <div className="nav-group">
                 <div className="nav-label">Teaching</div>
-                <Link href="/dashboard/teacher?tab=classes" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/teacher?tab=classes" className={`nav-link-modern ${isActive('classes') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.home}</span>
                   My Classes
                 </Link>
-                <Link href="/dashboard/teacher?tab=materials" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/teacher?tab=materials" className={`nav-link-modern ${isActive('materials') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.materials}</span>
                   Materials
                 </Link>
-                <Link href="/dashboard/teacher?tab=mock-tests" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/teacher?tab=mock-tests" className={`nav-link-modern ${isActive('mock-tests') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.tests}</span>
                   Mock Tests
                 </Link>
-                <Link href="/dashboard/teacher?tab=students" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/teacher?tab=students" className={`nav-link-modern ${isActive('students') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.users}</span>
                   My Students
                 </Link>
-                <Link href="/dashboard/teacher?tab=salary" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/teacher?tab=salary" className={`nav-link-modern ${isActive('salary') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.finances}</span>
                   Salary Records
                 </Link>
@@ -398,21 +396,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {role === "Student" && (
               <div className="nav-group">
                 <div className="nav-label">Learning</div>
-                <Link href="/dashboard/student?tab=materials" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/student?tab=materials" className={`nav-link-modern ${isActive('materials') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.materials}</span>
                   Study Materials
                 </Link>
-                <Link href="/dashboard/student?tab=mock-tests" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/student?tab=mock-tests" className={`nav-link-modern ${isActive('mock-tests') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.tests}</span>
                   Mock Tests
                 </Link>
                 {!isStoreUser && (
-                  <Link href="/dashboard/student?tab=fees" className="nav-link-modern" onClick={handleNavLinkClick}>
+                  <Link href="/dashboard/student?tab=fees" className={`nav-link-modern ${isActive('fees') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                     <span className="icon">{icons.finances}</span>
                     Pay Fees
                   </Link>
                 )}
-                <Link href="/dashboard/student?tab=tests" className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href="/dashboard/student?tab=tests" className={`nav-link-modern ${isActive('tests') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.tests}</span>
                   Tests
                 </Link>
@@ -422,7 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {(!isStoreUser || role !== "Student") && (
               <div className="nav-group">
                 <div className="nav-label">Communication</div>
-                <Link href={`/dashboard/${role.toLowerCase()}?tab=messages`} className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href={`/dashboard/${role.toLowerCase()}?tab=messages`} className={`nav-link-modern ${isActive('messages') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon" style={{ position: 'relative' }}>
                     {icons.messages}
                     {badges.unreadMessages > 0 && (
@@ -433,7 +431,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </span>
                   Messages
                 </Link>
-                <Link href={`/dashboard/${role.toLowerCase()}?tab=notifications`} className="nav-link-modern" onClick={handleNavLinkClick}>
+                <Link href={`/dashboard/${role.toLowerCase()}?tab=notifications`} className={`nav-link-modern ${isActive('notifications') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon" style={{ position: 'relative' }}>
                     {icons.notifications}
                     {badges.unreadNotifications > 0 && (
@@ -449,11 +447,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="nav-group">
               <div className="nav-label">Account</div>
-              <Link href={`/dashboard/${role.toLowerCase()}?tab=profile`} className="nav-link-modern" onClick={handleNavLinkClick}>
+              <Link href={`/dashboard/${role.toLowerCase()}?tab=profile`} className={`nav-link-modern ${isActive('profile') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                 <span className="icon">{icons.users}</span>
                 My Profile
               </Link>
-              <Link href="/dashboard/settings" className="nav-link-modern" onClick={handleNavLinkClick}>
+              <Link href="/dashboard/settings" className={`nav-link-modern ${pathname.includes('settings') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                 <span className="icon">{icons.settings}</span>
                 Settings
               </Link>
@@ -826,5 +824,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       `}</style>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--background)',
+        color: 'var(--text)'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid rgba(16, 185, 129, 0.1)',
+          borderTop: '3px solid var(--primary)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1rem'
+        }}></div>
+        <p style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Loading Dashboard...</p>
+      </div>
+    }>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </Suspense>
   );
 }

@@ -168,9 +168,11 @@ export function StudentChapterMockTests() {
                     <Badge variant={isMaxReached ? "danger" : "neutral"}>
                       Attempt {currentAttemptDisplay} / {maxAttempts}
                     </Badge>
-                    <Badge variant={isCompleted && lastSubmission ? "success" : "neutral"}>
-                      Marks: {isCompleted && lastSubmission ? `${lastSubmission.score} / ${test.totalMarks}` : "NA"}
-                    </Badge>
+                    {isCompleted && lastSubmission && (
+                      <Badge variant={lastSubmission.score >= (test.passingMarks || 4) ? "success" : "danger"}>
+                        {lastSubmission.score >= (test.passingMarks || 4) ? "🎉 PASSED" : "❌ FAILED"}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 

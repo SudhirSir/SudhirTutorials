@@ -18,23 +18,22 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (typeof window !== "undefined") {
       (window as any).isLoggingOut = true;
       safeSessionStorage.setItem('isLoggingOut', 'true');
-      
-      // Clear sessionStorage (tabSessionActive, etc.)
+      fetch('/api/user/push-token', { method: 'DELETE' }).catch(() => {});
       safeSessionStorage.clear();
-      
-      // Keep theme but clear custom localStorage user-related keys
       const theme = safeLocalStorage.getItem('theme');
       safeLocalStorage.clear();
       if (theme) {
         safeLocalStorage.setItem('theme', theme);
       }
     }
-    await signOut({ redirect: false });
-    window.location.href = '/login';
+    signOut({ callbackUrl: '/login' });
+    if (typeof window !== "undefined") {
+      window.location.href = '/login';
+    }
   };
 
   const fetchBadgeCounts = async () => {

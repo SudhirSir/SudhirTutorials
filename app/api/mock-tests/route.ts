@@ -27,6 +27,50 @@ const updateMockTestSchema = createMockTestSchema.partial().extend({
   id: z.string().min(1),
 });
 
+function getMatchingClassNames(rawClass: string | null | undefined): string[] {
+  if (!rawClass) return [];
+  const cls = rawClass.toString().trim();
+  if (/12/i.test(cls)) {
+    return ['12th', '12th (Sci)', '12th Sci', '12th (Com)', '12th Com', '12th Commerce', '12th (Comm)', 'Class 12', 'Class 12th', '12'];
+  }
+  if (/11/i.test(cls)) {
+    return ['11th', '11th (Sci)', '11th Sci', '11th (Com)', '11th Com', '11th Commerce', '11th (Comm)', 'Class 11', 'Class 11th', '11'];
+  }
+  if (/10/i.test(cls)) {
+    return ['10th', 'Class 10', 'Class 10th', '10'];
+  }
+  if (/9/i.test(cls) || /IX/i.test(cls)) {
+    return ['9th', 'Class 9', 'Class 9th', '9', 'CBSE Class IX'];
+  }
+  if (/8/i.test(cls)) {
+    return ['8th', 'Class 8', 'Class 8th', '8'];
+  }
+  if (/7/i.test(cls)) {
+    return ['7th', 'Class 7', 'Class 7th', '7'];
+  }
+  if (/6/i.test(cls)) {
+    return ['6th', 'Class 6', 'Class 6th', '6'];
+  }
+  return [cls];
+}
+
+function getMatchingBoards(rawBoard: string | null | undefined): string[] {
+  const list = ['All Boards', 'ALL', 'All'];
+  if (!rawBoard) return list;
+  const b = rawBoard.toString().trim();
+  list.push(b);
+  if (/CBSE/i.test(b)) {
+    list.push('CBSE', 'CBSE Board');
+  }
+  if (/ICSE/i.test(b)) {
+    list.push('ICSE', 'ICSE Board');
+  }
+  if (/UP/i.test(b)) {
+    list.push('UP Board', 'UP');
+  }
+  return Array.from(new Set(list));
+}
+
 // GET: Fetch Chapter Mock Tests
 export async function GET(req: Request) {
   try {
@@ -53,27 +97,38 @@ export async function GET(req: Request) {
 
     if (role === 'STUDENT') {
       where.isPublished = true;
-      const profile = await withDbRetry(() => prisma.studentProfile.findUnique({
-        where: { userId }
+      const userWithDetails = await withDbRetry(() => prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          studentProfile: { select: { className: true, board: true } },
+          studentBatches: { select: { className: true } }
+        }
       }));
-      if (profile) {
-        if (profile.board) studentBoard = profile.board;
-        if (profile.className) studentClass = profile.className;
+      if (userWithDetails) {
+        if (userWithDetails.studentProfile?.board) {
+          studentBoard = userWithDetails.studentProfile.board;
+        }
+        if (userWithDetails.studentProfile?.className) {
+          studentClass = userWithDetails.studentProfile.className;
+        } else if (userWithDetails.studentBatches && userWithDetails.studentBatches.length > 0) {
+          studentClass = userWithDetails.studentBatches[0].className;
+        }
       }
     } else if (isPublished !== null && isPublished !== undefined && isPublished !== '') {
       where.isPublished = isPublished === 'true';
     }
 
-    if (className && className !== 'ALL') {
-      where.className = className;
-    } else if (role === 'STUDENT' && studentClass) {
-      where.className = studentClass;
+    const targetClass = (className && className !== 'ALL') ? className : (role === 'STUDENT' ? studentClass : null);
+    if (targetClass) {
+      const matchClasses = getMatchingClassNames(targetClass);
+      if (matchClasses.length > 0) {
+        where.className = { in: matchClasses };
+      }
     }
 
-    if (board && board !== 'ALL') {
-      where.board = board;
-    } else if (role === 'STUDENT' && studentBoard) {
-      where.board = { in: [studentBoard, 'All Boards', 'ALL'] };
+    const targetBoard = (board && board !== 'ALL') ? board : (role === 'STUDENT' ? studentBoard : null);
+    if (targetBoard) {
+      where.board = { in: getMatchingBoards(targetBoard) };
     }
 
     if (subject && subject !== 'ALL') where.subject = subject;

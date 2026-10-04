@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 import Badge from "./ui/Badge";
@@ -12,15 +13,7 @@ const BOARDS_LIST = ["CBSE", "ICSE", "UP Board", "All Boards"];
 const SUBJECTS_LIST = ["Mathematics", "Science", "Physics", "Chemistry", "Biology", "English", "Social Science"];
 
 function LiveMathPreview({ label, text }: { label: string; text: string }) {
-  if (!text || !text.trim()) return null;
-  return (
-    <div style={{ marginTop: "0.25rem", padding: "0.35rem 0.55rem", borderRadius: "6px", background: "rgba(59, 130, 246, 0.06)", border: "1px dashed rgba(59, 130, 246, 0.3)", fontSize: "0.82rem" }}>
-      <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "var(--primary)", display: "block", marginBottom: "0.1rem" }}>
-        👁️ Live Math Preview ({label}):
-      </span>
-      <div style={{ color: "var(--text)", lineHeight: "1.3" }} dangerouslySetInnerHTML={{ __html: renderLatex(text) }} />
-    </div>
-  );
+  return null;
 }
 
 export function ChapterMockTestManager() {
@@ -775,8 +768,8 @@ export function ChapterMockTestManager() {
       )}
 
       {/* CREATE / EDIT MOCK TEST MODAL */}
-      {showCreateModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+      {showCreateModal && typeof window !== "undefined" && createPortal(
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(6px)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div className="glass-card" style={{ maxWidth: "600px", width: "100%", padding: "1.75rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--border)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
               <h3 style={{ fontSize: "1.3rem", fontWeight: 900, color: "var(--text-heading)", margin: 0 }}>
@@ -985,12 +978,13 @@ export function ChapterMockTestManager() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* QUESTIONS SETTER MODAL */}
-      {activeTestForQuestions && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "1.25rem 1rem" }}>
+      {activeTestForQuestions && typeof window !== "undefined" && createPortal(
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(6px)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div className="glass-card" style={{ position: "relative", maxWidth: "880px", width: "100%", maxHeight: "90vh", overflowY: "auto", padding: "1.25rem 1.5rem", borderRadius: "16px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "1rem" }}>
             
             <button
@@ -1353,12 +1347,13 @@ export function ChapterMockTestManager() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* STUDENT RESULTS LEADERBOARD MODAL */}
-      {activeTestForResults && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+      {activeTestForResults && typeof window !== "undefined" && createPortal(
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(6px)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div className="glass-card" style={{ maxWidth: "800px", width: "100%", padding: "1.75rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--border)" }}>
             
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "0.75rem", marginBottom: "1.25rem" }}>
@@ -1393,45 +1388,64 @@ export function ChapterMockTestManager() {
                       <th style={{ padding: "0.75rem" }}>Student Name</th>
                       <th style={{ padding: "0.75rem" }}>Roll No / Class</th>
                       <th style={{ padding: "0.75rem" }}>Score</th>
+                      <th style={{ padding: "0.75rem" }}>Status</th>
                       <th style={{ padding: "0.75rem" }}>Time Taken</th>
                       <th style={{ padding: "0.75rem" }}>Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {results.map((sub, idx) => (
-                      <tr key={sub.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                        <td style={{ padding: "0.75rem", fontWeight: 900, color: idx === 0 ? "#f59e0b" : "var(--text)" }}>
-                          {idx === 0 ? "🥇 1st" : idx === 1 ? "🥈 2nd" : idx === 2 ? "🥉 3rd" : `#${idx + 1}`}
-                        </td>
-                        <td style={{ padding: "0.75rem", fontWeight: 700 }}>
-                          {sub.student?.name || sub.student?.username}
-                        </td>
-                        <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
-                          {sub.student?.studentProfile?.rollNumber || "N/A"} ({sub.student?.studentProfile?.className || sub.mockTest?.className})
-                        </td>
-                        <td style={{ padding: "0.75rem", fontWeight: 900, color: sub.score >= (sub.mockTest?.passingMarks || 4) ? "#22c55e" : "#ef4444" }}>
-                          {sub.score} / {sub.totalMarks}
-                        </td>
-                        <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
-                          ⏱ {Math.floor(sub.timeTaken / 60)}m {sub.timeTaken % 60}s {sub.autoSubmitted && "⚠️ Auto-submitted"}
-                        </td>
-                        <td style={{ padding: "0.75rem", color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                          {new Date(sub.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                        </td>
-                      </tr>
-                    ))}
+                    {results.map((sub, idx) => {
+                      const passLimit = sub.mockTest?.passingMarks || activeTestForResults?.passingMarks || 4;
+                      const isPassed = sub.score >= passLimit;
+                      return (
+                        <tr key={sub.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "0.75rem", fontWeight: 900, color: idx === 0 ? "#f59e0b" : "var(--text)" }}>
+                            {idx === 0 ? "🥇 1st" : idx === 1 ? "🥈 2nd" : idx === 2 ? "🥉 3rd" : `#${idx + 1}`}
+                          </td>
+                          <td style={{ padding: "0.75rem", fontWeight: 700 }}>
+                            {sub.student?.name || sub.student?.username}
+                          </td>
+                          <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
+                            {sub.student?.studentProfile?.rollNumber || "N/A"} ({sub.student?.studentProfile?.className || sub.mockTest?.className})
+                          </td>
+                          <td style={{ padding: "0.75rem", fontWeight: 900, color: isPassed ? "#22c55e" : "#ef4444" }}>
+                            {sub.score} / {sub.totalMarks}
+                          </td>
+                          <td style={{ padding: "0.75rem" }}>
+                            <span style={{
+                              padding: "0.2rem 0.55rem",
+                              borderRadius: "6px",
+                              fontSize: "0.72rem",
+                              fontWeight: 800,
+                              background: isPassed ? "rgba(34, 197, 94, 0.15)" : "rgba(239, 68, 68, 0.15)",
+                              color: isPassed ? "#22c55e" : "#ef4444",
+                              border: `1px solid ${isPassed ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`
+                            }}>
+                              {isPassed ? "🎉 PASSED" : "❌ FAILED"}
+                            </span>
+                          </td>
+                          <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
+                            ⏱ {Math.floor(sub.timeTaken / 60)}m {sub.timeTaken % 60}s {sub.autoSubmitted && "⚠️ Auto-submitted"}
+                          </td>
+                          <td style={{ padding: "0.75rem", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                            {new Date(sub.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* AI MCQ & INPUT QUESTION EXTRACTION MODAL */}
-      {showAiExtractorModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(10px)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+      {showAiExtractorModal && typeof window !== "undefined" && createPortal(
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(6px)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div className="glass-card" style={{ maxWidth: "750px", width: "100%", padding: "1.75rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--primary)", background: "var(--card-bg)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.75rem" }}>
               <div>
@@ -1621,7 +1635,8 @@ export function ChapterMockTestManager() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

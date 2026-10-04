@@ -25,6 +25,7 @@ export default function ChapterMockTestArena() {
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [warningCount, setWarningCount] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(true);
+  const [hasStarted, setHasStarted] = useState<boolean>(false);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -64,14 +65,14 @@ export default function ChapterMockTestArena() {
     const count = warningCountRef.current;
     setWarningCount(count);
 
-    if (count >= 5) {
+    if (count >= 3) {
       submitTest(true);
       setModalConfig({
         isOpen: true,
         type: 'AUTO_SUBMIT_SECURITY',
         badge: 'SECURITY VIOLATION',
         title: 'Test Auto-Submitted!',
-        message: `Anti-Cheat Violation: You received 5 warnings (${reason})! Your mock test has been submitted automatically.`,
+        message: `Anti-Cheat Violation: You received 3 warnings (${reason})! Your mock test has been submitted automatically.`,
         confirmLabel: 'View Evaluation Report',
         onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
       });
@@ -79,9 +80,9 @@ export default function ChapterMockTestArena() {
       setModalConfig({
         isOpen: true,
         type: 'WARNING_SECURITY',
-        badge: `WARNING ${count} / 5`,
-        title: `Security Warning (${count}/5)`,
-        message: `${reason} is strictly prohibited during the test! After 5 total warnings, your test will be auto-submitted.`,
+        badge: `WARNING ${count} / 3`,
+        title: `Security Warning (${count}/3)`,
+        message: `${reason} is strictly prohibited during the test! After 3 total warnings, your test will be auto-submitted.`,
         confirmLabel: 'Re-enter Fullscreen & Resume',
         onConfirm: () => {
           requestFullscreenMode();
@@ -128,6 +129,8 @@ export default function ChapterMockTestArena() {
   };
 
   useEffect(() => {
+    if (!hasStarted || submitted) return;
+
     // Enable mobile native PrivacyScreen if running inside Capacitor
     if (typeof window !== 'undefined' && (window as any).Capacitor?.Plugins?.PrivacyScreen) {
       try {
@@ -236,7 +239,7 @@ export default function ChapterMockTestArena() {
       window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('backbuttonpress', handleBackButton);
     };
-  }, [testData, router, triggerSecurityWarning]);
+  }, [testData, router, triggerSecurityWarning, hasStarted, submitted]);
 
   useEffect(() => {
     const fetchTestData = async () => {
@@ -257,7 +260,7 @@ export default function ChapterMockTestArena() {
   }, [mockTestId]);
 
   useEffect(() => {
-    if (timeLeft === null || submitted) return;
+    if (timeLeft === null || submitted || !hasStarted) return;
 
     if (timeLeft <= 0) {
       submitTest(false);
@@ -278,7 +281,7 @@ export default function ChapterMockTestArena() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, submitted]);
+  }, [timeLeft, submitted, hasStarted]);
 
   const handleAnswerChange = (questionId: string, optionIndex: number) => {
     if (submitted) return;
@@ -409,7 +412,7 @@ export default function ChapterMockTestArena() {
       `}} />
 
       {/* Fullscreen Alert Banner if not in fullscreen */}
-      {!submitted && !isFullscreen && (
+      {!submitted && hasStarted && !isFullscreen && (
         <div style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid #ef4444", color: "#ef4444", padding: "0.6rem 1rem", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 700, fontSize: "0.88rem" }}>
           <span>⚠️ Test mode requires FULL SCREEN. Please click to restore full screen immediately!</span>
           <button
@@ -435,7 +438,7 @@ export default function ChapterMockTestArena() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {warningCount > 0 && (
             <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '0.25rem 0.65rem', borderRadius: '8px' }}>
-              ⚠️ Security Warnings: {warningCount}/5
+              ⚠️ Security Warnings: {warningCount}/3
             </span>
           )}
 
@@ -451,42 +454,180 @@ export default function ChapterMockTestArena() {
         </div>
       </header>
 
-      {submitted ? (
+      {!submitted && !hasStarted ? (
+        /* Pre-Test Instructions Screen */
+        <div style={{ maxWidth: '800px', margin: '1rem auto', width: '100%', paddingBottom: '3rem' }}>
+          <div className="glass-card animate-scale-up" style={{ padding: '2rem 1.75rem', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            {/* Header Title */}
+            <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--primary)', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase' }}>
+                  {testData.subject} • CLASS {testData.className}
+                </span>
+                {testData.board && (
+                  <span style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 900 }}>
+                    🎓 {testData.board} BOARD
+                  </span>
+                )}
+              </div>
+              <h1 style={{ fontSize: '1.6rem', fontWeight: 900, margin: '0.3rem 0', color: 'var(--text-heading)' }}>
+                {testData.chapterName || testData.title || 'Chapter Mock Test'}
+              </h1>
+              {testData.title && testData.title !== testData.chapterName && (
+                <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
+                  📝 {testData.title}
+                </p>
+              )}
+            </div>
+
+            {/* Test Overview Metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>⏱ Duration</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary)', marginTop: '0.2rem' }}>{testData.durationMinutes || 15} Mins</div>
+              </div>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>📝 Questions</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-heading)', marginTop: '0.2rem' }}>{questions.length}</div>
+              </div>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>🎯 Total Marks</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', marginTop: '0.2rem' }}>{testData.totalMarks || 10}</div>
+              </div>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>🏆 Pass Cutoff</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b', marginTop: '0.2rem' }}>{testData.passingMarks || 4} Marks</div>
+              </div>
+              <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>🛡 Anti-Cheat</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444', marginTop: '0.2rem' }}>Max 3 Warnings</div>
+              </div>
+            </div>
+
+            {/* General Instructions & Security Rules */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '1.25rem', borderRadius: '12px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary)', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>📋</span> General Instructions & Rules
+                </h3>
+                <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5 }}>
+                  <li>The timer will start automatically as soon as you click <strong>"Start Now"</strong>.</li>
+                  <li>Ensure you have an active and stable internet connection throughout the attempt.</li>
+                  <li>You can navigate between questions using the question index buttons on the sidebar or the Next/Previous buttons.</li>
+                  <li>Use the <strong>"Flag"</strong> button to mark questions you want to review before submitting.</li>
+                  <li>Your answers will be saved instantly upon selection or entry.</li>
+                </ul>
+              </div>
+
+              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '1.25rem', borderRadius: '12px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 900, color: '#ef4444', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>🛡️</span> Strict Anti-Cheat Policy
+                </h3>
+                <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.5 }}>
+                  <li>The test MUST be conducted in <strong>Full Screen Mode</strong>.</li>
+                  <li>Switching tabs, minimizing the browser window, or losing window focus is strictly monitored.</li>
+                  <li>You will be issued a warning upon each violation. Upon receiving <strong>3 warnings</strong>, the test will be <strong>automatically submitted</strong>.</li>
+                  <li>Copying content, right-clicking, taking screenshots, or opening Developer Tools is blocked.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/student?tab=mock-tests')}
+                style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                ← Back to Mock Tests
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setHasStarted(true);
+                  requestFullscreenMode();
+                }}
+                style={{
+                  padding: '0.85rem 2rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '1.05rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                Start Now 🚀
+              </button>
+            </div>
+
+          </div>
+        </div>
+      ) : submitted ? (
         /* Evaluation & Result Showcase Screen */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '700px', margin: '0 auto', width: '100%', paddingBottom: '3rem' }}>
           
-          <div className="glass-card animate-scale-up" style={{ padding: '1.5rem 1.25rem', textAlign: 'center', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ fontSize: '2.5rem', animation: 'bounce 1s infinite' }}>🏆</div>
+          <div className="glass-card animate-scale-up" style={{ padding: '1.75rem 1.25rem', textAlign: 'center', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ fontSize: '2.5rem', animation: 'bounce 1s infinite' }}>{reportCard?.isPassed ? '🏆' : '🎯'}</div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0 }}>Chapter Mock Test Result</h2>
-            
+
             {reportCard && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.5rem' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 900, color: reportCard.isPassed ? '#22c55e' : 'var(--primary)' }}>
-                    {reportCard.score} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ {reportCard.totalMarks}</span>
+              <>
+                {/* Prominent Pass / Fail Status Badge Banner */}
+                <div style={{
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '12px',
+                  background: reportCard.isPassed ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                  border: `1.5px solid ${reportCard.isPassed ? '#22c55e' : '#ef4444'}`,
+                  color: reportCard.isPassed ? '#22c55e' : '#ef4444',
+                  fontWeight: 900,
+                  fontSize: '1.05rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  justifyContent: 'center',
+                  boxShadow: reportCard.isPassed ? '0 4px 12px rgba(34, 197, 94, 0.15)' : '0 4px 12px rgba(239, 68, 68, 0.15)'
+                }}>
+                  <span>{reportCard.isPassed ? '🎉 RESULT: PASSED' : '❌ RESULT: FAILED'}</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                    (Passing Marks: {reportCard.passingMarks} / {reportCard.totalMarks})
+                  </span>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.5rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2.2rem', fontWeight: 900, color: reportCard.isPassed ? '#22c55e' : '#ef4444' }}>
+                      {reportCard.score} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ {reportCard.totalMarks}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: reportCard.isPassed ? '#22c55e' : '#ef4444', textTransform: 'uppercase', fontWeight: 900, marginTop: '0.25rem', letterSpacing: '0.5px' }}>
+                      {reportCard.isPassed ? '🎉 PASSED' : '❌ FAILED'}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800, marginTop: '0.25rem', letterSpacing: '0.5px' }}>
-                    {reportCard.isPassed ? '🎉 PASSED' : '🎯 MARKS SCORED'}
+
+                  <div style={{ height: '35px', width: '1px', background: 'var(--border)' }} />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981' }}>{reportCard.correctCount}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Correct</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ef4444' }}>{reportCard.incorrectCount}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Wrong</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#6b7280' }}>{reportCard.unattemptedCount}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Skipped</div>
+                    </div>
                   </div>
                 </div>
-
-                <div style={{ height: '35px', width: '1px', background: 'var(--border)' }} />
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981' }}>{reportCard.correctCount}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Correct</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ef4444' }}>{reportCard.incorrectCount}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Wrong</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#6b7280' }}>{reportCard.unattemptedCount}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>Skipped</div>
-                  </div>
-                </div>
-              </div>
+              </>
             )}
 
             <button 

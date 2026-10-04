@@ -564,6 +564,8 @@ function StudentDashboardContent() {
   useEffect(() => {
     if (session?.user?.name) {
       setGuruHistory([]);
+      const uName = session.user.name;
+      setDashboard(prev => (prev.name === 'Student' || !prev.name ? { ...prev, name: uName } : prev));
     }
   }, [session?.user?.name]);
 
@@ -1276,7 +1278,7 @@ function StudentDashboardContent() {
         <header className="dashboard-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', fontWeight: 800 }}>
-              जय सियाराम 🙏 <span style={{ color: 'var(--primary)' }}>{cleanDisplayName(dashboard?.name) || 'Student'}</span>
+              जय सियाराम 🙏 <span style={{ color: 'var(--primary)' }}>{cleanDisplayName((dashboard?.name && dashboard.name !== 'Student') ? dashboard.name : session?.user?.name) || 'Student'}</span>
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Here is a summary of your academic progress and dues.</p>
           </div>
@@ -1325,25 +1327,24 @@ function StudentDashboardContent() {
       {activeTab === 'dashboard' && !isStoreUser && (
         <>
           <QuickServicesWidget role="STUDENT" setActiveTab={handleTabChange} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
             
             {/* Column 1: Academics (Timetable & Batches) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* Weekly Timetable */}
-              {/* Weekly Timetable */}
-              <div className="glass-card" style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Timetable</h2>
+              <div className="glass-card" style={{ padding: '1.25rem 1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Timetable</h2>
                   <button
                     onClick={() => setShowFullWeekModal(true)}
                     style={{
                       background: 'rgba(99, 102, 241, 0.1)',
                       border: '1px solid rgba(99, 102, 241, 0.2)',
                       color: 'var(--primary)',
-                      padding: '4px 12px',
+                      padding: '3px 10px',
                       borderRadius: '8px',
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -1354,7 +1355,7 @@ function StudentDashboardContent() {
                 </div>
                 
                 {/* Unified Today-First Scrollable Schedule Area */}
-                <div style={{ maxHeight: '350px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '4px' }}>
+                <div style={{ maxHeight: '260px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '4px' }}>
                   {(() => {
                     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                     const todayIdx = new Date().getDay();
@@ -1376,38 +1377,38 @@ function StudentDashboardContent() {
                           key={day} 
                           style={{ 
                             background: isToday ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.01)', 
-                            borderRadius: '16px', 
-                            padding: '1.25rem', 
+                            borderRadius: '12px', 
+                            padding: '0.85rem 1rem', 
                             border: isToday ? '2px solid var(--primary)' : '1px solid var(--border)',
-                            boxShadow: isToday ? '0 8px 24px rgba(99, 102, 241, 0.15)' : 'none',
+                            boxShadow: isToday ? '0 4px 16px rgba(99, 102, 241, 0.12)' : 'none',
                             transition: 'all 0.2s'
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.75rem' : 0 }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isToday ? 'var(--primary)' : 'var(--text-heading)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: daySchedules.length > 0 ? '0.5rem' : 0 }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isToday ? 'var(--primary)' : 'var(--text-heading)' }}>
                               {isToday ? '📅 Today\'s Schedule' : `📅 ${day}`}
                             </span>
                             {isToday && (
-                              <span style={{ fontSize: '0.65rem', background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: 900, textTransform: 'uppercase' }}>
+                              <span style={{ fontSize: '0.6rem', background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '8px', fontWeight: 900, textTransform: 'uppercase' }}>
                                 {day}
                               </span>
                             )}
                           </div>
 
                           {daySchedules.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                               {daySchedules.map(ds => (
-                                <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div key={ds.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '0.5rem 0.75rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div>
-                                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
+                                    <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text-heading)', display: 'block' }}>{ds.subject || 'Lecture'}</span>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{ds.batchName} {ds.room ? `• Room ${ds.room}` : ''}</span>
                                   </div>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>⏱️ {ds.startTime} - {ds.endTime}</span>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem 0', fontStyle: 'italic' }}>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.25rem 0', fontStyle: 'italic' }}>
                               No classes scheduled.
                             </p>
                           )}
@@ -1419,44 +1420,44 @@ function StudentDashboardContent() {
               </div>
 
               {/* My Batches & Teachers */}
-              <div className="glass-card" style={{ padding: '2rem' }}>
-                <h3 style={{ fontSize: '1.4rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="glass-card" style={{ padding: '1.25rem 1.5rem' }}>
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   My Batches & Instructors
                 </h3>
                  {dashboardLoading ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                     {[1, 2].map((i) => (
-                      <div key={i} className="animate-pulse" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border)', gap: '1rem' }}>
+                      <div key={i} className="animate-pulse" style={{ display: 'flex', flexDirection: 'column', padding: '1rem 1.15rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', gap: '0.75rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ height: '1.2rem', width: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
-                            <div style={{ height: '0.8rem', width: '60%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginTop: '0.5rem' }} />
+                            <div style={{ height: '1rem', width: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+                            <div style={{ height: '0.75rem', width: '60%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginTop: '0.4rem' }} />
                           </div>
-                          <div style={{ height: '1.2rem', width: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px' }} />
+                          <div style={{ height: '1rem', width: '70px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px' }} />
                         </div>
                         <div style={{ height: '1px', background: 'var(--border)' }} />
                         <div>
-                          <div style={{ height: '0.8rem', width: '120px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginBottom: '0.75rem' }} />
-                          <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div style={{ height: '40px', width: '150px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} />
+                          <div style={{ height: '0.75rem', width: '100px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginBottom: '0.5rem' }} />
+                          <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <div style={{ height: '32px', width: '130px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }} />
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : dashboard?.batches && dashboard.batches.length > 0 ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                     {dashboard.batches.map((b: any) => (
-                      <div key={b.id} style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--border)', gap: '1rem' }}>
+                      <div key={b.id} style={{ display: 'flex', flexDirection: 'column', padding: '1rem 1.15rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', gap: '0.75rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                           <div>
-                            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>{b.name}</span>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>Course: {b.course?.name} | Grade: {b.className || 'N/A'}</span>
+                            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary)' }}>{b.name}</span>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.15rem' }}>Course: {b.course?.name} | Grade: {b.className || 'N/A'}</span>
                           </div>
                           {b.subjects && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                               {b.subjects.split(',').map((subj: string) => (
-                                <span key={subj} style={{ fontSize: '0.7rem', padding: '4px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', borderRadius: '100px', fontWeight: 700 }}>
+                                <span key={subj} style={{ fontSize: '0.68rem', padding: '3px 8px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', borderRadius: '100px', fontWeight: 700 }}>
                                   {subj.trim()}
                                 </span>
                               ))}
@@ -1467,38 +1468,38 @@ function StudentDashboardContent() {
                         <div style={{ height: '1px', background: 'var(--border)' }}></div>
 
                         <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             Assigned Instructors
                           </div>
                           {b.teachers && b.teachers.length > 0 ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                               {b.teachers.map((t: any, idx: number) => (
-                                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '0.85rem' }}>
+                                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.02)', padding: '0.45rem 0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '0.78rem' }}>
                                     {t.name?.charAt(0).toUpperCase()}
                                   </div>
                                   <div>
                                     <div 
                                       onClick={() => setActiveProfileUserId(t.id)} 
-                                      style={{ fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline decoration-dotted' }} 
+                                      style={{ fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline decoration-dotted' }} 
                                       className="clickable-name"
                                     >
                                       {t.name}
                                     </div>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Instructor</div>
+                                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Instructor</div>
                                   </div>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No teachers assigned yet for this batch.</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No teachers assigned yet for this batch.</span>
                           )}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.01)', borderRadius: '16px', border: '1px dashed var(--border)' }}>
+                  <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px dashed var(--border)', fontSize: '0.85rem' }}>
                     Not enrolled in any academic batches yet. Please contact the administrator.
                   </div>
                 )}
@@ -1506,11 +1507,11 @@ function StudentDashboardContent() {
             </div>
 
             {/* Column 2: Status & Attendance */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* Fee Status */}
               <div className={`glass-card ${((dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'overdue-pulse' : ''}`} style={{
-                padding: '2rem',
+                padding: '1.25rem 1.5rem',
                 background: ((totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING'))
                   ? 'rgba(239, 68, 68, 0.1)'
                   : 'linear-gradient(135deg, var(--primary), var(--accent))',
@@ -1518,19 +1519,19 @@ function StudentDashboardContent() {
                   ? '1px solid rgba(239, 68, 68, 0.5)'
                   : undefined
               }}>
-                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>Total Outstanding Balance</h3>
+                 <h3 style={{ fontSize: '1.05rem', marginBottom: '0.5rem', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>Total Outstanding Balance</h3>
                  
                  {(totalOutstanding > 0 || (dashboard as any)?.feeHighlight) ? (
                    <>
-                     <div style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.4rem', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>
+                     <div style={{ fontSize: '1.6rem', fontWeight: '800', marginBottom: '0.25rem', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? '#ef4444' : '#fff' }}>
                        ₹{(totalOutstanding > 0 ? totalOutstanding : ((dashboard as any).feeHighlight.totalAmount ?? (dashboard as any).feeHighlight.amount)).toLocaleString('en-IN')}
                      </div>
-                     <p style={{ color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'var(--text)' : 'rgba(255,255,255,0.85)', fontSize: '0.85rem', marginBottom: '1.25rem', fontWeight: 600 }}>
+                     <p style={{ color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? 'var(--text)' : 'rgba(255,255,255,0.85)', fontSize: '0.8rem', marginBottom: '0.85rem', fontWeight: 600 }}>
                        {((dashboard as any)?.feeHighlight?.pendingMonthsCount > 1 || fees.filter(f => f.status === 'PENDING').length > 1) 
                          ? `Total pending across ${fees.filter(f => f.status === 'PENDING').length || (dashboard as any)?.feeHighlight?.pendingMonthsCount} billing months`
                          : (dashboard as any)?.feeHighlight?.dueDate ? `Due by ${formatDateDisplay((dashboard as any).feeHighlight.dueDate)}` : 'Pending dues settlement'}
                      </p>
-                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.9rem', background: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : 'rgba(255,255,255,0.15)', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '#fff', border: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
+                     <button className="btn-secondary" style={{ width: '100%', fontSize: '0.82rem', padding: '0.45rem 0.85rem', background: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : 'rgba(255,255,255,0.15)', color: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '#fff', border: (totalOutstanding > 0 || (dashboard as any)?.feeHighlight?.isOverdue || (dashboard as any)?.feeHighlight?.status === 'PENDING') ? undefined : '1px solid rgba(255,255,255,0.2)' }} onClick={() => {
                         handleTabChange('fees');
                         const pending = fees.find(f => f.status === 'PENDING') || (dashboard as any)?.feeHighlight;
                         if (pending) {
@@ -1539,18 +1540,18 @@ function StudentDashboardContent() {
                       }}>Pay Outstanding Fees →</button>
                    </>
                  ) : (
-                   <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>No pending fees. You are all caught up!</p>
+                   <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', margin: 0 }}>No pending fees. You are all caught up!</p>
                  )}
               </div>
 
               {/* Overall Attendance */}
-              <div className="glass-card" style={{ padding: '2rem', background: 'rgba(59,130,246,0.05)', cursor: 'pointer' }} onClick={() => handleTabChange('attendance')}>
-                 <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Overall Attendance</h3>
-                 <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--secondary)' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
-                 <div style={{ width: '100%', height: '8px', background: 'var(--border)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
+              <div className="glass-card" style={{ padding: '1.25rem 1.5rem', background: 'rgba(59,130,246,0.05)', cursor: 'pointer' }} onClick={() => handleTabChange('attendance')}>
+                 <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Overall Attendance</h3>
+                 <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--secondary)' }}>{(dashboard as any)?.attendance?.percentage || 0}%</div>
+                 <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', marginTop: '0.75rem', overflow: 'hidden' }}>
                     <div style={{ width: `${(dashboard as any)?.attendance?.percentage || 0}%`, height: '100%', background: 'var(--secondary)', boxShadow: '0 0 10px rgba(59,130,246,0.4)' }}></div>
                  </div>
-                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>{(dashboard as any)?.attendance?.present || 0} / {(dashboard as any)?.attendance?.total || 0} Days Present</p>
+                 <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.5rem', margin: '0.5rem 0 0 0' }}>{(dashboard as any)?.attendance?.present || 0} / {(dashboard as any)?.attendance?.total || 0} Days Present</p>
               </div>
             </div>
 
