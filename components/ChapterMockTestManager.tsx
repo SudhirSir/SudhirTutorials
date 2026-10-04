@@ -28,7 +28,7 @@ export function ChapterMockTestManager() {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [selectedClass, setSelectedClass] = useState("10th");
+  const [selectedClass, setSelectedClass] = useState("ALL");
   const [selectedBoard, setSelectedBoard] = useState("ALL");
   const [selectedSubject, setSelectedSubject] = useState("ALL");
   const [searchChapter, setSearchChapter] = useState("");
@@ -43,37 +43,37 @@ export function ChapterMockTestManager() {
   const [results, setResults] = useState<any[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
 
-  // New/Edit Test Form
-  const [testForm, setTestForm] = useState({
+  // New/Edit Test Form (No defaults preset - everything selected by user)
+  const [testForm, setTestForm] = useState<any>({
     title: "",
-    className: "10th",
-    board: "CBSE",
-    subject: "Mathematics",
+    className: "",
+    board: "",
+    subject: "",
     chapterName: "",
     description: "",
-    durationMinutes: 15,
-    totalMarks: 10,
-    passingMarks: 4,
-    allowedAttempts: 3,
+    durationMinutes: "",
+    totalMarks: "",
+    passingMarks: "",
+    allowedAttempts: "",
     isPublished: true,
     isStoreItem: false,
-    storePrice: 0,
+    storePrice: "",
   });
 
-  // Question Form State
+  // Question Form State (No defaults preset)
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [questionType, setQuestionType] = useState<"MCQ" | "INPUT">("MCQ");
   const [inputAnswer, setInputAnswer] = useState("");
-  const [questionForm, setQuestionForm] = useState({
+  const [questionForm, setQuestionForm] = useState<any>({
     questionText: "",
     optA: "",
     optB: "",
     optC: "",
     optD: "",
     correctOption: 0,
-    marks: 1,
+    marks: "",
     explanation: "",
-    boardTag: "CBSE 2023 Pattern",
+    boardTag: "",
   });
 
   // AI Extractor States
@@ -128,7 +128,7 @@ export function ChapterMockTestManager() {
           correctOption: isInput ? 0 : q.correctOption || 0,
           marks: 1,
           explanation: q.explanation || "",
-          boardTag: q.boardTag || `${activeTestForQuestions.board} Pattern`
+          boardTag: q.boardTag || `${activeTestForQuestions.board || ''} Pattern`
         };
       });
 
@@ -170,7 +170,7 @@ export function ChapterMockTestManager() {
         correctOption: isInput ? 0 : q.correctOption || 0,
         marks: 1,
         explanation: q.explanation || "",
-        boardTag: q.boardTag || `${activeTestForQuestions.board} Pattern`
+        boardTag: q.boardTag || `${activeTestForQuestions.board || ''} Pattern`
       };
 
       const res = await fetch("/api/mock-tests/questions", {
@@ -240,15 +240,27 @@ export function ChapterMockTestManager() {
 
   const handleSaveTest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!testForm.title || !testForm.chapterName) {
-      alert("Please enter title and chapter name!");
+    if (!testForm.className || !testForm.board || !testForm.subject || !testForm.chapterName || !testForm.title) {
+      alert("Please select Class, Board, Subject, and enter Chapter Name & Title!");
+      return;
+    }
+    if (!testForm.durationMinutes || !testForm.totalMarks) {
+      alert("Please enter Duration and Total Marks!");
       return;
     }
 
     try {
       const url = "/api/mock-tests";
       const method = editingTest ? "PUT" : "POST";
-      const body = editingTest ? { id: editingTest.id, ...testForm } : testForm;
+      const payload = {
+        ...testForm,
+        durationMinutes: parseInt(testForm.durationMinutes) || 15,
+        totalMarks: parseFloat(testForm.totalMarks) || 10,
+        passingMarks: parseFloat(testForm.passingMarks) || 4,
+        allowedAttempts: parseInt(testForm.allowedAttempts) || 3,
+        storePrice: parseFloat(testForm.storePrice) || 0,
+      };
+      const body = editingTest ? { id: editingTest.id, ...payload } : payload;
 
       const res = await fetch(url, {
         method,
@@ -262,18 +274,18 @@ export function ChapterMockTestManager() {
         setEditingTest(null);
         setTestForm({
           title: "",
-          className: "10th",
-          board: "CBSE",
-          subject: "Mathematics",
+          className: "",
+          board: "",
+          subject: "",
           chapterName: "",
           description: "",
-          durationMinutes: 15,
-          totalMarks: 10,
-          passingMarks: 4,
-          allowedAttempts: 3,
+          durationMinutes: "",
+          totalMarks: "",
+          passingMarks: "",
+          allowedAttempts: "",
           isPublished: true,
           isStoreItem: false,
-          storePrice: 0,
+          storePrice: "",
         });
         fetchMockTests();
       } else {
@@ -330,9 +342,9 @@ export function ChapterMockTestManager() {
       optC: "",
       optD: "",
       correctOption: 0,
-      marks: 1,
+      marks: "",
       explanation: "",
-      boardTag: `${test.board} Pattern`,
+      boardTag: "",
     });
     try {
       const res = await fetch(`/api/mock-tests/questions?mockTestId=${test.id}`);
@@ -377,7 +389,7 @@ export function ChapterMockTestManager() {
             questionText: questionForm.questionText,
             options: optionsArr,
             correctOption: questionForm.correctOption,
-            marks: questionForm.marks,
+            marks: parseFloat(questionForm.marks) || 1,
             explanation: questionForm.explanation,
             boardTag: questionForm.boardTag,
           }
@@ -386,7 +398,7 @@ export function ChapterMockTestManager() {
             questionText: questionForm.questionText,
             options: optionsArr,
             correctOption: questionForm.correctOption,
-            marks: questionForm.marks,
+            marks: parseFloat(questionForm.marks) || 1,
             explanation: questionForm.explanation,
             boardTag: questionForm.boardTag,
           };
@@ -409,9 +421,9 @@ export function ChapterMockTestManager() {
           optC: "",
           optD: "",
           correctOption: 0,
-          marks: 1,
+          marks: "",
           explanation: "",
-          boardTag: `${activeTestForQuestions.board} Pattern`,
+          boardTag: "",
         });
         openQuestionsManager(activeTestForQuestions);
         fetchMockTests();
@@ -449,7 +461,7 @@ export function ChapterMockTestManager() {
         correctOption: 0,
         marks: 1,
         explanation: "Product of roots = $c/a$. Let roots be $\\alpha$ and $1/\\alpha$. Product $\\alpha \\cdot (1/\\alpha) = 1 \\implies k/2 = 1 \\implies k = 2$.",
-        boardTag: `${activeTestForQuestions.board} 2023 Repeated`
+        boardTag: `${activeTestForQuestions.board || 'Board'} 2023 Repeated`
       },
       {
         questionText: `The discriminant of the quadratic equation $3x^2 - 5x + 2 = 0$ is:`,
@@ -457,7 +469,7 @@ export function ChapterMockTestManager() {
         correctOption: 0,
         marks: 1,
         explanation: "Discriminant $D = b^2 - 4ac = (-5)^2 - 4(3)(2) = 25 - 24 = 1$. Since $D > 0$, roots are real and distinct.",
-        boardTag: `${activeTestForQuestions.board} Board Specimen`
+        boardTag: `${activeTestForQuestions.board || 'Board'} Board Specimen`
       },
       {
         questionText: `What is the nature of roots of $4x^2 - 12x + 9 = 0$?`,
@@ -465,7 +477,7 @@ export function ChapterMockTestManager() {
         correctOption: 0,
         marks: 1,
         explanation: "$D = b^2 - 4ac = (-12)^2 - 4(4)(9) = 144 - 144 = 0$. Equal roots!",
-        boardTag: `${activeTestForQuestions.board} Standard`
+        boardTag: `${activeTestForQuestions.board || 'Board'} Standard`
       }
     ];
 
@@ -534,32 +546,43 @@ export function ChapterMockTestManager() {
           </div>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
+        {/* Reduced Create Mock Test Button Size */}
+        <button
           onClick={() => {
             setEditingTest(null);
             setTestForm({
               title: "",
-              className: "10th",
-              board: "CBSE",
-              subject: "Mathematics",
+              className: "",
+              board: "",
+              subject: "",
               chapterName: "",
               description: "",
-              durationMinutes: 15,
-              totalMarks: 10,
-              passingMarks: 4,
-              allowedAttempts: 3,
+              durationMinutes: "",
+              totalMarks: "",
+              passingMarks: "",
+              allowedAttempts: "",
               isPublished: true,
               isStoreItem: false,
-              storePrice: 0,
+              storePrice: "",
             });
             setShowCreateModal(true);
           }}
-          style={{ padding: "0.45rem 0.9rem", borderRadius: "10px", fontWeight: 800, fontSize: "0.82rem" }}
+          style={{
+            padding: "0.3rem 0.65rem",
+            borderRadius: "8px",
+            background: "var(--primary)",
+            color: "#fff",
+            border: "none",
+            fontWeight: 700,
+            fontSize: "0.75rem",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.25rem"
+          }}
         >
           ➕ Create Mock Test
-        </Button>
+        </button>
       </div>
 
       {/* Filter Toolbar */}
@@ -622,16 +645,15 @@ export function ChapterMockTestManager() {
         <Card variant="glass" style={{ padding: "3rem", textAlign: "center" }}>
           <h3 style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: "0.5rem" }}>No Chapter Mock Tests Found</h3>
           <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>Create your first chapter mock test to let students test their preparation!</p>
-          <Button
-            variant="primary"
-            size="sm"
+          <button
             onClick={() => {
               setEditingTest(null);
               setShowCreateModal(true);
             }}
+            style={{ padding: "0.35rem 0.75rem", borderRadius: "8px", background: "var(--primary)", color: "#fff", border: "none", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}
           >
             Create Mock Test
-          </Button>
+          </button>
         </Card>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" }}>
@@ -644,24 +666,27 @@ export function ChapterMockTestManager() {
                     <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       {test.subject} • Class {test.className}
                     </span>
-                    {test.title && (
-                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", marginTop: "0.15rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                        <span>📝</span>
-                        <span>{test.title}</span>
-                      </div>
-                    )}
-                    <h3 style={{ fontSize: "0.95rem", fontWeight: 800, margin: "0.15rem 0 0 0", color: "var(--text-heading)", lineHeight: "1.25" }}>
+                    
+                    {/* Chapter Name (Reduced font size) */}
+                    <h3 style={{ fontSize: "0.85rem", fontWeight: 800, margin: "0.15rem 0 0 0", color: "var(--text-heading)", lineHeight: "1.25" }}>
                       {test.chapterName}
                     </h3>
+
+                    {/* Title BELOW Chapter Name */}
+                    {test.title && (
+                      <div style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)", marginTop: "0.15rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                        <span>📝 {test.title}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Publish Toggle Button Right Side of Title */}
+                  {/* Publish Button (No Icon & Reduced Size) */}
                   <button
                     onClick={() => handleTogglePublish(test)}
                     style={{
-                      padding: "0.25rem 0.5rem",
-                      borderRadius: "8px",
-                      fontSize: "0.68rem",
+                      padding: "0.15rem 0.4rem",
+                      borderRadius: "6px",
+                      fontSize: "0.62rem",
                       fontWeight: 700,
                       border: "1px solid",
                       cursor: "pointer",
@@ -673,7 +698,7 @@ export function ChapterMockTestManager() {
                     }}
                     title={test.isPublished ? "Click to Unpublish (Set Draft)" : "Click to Publish Mock Test"}
                   >
-                    {test.isPublished ? "Published ✓" : "Publish 🚀"}
+                    {test.isPublished ? "Published" : "Publish"}
                   </button>
                 </div>
 
@@ -713,19 +738,19 @@ export function ChapterMockTestManager() {
                     onClick={() => {
                       setEditingTest(test);
                       setTestForm({
-                        title: test.title,
-                        className: test.className,
-                        board: test.board,
-                        subject: test.subject,
-                        chapterName: test.chapterName,
+                        title: test.title || "",
+                        className: test.className || "",
+                        board: test.board || "",
+                        subject: test.subject || "",
+                        chapterName: test.chapterName || "",
                         description: test.description || "",
-                        durationMinutes: test.durationMinutes,
-                        totalMarks: test.totalMarks,
-                        passingMarks: test.passingMarks || 4,
-                        allowedAttempts: test.allowedAttempts || 3,
+                        durationMinutes: test.durationMinutes || "",
+                        totalMarks: test.totalMarks || "",
+                        passingMarks: test.passingMarks || "",
+                        allowedAttempts: test.allowedAttempts || "",
                         isPublished: test.isPublished,
                         isStoreItem: test.isStoreItem || false,
-                        storePrice: test.storePrice || 0,
+                        storePrice: test.storePrice || "",
                       });
                       setShowCreateModal(true);
                     }}
@@ -769,12 +794,14 @@ export function ChapterMockTestManager() {
             <form onSubmit={handleSaveTest} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div>
-                  <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>Class / Grade</label>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>Class / Grade *</label>
                   <select
+                    required
                     value={testForm.className}
                     onChange={(e) => setTestForm({ ...testForm, className: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)" }}
                   >
+                    <option value="" disabled>Select Class</option>
                     {CLASSES_LIST.map((c) => (
                       <option key={c} value={c}>Class {c}</option>
                     ))}
@@ -782,12 +809,14 @@ export function ChapterMockTestManager() {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>Board Pattern</label>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>Board Pattern *</label>
                   <select
+                    required
                     value={testForm.board}
                     onChange={(e) => setTestForm({ ...testForm, board: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)" }}
                   >
+                    <option value="" disabled>Select Board</option>
                     {BOARDS_LIST.map((b) => (
                       <option key={b} value={b}>{b}</option>
                     ))}
@@ -797,12 +826,14 @@ export function ChapterMockTestManager() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div>
-                  <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>Subject</label>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>Subject *</label>
                   <select
+                    required
                     value={testForm.subject}
                     onChange={(e) => setTestForm({ ...testForm, subject: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)" }}
                   >
+                    <option value="" disabled>Select Subject</option>
                     {SUBJECTS_LIST.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
@@ -836,47 +867,55 @@ export function ChapterMockTestManager() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "0.75rem" }}>
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Duration (Mins)</label>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Duration (Mins) *</label>
                   <input
                     type="number"
+                    required
                     min={5}
                     max={180}
+                    placeholder="e.g. 15"
                     value={testForm.durationMinutes}
-                    onChange={(e) => setTestForm({ ...testForm, durationMinutes: parseInt(e.target.value) || 15 })}
+                    onChange={(e) => setTestForm({ ...testForm, durationMinutes: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)" }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Total Marks</label>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Total Marks *</label>
                   <input
                     type="number"
+                    required
                     min={1}
+                    placeholder="e.g. 10"
                     value={testForm.totalMarks}
-                    onChange={(e) => setTestForm({ ...testForm, totalMarks: parseFloat(e.target.value) || 10 })}
+                    onChange={(e) => setTestForm({ ...testForm, totalMarks: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)" }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Passing Marks</label>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Passing Marks *</label>
                   <input
                     type="number"
+                    required
                     min={1}
+                    placeholder="e.g. 4"
                     value={testForm.passingMarks}
-                    onChange={(e) => setTestForm({ ...testForm, passingMarks: parseFloat(e.target.value) || 4 })}
+                    onChange={(e) => setTestForm({ ...testForm, passingMarks: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)" }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Max Attempts</label>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Max Attempts *</label>
                   <input
                     type="number"
+                    required
                     min={1}
                     max={20}
+                    placeholder="e.g. 3"
                     value={testForm.allowedAttempts}
-                    onChange={(e) => setTestForm({ ...testForm, allowedAttempts: parseInt(e.target.value) || 3 })}
+                    onChange={(e) => setTestForm({ ...testForm, allowedAttempts: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)" }}
                   />
                 </div>
@@ -893,7 +932,7 @@ export function ChapterMockTestManager() {
                 />
               </div>
 
-              {/* Store Options */}
+              {/* Store Options (Renamed to 'List in my store') */}
               <div style={{ padding: "0.85rem", borderRadius: "10px", background: "rgba(59, 130, 246, 0.05)", border: "1px solid rgba(59, 130, 246, 0.2)", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   <input
@@ -903,8 +942,8 @@ export function ChapterMockTestManager() {
                     onChange={(e) => setTestForm({ ...testForm, isStoreItem: e.target.checked })}
                     style={{ width: "1.1rem", height: "1.1rem", accentColor: "var(--primary)" }}
                   />
-                  <label htmlFor="isStoreItemCheck" style={{ fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", color: "var(--primary)" }}>
-                    🏪 List for Sale in Storefront (Outside students can purchase)
+                  <label htmlFor="isStoreItemCheck" style={{ fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", color: "var(--primary)" }}>
+                    🏪 List in my store
                   </label>
                 </div>
 
@@ -916,7 +955,7 @@ export function ChapterMockTestManager() {
                       min={0}
                       placeholder="e.g. 49 (0 for FREE)"
                       value={testForm.storePrice}
-                      onChange={(e) => setTestForm({ ...testForm, storePrice: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setTestForm({ ...testForm, storePrice: e.target.value })}
                       style={{ width: "100%", padding: "0.5rem 0.7rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontWeight: 700 }}
                     />
                   </div>
@@ -1143,8 +1182,9 @@ export function ChapterMockTestManager() {
                   <input
                     type="number"
                     min={1}
+                    placeholder="e.g. 1"
                     value={questionForm.marks}
-                    onChange={(e) => setQuestionForm({ ...questionForm, marks: parseFloat(e.target.value) || 1 })}
+                    onChange={(e) => setQuestionForm({ ...questionForm, marks: e.target.value })}
                     style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.82rem" }}
                   />
                 </div>
@@ -1186,9 +1226,9 @@ export function ChapterMockTestManager() {
                       optC: "",
                       optD: "",
                       correctOption: 0,
-                      marks: 1,
+                      marks: "",
                       explanation: "",
-                      boardTag: `${activeTestForQuestions.board} Pattern`,
+                      boardTag: "",
                     });
                   }} style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}>
                     Cancel Edit
@@ -1536,9 +1576,9 @@ export function ChapterMockTestManager() {
                                     optC: "",
                                     optD: "",
                                     correctOption: 0,
-                                    marks: 1,
+                                    marks: "",
                                     explanation: q.explanation || "",
-                                    boardTag: q.boardTag || `${activeTestForQuestions?.board || 'CBSE'} Pattern`
+                                    boardTag: q.boardTag || `${activeTestForQuestions?.board || ''} Pattern`
                                   });
                                 } else {
                                   setQuestionType("MCQ");
@@ -1550,9 +1590,9 @@ export function ChapterMockTestManager() {
                                     optC: q.optC || "",
                                     optD: q.optD || "",
                                     correctOption: q.correctOption || 0,
-                                    marks: 1,
+                                    marks: "",
                                     explanation: q.explanation || "",
-                                    boardTag: q.boardTag || `${activeTestForQuestions?.board || 'CBSE'} Pattern`
+                                    boardTag: q.boardTag || `${activeTestForQuestions?.board || ''} Pattern`
                                   });
                                 }
                                 setShowAiExtractorModal(false);
