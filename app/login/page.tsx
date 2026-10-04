@@ -32,6 +32,16 @@ export default function LoginPage() {
   const [regLoading, setRegLoading] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isLoggingOut = (window as any).isLoggingOut || safeSessionStorage.getItem('isLoggingOut') === 'true';
+      if (isLoggingOut) {
+        signOut({ redirect: false }).catch(() => {});
+        safeSessionStorage.removeItem('isLoggingOut');
+        (window as any).isLoggingOut = false;
+        return;
+      }
+    }
+
     if (status === "authenticated" && session?.user) {
       const isStoreUser = (session.user as any).isStoreUser;
       if (isStoreUser) {

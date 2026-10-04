@@ -18,21 +18,26 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      (window as any).isLoggingOut = true;
-      safeSessionStorage.setItem('isLoggingOut', 'true');
-      fetch('/api/user/push-token', { method: 'DELETE' }).catch(() => {});
-      safeSessionStorage.clear();
-      const theme = safeLocalStorage.getItem('theme');
-      safeLocalStorage.clear();
-      if (theme) {
-        safeLocalStorage.setItem('theme', theme);
+  const handleLogout = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        (window as any).isLoggingOut = true;
+        safeSessionStorage.setItem('isLoggingOut', 'true');
+        fetch('/api/user/push-token', { method: 'DELETE' }).catch(() => {});
+        safeSessionStorage.clear();
+        const theme = safeLocalStorage.getItem('theme');
+        safeLocalStorage.clear();
+        if (theme) {
+          safeLocalStorage.setItem('theme', theme);
+        }
       }
-    }
-    signOut({ callbackUrl: '/login' });
-    if (typeof window !== "undefined") {
-      window.location.href = '/login';
+      await signOut({ redirect: false });
+    } catch (e) {
+      console.error("Signout error:", e);
+    } finally {
+      if (typeof window !== "undefined") {
+        window.location.href = '/login';
+      }
     }
   };
 
