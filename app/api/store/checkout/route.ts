@@ -18,12 +18,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Item ID and Transaction ID are required.' }, { status: 400 });
     }
 
-    const item = await withDbRetry(() => prisma.storeItem.findUnique({
-      where: { id: itemId }
-    }));
+    let itemPrice = 0;
+    let targetItemId = itemId;
 
-    if (!item || !item.isPublished) {
-      return NextResponse.json({ error: 'Item not found or unavailable.' }, { status: 404 });
+    if (String(itemId).startsWith('mocktest-')) {
+      const rawMockId = String(itemId).replace(/^mocktest-/, '');
+      const mockTest = await withDbRetry(() => prisma.chapterMockTest.findUnique({
+        where: { id: rawMockId }
+      }));
+      if (!mockTest || !mockTest.isPublished || !mockTest.isStoreItem) {
+        return NextResponse.json({ error: 'Mock Test package unavailable.' }, { status: 404 });
+      }
+      itemPrice = mockTest.storePrice || 0;
+    } else {
+      const item = await withDbRetry(() => prisma.storeItem.findUnique({
+        where: { id: itemId }
+      }));
+
+      if (!item || !item.isPublished) {
+        return NextResponse.json({ error: 'Item not found or unavailable.' }, { status: 404 });
+      }
+      itemPrice = item.price;
     }
 
     // Check if already purchased
@@ -39,12 +54,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'You have already purchased this item.' }, { status: 400 });
     }
 
-    // Create successful purchase record with direct transaction ID verification
+    // Create successful purchase record
     const purchase = await withDbRetry(() => prisma.storePurchase.create({
       data: {
         studentId: session.user.id,
-        itemId: item.id,
-        amount: item.price,
+        itemId: itemId,
+        amount: itemPrice,
         status: 'SUCCESS',
         paymentId: transactionId
       }

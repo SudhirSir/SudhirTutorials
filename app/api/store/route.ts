@@ -9,7 +9,7 @@ import { appCache } from '@/lib/cache';
 
 export async function GET() {
   try {
-    const items = await appCache.getOrSet('store:published_items', () =>
+    const regularItems = await appCache.getOrSet('store:published_items', () =>
       withDbRetry(() => prisma.storeItem.findMany({
         where: { isPublished: true },
         include: {
@@ -21,6 +21,26 @@ export async function GET() {
       })),
       60
     );
+
+    const storeMockTests = await withDbRetry(() => prisma.chapterMockTest.findMany({
+      where: { isPublished: true, isStoreItem: true },
+      orderBy: { createdAt: 'desc' }
+    }));
+
+    const formattedMockTestItems = storeMockTests.map(m => ({
+      id: `mocktest-${m.id}`,
+      mockTestId: m.id,
+      title: m.title ? `${m.title} (${m.chapterName})` : `${m.chapterName} Mock Test`,
+      type: 'MOCK_TEST',
+      price: m.storePrice || 0,
+      className: m.className,
+      board: m.board,
+      description: m.description || `Chapter Mock Test for Class ${m.className} ${m.subject} (${m.board}). Duration: ${m.durationMinutes} Mins.`,
+      isPublished: true,
+      createdAt: m.createdAt
+    }));
+
+    const items = [...regularItems, ...formattedMockTestItems];
 
     let purchasedItemIds: string[] = [];
     const session = await getServerSession(authOptions) as any;

@@ -19,6 +19,8 @@ const createMockTestSchema = z.object({
   passingMarks: z.union([z.number(), z.string()]).optional().transform(v => v ? parseFloat(String(v)) : 4),
   allowedAttempts: z.union([z.number(), z.string()]).optional().transform(v => v ? parseInt(String(v), 10) : 3),
   isPublished: z.boolean().optional().default(true),
+  isStoreItem: z.boolean().optional().default(false),
+  storePrice: z.union([z.number(), z.string()]).optional().transform(v => v !== undefined && v !== null ? parseFloat(String(v)) : 0),
 });
 
 const updateMockTestSchema = createMockTestSchema.partial().extend({

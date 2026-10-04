@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { marked } from 'marked';
@@ -23,7 +23,9 @@ export default function ChapterMockTestArena() {
   const [reportCard, setReportCard] = useState<any>(null);
   const [loadingAi, setLoadingAi] = useState<Record<string, boolean>>({});
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
-  const [tabSwitchCount, setTabSwitchCount] = useState<number>(0);
+  const [warningCount, setWarningCount] = useState<number>(0);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(true);
+
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     type: string;
@@ -42,10 +44,110 @@ export default function ChapterMockTestArena() {
   });
 
   const submittedRef = useRef(false);
-  const tabSwitchCountRef = useRef(0);
+  const warningCountRef = useRef(0);
+
+  const requestFullscreenMode = () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if ((document.documentElement as any).webkitRequestFullscreen) {
+        (document.documentElement as any).webkitRequestFullscreen();
+      }
+    } catch (e) {
+      console.error("Fullscreen request failed:", e);
+    }
+  };
+
+  const triggerSecurityWarning = useCallback((reason: string) => {
+    if (submittedRef.current) return;
+    warningCountRef.current += 1;
+    const count = warningCountRef.current;
+    setWarningCount(count);
+
+    if (count >= 5) {
+      submitTest(true);
+      setModalConfig({
+        isOpen: true,
+        type: 'AUTO_SUBMIT_SECURITY',
+        badge: 'SECURITY VIOLATION',
+        title: 'Test Auto-Submitted!',
+        message: `Anti-Cheat Violation: You received 5 warnings (${reason})! Your mock test has been submitted automatically.`,
+        confirmLabel: 'View Evaluation Report',
+        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    } else {
+      setModalConfig({
+        isOpen: true,
+        type: 'WARNING_SECURITY',
+        badge: `WARNING ${count} / 5`,
+        title: `Security Warning (${count}/5)`,
+        message: `${reason} is strictly prohibited during the test! After 5 total warnings, your test will be auto-submitted.`,
+        confirmLabel: 'Re-enter Fullscreen & Resume',
+        onConfirm: () => {
+          requestFullscreenMode();
+          setModalConfig(prev => ({ ...prev, isOpen: false }));
+        }
+      });
+    }
+  }, []);
+
+  const submitTest = async (autoSubmitted = false) => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    setSubmitted(true);
+
+    // Exit fullscreen cleanly when test finishes
+    if (document.fullscreenElement) {
+      try {
+        document.exitFullscreen().catch(() => {});
+      } catch (e) {}
+    }
+
+    const duration = testData?.durationMinutes ? testData.durationMinutes * 60 : 900;
+    const timeTaken = duration - (timeLeft || 0);
+
+    try {
+      const res = await fetch('/api/mock-tests/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mockTestId,
+          answers,
+          timeTaken,
+          autoSubmitted
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setReportCard(data.reportCard);
+      }
+    } catch (e) {
+      console.error("Failed to submit test:", e);
+    }
+  };
 
   useEffect(() => {
-    // Anti-cheat: disable right click, copy, paste, cut, text selection, and inspect shortcuts
+    // Enable mobile native PrivacyScreen if running inside Capacitor
+    if (typeof window !== 'undefined' && (window as any).Capacitor?.Plugins?.PrivacyScreen) {
+      try {
+        (window as any).Capacitor.Plugins.PrivacyScreen.enable();
+      } catch (e) {}
+    }
+
+    // Auto-enter Fullscreen when starting test
+    requestFullscreenMode();
+
+    // Fullscreen Change Monitor
+    const handleFullscreenChange = () => {
+      const isFull = !!document.fullscreenElement;
+      setIsFullscreen(isFull);
+      if (!isFull && !submittedRef.current && testData) {
+        triggerSecurityWarning('Exiting Fullscreen Mode');
+      }
+    };
+
+    // Anti-cheat & Anti-Screenshot protections
     const handleContextMenu = (e: Event) => e.preventDefault();
     const handleCopy = (e: Event) => e.preventDefault();
     const handleCut = (e: Event) => e.preventDefault();
@@ -55,55 +157,39 @@ export default function ChapterMockTestArena() {
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
       e.preventDefault();
     };
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      // Block screenshot keys & inspect shortcuts
       if (
-        (e.ctrlKey && ['c', 'v', 'x', 'a', 'u'].includes(e.key.toLowerCase())) ||
-        (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase())) ||
+        e.key === 'PrintScreen' ||
+        (e.metaKey && e.shiftKey && (key === 's' || key === '4' || key === '3')) ||
+        (e.ctrlKey && ['c', 'v', 'x', 'a', 'u', 'p'].includes(key)) ||
+        (e.ctrlKey && e.shiftKey && ['i', 'j', 'c', 's'].includes(key)) ||
         e.key === 'F12'
       ) {
         e.preventDefault();
-      }
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('copy', handleCopy);
-    document.addEventListener('cut', handleCut);
-    document.addEventListener('paste', handlePaste);
-    document.addEventListener('selectstart', handleSelectStart);
-    document.addEventListener('keydown', handleKeyDown);
-
-    // Anti-cheat: 5 tab switches allowed before auto-submit
-    const handleVisibilityChange = () => {
-      if (document.hidden && !submittedRef.current && testData) {
-        tabSwitchCountRef.current += 1;
-        const count = tabSwitchCountRef.current;
-        setTabSwitchCount(count);
-
-        if (count >= 5) {
-          submitTest(true);
-          setModalConfig({
-            isOpen: true,
-            type: 'AUTO_SUBMIT_TAB',
-            badge: 'ANTI-CHEAT VIOLATION',
-            title: 'Test Auto-Submitted!',
-            message: 'Anti-Cheat Violation: You switched tabs 5 times! Your mock test has been submitted automatically.',
-            confirmLabel: 'View Evaluation Report',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
-          });
-        } else {
-          setModalConfig({
-            isOpen: true,
-            type: 'WARNING_TAB',
-            badge: `WARNING ${count} / 5`,
-            title: `Anti-Cheat Warning (${count}/5)`,
-            message: `Tab switching is strictly forbidden during the test! After 5 warnings, your test will be auto-submitted.`,
-            confirmLabel: 'Resume Test',
-            onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
-          });
+        if (e.key === 'PrintScreen' || (e.metaKey && e.shiftKey)) {
+          triggerSecurityWarning('Attempting Screenshot / Print Screen');
+        } else if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key))) {
+          triggerSecurityWarning('Attempting Developer Tools / Inspect');
         }
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Visibility change / tab switch monitor
+    const handleVisibilityChange = () => {
+      if (document.hidden && !submittedRef.current && testData) {
+        triggerSecurityWarning('Switching Tabs / Minimizing Window');
+      }
+    };
+
+    // Window blur (losing focus)
+    const handleWindowBlur = () => {
+      if (!submittedRef.current && testData) {
+        triggerSecurityWarning('Switching Window Focus');
+      }
+    };
 
     // Capacitor Native Mobile Back-Button Handler
     const handleBackButton = (e: Event) => {
@@ -126,9 +212,20 @@ export default function ChapterMockTestArena() {
         });
       }
     };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('cut', handleCut);
+    document.addEventListener('paste', handlePaste);
+    document.addEventListener('selectstart', handleSelectStart);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('backbuttonpress', handleBackButton);
 
     return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('copy', handleCopy);
       document.removeEventListener('cut', handleCut);
@@ -136,9 +233,10 @@ export default function ChapterMockTestArena() {
       document.removeEventListener('selectstart', handleSelectStart);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('backbuttonpress', handleBackButton);
     };
-  }, [testData, router]);
+  }, [testData, router, triggerSecurityWarning]);
 
   useEffect(() => {
     const fetchTestData = async () => {
@@ -192,47 +290,22 @@ export default function ChapterMockTestArena() {
     setFlagged(prev => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
-  const submitTest = async (autoSubmitted = false) => {
-    if (submittedRef.current) return;
-    submittedRef.current = true;
-    setSubmitted(true);
-
-    const duration = testData?.durationMinutes ? testData.durationMinutes * 60 : 900;
-    const timeTaken = duration - (timeLeft || 0);
-
-    try {
-      const res = await fetch('/api/mock-tests/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mockTestId,
-          answers,
-          timeTaken,
-          autoSubmitted
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setReportCard(data.reportCard);
-      }
-    } catch (e) {
-      console.error("Failed to submit test:", e);
-    }
-  };
-
-  const getAiExplanation = async (q: any, studentAns: number | undefined) => {
+  const getAiExplanation = async (q: any, studentAns: any) => {
     setLoadingAi(prev => ({ ...prev, [q.id]: true }));
     try {
-      const opts = JSON.parse(q.options);
+      const opts = JSON.parse(q.options || "[]");
+      const isInputType = Array.isArray(opts) && opts[0] === "INPUT_ANSWER";
+      const studentVal = isInputType ? (studentAns || "Not Attempted") : (studentAns !== undefined ? opts[studentAns] : 'Not Attempted');
+      const correctVal = isInputType ? opts[1] : opts[q.correctOption];
+
       const res = await fetch('/api/mock-tests/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           questionText: q.questionText,
-          options: opts,
-          studentAnswer: studentAns !== undefined ? opts[studentAns] : 'Not Attempted',
-          correctAnswer: opts[q.correctOption],
+          options: isInputType ? [opts[1]] : opts,
+          studentAnswer: studentVal,
+          correctAnswer: correctVal,
           boardTag: q.boardTag
         })
       });
@@ -262,14 +335,20 @@ export default function ChapterMockTestArena() {
   const attemptedCount = Object.keys(answers).length;
 
   return (
-    <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', userSelect: 'none', WebkitUserSelect: 'none' }}>
       
-      {/* Styles */}
+      {/* Anti-Print & Screenshot Blocking CSS */}
       <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          html, body {
+            display: none !important;
+            visibility: hidden !important;
+          }
+        }
         .test-grid-layout {
           display: grid;
           grid-template-columns: 1fr 260px;
-          gap: 1.5rem;
+          gap: 1.25rem;
         }
         @media (max-width: 1024px) {
           .test-grid-layout {
@@ -326,11 +405,21 @@ export default function ChapterMockTestArena() {
           .option-card-interactive {
             padding: 1rem !important;
           }
-          .test-card-box {
-            padding: 1.25rem 1rem !important;
-          }
         }
       `}} />
+
+      {/* Fullscreen Alert Banner if not in fullscreen */}
+      {!submitted && !isFullscreen && (
+        <div style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid #ef4444", color: "#ef4444", padding: "0.6rem 1rem", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 700, fontSize: "0.88rem" }}>
+          <span>⚠️ Test mode requires FULL SCREEN. Please click to restore full screen immediately!</span>
+          <button
+            onClick={requestFullscreenMode}
+            style={{ background: "#ef4444", color: "#fff", border: "none", padding: "0.35rem 0.85rem", borderRadius: "8px", fontWeight: 800, cursor: "pointer", fontSize: "0.8rem" }}
+          >
+            🖥️ Enter Full Screen
+          </button>
+        </div>
+      )}
 
       {/* Header Panel */}
       <header className="glass-card test-arena-header" style={{ padding: '0.6rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: '0.5rem', zIndex: 100, border: '1px solid var(--border)', borderRadius: '12px' }}>
@@ -344,9 +433,9 @@ export default function ChapterMockTestArena() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {tabSwitchCount > 0 && (
-            <span style={{ fontSize: '0.7rem', fontWeight: 800, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '0.2rem 0.6rem', borderRadius: '8px' }}>
-              ⚠️ Warnings: {tabSwitchCount}/5
+          {warningCount > 0 && (
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '0.25rem 0.65rem', borderRadius: '8px' }}>
+              ⚠️ Security Warnings: {warningCount}/5
             </span>
           )}
 
@@ -417,16 +506,26 @@ export default function ChapterMockTestArena() {
             
             {questions.map((q, idx) => {
               const optionsArr = JSON.parse(q.options || '[]');
+              const isInputType = Array.isArray(optionsArr) && optionsArr[0] === 'INPUT_ANSWER';
               const studentAns = answers[q.id];
-              const isCorrect = studentAns === q.correctOption;
-              const isUnanswered = studentAns === undefined;
+
+              let isCorrect = false;
+              let isUnanswered = studentAns === undefined || String(studentAns).trim() === '';
+
+              if (isInputType) {
+                const targetVal = String(optionsArr[1] || '').trim().toLowerCase();
+                const studentVal = String(studentAns || '').trim().toLowerCase();
+                isCorrect = !isUnanswered && targetVal === studentVal;
+              } else {
+                isCorrect = studentAns === q.correctOption;
+              }
 
               return (
                 <div 
                   key={q.id} 
                   className="glass-card" 
                   style={{ 
-                    padding: '2rem 1.75rem', 
+                    padding: '1.5rem 1.25rem', 
                     border: `1.5px solid ${isUnanswered ? 'var(--border)' : isCorrect ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
                     background: isUnanswered ? 'var(--card-bg)' : isCorrect ? 'rgba(16,185,129,0.02)' : 'rgba(239,68,68,0.02)',
                     display: 'flex',
@@ -452,47 +551,58 @@ export default function ChapterMockTestArena() {
                     </span>
                   </div>
 
-                  <p style={{ fontWeight: 700, fontSize: '1.1rem', margin: '0.5rem 0 1rem 0', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: renderLatex(q.questionText) }} />
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', margin: '0.25rem 0', lineHeight: 1.5, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: renderLatex(q.questionText) }} />
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {optionsArr.map((opt: string, optIdx: number) => {
-                      let optionStyle: any = {
-                        padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.95rem', border: '1px solid var(--border)'
-                      };
-                      if (optIdx === q.correctOption) {
-                        optionStyle.background = 'rgba(16,185,129,0.1)';
-                        optionStyle.borderColor = '#10b981';
-                        optionStyle.color = '#10b981';
-                        optionStyle.fontWeight = 700;
-                      } else if (optIdx === studentAns) {
-                        optionStyle.background = 'rgba(239,68,68,0.1)';
-                        optionStyle.borderColor = '#ef4444';
-                        optionStyle.color = '#ef4444';
-                      }
+                  {isInputType ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'var(--card-bg-alt)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>
+                        ✏️ Your Submitted Answer: <span style={{ color: isCorrect ? '#10b981' : '#ef4444', fontWeight: 900 }}>"{studentAns || 'Not Attempted'}"</span>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>
+                        ✓ Expected Target Answer: <span style={{ fontWeight: 900 }} dangerouslySetInnerHTML={{ __html: renderLatex(optionsArr[1] || '') }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {optionsArr.map((opt: string, optIdx: number) => {
+                        let optionStyle: any = {
+                          padding: '0.65rem 0.85rem', borderRadius: '10px', fontSize: '0.9rem', border: '1px solid var(--border)', background: 'var(--card-bg-alt)'
+                        };
+                        if (optIdx === q.correctOption) {
+                          optionStyle.background = 'rgba(16,185,129,0.1)';
+                          optionStyle.borderColor = '#10b981';
+                          optionStyle.color = '#10b981';
+                          optionStyle.fontWeight = 700;
+                        } else if (optIdx === studentAns) {
+                          optionStyle.background = 'rgba(239,68,68,0.1)';
+                          optionStyle.borderColor = '#ef4444';
+                          optionStyle.color = '#ef4444';
+                        }
 
-                      return (
-                        <div key={optIdx} style={optionStyle}>
-                          <span style={{ marginRight: '0.5rem', fontWeight: 800 }}>{String.fromCharCode(65 + optIdx)}.</span>
-                          <span dangerouslySetInnerHTML={{ __html: renderLatex(opt) }} />
-                        </div>
-                      );
-                    })}
-                  </div>
+                        return (
+                          <div key={optIdx} style={optionStyle}>
+                            <span style={{ marginRight: '0.5rem', fontWeight: 800 }}>{String.fromCharCode(65 + optIdx)}.</span>
+                            <span dangerouslySetInnerHTML={{ __html: renderLatex(opt) }} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {q.explanation && (
-                    <div style={{ background: 'var(--card-bg-alt)', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid var(--primary)', marginTop: '0.5rem' }}>
-                      <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Textbook Solution:</strong>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }} dangerouslySetInnerHTML={{ __html: renderLatex(q.explanation) }} />
+                    <div style={{ background: 'var(--card-bg-alt)', padding: '0.85rem', borderRadius: '10px', borderLeft: '4px solid var(--primary)', marginTop: '0.35rem' }}>
+                      <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Textbook Solution:</strong>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }} dangerouslySetInnerHTML={{ __html: renderLatex(q.explanation) }} />
                     </div>
                   )}
 
                   {aiExplanations[q.id] ? (
-                    <div className="animate-fade-in" style={{ background: 'rgba(59, 130, 246, 0.04)', padding: '1.25rem', borderRadius: '12px', borderLeft: '4px solid #3b82f6', marginTop: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                        <span style={{ fontSize: '1.2rem' }}>🤖</span>
-                        <strong style={{ color: '#3b82f6', fontSize: '0.85rem', textTransform: 'uppercase' }}>ST Guru ji Board Tutor Reasoning:</strong>
+                    <div className="animate-fade-in" style={{ background: 'rgba(59, 130, 246, 0.04)', padding: '1rem', borderRadius: '10px', borderLeft: '4px solid #3b82f6', marginTop: '0.35rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '1.1rem' }}>🤖</span>
+                        <strong style={{ color: '#3b82f6', fontSize: '0.82rem', textTransform: 'uppercase' }}>ST Guru ji Board Tutor Reasoning:</strong>
                       </div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: marked(aiExplanations[q.id]) }} />
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: marked(aiExplanations[q.id]) }} />
                     </div>
                   ) : (
                     <button 
@@ -501,9 +611,9 @@ export default function ChapterMockTestArena() {
                       style={{ 
                         display: 'flex', alignItems: 'center', gap: '0.5rem', 
                         background: 'rgba(59, 130, 246, 0.08)', color: '#3b82f6', 
-                        border: '1px dashed rgba(59, 130, 246, 0.4)', padding: '0.6rem 1.25rem', 
-                        borderRadius: '10px', cursor: loadingAi[q.id] ? 'not-allowed' : 'pointer',
-                        fontWeight: 700, transition: 'all 0.2s', width: 'fit-content', fontSize: '0.85rem', marginTop: '0.5rem'
+                        border: '1px dashed rgba(59, 130, 246, 0.4)', padding: '0.5rem 1rem', 
+                        borderRadius: '8px', cursor: loadingAi[q.id] ? 'not-allowed' : 'pointer',
+                        fontWeight: 700, transition: 'all 0.2s', width: 'fit-content', fontSize: '0.82rem', marginTop: '0.35rem'
                       }}
                     >
                       {loadingAi[q.id] ? '🤖 Analyzing query with AI...' : '🤖 Ask ST Guru ji for detailed reasoning'}
@@ -542,7 +652,7 @@ export default function ChapterMockTestArena() {
                 </div>
 
                 {/* Question Text */}
-                <p style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0.25rem 0 1.25rem 0', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: renderLatex(currentQuestion.questionText) }} />
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0.25rem 0 1.25rem 0', lineHeight: 1.5, color: 'var(--text)' }} dangerouslySetInnerHTML={{ __html: renderLatex(currentQuestion.questionText) }} />
 
                 {/* Option Selections / Input Field */}
                 {(() => {
@@ -664,7 +774,7 @@ export default function ChapterMockTestArena() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', marginBottom: '1.25rem' }}>
               {questions.map((q, idx) => {
-                const isAttempted = answers[q.id] !== undefined;
+                const isAttempted = answers[q.id] !== undefined && String(answers[q.id]).trim() !== '';
                 const isFlagged = flagged[q.id];
                 const isActive = idx === activeQuestionIdx;
                 
@@ -753,7 +863,7 @@ export default function ChapterMockTestArena() {
         </div>
       )}
 
-      {/* Custom Premium Modal Dialog */}
+      {/* Custom Security & Alert Modal */}
       {modalConfig.isOpen && (
         <div style={{
           position: 'fixed',
@@ -772,7 +882,7 @@ export default function ChapterMockTestArena() {
             width: '100%',
             padding: '1.75rem',
             borderRadius: '20px',
-            border: modalConfig.type.includes('TAB') || modalConfig.type === 'TIME_UP' ? '1.5px solid rgba(239, 68, 68, 0.4)' : '1.5px solid var(--border)',
+            border: modalConfig.type.includes('SECURITY') || modalConfig.type === 'TIME_UP' ? '1.5px solid rgba(239, 68, 68, 0.4)' : '1.5px solid var(--border)',
             background: 'var(--card-bg)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
             display: 'flex',
@@ -786,10 +896,10 @@ export default function ChapterMockTestArena() {
               width: '56px',
               height: '56px',
               borderRadius: '50%',
-              background: modalConfig.type.includes('TAB') || modalConfig.type === 'TIME_UP' 
+              background: modalConfig.type.includes('SECURITY') || modalConfig.type === 'TIME_UP' 
                 ? 'rgba(239, 68, 68, 0.12)' 
                 : 'rgba(59, 130, 246, 0.12)',
-              border: modalConfig.type.includes('TAB') || modalConfig.type === 'TIME_UP'
+              border: modalConfig.type.includes('SECURITY') || modalConfig.type === 'TIME_UP'
                 ? '1px solid rgba(239, 68, 68, 0.3)'
                 : '1px solid rgba(59, 130, 246, 0.3)',
               display: 'flex',
@@ -797,7 +907,7 @@ export default function ChapterMockTestArena() {
               justifyContent: 'center',
               fontSize: '1.75rem'
             }}>
-              {modalConfig.type.includes('TAB') ? '⚠️' : modalConfig.type === 'TIME_UP' ? '⌛' : '🎯'}
+              {modalConfig.type.includes('SECURITY') ? '⚠️' : modalConfig.type === 'TIME_UP' ? '⌛' : '🎯'}
             </div>
 
             <div>
@@ -806,8 +916,8 @@ export default function ChapterMockTestArena() {
                 fontWeight: 800, 
                 letterSpacing: '0.05em', 
                 textTransform: 'uppercase',
-                color: modalConfig.type.includes('TAB') || modalConfig.type === 'TIME_UP' ? '#ef4444' : 'var(--primary)',
-                background: modalConfig.type.includes('TAB') || modalConfig.type === 'TIME_UP' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                color: modalConfig.type.includes('SECURITY') || modalConfig.type === 'TIME_UP' ? '#ef4444' : 'var(--primary)',
+                background: modalConfig.type.includes('SECURITY') || modalConfig.type === 'TIME_UP' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
                 padding: '2px 8px',
                 borderRadius: '6px',
                 display: 'inline-block',
@@ -842,7 +952,7 @@ export default function ChapterMockTestArena() {
                   borderRadius: '10px', 
                   fontSize: '0.85rem', 
                   fontWeight: 800,
-                  background: modalConfig.type.includes('TAB') || modalConfig.type === 'TIME_UP' ? '#ef4444' : '#10b981',
+                  background: modalConfig.type.includes('SECURITY') || modalConfig.type === 'TIME_UP' ? '#ef4444' : '#10b981',
                   border: 'none',
                   color: '#fff',
                   cursor: 'pointer'

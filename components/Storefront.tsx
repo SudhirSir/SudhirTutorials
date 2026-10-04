@@ -117,8 +117,8 @@ export function Storefront({ onGoToLibrary }: StorefrontProps = {}) {
               <Card key={item.id} variant="glass" interactive style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                    <Badge variant={item.type === "NOTES" ? "info" : "warning"}>
-                      {item.type === "NOTES" ? "📄 Notes PDF" : "📝 Test Series"}
+                    <Badge variant={item.type === "NOTES" ? "info" : item.type === "MOCK_TEST" ? "success" : "warning"}>
+                      {item.type === "NOTES" ? "📄 Notes PDF" : item.type === "MOCK_TEST" ? "🎯 Chapter Mock Test" : "📝 Test Series"}
                     </Badge>
                     {isPurchased && <Badge variant="success">Access Unlocked</Badge>}
                   </div>

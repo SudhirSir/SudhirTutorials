@@ -550,6 +550,8 @@ model ChapterMockTest {
   passingMarks    Float?   @default(4)
   allowedAttempts Int      @default(3)
   isPublished     Boolean  @default(true)
+  isStoreItem     Boolean  @default(false)
+  storePrice      Float?   @default(0)
   createdById     String?
   createdBy       User?    @relation("CreatedMockTests", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
@@ -561,6 +563,7 @@ model ChapterMockTest {
   @@index([className, board, subject])
   @@index([chapterName])
   @@index([isPublished])
+  @@index([isStoreItem])
   @@index([createdAt])
 }
 

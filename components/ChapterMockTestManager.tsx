@@ -11,6 +11,18 @@ const CLASSES_LIST = ["10th", "12th", "9th", "11th", "8th", "7th", "6th"];
 const BOARDS_LIST = ["CBSE", "ICSE", "UP Board", "All Boards"];
 const SUBJECTS_LIST = ["Mathematics", "Science", "Physics", "Chemistry", "Biology", "English", "Social Science"];
 
+function LiveMathPreview({ label, text }: { label: string; text: string }) {
+  if (!text || !text.trim()) return null;
+  return (
+    <div style={{ marginTop: "0.25rem", padding: "0.35rem 0.55rem", borderRadius: "6px", background: "rgba(59, 130, 246, 0.06)", border: "1px dashed rgba(59, 130, 246, 0.3)", fontSize: "0.82rem" }}>
+      <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "var(--primary)", display: "block", marginBottom: "0.1rem" }}>
+        👁️ Live Math Preview ({label}):
+      </span>
+      <div style={{ color: "var(--text)", lineHeight: "1.3" }} dangerouslySetInnerHTML={{ __html: renderLatex(text) }} />
+    </div>
+  );
+}
+
 export function ChapterMockTestManager() {
   const [mockTests, setMockTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +56,8 @@ export function ChapterMockTestManager() {
     passingMarks: 4,
     allowedAttempts: 3,
     isPublished: true,
+    isStoreItem: false,
+    storePrice: 0,
   });
 
   // Question Form State
@@ -62,7 +76,7 @@ export function ChapterMockTestManager() {
     boardTag: "CBSE 2023 Pattern",
   });
 
-  // AI MCQ Extractor States
+  // AI Extractor States
   const [showAiExtractorModal, setShowAiExtractorModal] = useState(false);
   const [extractorText, setExtractorText] = useState("");
   const [extractorFileBase64, setExtractorFileBase64] = useState<string | null>(null);
@@ -90,9 +104,9 @@ export function ChapterMockTestManager() {
       const data = await res.json();
       if (res.ok && data.questions && data.questions.length > 0) {
         setExtractedQuestions(data.questions);
-        alert(`Successfully extracted ${data.questions.length} MCQs!`);
+        alert(`Successfully extracted ${data.questions.length} questions!`);
       } else {
-        alert(data.error || "No valid MCQs could be extracted. Please try with clearer content.");
+        alert(data.error || "No valid questions could be extracted. Please try with clearer content.");
       }
     } catch (e) {
       console.error(e);
@@ -106,14 +120,17 @@ export function ChapterMockTestManager() {
     if (!activeTestForQuestions || extractedQuestions.length === 0) return;
     setIsBatchSaving(true);
     try {
-      const formattedQs = extractedQuestions.map(q => ({
-        questionText: q.questionText,
-        options: [q.optA, q.optB, q.optC, q.optD].filter(Boolean),
-        correctOption: q.correctOption,
-        marks: 1,
-        explanation: q.explanation,
-        boardTag: q.boardTag
-      }));
+      const formattedQs = extractedQuestions.map(q => {
+        const isInput = q.type === "INPUT" || (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER");
+        return {
+          questionText: q.questionText,
+          options: isInput ? ["INPUT_ANSWER", q.inputAnswer || q.optA || ""] : [q.optA, q.optB, q.optC, q.optD].filter(Boolean),
+          correctOption: isInput ? 0 : q.correctOption || 0,
+          marks: 1,
+          explanation: q.explanation || "",
+          boardTag: q.boardTag || `${activeTestForQuestions.board} Pattern`
+        };
+      });
 
       const res = await fetch("/api/mock-tests/questions", {
         method: "POST",
@@ -146,10 +163,11 @@ export function ChapterMockTestManager() {
   const handleImportSingleExtractedQuestion = async (q: any) => {
     if (!activeTestForQuestions) return;
     try {
+      const isInput = q.type === "INPUT" || (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER");
       const formattedQ = {
         questionText: q.questionText,
-        options: [q.optA, q.optB, q.optC, q.optD].filter(Boolean),
-        correctOption: q.correctOption,
+        options: isInput ? ["INPUT_ANSWER", q.inputAnswer || q.optA || ""] : [q.optA, q.optB, q.optC, q.optD].filter(Boolean),
+        correctOption: isInput ? 0 : q.correctOption || 0,
         marks: 1,
         explanation: q.explanation || "",
         boardTag: q.boardTag || `${activeTestForQuestions.board} Pattern`
@@ -254,6 +272,8 @@ export function ChapterMockTestManager() {
           passingMarks: 4,
           allowedAttempts: 3,
           isPublished: true,
+          isStoreItem: false,
+          storePrice: 0,
         });
         fetchMockTests();
       } else {
@@ -424,27 +444,27 @@ export function ChapterMockTestManager() {
 
     const sampleQs = [
       {
-        questionText: `If one root of quadratic equation 2x² - 8x + k = 0 is reciprocal of other, find the value of k.`,
+        questionText: `If one root of quadratic equation $2x^2 - 8x + k = 0$ is reciprocal of other, find the value of $k$.`,
         options: ["k = 2", "k = 4", "k = 8", "k = 1"],
         correctOption: 0,
         marks: 1,
-        explanation: "Product of roots = c/a. Let roots be α and 1/α. Product α * (1/α) = 1 => k/2 = 1 => k = 2.",
+        explanation: "Product of roots = $c/a$. Let roots be $\\alpha$ and $1/\\alpha$. Product $\\alpha \\cdot (1/\\alpha) = 1 \\implies k/2 = 1 \\implies k = 2$.",
         boardTag: `${activeTestForQuestions.board} 2023 Repeated`
       },
       {
-        questionText: `The discriminant of the quadratic equation 3x² - 5x + 2 = 0 is:`,
+        questionText: `The discriminant of the quadratic equation $3x^2 - 5x + 2 = 0$ is:`,
         options: ["1", "49", "-1", "25"],
         correctOption: 0,
         marks: 1,
-        explanation: "Discriminant D = b² - 4ac = (-5)² - 4(3)(2) = 25 - 24 = 1. Since D > 0, roots are real and distinct.",
+        explanation: "Discriminant $D = b^2 - 4ac = (-5)^2 - 4(3)(2) = 25 - 24 = 1$. Since $D > 0$, roots are real and distinct.",
         boardTag: `${activeTestForQuestions.board} Board Specimen`
       },
       {
-        questionText: `What is the nature of roots of 4x² - 12x + 9 = 0?`,
+        questionText: `What is the nature of roots of $4x^2 - 12x + 9 = 0$?`,
         options: ["Real & Equal", "Real & Distinct", "No Real Roots", "Imaginary"],
         correctOption: 0,
         marks: 1,
-        explanation: "D = b² - 4ac = (-12)² - 4(4)(9) = 144 - 144 = 0. Equal roots!",
+        explanation: "$D = b^2 - 4ac = (-12)^2 - 4(4)(9) = 144 - 144 = 0$. Equal roots!",
         boardTag: `${activeTestForQuestions.board} Standard`
       }
     ];
@@ -516,6 +536,7 @@ export function ChapterMockTestManager() {
 
         <Button
           variant="primary"
+          size="sm"
           onClick={() => {
             setEditingTest(null);
             setTestForm({
@@ -530,12 +551,14 @@ export function ChapterMockTestManager() {
               passingMarks: 4,
               allowedAttempts: 3,
               isPublished: true,
+              isStoreItem: false,
+              storePrice: 0,
             });
             setShowCreateModal(true);
           }}
-          style={{ padding: "0.65rem 1.25rem", borderRadius: "12px", fontWeight: 800, fontSize: "0.88rem" }}
+          style={{ padding: "0.45rem 0.9rem", borderRadius: "10px", fontWeight: 800, fontSize: "0.82rem" }}
         >
-          ➕ Create New Mock Test
+          ➕ Create Mock Test
         </Button>
       </div>
 
@@ -601,6 +624,7 @@ export function ChapterMockTestManager() {
           <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>Create your first chapter mock test to let students test their preparation!</p>
           <Button
             variant="primary"
+            size="sm"
             onClick={() => {
               setEditingTest(null);
               setShowCreateModal(true);
@@ -610,12 +634,13 @@ export function ChapterMockTestManager() {
           </Button>
         </Card>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: "0.75rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" }}>
           {mockTests.map((test) => (
-            <Card key={test.id} variant="glass" style={{ padding: "0.75rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <Card key={test.id} variant="glass" style={{ padding: "0.85rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.3rem" }}>
-                  <div>
+                {/* Title & Publish Button Row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.4rem" }}>
+                  <div style={{ flex: 1 }}>
                     <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       {test.subject} • Class {test.className}
                     </span>
@@ -625,21 +650,46 @@ export function ChapterMockTestManager() {
                         <span>{test.title}</span>
                       </div>
                     )}
-                    <h3 style={{ fontSize: "0.92rem", fontWeight: 800, margin: "0.1rem 0 0 0", color: "var(--text-heading)", lineHeight: "1.25" }}>
+                    <h3 style={{ fontSize: "0.95rem", fontWeight: 800, margin: "0.15rem 0 0 0", color: "var(--text-heading)", lineHeight: "1.25" }}>
                       {test.chapterName}
                     </h3>
                   </div>
+
+                  {/* Publish Toggle Button Right Side of Title */}
+                  <button
+                    onClick={() => handleTogglePublish(test)}
+                    style={{
+                      padding: "0.25rem 0.5rem",
+                      borderRadius: "8px",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      border: "1px solid",
+                      cursor: "pointer",
+                      borderColor: test.isPublished ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)",
+                      background: test.isPublished ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
+                      color: test.isPublished ? "#22c55e" : "#ef4444",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0
+                    }}
+                    title={test.isPublished ? "Click to Unpublish (Set Draft)" : "Click to Publish Mock Test"}
+                  >
+                    {test.isPublished ? "Published ✓" : "Publish 🚀"}
+                  </button>
                 </div>
 
+                {/* Metadata Badges */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.5rem" }}>
                   <Badge variant="neutral" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>⏱ {test.durationMinutes} Mins</Badge>
                   <Badge variant="neutral" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>{test._count?.questions || 0} Ques</Badge>
                   <Badge variant="neutral" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>Attempts: {test.allowedAttempts || 3}</Badge>
+                  {test.isStoreItem && (
+                    <Badge variant="success" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>🏪 Store: ₹{test.storePrice || 0}</Badge>
+                  )}
                 </div>
               </div>
 
-              {/* Card Action Controls */}
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.5rem", marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.3rem", flexWrap: "wrap" }}>
+              {/* Bottom Action Bar: Questions, Results, Edit & Delete */}
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.5rem", marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
                 <Button
                   variant="primary"
                   size="sm"
@@ -658,58 +708,41 @@ export function ChapterMockTestManager() {
                   🏆 Results
                 </Button>
 
-                <button
-                  onClick={() => {
-                    setEditingTest(test);
-                    setTestForm({
-                      title: test.title,
-                      className: test.className,
-                      board: test.board,
-                      subject: test.subject,
-                      chapterName: test.chapterName,
-                      description: test.description || "",
-                      durationMinutes: test.durationMinutes,
-                      totalMarks: test.totalMarks,
-                      passingMarks: test.passingMarks || 4,
-                      allowedAttempts: test.allowedAttempts || 3,
-                      isPublished: test.isPublished,
-                    });
-                    setShowCreateModal(true);
-                  }}
-                  style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: "8px", padding: "0.3rem 0.45rem", cursor: "pointer", fontSize: "0.75rem" }}
-                  title="Edit Test Settings"
-                >
-                  ✏️
-                </button>
+                <div style={{ marginLeft: "auto", display: "flex", gap: "0.25rem", alignItems: "center" }}>
+                  <button
+                    onClick={() => {
+                      setEditingTest(test);
+                      setTestForm({
+                        title: test.title,
+                        className: test.className,
+                        board: test.board,
+                        subject: test.subject,
+                        chapterName: test.chapterName,
+                        description: test.description || "",
+                        durationMinutes: test.durationMinutes,
+                        totalMarks: test.totalMarks,
+                        passingMarks: test.passingMarks || 4,
+                        allowedAttempts: test.allowedAttempts || 3,
+                        isPublished: test.isPublished,
+                        isStoreItem: test.isStoreItem || false,
+                        storePrice: test.storePrice || 0,
+                      });
+                      setShowCreateModal(true);
+                    }}
+                    style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: "8px", padding: "0.3rem 0.45rem", cursor: "pointer", fontSize: "0.75rem" }}
+                    title="Edit Test Settings"
+                  >
+                    ✏️
+                  </button>
 
-                <button
-                  onClick={() => handleTogglePublish(test)}
-                  style={{
-                    padding: "0.3rem 0.45rem",
-                    borderRadius: "8px",
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    border: "1px solid",
-                    cursor: "pointer",
-                    borderColor: test.isPublished ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)",
-                    background: test.isPublished ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
-                    color: test.isPublished ? "#22c55e" : "#ef4444",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "3px"
-                  }}
-                  title={test.isPublished ? "Click to Unpublish (Set Draft)" : "Click to Publish Mock Test"}
-                >
-                  {test.isPublished ? "Published ✓" : "Publish 🚀"}
-                </button>
-
-                <button
-                  onClick={() => handleDeleteTest(test.id, test.chapterName)}
-                  style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#ef4444", borderRadius: "8px", padding: "0.3rem 0.45rem", cursor: "pointer", fontSize: "0.75rem" }}
-                  title="Delete Mock Test"
-                >
-                  🗑️
-                </button>
+                  <button
+                    onClick={() => handleDeleteTest(test.id, test.chapterName)}
+                    style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#ef4444", borderRadius: "8px", padding: "0.3rem 0.45rem", cursor: "pointer", fontSize: "0.75rem" }}
+                    title="Delete Mock Test"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
             </Card>
           ))}
@@ -719,10 +752,19 @@ export function ChapterMockTestManager() {
       {/* CREATE / EDIT MOCK TEST MODAL */}
       {showCreateModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div className="glass-card" style={{ maxWidth: "600px", width: "100%", padding: "2rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--border)" }}>
-            <h3 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: "1.25rem", color: "var(--text-heading)" }}>
-              {editingTest ? "Edit Chapter Mock Test" : "Create New Chapter Mock Test"}
-            </h3>
+          <div className="glass-card" style={{ maxWidth: "600px", width: "100%", padding: "1.75rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h3 style={{ fontSize: "1.3rem", fontWeight: 900, color: "var(--text-heading)", margin: 0 }}>
+                {editingTest ? "Edit Chapter Mock Test" : "Create Chapter Mock Test"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                style={{ width: "28px", height: "28px", borderRadius: "50%", background: "var(--card-bg-alt)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}
+              >
+                ✕
+              </button>
+            </div>
 
             <form onSubmit={handleSaveTest} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -851,6 +893,36 @@ export function ChapterMockTestManager() {
                 />
               </div>
 
+              {/* Store Options */}
+              <div style={{ padding: "0.85rem", borderRadius: "10px", background: "rgba(59, 130, 246, 0.05)", border: "1px solid rgba(59, 130, 246, 0.2)", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input
+                    type="checkbox"
+                    id="isStoreItemCheck"
+                    checked={testForm.isStoreItem}
+                    onChange={(e) => setTestForm({ ...testForm, isStoreItem: e.target.checked })}
+                    style={{ width: "1.1rem", height: "1.1rem", accentColor: "var(--primary)" }}
+                  />
+                  <label htmlFor="isStoreItemCheck" style={{ fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", color: "var(--primary)" }}>
+                    🏪 List for Sale in Storefront (Outside students can purchase)
+                  </label>
+                </div>
+
+                {testForm.isStoreItem && (
+                  <div>
+                    <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)" }}>Store Price (₹ INR)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="e.g. 49 (0 for FREE)"
+                      value={testForm.storePrice}
+                      onChange={(e) => setTestForm({ ...testForm, storePrice: parseFloat(e.target.value) || 0 })}
+                      style={{ width: "100%", padding: "0.5rem 0.7rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontWeight: 700 }}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <input
                   type="checkbox"
@@ -864,11 +936,11 @@ export function ChapterMockTestManager() {
                 </label>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1rem" }}>
-                <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", marginTop: "0.5rem" }}>
+                <Button variant="outline" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
                   Cancel
                 </Button>
-                <Button variant="primary" type="submit">
+                <Button variant="primary" size="sm" type="submit">
                   {editingTest ? "Update Test" : "Create Test"}
                 </Button>
               </div>
@@ -880,16 +952,16 @@ export function ChapterMockTestManager() {
       {/* QUESTIONS SETTER MODAL */}
       {activeTestForQuestions && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "1.25rem 1rem" }}>
-          <div className="glass-card" style={{ position: "relative", maxWidth: "880px", width: "100%", maxHeight: "88vh", overflowY: "auto", padding: "1.25rem 1.5rem", borderRadius: "16px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+          <div className="glass-card" style={{ position: "relative", maxWidth: "880px", width: "100%", maxHeight: "90vh", overflowY: "auto", padding: "1.25rem 1.5rem", borderRadius: "16px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "1rem" }}>
             
             <button
               onClick={() => setActiveTestForQuestions(null)}
               style={{
                 position: "absolute",
-                top: "1rem",
-                right: "1rem",
-                width: "32px",
-                height: "32px",
+                top: "0.85rem",
+                right: "0.85rem",
+                width: "28px",
+                height: "28px",
                 borderRadius: "50%",
                 background: "var(--card-bg-alt)",
                 border: "1px solid var(--border)",
@@ -897,7 +969,7 @@ export function ChapterMockTestManager() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "1.1rem",
+                fontSize: "0.9rem",
                 cursor: "pointer",
                 zIndex: 10
               }}
@@ -906,7 +978,7 @@ export function ChapterMockTestManager() {
               ✕
             </button>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "0.6rem", paddingRight: "2.5rem", flexShrink: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "0.6rem", paddingRight: "2.2rem" }}>
               <div>
                 <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase" }}>
                   SET QUESTIONS • CLASS {activeTestForQuestions.className} {activeTestForQuestions.board}
@@ -922,7 +994,7 @@ export function ChapterMockTestManager() {
                   onClick={() => setShowAiExtractorModal(true)}
                   style={{ background: "linear-gradient(135deg, #ef4444, #2563eb)", color: "#fff", fontWeight: 800, fontSize: "0.75rem", padding: "0.35rem 0.6rem", whiteSpace: "nowrap" }}
                 >
-                  ✨ AI Extract MCQs
+                  ✨ AI Extract Questions
                 </Button>
                 <Button 
                   variant="secondary" 
@@ -936,7 +1008,7 @@ export function ChapterMockTestManager() {
             </div>
 
             {/* Question Creator Form */}
-            <form onSubmit={handleSaveQuestion} style={{ background: "var(--card-bg-alt)", padding: "0.85rem 1rem", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "0.6rem", flexShrink: 0 }}>
+            <form onSubmit={handleSaveQuestion} style={{ background: "var(--card-bg-alt)", padding: "0.85rem 1rem", borderRadius: "12px", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
                 <div style={{ fontWeight: 800, fontSize: "0.88rem", color: "var(--primary)" }}>
                   {editingQuestionId ? "✏️ Edit Question" : "➕ Add New Question"}
@@ -970,28 +1042,30 @@ export function ChapterMockTestManager() {
               </div>
 
               <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Question Text *</label>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Question Text (Math / Science Supported) *</label>
                 <textarea
                   rows={2}
                   required
-                  placeholder="e.g. Find the discriminant of equation 2x² - 4x + 3 = 0"
+                  placeholder="e.g. Find the discriminant of equation $2x^2 - 4x + 3 = 0$"
                   value={questionForm.questionText}
                   onChange={(e) => setQuestionForm({ ...questionForm, questionText: e.target.value })}
                   style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.85rem" }}
                 />
+                <LiveMathPreview label="Question Text" text={questionForm.questionText} />
               </div>
 
               {questionType === "INPUT" ? (
                 <div>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Correct Expected Answer (Text / Value) *</label>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Correct Expected Answer (Text / Value / Formula) *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. 9.8 or 25 or New Delhi"
+                    placeholder="e.g. 9.8 or 25 or $x = 2$"
                     value={inputAnswer}
                     onChange={(e) => setInputAnswer(e.target.value)}
                     style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--primary)", background: "var(--background)", color: "var(--text)", fontWeight: 700, fontSize: "0.85rem" }}
                   />
+                  <LiveMathPreview label="Input Answer" text={inputAnswer} />
                 </div>
               ) : (
                 <>
@@ -1006,6 +1080,7 @@ export function ChapterMockTestManager() {
                         onChange={(e) => setQuestionForm({ ...questionForm, optA: e.target.value })}
                         style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.82rem" }}
                       />
+                      <LiveMathPreview label="Option A" text={questionForm.optA} />
                     </div>
 
                     <div>
@@ -1018,6 +1093,7 @@ export function ChapterMockTestManager() {
                         onChange={(e) => setQuestionForm({ ...questionForm, optB: e.target.value })}
                         style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.82rem" }}
                       />
+                      <LiveMathPreview label="Option B" text={questionForm.optB} />
                     </div>
 
                     <div>
@@ -1029,6 +1105,7 @@ export function ChapterMockTestManager() {
                         onChange={(e) => setQuestionForm({ ...questionForm, optC: e.target.value })}
                         style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.82rem" }}
                       />
+                      <LiveMathPreview label="Option C" text={questionForm.optC} />
                     </div>
 
                     <div>
@@ -1040,6 +1117,7 @@ export function ChapterMockTestManager() {
                         onChange={(e) => setQuestionForm({ ...questionForm, optD: e.target.value })}
                         style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.82rem" }}
                       />
+                      <LiveMathPreview label="Option D" text={questionForm.optD} />
                     </div>
                   </div>
 
@@ -1075,7 +1153,7 @@ export function ChapterMockTestManager() {
                   <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>Board Tag / Year</label>
                   <input
                     type="text"
-                    placeholder="e.g. CBSE 2023"
+                    placeholder="e.g. CBSE 2023 Pattern"
                     value={questionForm.boardTag}
                     onChange={(e) => setQuestionForm({ ...questionForm, boardTag: e.target.value })}
                     style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.82rem" }}
@@ -1092,6 +1170,7 @@ export function ChapterMockTestManager() {
                   onChange={(e) => setQuestionForm({ ...questionForm, explanation: e.target.value })}
                   style={{ width: "100%", padding: "0.45rem 0.6rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.82rem" }}
                 />
+                <LiveMathPreview label="Explanation" text={questionForm.explanation} />
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.2rem" }}>
@@ -1145,9 +1224,7 @@ export function ChapterMockTestManager() {
                             <span style={{ fontWeight: 800, fontSize: "0.75rem", color: "var(--primary)" }}>
                               Q{idx + 1}. {q.boardTag && `[${q.boardTag}]`} (+{q.marks} Marks) {isInputType && "✏️ Direct Answer Input"}
                             </span>
-                            <p style={{ fontWeight: 700, margin: "0.15rem 0", fontSize: "0.88rem", lineHeight: "1.3" }}>
-                              {q.questionText}
-                            </p>
+                            <div style={{ fontWeight: 700, margin: "0.15rem 0", fontSize: "0.88rem", lineHeight: "1.3", color: "var(--text)" }} dangerouslySetInnerHTML={{ __html: renderLatex(q.questionText) }} />
                           </div>
                           <div style={{ display: "flex", gap: "0.3rem" }}>
                             <button
@@ -1198,7 +1275,7 @@ export function ChapterMockTestManager() {
 
                         {isInputType ? (
                           <div style={{ padding: "0.35rem 0.6rem", borderRadius: "6px", border: "1px solid rgba(59, 130, 246, 0.4)", background: "rgba(59, 130, 246, 0.08)", color: "var(--primary)", fontWeight: 700, fontSize: "0.8rem" }}>
-                            ✏️ Direct Input Answer • Expected Answer: <span style={{ color: "#10b981", fontWeight: 900 }}>"{opts[1]}"</span>
+                            ✏️ Direct Input Answer • Expected Answer: <span style={{ color: "#10b981", fontWeight: 900 }} dangerouslySetInnerHTML={{ __html: renderLatex(opts[1] || "") }} />
                           </div>
                         ) : (
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.35rem", fontSize: "0.8rem" }}>
@@ -1242,20 +1319,20 @@ export function ChapterMockTestManager() {
       {/* STUDENT RESULTS LEADERBOARD MODAL */}
       {activeTestForResults && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div className="glass-card" style={{ maxWidth: "800px", width: "100%", padding: "2rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--border)" }}>
+          <div className="glass-card" style={{ maxWidth: "800px", width: "100%", padding: "1.75rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--border)" }}>
             
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "0.75rem", marginBottom: "1.25rem" }}>
               <div>
                 <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase" }}>
                   STUDENT ATTEMPTS LEADERBOARD
                 </span>
-                <h3 style={{ fontSize: "1.4rem", fontWeight: 900, margin: "0.1rem 0 0 0" }}>
+                <h3 style={{ fontSize: "1.3rem", fontWeight: 900, margin: "0.1rem 0 0 0" }}>
                   {activeTestForResults.chapterName}
                 </h3>
               </div>
               <button
                 onClick={() => setActiveTestForResults(null)}
-                style={{ background: "transparent", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text-muted)" }}
+                style={{ width: "28px", height: "28px", borderRadius: "50%", background: "var(--card-bg-alt)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}
               >
                 ✕
               </button>
@@ -1312,20 +1389,20 @@ export function ChapterMockTestManager() {
         </div>
       )}
 
-      {/* AI MCQ EXTRACTION MODAL */}
+      {/* AI MCQ & INPUT QUESTION EXTRACTION MODAL */}
       {showAiExtractorModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(10px)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div className="glass-card" style={{ maxWidth: "750px", width: "100%", padding: "2rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--primary)", background: "var(--card-bg)" }}>
+          <div className="glass-card" style={{ maxWidth: "750px", width: "100%", padding: "1.75rem", borderRadius: "20px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--primary)", background: "var(--card-bg)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.75rem" }}>
               <div>
                 <h3 style={{ fontSize: "1.35rem", fontWeight: 900, color: "var(--text-heading)", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  ✨ AI MCQ Auto-Extractor
+                  ✨ AI Questions & Formulas Extractor
                 </h3>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "2px 0 0 0" }}>
-                  Attach a PDF/Image or paste question text to automatically extract questions, options & answers!
+                  Attach a PDF/Image or paste question text to auto-extract MCQ and Direct Input questions with LaTeX math!
                 </p>
               </div>
-              <button onClick={() => setShowAiExtractorModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text-muted)" }}>✕</button>
+              <button onClick={() => setShowAiExtractorModal(false)} style={{ width: "28px", height: "28px", borderRadius: "50%", background: "var(--card-bg-alt)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>✕</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -1366,7 +1443,7 @@ export function ChapterMockTestManager() {
                 </label>
                 <textarea
                   rows={4}
-                  placeholder="Paste text containing questions and options (e.g. Q1. Solve x² + 5x + 6 = 0...)"
+                  placeholder="Paste text containing questions, formulas, MCQs or direct questions..."
                   value={extractorText}
                   onChange={(e) => setExtractorText(e.target.value)}
                   style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--text)", fontSize: "0.88rem" }}
@@ -1380,7 +1457,7 @@ export function ChapterMockTestManager() {
                 disabled={isExtracting || (!extractorText.trim() && !extractorFileBase64)}
                 style={{ width: "100%", padding: "0.75rem", fontWeight: 800, fontSize: "0.95rem" }}
               >
-                {isExtracting ? "⚡ Extracting Questions & Math Formulas with AI..." : "🚀 Auto-Extract Questions & Options"}
+                {isExtracting ? "⚡ Extracting All Questions & Math Formulas with AI..." : "🚀 Auto-Extract All Questions"}
               </Button>
 
               {/* Extracted Preview & Actions */}
@@ -1402,62 +1479,92 @@ export function ChapterMockTestManager() {
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", maxHeight: "360px", overflowY: "auto", paddingRight: "0.25rem" }}>
-                    {extractedQuestions.map((q, idx) => (
-                      <div key={idx} style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "10px", border: "1px solid var(--border)", fontSize: "0.85rem" }}>
-                        <div style={{ fontWeight: 700, marginBottom: "0.35rem", color: "var(--text-heading)" }}>
-                          <span>Q{idx + 1}: </span>
-                          <span dangerouslySetInnerHTML={{ __html: renderLatex(q.questionText) }} />
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.35rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                          <span style={{ color: q.correctOption === 0 ? "#10b981" : "inherit", fontWeight: q.correctOption === 0 ? 800 : 400 }}>
-                            A) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optA) }} />
-                          </span>
-                          <span style={{ color: q.correctOption === 1 ? "#10b981" : "inherit", fontWeight: q.correctOption === 1 ? 800 : 400 }}>
-                            B) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optB) }} />
-                          </span>
-                          <span style={{ color: q.correctOption === 2 ? "#10b981" : "inherit", fontWeight: q.correctOption === 2 ? 800 : 400 }}>
-                            C) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optC) }} />
-                          </span>
-                          <span style={{ color: q.correctOption === 3 ? "#10b981" : "inherit", fontWeight: q.correctOption === 3 ? 800 : 400 }}>
-                            D) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optD) }} />
-                          </span>
-                        </div>
-                        {q.explanation && (
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.35rem", fontStyle: "italic" }}>
-                            💡 Solution: <span dangerouslySetInnerHTML={{ __html: renderLatex(q.explanation) }} />
+                    {extractedQuestions.map((q, idx) => {
+                      const isInputType = q.type === "INPUT" || (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER");
+                      const targetAns = q.inputAnswer || q.optA || "";
+                      return (
+                        <div key={idx} style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "10px", border: "1px solid var(--border)", fontSize: "0.85rem" }}>
+                          <div style={{ fontWeight: 700, marginBottom: "0.35rem", color: "var(--text-heading)" }}>
+                            <span>Q{idx + 1}: {isInputType && "[✏️ Direct Input Answer] "}</span>
+                            <span dangerouslySetInnerHTML={{ __html: renderLatex(q.questionText) }} />
                           </div>
-                        )}
-                        <div style={{ marginTop: "0.6rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            onClick={() => handleImportSingleExtractedQuestion(q)}
-                            style={{ padding: "4px 10px", borderRadius: "6px", border: "1px solid #10b981", background: "rgba(16,185,129,0.1)", color: "#10b981", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
-                          >
-                            ➕ Import This Question Only
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setQuestionForm({
-                                questionText: q.questionText,
-                                optA: q.optA,
-                                optB: q.optB,
-                                optC: q.optC,
-                                optD: q.optD,
-                                correctOption: q.correctOption,
-                                marks: 1,
-                                explanation: q.explanation || "",
-                                boardTag: q.boardTag || `${activeTestForQuestions?.board || 'CBSE'} Pattern`
-                              });
-                              setShowAiExtractorModal(false);
-                            }}
-                            style={{ padding: "4px 10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--primary)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
-                          >
-                            ✏️ Fill into Form Editor
-                          </button>
+
+                          {isInputType ? (
+                            <div style={{ padding: "0.35rem 0.6rem", borderRadius: "6px", border: "1px solid rgba(59, 130, 246, 0.4)", background: "rgba(59, 130, 246, 0.08)", color: "var(--primary)", fontWeight: 700, fontSize: "0.8rem" }}>
+                              Expected Answer: <span style={{ color: "#10b981", fontWeight: 900 }} dangerouslySetInnerHTML={{ __html: renderLatex(targetAns) }} />
+                            </div>
+                          ) : (
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.35rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                              <span style={{ color: q.correctOption === 0 ? "#10b981" : "inherit", fontWeight: q.correctOption === 0 ? 800 : 400 }}>
+                                A) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optA || "") }} />
+                              </span>
+                              <span style={{ color: q.correctOption === 1 ? "#10b981" : "inherit", fontWeight: q.correctOption === 1 ? 800 : 400 }}>
+                                B) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optB || "") }} />
+                              </span>
+                              <span style={{ color: q.correctOption === 2 ? "#10b981" : "inherit", fontWeight: q.correctOption === 2 ? 800 : 400 }}>
+                                C) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optC || "") }} />
+                              </span>
+                              <span style={{ color: q.correctOption === 3 ? "#10b981" : "inherit", fontWeight: q.correctOption === 3 ? 800 : 400 }}>
+                                D) <span dangerouslySetInnerHTML={{ __html: renderLatex(q.optD || "") }} />
+                              </span>
+                            </div>
+                          )}
+
+                          {q.explanation && (
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.35rem", fontStyle: "italic" }}>
+                              💡 Solution: <span dangerouslySetInnerHTML={{ __html: renderLatex(q.explanation) }} />
+                            </div>
+                          )}
+                          <div style={{ marginTop: "0.6rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleImportSingleExtractedQuestion(q)}
+                              style={{ padding: "4px 10px", borderRadius: "6px", border: "1px solid #10b981", background: "rgba(16,185,129,0.1)", color: "#10b981", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
+                            >
+                              ➕ Import This Question Only
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isInputType) {
+                                  setQuestionType("INPUT");
+                                  setInputAnswer(targetAns);
+                                  setQuestionForm({
+                                    questionText: q.questionText,
+                                    optA: "",
+                                    optB: "",
+                                    optC: "",
+                                    optD: "",
+                                    correctOption: 0,
+                                    marks: 1,
+                                    explanation: q.explanation || "",
+                                    boardTag: q.boardTag || `${activeTestForQuestions?.board || 'CBSE'} Pattern`
+                                  });
+                                } else {
+                                  setQuestionType("MCQ");
+                                  setInputAnswer("");
+                                  setQuestionForm({
+                                    questionText: q.questionText,
+                                    optA: q.optA || "",
+                                    optB: q.optB || "",
+                                    optC: q.optC || "",
+                                    optD: q.optD || "",
+                                    correctOption: q.correctOption || 0,
+                                    marks: 1,
+                                    explanation: q.explanation || "",
+                                    boardTag: q.boardTag || `${activeTestForQuestions?.board || 'CBSE'} Pattern`
+                                  });
+                                }
+                                setShowAiExtractorModal(false);
+                              }}
+                              style={{ padding: "4px 10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--primary)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
+                            >
+                              ✏️ Fill into Form Editor
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div style={{ marginTop: "1rem", textAlign: "center" }}>

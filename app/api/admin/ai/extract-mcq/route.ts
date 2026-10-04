@@ -80,34 +80,42 @@ export async function POST(req: Request) {
     if (groqApiKey) groqApiKey = groqApiKey.trim().replace(/^["']|["']$/g, '');
 
     const systemPrompt = `You are an expert educational AI assistant for 'Sudhir Tutorials'.
-Your task is to parse the provided text or document and extract ALL Multiple Choice Questions (MCQs) present in the text/document.
+Your task is to parse the provided text or document and extract ALL questions present in the text/document, whether they are Multiple Choice Questions (MCQs) or Input-Based / Numerical / Direct Answer questions.
 
 Subject Context: ${subject || 'General'}
 Target Board: ${board || 'Board Pattern'}
 
 OUTPUT FORMAT:
-Return ONLY a valid JSON array of objects with the following exact schema:
+Return ONLY a valid JSON array of objects with the following schema:
 [
   {
-    "questionText": "The full question text",
-    "optA": "Option A text",
-    "optB": "Option B text",
-    "optC": "Option C text",
-    "optD": "Option D text",
-    "correctOption": 0,
-    "explanation": "Concise step-by-step solution / explanation",
+    "questionType": "MCQ",
+    "questionText": "What is the SI unit of force?",
+    "optA": "Joule",
+    "optB": "Newton",
+    "optC": "Watt",
+    "optD": "Pascal",
+    "correctOption": 1,
+    "explanation": "Newton is the SI unit of force.",
+    "boardTag": "Suggested board pattern tag"
+  },
+  {
+    "questionType": "INPUT",
+    "questionText": "Find the value of x if 2x + 5 = 15.",
+    "inputAnswer": "5",
+    "explanation": "2x = 10 implies x = 5.",
     "boardTag": "Suggested board pattern tag"
   }
 ]
 
 CRITICAL EXTRACTION RULES:
-1. Ensure correctOption is an integer (0 for optA, 1 for optB, 2 for optC, 3 for optD).
-2. CRITICAL: You MUST process the ENTIRE document/text from start to finish and extract EVERY SINGLE QUESTION (Q1, Q2, Q3, Q4, Q5... all questions). DO NOT stop after extracting only 1 question!
-3. MATHEMATICS & LATEX SUPPORT:
-   - For all mathematical equations, formulas, fractions, powers, roots, variables, and symbols, ALWAYS use clean LaTeX notation wrapped in \\( ... \\) delimiters.
-   - Examples: \\(x^2 + 5x + 6 = 0\\), \\(\\frac{a}{b}\\), \\(\\sqrt{x}\\), \\(\\sin\\theta\\), \\(\\pi r^2\\), \\(3^{2x-1}\\), \\(\\pm 5\\).
-   - Format math in questionText, optA, optB, optC, optD, and explanation using LaTeX \\( ... \\) so equations render properly.
-4. If options are missing from the text for any question, generate 4 plausible options.
+1. For MCQ questions, set questionType to "MCQ", provide optA, optB, optC, optD, and set correctOption as an integer (0 for A, 1 for B, 2 for C, 3 for D).
+2. For Input/Numerical/Short Answer questions without options, set questionType to "INPUT" and provide the expected answer in inputAnswer.
+3. CRITICAL: You MUST process the ENTIRE document/text from start to finish and extract EVERY SINGLE QUESTION (Q1, Q2, Q3, Q4, Q5... all questions). DO NOT stop after extracting only 1 question!
+4. MATHEMATICS, SCIENCE & LATEX SUPPORT:
+   - For all mathematical equations, formulas, fractions, powers, roots, variables, and scientific expressions, ALWAYS use clean LaTeX notation wrapped in \\( ... \\) delimiters.
+   - Examples: \\(x^2 + 5x + 6 = 0\\), \\(\\frac{a}{b}\\), \\(\\sqrt{x}\\), \\(\\sin\\theta\\), \\(\\pi r^2\\), \\(3^{2x-1}\\), \\(\\pm 5\\), \\(\\text{H}_2\\text{O}\\).
+   - Format math in questionText, optA, optB, optC, optD, inputAnswer, and explanation using LaTeX \\( ... \\) so equations render properly.
 5. Output ONLY raw JSON array. Do not include markdown code block ticks or introduction text.`;
 
     let rawOutput = '';
@@ -278,25 +286,30 @@ CRITICAL EXTRACTION RULES:
           return NextResponse.json({ questions: localQuestions, success: true, method: 'local_parser_fallback' });
         }
       }
-      return NextResponse.json({ error: 'No MCQs found in the provided content. Please ensure the document or text contains questions and options.' }, { status: 400 });
+      return NextResponse.json({ error: 'No questions found in the provided content. Please ensure the document or text contains questions.' }, { status: 400 });
     }
 
-    // Sanitize and normalize extracted questions
-    const sanitizedQuestions = questionsArr.map((q: any) => ({
-      questionText: String(q.questionText || q.question || q.title || '').trim(),
-      optA: String(q.optA || q.optionA || (q.options && q.options[0]) || '').trim(),
-      optB: String(q.optB || q.optionB || (q.options && q.options[1]) || '').trim(),
-      optC: String(q.optC || q.optionC || (q.options && q.options[2]) || '').trim(),
-      optD: String(q.optD || q.optionD || (q.options && q.options[3]) || '').trim(),
-      correctOption: typeof q.correctOption === 'number' 
-        ? Math.max(0, Math.min(3, q.correctOption))
-        : (typeof q.answer === 'string' && /b/i.test(q.answer) ? 1 : typeof q.answer === 'string' && /c/i.test(q.answer) ? 2 : typeof q.answer === 'string' && /d/i.test(q.answer) ? 3 : 0),
-      explanation: String(q.explanation || q.solution || '').trim(),
-      boardTag: String(q.boardTag || `${board || 'CBSE'} Pattern`).trim()
-    })).filter(q => q.questionText && (q.optA || q.optB));
+    // Sanitize and normalize extracted questions (MCQ + INPUT mixed)
+    const sanitizedQuestions = questionsArr.map((q: any) => {
+      const isInput = q.questionType === 'INPUT' || (!q.optA && !q.optB && (q.inputAnswer || q.answer));
+      return {
+        questionType: isInput ? 'INPUT' : 'MCQ',
+        questionText: String(q.questionText || q.question || q.title || '').trim(),
+        optA: String(q.optA || q.optionA || (q.options && q.options[0]) || '').trim(),
+        optB: String(q.optB || q.optionB || (q.options && q.options[1]) || '').trim(),
+        optC: String(q.optC || q.optionC || (q.options && q.options[2]) || '').trim(),
+        optD: String(q.optD || q.optionD || (q.options && q.options[3]) || '').trim(),
+        correctOption: typeof q.correctOption === 'number' 
+          ? Math.max(0, Math.min(3, q.correctOption))
+          : (typeof q.answer === 'string' && /b/i.test(q.answer) ? 1 : typeof q.answer === 'string' && /c/i.test(q.answer) ? 2 : typeof q.answer === 'string' && /d/i.test(q.answer) ? 3 : 0),
+        inputAnswer: String(q.inputAnswer || q.answer || '').trim(),
+        explanation: String(q.explanation || q.solution || '').trim(),
+        boardTag: String(q.boardTag || `${board || 'CBSE'} Pattern`).trim()
+      };
+    }).filter(q => q.questionText && (q.questionType === 'INPUT' ? q.inputAnswer : (q.optA || q.optB)));
 
     if (sanitizedQuestions.length === 0) {
-      return NextResponse.json({ error: 'Could not extract valid question options from content. Please format or paste clear question text.' }, { status: 400 });
+      return NextResponse.json({ error: 'Could not extract valid questions from content. Please format or paste clear question text.' }, { status: 400 });
     }
 
     return NextResponse.json({ questions: sanitizedQuestions, success: true });
