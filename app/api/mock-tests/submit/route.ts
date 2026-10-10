@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
+import { isInputAnswerCorrect } from '@/lib/answerEvaluator';
 
 const submitSchema = z.object({
   mockTestId: z.string().min(1),
@@ -59,10 +60,8 @@ export async function POST(req: Request) {
       let isCorrect = false;
 
       if (isInputType) {
-        const studentText = String(studentSelected || '').trim().toLowerCase();
-        const expectedText = String(opts[1] || '').trim().toLowerCase();
         isUnattempted = studentSelected === undefined || studentSelected === null || String(studentSelected).trim() === '';
-        isCorrect = !isUnattempted && studentText === expectedText;
+        isCorrect = !isUnattempted && isInputAnswerCorrect(studentSelected, opts[1]);
       } else {
         isUnattempted = studentSelected === undefined || studentSelected === null;
         isCorrect = !isUnattempted && studentSelected === q.correctOption;

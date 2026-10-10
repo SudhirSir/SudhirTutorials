@@ -139,15 +139,19 @@ export const authOptions: NextAuthOptions = {
 
           const dbTokenString = `web:${webToken}|app:${appToken}`;
 
-          // Update user activeToken with robust database retries
-          await withDbRetry(
-            () => prisma.user.update({
-              where: { id: user.id },
-              data: { activeToken: dbTokenString }
-            }),
-            4,
-            400
-          );
+          // Update user activeToken (non-fatal if token save encounters minor DB lock)
+          try {
+            await withDbRetry(
+              () => prisma.user.update({
+                where: { id: user.id },
+                data: { activeToken: dbTokenString }
+              }),
+              4,
+              400
+            );
+          } catch (tokenErr) {
+            console.warn("Failed to update activeToken on login (non-fatal):", tokenErr);
+          }
 
           return { 
             id: user.id, 
@@ -161,10 +165,10 @@ export const authOptions: NextAuthOptions = {
             activeToken: newSessionToken
           };
         } catch (error: any) {
-          if (["USER_NOT_FOUND", "INVALID_PASSWORD", "ROLE_MISMATCH", "ADMIN_NOT_TEACHER", "MISSING_CREDENTIALS"].includes(error.message)) {
+          if (["USER_NOT_FOUND", "INVALID_PASSWORD", "ROLE_MISMATCH", "ADMIN_NOT_TEACHER", "MISSING_CREDENTIALS", "ACCOUNT_DEACTIVATED"].includes(error.message)) {
             throw error;
           }
-          console.error("DATABASE CONNECTION ERROR DURING LOGIN:", error.message);
+          console.error("DATABASE CONNECTION ERROR DURING LOGIN:", error.message || error);
           throw new Error("DB_ERROR");
         }
       }

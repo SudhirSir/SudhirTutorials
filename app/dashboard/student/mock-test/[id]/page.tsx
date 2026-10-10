@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { marked } from 'marked';
 import { renderLatex } from '@/lib/katex';
+import { isInputAnswerCorrect } from '@/lib/answerEvaluator';
 
 export default function ChapterMockTestArena() {
   const params = useParams();
@@ -741,9 +742,7 @@ export default function ChapterMockTestArena() {
               let isUnanswered = studentAns === undefined || String(studentAns).trim() === '';
 
               if (isInputType) {
-                const targetVal = String(optionsArr[1] || '').trim().toLowerCase();
-                const studentVal = String(studentAns || '').trim().toLowerCase();
-                isCorrect = !isUnanswered && targetVal === studentVal;
+                isCorrect = !isUnanswered && isInputAnswerCorrect(studentAns, optionsArr[1]);
               } else {
                 isCorrect = studentAns === q.correctOption;
               }
