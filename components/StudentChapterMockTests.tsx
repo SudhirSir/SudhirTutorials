@@ -21,6 +21,20 @@ export function StudentChapterMockTests() {
   const [selectedSubject, setSelectedSubject] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Leaderboard Modal State
+  const [leaderboardModal, setLeaderboardModal] = useState<{
+    isOpen: boolean;
+    scope: "overall" | "test";
+    title: string;
+    mockTestId?: string;
+  }>({
+    isOpen: false,
+    scope: "overall",
+    title: "🏆 Class Leaderboard",
+  });
+  const [leaderboardEntries, setLeaderboardEntries] = useState<any[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -37,6 +51,34 @@ export function StudentChapterMockTests() {
     };
     fetchProfile();
   }, []);
+
+  const fetchLeaderboard = async (scope: "overall" | "test", mockTestId?: string, title?: string) => {
+    setLoadingLeaderboard(true);
+    setLeaderboardModal({
+      isOpen: true,
+      scope,
+      title: title || (scope === "overall" ? "🏆 Overall Class Leaderboard" : "🏆 Test Leaderboard"),
+      mockTestId,
+    });
+
+    try {
+      const url = scope === "test" && mockTestId
+        ? `/api/mock-tests/leaderboard?scope=test&mockTestId=${mockTestId}`
+        : `/api/mock-tests/leaderboard?scope=overall`;
+
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setLeaderboardEntries(data.leaderboard || []);
+      } else {
+        setLeaderboardEntries([]);
+      }
+    } catch (e) {
+      console.error("Failed to fetch leaderboard:", e);
+      setLeaderboardEntries([]);
+    }
+    setLoadingLeaderboard(false);
+  };
 
   const fetchMockTests = useCallback(async () => {
     setLoading(true);
@@ -60,22 +102,39 @@ export function StudentChapterMockTests() {
     fetchMockTests();
   }, [fetchMockTests]);
 
+  const formatSeconds = (sec: number) => {
+    if (!sec || isNaN(sec)) return "0s";
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+
   return (
     <div style={{ marginTop: "1rem" }}>
       
       {/* Header Banner */}
-      <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
+      <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
         <div>
           <h2 style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text-heading)", margin: 0 }}>
             🎯 Mock Tests
           </h2>
         </div>
 
-        {studentBoard && (
-          <div style={{ background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "0.5rem 1rem", borderRadius: "12px", color: "var(--primary)", fontSize: "0.85rem", fontWeight: 800 }}>
-            🎓 Registered Board: {studentBoard} {studentClass ? `(Class ${studentClass})` : ""}
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <Button
+            variant="outline"
+            onClick={() => fetchLeaderboard("overall", undefined, "🏆 Overall Class Leaderboard")}
+            style={{ fontWeight: 800, borderRadius: "12px", padding: "0.5rem 1rem", border: "1px solid #f59e0b", color: "#f59e0b", background: "rgba(245, 158, 11, 0.08)" }}
+          >
+            🏆 Overall Class Leaderboard
+          </Button>
+
+          {studentBoard && (
+            <div style={{ background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "0.5rem 1rem", borderRadius: "12px", color: "var(--primary)", fontSize: "0.85rem", fontWeight: 800 }}>
+              🎓 Registered Board: {studentBoard} {studentClass ? `(Class ${studentClass})` : ""}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filter Toolbar */}
@@ -149,8 +208,17 @@ export function StudentChapterMockTests() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", color: "var(--primary)", letterSpacing: "0.05em", marginBottom: "0.2rem" }}>
-                    {test.subject}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", color: "var(--primary)", letterSpacing: "0.05em" }}>
+                      {test.subject}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fetchLeaderboard("test", test.id, `🏆 Leaderboard: ${test.chapterName}`)}
+                      style={{ background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245, 158, 11, 0.3)", color: "#f59e0b", padding: "2px 8px", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 800, cursor: "pointer" }}
+                    >
+                      🏆 Leaderboard
+                    </button>
                   </div>
                   {test.title && (
                     <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", marginBottom: "0.2rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
@@ -201,8 +269,149 @@ export function StudentChapterMockTests() {
           })}
         </div>
       )}
+
+      {/* Leaderboard Modal */}
+      {leaderboardModal.isOpen && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0, 0, 0, 0.75)",
+          backdropFilter: "blur(8px)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1.5rem"
+        }}>
+          <div className="glass-card animate-scale-up" style={{
+            maxWidth: "650px",
+            width: "100%",
+            maxHeight: "85vh",
+            padding: "1.5rem",
+            borderRadius: "20px",
+            border: "1.5px solid var(--border)",
+            background: "var(--card-bg)",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem"
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "0.85rem" }}>
+              <h3 style={{ fontSize: "1.2rem", fontWeight: 900, margin: 0, color: "var(--text-heading)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                {leaderboardModal.title}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setLeaderboardModal(prev => ({ ...prev, isOpen: false }))}
+                style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: "1.25rem", cursor: "pointer", fontWeight: 900 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Note banner */}
+            <div style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.3)", padding: "0.6rem 0.85rem", borderRadius: "10px", fontSize: "0.78rem", color: "#f59e0b", fontWeight: 700 }}>
+              💡 <strong>Rules:</strong> Only 1st attempts are evaluated. Ranked strictly by highest score, then fastest completion time!
+            </div>
+
+            {/* Leaderboard Table / Cards */}
+            <div style={{ overflowY: "auto", flex: 1, paddingRight: "0.25rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              {loadingLeaderboard ? (
+                <Spinner center size="md" />
+              ) : leaderboardEntries.length === 0 ? (
+                <div style={{ padding: "2.5rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem" }}>
+                  No student attempts logged for this leaderboard yet. Be the first to attempt! 🚀
+                </div>
+              ) : (
+                leaderboardEntries.map((entry) => {
+                  const rankIcon = entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : `#${entry.rank}`;
+                  const isOverall = leaderboardModal.scope === "overall";
+
+                  return (
+                    <div
+                      key={entry.studentId || entry.rank}
+                      style={{
+                        padding: "0.85rem 1rem",
+                        borderRadius: "12px",
+                        background: entry.rank <= 3 ? "rgba(245, 158, 11, 0.04)" : "var(--card-bg-alt)",
+                        border: entry.rank === 1 ? "1.5px solid #f59e0b" : "1px solid var(--border)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "0.75rem",
+                        flexWrap: "wrap"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
+                        <div style={{
+                          width: "38px",
+                          height: "38px",
+                          borderRadius: "10px",
+                          background: entry.rank === 1 ? "#f59e0b" : entry.rank === 2 ? "#94a3b8" : entry.rank === 3 ? "#d97706" : "rgba(255,255,255,0.08)",
+                          color: entry.rank <= 3 ? "#fff" : "var(--text)",
+                          fontWeight: 900,
+                          fontSize: entry.rank <= 3 ? "1.1rem" : "0.9rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}>
+                          {rankIcon}
+                        </div>
+
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text-heading)" }}>
+                            {entry.studentName}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                            {entry.className ? `Class ${entry.className}` : ""} {entry.board ? `• ${entry.board}` : ""}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", textAlign: "right" }}>
+                        <div>
+                          <div style={{ fontSize: "1rem", fontWeight: 900, color: "#10b981" }}>
+                            {isOverall ? `${entry.totalScore} pts` : `${entry.score} / ${entry.totalMarks}`}
+                          </div>
+                          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700 }}>
+                            {isOverall ? `${entry.testsAttempted} Tests (${entry.testsPassed} Passed)` : (entry.isPassed ? "🎉 PASSED" : "❌ FAILED")}
+                          </div>
+                        </div>
+
+                        <div style={{ minWidth: "70px", textAlign: "right" }}>
+                          <div style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--primary)", fontFamily: "monospace" }}>
+                            ⏱ {formatSeconds(isOverall ? entry.totalTimeTaken : entry.timeTaken)}
+                          </div>
+                          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                            Time Taken
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Close Button */}
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.75rem", textAlign: "right" }}>
+              <Button
+                variant="secondary"
+                onClick={() => setLeaderboardModal(prev => ({ ...prev, isOpen: false }))}
+                style={{ fontWeight: 800, padding: "0.5rem 1.25rem", borderRadius: "10px" }}
+              >
+                Close Leaderboard
+              </Button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
 export default StudentChapterMockTests;
+

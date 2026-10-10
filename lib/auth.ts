@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
                 name: true,
                 passwordHash: true,
                 role: true,
+                isActive: true,
                 isStoreUser: true,
                 mustChangePassword: true,
                 onboardingCompleted: true,
@@ -53,6 +54,11 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             console.log(`Login failed: User not found - ${credentials.username}`);
             throw new Error("USER_NOT_FOUND");
+          }
+
+          if (user.isActive === false) {
+            console.log(`Login blocked: Account deactivated - ${credentials.username}`);
+            throw new Error("ACCOUNT_DEACTIVATED");
           }
 
           const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);

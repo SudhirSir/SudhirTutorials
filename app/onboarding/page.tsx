@@ -9,18 +9,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { data: session, update } = useSession();
   
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const allowed = safeSessionStorage.getItem("onboarding_allowed");
-      if (!allowed) {
-        signOut({ redirect: false }).then(() => {
-          window.location.href = "/login";
-        });
-      } else {
-        safeSessionStorage.removeItem("onboarding_allowed");
-      }
-    }
-  }, []);
+
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

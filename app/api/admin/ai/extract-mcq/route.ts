@@ -45,6 +45,7 @@ function parseMcqsLocally(text: string, board?: string): any[] {
 
     if (questionText && (optA || optB)) {
       mcqs.push({
+        questionType: 'MCQ',
         questionText,
         optA: optA || 'Option A',
         optB: optB || 'Option B',
@@ -54,6 +55,18 @@ function parseMcqsLocally(text: string, board?: string): any[] {
         explanation,
         boardTag: `${board || 'Board'} Pattern`
       });
+    } else if (questionText) {
+      const inputAnsMatch = block.match(/(?:Ans(?:wer)?|Value|Result|Target)\s*[\:\=]\s*([^\n\r]+)/i);
+      const inputAnswer = inputAnsMatch ? inputAnsMatch[1].trim() : (lines.length > 1 ? lines[1].trim() : '');
+      if (inputAnswer) {
+        mcqs.push({
+          questionType: 'INPUT',
+          questionText,
+          inputAnswer,
+          explanation,
+          boardTag: `${board || 'Board'} Pattern`
+        });
+      }
     }
   }
 
@@ -67,7 +80,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
 
-    const { text, fileBase64, mimeType, subject, board } = await req.json();
+    const { text, fileBase64, mimeType, subject, board, mode } = await req.json();
 
     if (!text?.trim() && !fileBase64) {
       return NextResponse.json({ error: 'Please attach a document/image or paste question text.' }, { status: 400 });
@@ -79,11 +92,14 @@ export async function POST(req: Request) {
     if (geminiApiKey) geminiApiKey = geminiApiKey.trim().replace(/^["']|["']$/g, '');
     if (groqApiKey) groqApiKey = groqApiKey.trim().replace(/^["']|["']$/g, '');
 
+    const selectedMode = mode || 'MIXED';
+
     const systemPrompt = `You are an expert educational AI assistant for 'Sudhir Tutorials'.
-Your task is to parse the provided text or document and extract ALL questions present in the text/document, whether they are Multiple Choice Questions (MCQs) or Input-Based / Numerical / Direct Answer questions.
+Your task is to parse the provided text or document and extract ALL questions present in the text/document.
 
 Subject Context: ${subject || 'General'}
 Target Board: ${board || 'Board Pattern'}
+Extraction Requirement: ${selectedMode === 'INPUT' ? 'EXTRACT DIRECT INPUT / NUMERICAL QUESTIONS ONLY' : selectedMode === 'MCQ' ? 'EXTRACT MULTIPLE CHOICE QUESTIONS (MCQ) ONLY' : 'EXTRACT MIXED QUESTIONS (Both MCQs and Direct Input / Numerical questions as present)'}
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON array of objects with the following schema:
@@ -114,7 +130,6 @@ CRITICAL EXTRACTION RULES:
 3. CRITICAL: You MUST process the ENTIRE document/text from start to finish and extract EVERY SINGLE QUESTION (Q1, Q2, Q3, Q4, Q5... all questions). DO NOT stop after extracting only 1 question!
 4. MATHEMATICS, SCIENCE & LATEX SUPPORT:
    - For all mathematical equations, formulas, fractions, powers, roots, variables, and scientific expressions, ALWAYS use clean LaTeX notation wrapped in \\( ... \\) delimiters.
-   - Examples: \\(x^2 + 5x + 6 = 0\\), \\(\\frac{a}{b}\\), \\(\\sqrt{x}\\), \\(\\sin\\theta\\), \\(\\pi r^2\\), \\(3^{2x-1}\\), \\(\\pm 5\\), \\(\\text{H}_2\\text{O}\\).
    - Format math in questionText, optA, optB, optC, optD, inputAnswer, and explanation using LaTeX \\( ... \\) so equations render properly.
 5. Output ONLY raw JSON array. Do not include markdown code block ticks or introduction text.`;
 

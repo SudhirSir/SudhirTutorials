@@ -27,27 +27,99 @@ export default function OnlineTestArena() {
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [loadingAi, setLoadingAi] = useState<Record<string, boolean>>({});
   const [hasStarted, setHasStarted] = useState(false);
+  const [isWindowBlurred, setIsWindowBlurred] = useState(false);
+  const [warningCount, setWarningCount] = useState(0);
 
   const submittedRef = useRef(false);
+  const warningCountRef = useRef(0);
+
+  const triggerWarning = (reason: string) => {
+    if (submittedRef.current) return;
+    warningCountRef.current += 1;
+    const count = warningCountRef.current;
+    setWarningCount(count);
+
+    if (count >= 3) {
+      alert(`Anti-Cheat Violation: You received 3 warnings (${reason})! Your test has been submitted automatically.`);
+      submitTest(true);
+    } else {
+      alert(`Security Warning (${count}/3): ${reason} is strictly prohibited during the test! After 3 total warnings, your test will be auto-submitted.`);
+    }
+  };
 
   useEffect(() => {
     if (!hasStarted || submitted) return;
-    // Basic anti-cheat: disable right click
-    const handleContextMenu = (e: Event) => e.preventDefault();
-    document.addEventListener('contextmenu', handleContextMenu);
+    // Enable mobile native PrivacyScreen if running inside Capacitor
+    if (typeof window !== 'undefined' && (window as any).Capacitor?.Plugins?.PrivacyScreen) {
+      try {
+        (window as any).Capacitor.Plugins.PrivacyScreen.enable();
+      } catch (e) {}
+    }
 
-    // Anti-cheat: Auto-submit on tab switch
-    const handleVisibilityChange = () => {
-      if (document.hidden && !submittedRef.current && testData) {
-        alert("Anti-Cheat Warning: Tab switched! The test is automatically submitted.");
-        submitTest(true);
+    const handleContextMenu = (e: Event) => e.preventDefault();
+    const handleCopy = (e: Event) => e.preventDefault();
+    const handleCut = (e: Event) => e.preventDefault();
+    const handlePaste = (e: Event) => e.preventDefault();
+    const handleSelectStart = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (
+        e.key === 'PrintScreen' ||
+        (e.metaKey && e.shiftKey && (key === 's' || key === '4' || key === '3')) ||
+        (e.ctrlKey && ['c', 'v', 'x', 'a', 'u', 'p'].includes(key)) ||
+        (e.ctrlKey && e.shiftKey && ['i', 'j', 'c', 's'].includes(key)) ||
+        e.key === 'F12'
+      ) {
+        e.preventDefault();
+        triggerWarning('Attempting Screenshot or Inspect tools');
       }
     };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && !submittedRef.current && testData) {
+        setIsWindowBlurred(true);
+        triggerWarning('Switching Tabs or Minimizing Window');
+      } else if (!document.hidden) {
+        setIsWindowBlurred(false);
+      }
+    };
+
+    const handleWindowBlur = () => {
+      if (!submittedRef.current && testData) {
+        setIsWindowBlurred(true);
+        triggerWarning('Switching Window Focus');
+      }
+    };
+
+    const handleWindowFocus = () => {
+      setIsWindowBlurred(false);
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('cut', handleCut);
+    document.addEventListener('paste', handlePaste);
+    document.addEventListener('selectstart', handleSelectStart);
+    document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('cut', handleCut);
+      document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('selectstart', handleSelectStart);
+      document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
     };
   }, [testData, hasStarted, submitted]);
 
@@ -191,8 +263,14 @@ export default function OnlineTestArena() {
   return (
     <div style={{ background: 'var(--background)', minHeight: '100vh', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* Styles Injection */}
+      {/* Styles Injection & Anti-Print Protection */}
       <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          html, body {
+            display: none !important;
+            visibility: hidden !important;
+          }
+        }
         .test-grid-layout {
           display: grid;
           grid-template-columns: 2fr 1fr;
@@ -245,20 +323,107 @@ export default function OnlineTestArena() {
         }
       `}} />
 
-      {/* Header Panel */}
-      <header className="glass-card" style={{ padding: '1.25rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: '0.75rem', zIndex: 100, border: '1px solid var(--border)' }}>
-        <div>
-          <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--primary)', letterSpacing: '1px' }}>Sudhir Tutorials Online Testing Desk</span>
-          <h1 style={{ fontSize: '1.4rem', margin: '0.2rem 0 0 0', fontWeight: 900 }}>{testData.title}</h1>
-        </div>
-        <div style={{ 
-          background: timeLeft !== null && timeLeft < 180 ? 'rgba(239,68,68,0.12)' : 'rgba(59,130,246,0.08)', 
-          color: timeLeft !== null && timeLeft < 180 ? '#ef4444' : 'var(--primary)', 
-          padding: '0.6rem 1.5rem', borderRadius: '12px', fontSize: '1.4rem', fontWeight: 900, fontFamily: 'monospace',
-          border: `1.5px solid ${timeLeft !== null && timeLeft < 180 ? '#ef4444' : 'var(--primary)'}`,
-          boxShadow: `0 4px 15px ${timeLeft !== null && timeLeft < 180 ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.1)'}`
+      {/* Anti-Screenshot / Focus Loss Blur Overlay */}
+      {isWindowBlurred && !submitted && hasStarted && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.96)',
+          backdropFilter: 'blur(35px)',
+          WebkitBackdropFilter: 'blur(35px)',
+          zIndex: 999999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffffff',
+          textAlign: 'center',
+          padding: '2rem'
         }}>
-          ⏱️ {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }}>🛡️</div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '0.5rem', color: '#f87171' }}>
+            Security Protection Active (Screen Content Hidden)
+          </h2>
+          <p style={{ color: '#cbd5e1', maxWidth: '500px', fontSize: '0.95rem', lineHeight: 1.6 }}>
+            Window focus was lost. Screen capturing and screenshot taking are strictly blocked for test integrity. Click back inside the test window to resume.
+          </p>
+          <button
+            onClick={() => {
+              window.focus();
+              setIsWindowBlurred(false);
+            }}
+            style={{
+              marginTop: '1.25rem',
+              padding: '0.75rem 2rem',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 900,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)'
+            }}
+          >
+            Click to Resume Test 🚀
+          </button>
+        </div>
+      )}
+
+      {/* Center Logo Watermark during test */}
+      {hasStarted && !submitted && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          opacity: 0.05,
+          pointerEvents: 'none',
+          zIndex: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          userSelect: 'none'
+        }}>
+          <img src="/logo.png" alt="Sudhir Tutorials Watermark" style={{ width: '280px', height: 'auto' }} />
+          <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary)', marginTop: '0.5rem', letterSpacing: '3px' }}>
+            SUDHIR TUTORIALS
+          </span>
+        </div>
+      )}
+
+      {/* Header Panel */}
+      <header className="glass-card" style={{ padding: '0.8rem 1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: '0.75rem', zIndex: 100, border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
+          <div>
+            <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>
+              SUDHIR TUTORIALS
+            </div>
+            <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--primary)', letterSpacing: '1px' }}>
+              Sudhir Tutorials Online Testing Desk
+            </span>
+            <h1 style={{ fontSize: '1.25rem', margin: '0.1rem 0 0 0', fontWeight: 900 }}>{testData.title}</h1>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {warningCount > 0 && (
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '0.25rem 0.65rem', borderRadius: '8px' }}>
+              ⚠️ Warnings: {warningCount}/3
+            </span>
+          )}
+
+          <div style={{ 
+            background: timeLeft !== null && timeLeft < 180 ? 'rgba(239,68,68,0.12)' : 'rgba(59,130,246,0.08)', 
+            color: timeLeft !== null && timeLeft < 180 ? '#ef4444' : 'var(--primary)', 
+            padding: '0.5rem 1.25rem', borderRadius: '12px', fontSize: '1.2rem', fontWeight: 900, fontFamily: 'monospace',
+            border: `1.5px solid ${timeLeft !== null && timeLeft < 180 ? '#ef4444' : 'var(--primary)'}`,
+            boxShadow: `0 4px 15px ${timeLeft !== null && timeLeft < 180 ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.1)'}`
+          }}>
+            ⏱️ {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
+          </div>
         </div>
       </header>
 
@@ -589,6 +754,22 @@ export default function OnlineTestArena() {
 
           {/* Right Column: Status Grid Navigator */}
           <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid var(--border)', height: 'fit-content' }}>
+            
+            {/* Student ID & Profile Box */}
+            <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem', flexShrink: 0 }}>
+                {(session?.user?.name || (session?.user as any)?.username || 'S')[0].toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {session?.user?.name || (session?.user as any)?.username || 'Student'}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 800 }}>
+                  🆔 ID: {(session?.user as any)?.username || (session?.user as any)?.id?.slice(-6) || 'STU-001'}
+                </div>
+              </div>
+            </div>
+
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem 0' }}>Test Progress Navigator</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginBottom: '2rem' }}>

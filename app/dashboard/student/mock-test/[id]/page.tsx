@@ -26,6 +26,7 @@ export default function ChapterMockTestArena() {
   const [warningCount, setWarningCount] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(true);
   const [hasStarted, setHasStarted] = useState<boolean>(false);
+  const [isWindowBlurred, setIsWindowBlurred] = useState<boolean>(false);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -183,15 +184,23 @@ export default function ChapterMockTestArena() {
     // Visibility change / tab switch monitor
     const handleVisibilityChange = () => {
       if (document.hidden && !submittedRef.current && testData) {
+        setIsWindowBlurred(true);
         triggerSecurityWarning('Switching Tabs / Minimizing Window');
+      } else if (!document.hidden) {
+        setIsWindowBlurred(false);
       }
     };
 
-    // Window blur (losing focus)
+    // Window blur (losing focus) & focus
     const handleWindowBlur = () => {
       if (!submittedRef.current && testData) {
+        setIsWindowBlurred(true);
         triggerSecurityWarning('Switching Window Focus');
       }
+    };
+
+    const handleWindowFocus = () => {
+      setIsWindowBlurred(false);
     };
 
     // Capacitor Native Mobile Back-Button Handler
@@ -225,6 +234,7 @@ export default function ChapterMockTestArena() {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
     window.addEventListener('backbuttonpress', handleBackButton);
 
     return () => {
@@ -237,6 +247,7 @@ export default function ChapterMockTestArena() {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('backbuttonpress', handleBackButton);
     };
   }, [testData, router, triggerSecurityWarning, hasStarted, submitted]);
@@ -424,15 +435,91 @@ export default function ChapterMockTestArena() {
         </div>
       )}
 
+      {/* Anti-Screenshot / Focus Loss Blur Overlay */}
+      {isWindowBlurred && !submitted && hasStarted && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.96)',
+          backdropFilter: 'blur(35px)',
+          WebkitBackdropFilter: 'blur(35px)',
+          zIndex: 999999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffffff',
+          textAlign: 'center',
+          padding: '2rem'
+        }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem', animation: 'pulse 1.5s infinite' }}>🛡️</div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '0.5rem', color: '#f87171' }}>
+            Security Protection Active (Screen Content Hidden)
+          </h2>
+          <p style={{ color: '#cbd5e1', maxWidth: '500px', fontSize: '0.95rem', lineHeight: 1.6 }}>
+            Window focus was lost. Screen capturing and screenshot taking are strictly blocked for test integrity. Click back inside the test window to resume.
+          </p>
+          <button
+            onClick={() => {
+              window.focus();
+              setIsWindowBlurred(false);
+            }}
+            style={{
+              marginTop: '1.25rem',
+              padding: '0.75rem 2rem',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 900,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)'
+            }}
+          >
+            Click to Resume Test 🚀
+          </button>
+        </div>
+      )}
+
+      {/* Center Logo Watermark during test */}
+      {hasStarted && !submitted && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          opacity: 0.05,
+          pointerEvents: 'none',
+          zIndex: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          userSelect: 'none'
+        }}>
+          <img src="/logo.png" alt="Sudhir Tutorials Watermark" style={{ width: '260px', height: 'auto' }} />
+          <span style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--primary)', marginTop: '0.5rem', letterSpacing: '3px' }}>
+            SUDHIR TUTORIALS
+          </span>
+        </div>
+      )}
+
       {/* Header Panel */}
       <header className="glass-card test-arena-header" style={{ padding: '0.6rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: '0.5rem', zIndex: 100, border: '1px solid var(--border)', borderRadius: '12px' }}>
-        <div>
-          <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.5px' }}>
-            CLASS {testData.className} • {testData.board} BOARD {testData.title ? `• ${testData.title}` : ''}
-          </span>
-          <h1 style={{ fontSize: '1.05rem', margin: '0.1rem 0 0 0', fontWeight: 800, color: 'var(--text-heading)' }}>
-            {testData.chapterName}
-          </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img src="/logo.png" alt="Sudhir Tutorials Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-heading)', letterSpacing: '0.5px' }}>
+              SUDHIR TUTORIALS
+            </div>
+            <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.5px' }}>
+              CLASS {testData.className} • {testData.board} BOARD {testData.title ? `• ${testData.title}` : ''}
+            </span>
+            <h1 style={{ fontSize: '1.05rem', margin: '0.1rem 0 0 0', fontWeight: 800, color: 'var(--text-heading)' }}>
+              {testData.chapterName}
+            </h1>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -911,6 +998,22 @@ export default function ChapterMockTestArena() {
 
           {/* Right Column: Status Grid Navigator */}
           <div className="glass-card" style={{ padding: '1.15rem', border: '1px solid var(--border)', height: 'fit-content' }}>
+            
+            {/* Student ID & Profile Box */}
+            <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.75rem', borderRadius: '10px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+                {(session?.user?.name || (session?.user as any)?.username || 'S')[0].toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {session?.user?.name || (session?.user as any)?.username || 'Student'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 800 }}>
+                  🆔 ID: {(session?.user as any)?.username || (session?.user as any)?.id?.slice(-6) || 'STU-001'}
+                </div>
+              </div>
+            </div>
+
             <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem 0' }}>Progress Navigator</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', marginBottom: '1.25rem' }}>

@@ -71,6 +71,7 @@ export function ChapterMockTestManager() {
 
   // AI Extractor States
   const [showAiExtractorModal, setShowAiExtractorModal] = useState(false);
+  const [extractorMode, setExtractorMode] = useState<"MIXED" | "MCQ" | "INPUT">("MIXED");
   const [extractorText, setExtractorText] = useState("");
   const [extractorFileBase64, setExtractorFileBase64] = useState<string | null>(null);
   const [extractorFileName, setExtractorFileName] = useState("");
@@ -91,7 +92,8 @@ export function ChapterMockTestManager() {
           fileBase64: extractorFileBase64,
           mimeType: extractorMimeType,
           subject: activeTestForQuestions?.subject,
-          board: activeTestForQuestions?.board
+          board: activeTestForQuestions?.board,
+          mode: extractorMode
         })
       });
       const data = await res.json();
@@ -1452,14 +1454,26 @@ export function ChapterMockTestManager() {
                 <h3 style={{ fontSize: "1.35rem", fontWeight: 900, color: "var(--text-heading)", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   ✨ AI Questions & Formulas Extractor
                 </h3>
-                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "2px 0 0 0" }}>
-                  Attach a PDF/Image or paste question text to auto-extract MCQ and Direct Input questions with LaTeX math!
-                </p>
               </div>
               <button onClick={() => setShowAiExtractorModal(false)} style={{ width: "28px", height: "28px", borderRadius: "50%", background: "var(--card-bg-alt)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>✕</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              {/* Question Mode Selector */}
+              <div>
+                <label style={{ fontSize: "0.82rem", fontWeight: 800, color: "var(--primary)", display: "block", marginBottom: "0.35rem" }}>
+                  🎯 Select Question Extraction Type:
+                </label>
+                <select
+                  value={extractorMode}
+                  onChange={(e) => setExtractorMode(e.target.value as any)}
+                  style={{ width: "100%", padding: "0.65rem 0.8rem", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--card-bg-alt)", color: "var(--text)", fontWeight: 700, fontSize: "0.88rem" }}
+                >
+                  <option value="MIXED">⚡ Mixed (MCQ + Direct Input / Numerical Questions)</option>
+                  <option value="MCQ">📝 Multiple Choice Questions (MCQ Only)</option>
+                  <option value="INPUT">✏️ Direct Input / Short Answer / Numerical Only</option>
+                </select>
+              </div>
               {/* Upload PDF / Image File */}
               <div style={{ border: "2px dashed var(--border)", padding: "1.25rem", borderRadius: "14px", background: "var(--card-bg-alt)", textAlign: "center" }}>
                 <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.4rem", color: "var(--text)" }}>📁 Attach PDF or Question Paper Image</div>

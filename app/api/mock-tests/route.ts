@@ -197,24 +197,27 @@ export async function POST(req: Request) {
     // Auto notification to matching class & board students if published
     if (data.isPublished) {
       try {
+        const classFilter = data.className && data.className !== 'ALL' ? { in: getMatchingClassNames(data.className) } : undefined;
         const targetStudents = await withDbRetry(() => prisma.user.findMany({
           where: {
             role: 'STUDENT',
             isActive: true,
-            studentProfile: {
-              className: data.className
-            }
+            ...(classFilter ? {
+              studentProfile: {
+                className: classFilter
+              }
+            } : {})
           },
           select: { id: true }
         }));
 
         if (targetStudents.length > 0) {
-          const notifMsg = `New Chapter Mock Test "${data.title}" is available for ${data.subject} (${data.chapterName})! Board: ${data.board}. Test your preparation now!`;
+          const notifMsg = `New Chapter Mock Test "${data.title || data.chapterName}" is now assigned & published for ${data.subject} (${data.chapterName})! Board: ${data.board}, Class: ${data.className}. Test your preparation now!`;
           await withDbRetry(() => prisma.notification.createMany({
             data: targetStudents.map(s => ({
               userId: s.id,
               senderId: session.user.id,
-              title: `🎯 New Mock Test: ${data.chapterName}`,
+              title: `🎯 New Mock Test Assigned: ${data.chapterName}`,
               message: notifMsg,
               type: 'ALERT'
             }))

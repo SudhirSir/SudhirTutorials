@@ -63,6 +63,8 @@ export default function LoginPage() {
         setError("You have been signed out because your account was logged in from another device/browser.");
       } else if (err === "session_expired") {
         setError("Your session has expired. Please sign in again.");
+      } else if (err === "ACCOUNT_DEACTIVATED" || err?.includes("ACCOUNT_DEACTIVATED")) {
+        setError("Your account has been deactivated by admin. Please meet admin to know reason or email at admin@sudhirtutorials.me");
       }
 
       if (isReg === "true") {
@@ -132,7 +134,9 @@ export default function LoginPage() {
 
     const applyError = (res: any) => {
       safeSessionStorage.removeItem('tabSessionActive');
-      if (res.error === "USER_NOT_FOUND") {
+      if (res.error === "ACCOUNT_DEACTIVATED" || res.error?.includes("ACCOUNT_DEACTIVATED")) {
+        setError("Your account has been deactivated by admin. Please meet admin to know reason or email at admin@sudhirtutorials.me");
+      } else if (res.error === "USER_NOT_FOUND") {
         setError("This ID / Username is not registered.");
       } else if (res.error === "INVALID_PASSWORD") {
         setError("Invalid password. Please try again.");
