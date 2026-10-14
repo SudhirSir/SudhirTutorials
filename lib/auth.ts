@@ -45,6 +45,8 @@ export const authOptions: NextAuthOptions = {
                 onboardingCompleted: true,
                 isProfileVerified: true,
                 activeToken: true,
+                studentProfile: { select: { email: true } },
+                teacherProfile: { select: { email: true } },
               }
             }),
             4,
@@ -153,10 +155,13 @@ export const authOptions: NextAuthOptions = {
             console.warn("Failed to update activeToken on login (non-fatal):", tokenErr);
           }
 
+          const userEmail = user.studentProfile?.email || user.teacherProfile?.email || null;
+
           return { 
             id: user.id, 
             name: user.name || user.username, 
             username: user.username, 
+            email: userEmail,
             role: sessionRole,
             isStoreUser: user.isStoreUser,
             mustChangePassword: user.mustChangePassword,
@@ -225,12 +230,23 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await withDbRetry(() => prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { name: true, isProfileVerified: true, onboardingCompleted: true }
+            select: { 
+              name: true, 
+              isProfileVerified: true, 
+              onboardingCompleted: true,
+              mustChangePassword: true,
+              studentProfile: { select: { email: true } },
+              teacherProfile: { select: { email: true } }
+            }
           }), 2, 100);
           if (dbUser) {
             if (dbUser.name) token.name = dbUser.name;
             token.isProfileVerified = dbUser.isProfileVerified;
             token.onboardingCompleted = dbUser.onboardingCompleted;
+            token.mustChangePassword = dbUser.mustChangePassword;
+            if (!token.email) {
+              token.email = dbUser.studentProfile?.email || dbUser.teacherProfile?.email || null;
+            }
           }
         } catch (e) {
           console.error("Error refreshing session status in jwt callback:", e);

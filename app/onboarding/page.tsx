@@ -3,13 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { safeSessionStorage } from "@/lib/safeStorage";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { data: session, update } = useSession();
-  
-
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,6 +14,9 @@ export default function OnboardingPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [email, setEmail] = useState((session?.user as any)?.email || "");
+  const [initialEmail, setInitialEmail] = useState("");
+  const [isEmailAlreadyVerified, setIsEmailAlreadyVerified] = useState(false);
+
   const [phone, setPhone] = useState("");
   const [parentName, setParentName] = useState(""); // Only for students
   const [parentContact, setParentContact] = useState(""); // Only for students
@@ -34,8 +34,59 @@ export default function OnboardingPage() {
 
   const role = (session?.user as any)?.role;
 
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchCurrentProfile() {
+      if (!session?.user) return;
+      try {
+        const res = await fetch("/api/user/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (!isMounted) return;
+          const prof = data.profile || {};
+
+          if (prof.phone) setPhone(prof.phone);
+          if (prof.fatherName) setParentName(prof.fatherName);
+          if (prof.parentContact) setParentContact(prof.parentContact);
+          if (prof.className) setClassName(prof.className);
+          if (prof.board) setBoard(prof.board);
+          if (prof.school) setSchool(prof.school);
+          if (prof.address) setAddress(prof.address);
+
+          const existingEmail = prof.email || (session?.user as any)?.email || "";
+          if (existingEmail) {
+            setEmail(existingEmail);
+            setInitialEmail(existingEmail);
+            if (prof.emailVerified || (session?.user as any)?.isStoreUser) {
+              setIsEmailAlreadyVerified(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load initial profile for onboarding:", err);
+      }
+    }
+    fetchCurrentProfile();
+    return () => { isMounted = false; };
+  }, [session]);
+
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    if (!initialEmail || val.trim().toLowerCase() !== initialEmail.trim().toLowerCase() || !isEmailAlreadyVerified) {
+      setOtpSent(false);
+      setOtp("");
+    }
+  };
+
+  const handleChangeEmailClick = () => {
+    setIsEmailAlreadyVerified(false);
+    setOtpSent(false);
+    setOtp("");
+  };
+
   const sendOtp = async () => {
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    const clean = email.trim();
+    if (!clean || !/^\S+@\S+\.\S+$/.test(clean)) {
       return setError("Please enter a valid email address first.");
     }
     setError("");
@@ -44,7 +95,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: "ACCOUNT_VERIFICATION" })
+        body: JSON.stringify({ email: clean, type: "ACCOUNT_VERIFICATION" })
       });
       const data = await res.json();
       if (res.ok) {
@@ -70,7 +121,7 @@ export default function OnboardingPage() {
     const cleanBoard = board.trim();
     const cleanSchool = school.trim();
     const cleanAddress = address.trim();
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     if (cleanPassword) {
       if (cleanPassword !== cleanConfirmPassword) {
@@ -92,9 +143,11 @@ export default function OnboardingPage() {
         return setError("Password must contain at least one special symbol (e.g. @, #, $, etc.).");
       }
     }
+
     if ((session?.user as any)?.mustChangePassword && !cleanPassword) {
       return setError("Please set a new password");
     }
+
     if (role === 'STUDENT') {
       if (!cleanParentName) {
         return setError("Parent/Guardian name is required.");
@@ -102,22 +155,29 @@ export default function OnboardingPage() {
       if (cleanParentName.length > 150) {
         return setError("Parent/Guardian name must be at most 150 characters.");
       }
-      if (!/^[a-zA-Z\s]+$/.test(cleanParentName)) {
-        return setError("Parent/Guardian name must contain only alphabets and spaces.");
+      if (!/^[a-zA-Z\s.]+$/.test(cleanParentName)) {
+        return setError("Parent/Guardian name must contain only alphabets, spaces and dots.");
       }
       if (cleanParentContact && !/^\d{10}$/.test(cleanParentContact)) {
         return setError("Parent contact number must be exactly 10 digits.");
       }
     }
+
     if (cleanPhone && !/^\d{10}$/.test(cleanPhone)) {
       return setError("Phone number must be exactly 10 digits.");
     }
-    if (!(session?.user as any)?.email) {
+
+    if (!cleanEmail || !/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      return setError("A valid email address is required.");
+    }
+
+    const verified = isEmailAlreadyVerified && initialEmail && (cleanEmail === initialEmail.toLowerCase());
+    if (!verified) {
       if (!otpSent) {
-        return setError("Please verify your email address by sending and entering the OTP first.");
+        return setError("Please verify your email address by clicking 'Send OTP' and entering the code.");
       }
-      if (!otp || otp.length !== 6 || isNaN(Number(otp))) {
-        return setError("Verification OTP must be exactly 6 digits");
+      if (!otp || otp.trim().length !== 6 || isNaN(Number(otp))) {
+        return setError("Verification OTP must be exactly 6 digits.");
       }
     }
 
@@ -138,20 +198,30 @@ export default function OnboardingPage() {
           board: cleanBoard,
           school: cleanSchool,
           address: cleanAddress,
-          otp 
+          otp: verified ? "" : otp.trim()
         })
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         // Update session via NextAuth
-        await update({ onboardingCompleted: true, isProfileVerified: false, mustChangePassword: false });
-        router.push("/waiting-verification");
+        await update({ 
+          onboardingCompleted: true, 
+          isProfileVerified: !!data.isProfileVerified, 
+          mustChangePassword: false,
+          email: cleanEmail
+        });
+        if (data.isProfileVerified) {
+          router.push(`/dashboard/${role?.toLowerCase() || 'student'}`);
+        } else {
+          router.push("/waiting-verification");
+        }
       } else {
-        const data = await res.json();
         setError(data.error || "Failed to update profile");
       }
-    } catch (err) {
-      setError("An unexpected error occurred.");
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -293,7 +363,7 @@ export default function OnboardingPage() {
                         maxLength={150} 
                         onChange={e => {
                           const val = e.target.value;
-                          if (val === '' || /^[a-zA-Z\s]*$/.test(val)) {
+                          if (val === '' || /^[a-zA-Z\s.]*$/.test(val)) {
                             setParentName(val);
                           }
                         }} 
@@ -382,9 +452,11 @@ export default function OnboardingPage() {
 
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--primary)', fontWeight: 800 }}>3. Email Verification</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Verify your email address to secure your account.</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Verify your email address to secure your account and receive institute updates.
+            </p>
             
-            <div className="input-group" style={{ marginBottom: otpSent ? '1rem' : 0 }}>
+            <div className="input-group" style={{ marginBottom: (!isEmailAlreadyVerified && otpSent) ? '1rem' : 0 }}>
               <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Email Address</label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input 
@@ -392,36 +464,57 @@ export default function OnboardingPage() {
                   required 
                   placeholder="e.g. email@example.com" 
                   value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  disabled={otpSent || !!(session.user as any)?.email}
+                  onChange={e => handleEmailChange(e.target.value)} 
+                  disabled={otpSent || isEmailAlreadyVerified}
                   style={{ flex: 1, minWidth: 0, padding: '0.85rem 1rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
-                {(!(session.user as any)?.email && !otpSent) ? (
+                {isEmailAlreadyVerified ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      ✅ Verified
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={handleChangeEmailClick}
+                      style={{ padding: '0.45rem 0.85rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : !otpSent ? (
                   <button 
                     type="button" 
                     onClick={sendOtp} 
                     disabled={sendingOtp || !email}
-                    style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ padding: '0.5rem 1.1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     {sendingOtp ? 'Sending...' : 'Send OTP'}
                   </button>
-                ) : (!(session.user as any)?.email && otpSent) ? (
+                ) : (
                   <button 
                     type="button" 
                     onClick={() => { setOtpSent(false); setOtp(''); }} 
-                    style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    Change
+                    Change Email
                   </button>
-                ) : (
-                  <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>✅ Verified by Google</span>
                 )}
               </div>
             </div>
 
-            {(!(session.user as any)?.email && otpSent) && (
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label style={{ marginTop: '0.5rem', display: 'block', fontWeight: 600, fontSize: '0.85rem' }}>6-Digit Verification OTP</label>
+            {(!isEmailAlreadyVerified && otpSent) && (
+              <div className="input-group" style={{ marginTop: '0.75rem', marginBottom: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>6-Digit Verification OTP</label>
+                  <button
+                    type="button"
+                    onClick={sendOtp}
+                    disabled={sendingOtp}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'underline' }}
+                  >
+                    {sendingOtp ? 'Sending...' : 'Resend OTP'}
+                  </button>
+                </div>
                 <input 
                   type="text" 
                   maxLength={6} 
@@ -429,7 +522,7 @@ export default function OnboardingPage() {
                   required 
                   value={otp} 
                   onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
-                  style={{ letterSpacing: '0.5rem', fontSize: '1.2rem', textAlign: 'center', width: '100%', padding: '0.75rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  style={{ letterSpacing: '0.5rem', fontSize: '1.25rem', textAlign: 'center', width: '100%', padding: '0.75rem', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
               </div>
             )}
@@ -443,6 +536,16 @@ export default function OnboardingPage() {
           }}>
             {loading ? "Saving & Submitting Details..." : "Save Profile & Request Verification"}
           </button>
+
+          <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline', padding: '0.5rem' }}
+            >
+              Want to sign in with a different account? Sign Out
+            </button>
+          </div>
         </form>
       </div>
 
