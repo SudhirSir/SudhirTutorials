@@ -3516,12 +3516,12 @@ function AdminDashboardContent() {
             {[
               { id: 'courses', title: '🏫 Courses & Batches', desc: 'Configure courses, manage batches, fee pricing plans, and assigned faculties.', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
               { id: 'attendance', title: '✏️ Student Attendance', desc: 'Track daily attendance logs, view student check-in history, and download reports.', color: 'rgba(16, 185, 129, 0.05)', border: '#10b981', textColor: '#10b981' },
-              { id: 'materials', title: '📚 Study Materials & Content', desc: 'Upload and organize syllabus books, worksheets, PDFs, notes, and lectures.', color: 'rgba(59, 130, 246, 0.05)', border: '#3b82f6', textColor: '#3b82f6' },
-              { id: 'tests', title: '📝 Tests & Assessments', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
-              { id: 'mock-tests', title: '🎯 Chapter Mock Tests', desc: 'Set chapter-wise board-specific MCQ mock tests with timer, questions bank & AI solutions.', color: 'rgba(99, 102, 241, 0.05)', border: '#6366f1', textColor: '#6366f1' },
+              { id: 'materials', title: '📚 Study Materials', desc: 'Upload and organize syllabus books, worksheets, PDFs, notes, and lectures.', color: 'rgba(59, 130, 246, 0.05)', border: '#3b82f6', textColor: '#3b82f6' },
+              { id: 'tests', title: '📝 Tests', desc: 'Schedule periodic tests, configure grading criteria, and record student marks.', color: 'rgba(245, 158, 11, 0.05)', border: '#f59e0b', textColor: '#f59e0b' },
+              { id: 'mock-tests', title: '🎯 Mock Tests', desc: 'Set chapter-wise board-specific MCQ mock tests with timer, questions bank & AI solutions.', color: 'rgba(99, 102, 241, 0.05)', border: '#6366f1', textColor: '#6366f1' },
               { id: 'analytics', title: '📈 Performance Analytics', desc: 'AI-powered score forecasting, risk analysis, and graphical class insights.', color: 'rgba(236, 72, 153, 0.05)', border: '#ec4899', textColor: '#ec4899' },
-              { id: 'lectures', title: '📺 Lectures/Classes', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
-              { id: 'admissions', title: 'Student Admission Enquiries', desc: '', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
+              { id: 'lectures', title: '📺 Online Classes', desc: 'Set up live interactive Zoom/Meet streams, timetables, and lecture video links.', color: 'rgba(139, 92, 246, 0.05)', border: '#8b5cf6', textColor: '#8b5cf6' },
+              { id: 'admissions', title: 'Admission Enquiries', desc: '', color: 'rgba(239, 68, 68, 0.05)', border: '#ef4444', textColor: '#ef4444' },
             ].map(svc => (
               <div 
                 key={svc.id}
@@ -3707,7 +3707,7 @@ function AdminDashboardContent() {
                 fontSize: '0.9rem'
               }}
             >
-              🏫 Student Admission Inquiries
+              🏫 Admission Inquiries
             </button>
             <button 
               onClick={() => {
@@ -3751,47 +3751,64 @@ function AdminDashboardContent() {
           </div>
 
           {showPendingVerificationsList && (
-            <div className="glass-card" style={{ padding: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Pending Profile & Fee Verifications</h2>
+            <div className="glass-card" style={{ padding: '1.25rem 1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>Pending Profile & Fee Verifications</h2>
               {pendingVerifications.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)' }}>No profiles are currently awaiting verification.</p>
               ) : (
-                <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ display: 'grid', gap: '1rem', width: '100%', boxSizing: 'border-box' }}>
                   {pendingVerifications.map(u => (
-                    <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '14px', background: 'rgba(255,255,255,0.02)' }}>
-                      <div style={{ flex: 1, minWidth: '280px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                    <div 
+                      key={u.id} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'stretch', 
+                        flexWrap: 'wrap', 
+                        gap: '1rem', 
+                        padding: '1.25rem 1rem', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: '14px', 
+                        background: 'rgba(255,255,255,0.02)',
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div style={{ flex: '1 1 260px', minWidth: 0, maxWidth: '100%', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
                           <span 
                             onClick={() => setViewingVerificationUser(u)}
-                            style={{ fontWeight: 700, fontSize: '1.1rem', cursor: 'pointer' }}
+                            style={{ fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                             className="clickable-name"
                           >
                             {u.name || u.studentProfile?.fatherName ? `${u.name || 'Student'} (${u.studentProfile?.fatherName ? `S/o ${u.studentProfile.fatherName}` : ''})` : (u.name || 'Anonymous')}
                           </span>
                           <span className="role-badge" style={{ fontSize: '0.65rem' }}>{u.role}</span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.4rem', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                           Username: <strong>{u.username}</strong> • Joined {((() => { const d = new Date(u.createdAt); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })())}
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          {(u.studentProfile?.phone || u.phone) && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--border)' }}>📞 {u.studentProfile?.phone || u.phone}</span>}
-                          {(u.studentProfile?.email || u.email) && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--border)' }}>✉️ {u.studentProfile?.email || u.email}</span>}
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', fontSize: '0.78rem', color: 'var(--text-muted)', maxWidth: '100%' }}>
+                          {(u.studentProfile?.phone || u.phone) && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--border)', wordBreak: 'break-all' }}>📞 {u.studentProfile?.phone || u.phone}</span>}
+                          {(u.studentProfile?.email || u.email) && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--border)', wordBreak: 'break-all' }}>✉️ {u.studentProfile?.email || u.email}</span>}
                           {u.studentProfile?.className && <span style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(59,130,246,0.2)', fontWeight: 600 }}>🎓 {u.studentProfile.className}</span>}
                           {u.studentProfile?.board && <span style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 600 }}>🏫 {u.studentProfile.board}</span>}
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', flex: '1 1 200px', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>
                         <button 
                           onClick={() => setViewingVerificationUser(u)}
-                          style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '9px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                          style={{ flex: '1 1 auto', minWidth: '130px', padding: '0.55rem 0.85rem', fontSize: '0.82rem', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '9px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
                         >
-                          👁️ View & Verify Details
+                          👁️ View Details
                         </button>
                         <button 
                           disabled={isVerifying === u.id}
                           onClick={() => handleVerifyUser(u.id)}
-                          style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '9px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 12px -3px rgba(16, 185, 129, 0.4)' }}
+                          style={{ flex: '1 1 auto', minWidth: '130px', padding: '0.55rem 0.95rem', fontSize: '0.82rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '9px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 12px -3px rgba(16, 185, 129, 0.4)', textAlign: 'center' }}
                         >
                           {isVerifying === u.id ? 'Verifying...' : 'Approve & Verify'}
                         </button>
@@ -11427,76 +11444,76 @@ function AdminDashboardContent() {
 
       {/* ── View & Verify Student Details Modal ─────────────────── */}
       {viewingVerificationUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, padding: '1rem' }} className="no-print">
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', border: '1px solid var(--border)', background: 'var(--card-bg)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'var(--primary)' }}>📋 View & Verify Student Details</h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>Review details submitted by student during first-time setup before verifying.</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, padding: '0.75rem' }} className="no-print">
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '650px', maxHeight: '92vh', overflowY: 'auto', padding: '1.25rem 1rem', border: '1px solid var(--border)', background: 'var(--card-bg)', borderRadius: '20px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem', gap: '0.75rem' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--primary)', overflowWrap: 'anywhere' }}>📋 View & Verify Student Details</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0', lineHeight: 1.4 }}>Review details submitted by student during first-time setup before verifying.</p>
               </div>
               <button 
                 onClick={() => setViewingVerificationUser(null)} 
-                style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'var(--text)', cursor: 'pointer', fontWeight: 700 }}
+                style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'var(--text)', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '0.85rem', marginBottom: '1.25rem', width: '100%', boxSizing: 'border-box' }}>
               {/* Account Details */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--primary)', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>👤 ACCOUNT DETAILS</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Name:</strong> {viewingVerificationUser.name || 'Not provided'}</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Username:</strong> {viewingVerificationUser.username}</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Role:</strong> <span className="role-badge" style={{ fontSize: '0.65rem' }}>{viewingVerificationUser.role}</span></div>
-                <div style={{ fontSize: '0.85rem' }}><strong>Joined:</strong> {new Date(viewingVerificationUser.createdAt).toLocaleDateString('en-GB')}</div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: 'var(--primary)', marginBottom: '0.6rem', letterSpacing: '0.5px' }}>👤 ACCOUNT DETAILS</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Name:</strong> {viewingVerificationUser.name || 'Not provided'}</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Username:</strong> {viewingVerificationUser.username}</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Role:</strong> <span className="role-badge" style={{ fontSize: '0.65rem' }}>{viewingVerificationUser.role}</span></div>
+                <div style={{ fontSize: '0.82rem' }}><strong>Joined:</strong> {new Date(viewingVerificationUser.createdAt).toLocaleDateString('en-GB')}</div>
               </div>
 
               {/* Contact Information */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#10b981', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>📞 CONTACT INFO</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Student Phone:</strong> {viewingVerificationUser.studentProfile?.phone || viewingVerificationUser.phone || 'Not provided'}</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Email:</strong> {viewingVerificationUser.studentProfile?.email || viewingVerificationUser.email || 'Not provided'}</div>
-                <div style={{ fontSize: '0.85rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#10b981', marginBottom: '0.6rem', letterSpacing: '0.5px' }}>📞 CONTACT INFO</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Student Phone:</strong> {viewingVerificationUser.studentProfile?.phone || viewingVerificationUser.phone || 'Not provided'}</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Email:</strong> {viewingVerificationUser.studentProfile?.email || viewingVerificationUser.email || 'Not provided'}</div>
+                <div style={{ fontSize: '0.82rem' }}>
                   <strong>Email Verification:</strong> {viewingVerificationUser.studentProfile?.emailVerified ? '✅ Verified' : '⚠️ Pending'}
                 </div>
               </div>
 
               {/* Parent/Guardian Info */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#f59e0b', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>👨‍👩‍👦 PARENT / GUARDIAN</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Parent Name:</strong> {viewingVerificationUser.studentProfile?.fatherName || 'Not provided'}</div>
-                <div style={{ fontSize: '0.85rem' }}><strong>Parent Contact:</strong> {viewingVerificationUser.studentProfile?.parentContact || 'Not provided'}</div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#f59e0b', marginBottom: '0.6rem', letterSpacing: '0.5px' }}>👨‍👩‍👦 PARENT / GUARDIAN</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Parent Name:</strong> {viewingVerificationUser.studentProfile?.fatherName || 'Not provided'}</div>
+                <div style={{ fontSize: '0.82rem' }}><strong>Parent Contact:</strong> {viewingVerificationUser.studentProfile?.parentContact || 'Not provided'}</div>
               </div>
 
               {/* Academic Info */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#3b82f6', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>🏫 ACADEMIC DETAILS</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Class / Grade:</strong> {viewingVerificationUser.studentProfile?.className || 'Not specified'}</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Board:</strong> {viewingVerificationUser.studentProfile?.board || 'Not specified'}</div>
-                <div style={{ fontSize: '0.85rem' }}><strong>School Name:</strong> {viewingVerificationUser.studentProfile?.school || 'Not specified'}</div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#3b82f6', marginBottom: '0.6rem', letterSpacing: '0.5px' }}>🏫 ACADEMIC DETAILS</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Class / Grade:</strong> {viewingVerificationUser.studentProfile?.className || 'Not specified'}</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Board:</strong> {viewingVerificationUser.studentProfile?.board || 'Not specified'}</div>
+                <div style={{ fontSize: '0.82rem' }}><strong>School Name:</strong> {viewingVerificationUser.studentProfile?.school || 'Not specified'}</div>
               </div>
 
               {/* Residential Address */}
-              <div style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ec4899', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>📍 RESIDENTIAL ADDRESS & DETAILS</div>
-                <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Address:</strong> {viewingVerificationUser.studentProfile?.address || 'Not provided'}</div>
+              <div style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#ec4899', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>📍 RESIDENTIAL ADDRESS & DETAILS</div>
+                <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Address:</strong> {viewingVerificationUser.studentProfile?.address || 'Not provided'}</div>
                 {viewingVerificationUser.studentProfile?.dob && (
-                  <div style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}><strong>Date of Birth:</strong> {viewingVerificationUser.studentProfile.dob}</div>
+                  <div style={{ fontSize: '0.82rem', marginBottom: '0.35rem' }}><strong>Date of Birth:</strong> {viewingVerificationUser.studentProfile.dob}</div>
                 )}
                 {viewingVerificationUser.studentProfile?.gender && (
-                  <div style={{ fontSize: '0.85rem' }}><strong>Gender:</strong> {viewingVerificationUser.studentProfile.gender}</div>
+                  <div style={{ fontSize: '0.82rem' }}><strong>Gender:</strong> {viewingVerificationUser.studentProfile.gender}</div>
                 )}
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => handleRejectVerification(viewingVerificationUser.id)}
                 disabled={isVerifying === viewingVerificationUser.id}
-                style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 700, cursor: 'pointer' }}
+                style={{ flex: '1 1 140px', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}
               >
                 ❌ Reject Request
               </button>
@@ -11504,7 +11521,7 @@ function AdminDashboardContent() {
                 type="button"
                 onClick={() => handleVerifyUser(viewingVerificationUser.id)}
                 disabled={isVerifying === viewingVerificationUser.id}
-                style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: '#10b981', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 15px -3px rgba(16, 185, 129, 0.4)' }}
+                style={{ flex: '1 1 180px', padding: '0.75rem 1.25rem', borderRadius: '12px', border: 'none', background: '#10b981', color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 15px -3px rgba(16, 185, 129, 0.4)', textAlign: 'center' }}
               >
                 {isVerifying === viewingVerificationUser.id ? 'Verifying...' : '✅ Approve & Verify Details'}
               </button>

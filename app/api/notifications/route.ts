@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 import { z } from 'zod';
 
 // GET: Fetch current user's notifications or sent notifications
@@ -22,15 +23,37 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
-      const totalCount = await withDbRetry(() => prisma.notification.findMany({
-        where: { senderId: session.user.id },
-        distinct: ['title', 'message', 'createdAt'],
-        select: { id: true },
-      })).then(res => res.length);
+      const [totalCount, notifications] = await Promise.all([
+        withDbRetry(() => prisma.notification.findMany({
+          where: { senderId: session.user.id },
+          distinct: ['title', 'message', 'createdAt'],
+          select: { id: true },
+        })).then(res => res.length),
+        withDbRetry(() => prisma.notification.findMany({
+          where: { senderId: session.user.id },
+          distinct: ['title', 'message', 'createdAt'],
+          include: {
+            sender: {
+              select: { id: true, name: true, role: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+        }))
+      ]);
 
-      const notifications = await withDbRetry(() => prisma.notification.findMany({
-        where: { senderId: session.user.id },
-        distinct: ['title', 'message', 'createdAt'],
+      return NextResponse.json({ notifications, totalCount });
+    }
+
+    const [totalCount, unreadCount, notifications] = await Promise.all([
+      withDbRetry(() => prisma.notification.count({
+        where: { userId: session.user.id }
+      })),
+      withDbRetry(() => prisma.notification.count({
+        where: { userId: session.user.id, isRead: false }
+      })),
+      withDbRetry(() => prisma.notification.findMany({
+        where: { userId: session.user.id },
         include: {
           sender: {
             select: { id: true, name: true, role: true }
@@ -38,29 +61,8 @@ export async function GET(req: Request) {
         },
         orderBy: { createdAt: 'desc' },
         take: limit,
-      }));
-
-      return NextResponse.json({ notifications, totalCount });
-    }
-
-    const totalCount = await withDbRetry(() => prisma.notification.count({
-      where: { userId: session.user.id }
-    }));
-
-    const unreadCount = await withDbRetry(() => prisma.notification.count({
-      where: { userId: session.user.id, isRead: false }
-    }));
-
-    const notifications = await withDbRetry(() => prisma.notification.findMany({
-      where: { userId: session.user.id },
-      include: {
-        sender: {
-          select: { id: true, name: true, role: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    }));
+      }))
+    ]);
 
     return NextResponse.json({ notifications, totalCount, unreadCount });
   } catch (error) {
@@ -158,6 +160,9 @@ export async function POST(req: Request) {
       data: targetIds.map(userId => ({ userId, senderId: session.user.id, title, message, type })),
     }));
 
+    // Invalidate badges cache so targets see fresh unread counts
+    appCache.invalidate('badges');
+
     return NextResponse.json({ success: true, sent: targetIds.length });
   } catch (error) {
     console.error(error);
@@ -185,6 +190,9 @@ export async function PATCH(req: Request) {
         data: { isRead: true },
       }));
     }
+
+    // Invalidate badges for current user immediately
+    appCache.invalidate(`badges:${session.user.id}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

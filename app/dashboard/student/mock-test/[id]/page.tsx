@@ -591,6 +591,14 @@ export default function ChapterMockTestArena() {
                 <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>🛡 Anti-Cheat</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444', marginTop: '0.2rem' }}>Max 3 Warnings</div>
               </div>
+              {testData.deadline && (
+                <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>⏰ Deadline</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: new Date() > new Date(testData.deadline) ? '#ef4444' : '#f59e0b', marginTop: '0.2rem' }}>
+                    {new Date(testData.deadline).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* General Instructions & Security Rules */}
@@ -631,27 +639,51 @@ export default function ChapterMockTestArena() {
                 ← Back to Mock Tests
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setHasStarted(true);
-                  requestFullscreenMode();
-                }}
-                style={{
-                  padding: '0.85rem 2rem',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontWeight: 900,
-                  fontSize: '1.05rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              >
-                Start Now 🚀
-              </button>
+              {testData.deadline && new Date() > new Date(testData.deadline) ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ef4444' }}>
+                    ⏰ Submission deadline has passed.
+                  </span>
+                  <button
+                    type="button"
+                    disabled
+                    style={{
+                      padding: '0.85rem 1.75rem',
+                      borderRadius: '12px',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#ef4444',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      cursor: 'not-allowed'
+                    }}
+                  >
+                    Test Expired
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasStarted(true);
+                    requestFullscreenMode();
+                  }}
+                  style={{
+                    padding: '0.85rem 2rem',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    fontSize: '1.05rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                >
+                  Start Now 🚀
+                </button>
+              )}
             </div>
 
           </div>

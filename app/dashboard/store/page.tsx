@@ -27,10 +27,21 @@ function StoreDashboardContent() {
       return;
     }
 
-    if (session?.user && !(session.user as any).isStoreUser) {
-      // If a standard institutional student somehow ends up here, send them to their student dashboard
-      router.push('/dashboard/student');
-      return;
+    if (session?.user) {
+      const userRole = String((session.user as any).role || "").toUpperCase();
+      if (userRole === "ADMIN") {
+        router.push("/dashboard/admin");
+        return;
+      }
+      if (userRole === "TEACHER") {
+        router.push("/dashboard/teacher");
+        return;
+      }
+      if (!(session.user as any).isStoreUser) {
+        // If a standard institutional student somehow ends up here, send them to their student dashboard
+        router.push('/dashboard/student');
+        return;
+      }
     }
 
     const tab = searchParams.get('tab');

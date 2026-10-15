@@ -20,6 +20,14 @@ export function StudentChapterMockTests() {
   // Filters
   const [selectedSubject, setSelectedSubject] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   // Leaderboard Modal State
   const [leaderboardModal, setLeaderboardModal] = useState<{
@@ -34,6 +42,7 @@ export function StudentChapterMockTests() {
   });
   const [leaderboardEntries, setLeaderboardEntries] = useState<any[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [viewingResultTest, setViewingResultTest] = useState<any>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -85,7 +94,7 @@ export function StudentChapterMockTests() {
     try {
       const params = new URLSearchParams();
       if (selectedSubject !== "ALL") params.append("subject", selectedSubject);
-      if (searchQuery) params.append("chapterName", searchQuery);
+      if (debouncedQuery) params.append("chapterName", debouncedQuery);
 
       const res = await fetch(`/api/mock-tests?${params.toString()}`);
       if (res.ok) {
@@ -96,7 +105,7 @@ export function StudentChapterMockTests() {
       console.error("Failed to load student chapter mock tests:", e);
     }
     setLoading(false);
-  }, [selectedSubject, searchQuery]);
+  }, [selectedSubject, debouncedQuery]);
 
   useEffect(() => {
     fetchMockTests();
@@ -193,6 +202,7 @@ export function StudentChapterMockTests() {
               : Math.min(submissionsCount + 1, maxAttempts);
             const isMaxReached = submissionsCount >= maxAttempts;
             const lastSubmission = test.submissions?.[0];
+            const isExpired = test.deadline ? new Date() > new Date(test.deadline) : false;
 
             return (
               <Card
@@ -204,7 +214,7 @@ export function StudentChapterMockTests() {
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  borderColor: isCompleted ? "rgba(34, 197, 94, 0.4)" : undefined,
+                  borderColor: isExpired ? "rgba(239, 68, 68, 0.4)" : isCompleted ? "rgba(34, 197, 94, 0.4)" : undefined,
                 }}
               >
                 <div>
@@ -236,6 +246,12 @@ export function StudentChapterMockTests() {
                     <Badge variant={isMaxReached ? "danger" : "neutral"}>
                       Attempt {currentAttemptDisplay} / {maxAttempts}
                     </Badge>
+                    {test.deadline && (
+                      <Badge variant={isExpired ? "danger" : "warning"} style={{ fontSize: "0.68rem" }}>
+                        ⏰ {isExpired ? "Expired: " : "Deadline: "}
+                        {new Date(test.deadline).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </Badge>
+                    )}
                     {isCompleted && lastSubmission && (
                       <Badge variant={lastSubmission.score >= (test.passingMarks || 4) ? "success" : "danger"}>
                         {lastSubmission.score >= (test.passingMarks || 4) ? "🎉 PASSED" : "❌ FAILED"}
@@ -244,25 +260,77 @@ export function StudentChapterMockTests() {
                   </div>
                 </div>
 
-                <div style={{ marginTop: "auto" }}>
-                  <Button
-                    variant={isCompleted ? "outline" : "primary"}
-                    fullWidth
-                    onClick={() => {
-                      if (isMaxReached) {
-                        alert(`You have reached the maximum allowed attempts (${maxAttempts}/${maxAttempts}) for this mock test.`);
-                        return;
-                      }
-                      router.push(`/dashboard/student/mock-test/${test.id}`);
-                    }}
-                    style={{ fontWeight: 800, padding: "0.45rem 0.85rem", fontSize: "0.82rem", borderRadius: "8px", opacity: isMaxReached ? 0.75 : 1 }}
-                  >
-                    {isMaxReached 
-                      ? `Max Attempts Reached (${maxAttempts}/${maxAttempts})` 
-                      : isCompleted 
-                        ? `Retake Test (${currentAttemptDisplay + 1}/${maxAttempts})` 
-                        : "Start Mock Test"}
-                  </Button>
+                <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                  {isExpired ? (
+                    isCompleted ? (
+                      <Button
+                        variant="primary"
+                        fullWidth
+                        onClick={() => setViewingResultTest(test)}
+                        style={{ fontWeight: 800, padding: "0.45rem 0.85rem", fontSize: "0.82rem", borderRadius: "8px", background: "linear-gradient(135deg, #10b981, #059669)", border: "none" }}
+                      >
+                        🏆 View Result & Scorecard
+                      </Button>
+                    ) : (
+                      <button
+                        disabled
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 0.85rem",
+                          fontSize: "0.82rem",
+                          fontWeight: 800,
+                          borderRadius: "8px",
+                          background: "rgba(239, 68, 68, 0.12)",
+                          color: "#ef4444",
+                          border: "1px solid rgba(239, 68, 68, 0.3)",
+                          cursor: "not-allowed"
+                        }}
+                      >
+                        ⏰ Test Expired
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      <Button
+                        variant={isCompleted ? "outline" : "primary"}
+                        fullWidth
+                        onClick={() => {
+                          if (isMaxReached) {
+                            alert(`You have reached the maximum allowed attempts (${maxAttempts}/${maxAttempts}) for this mock test.`);
+                            return;
+                          }
+                          router.push(`/dashboard/student/mock-test/${test.id}`);
+                        }}
+                        style={{ fontWeight: 800, padding: "0.45rem 0.85rem", fontSize: "0.82rem", borderRadius: "8px", opacity: isMaxReached ? 0.75 : 1 }}
+                      >
+                        {isMaxReached 
+                          ? `Max Attempts Reached (${maxAttempts}/${maxAttempts})` 
+                          : isCompleted 
+                            ? `Retake Test (${currentAttemptDisplay + 1}/${maxAttempts})` 
+                            : "Start Mock Test"}
+                      </Button>
+
+                      {isCompleted && (
+                        <button
+                          type="button"
+                          onClick={() => setViewingResultTest(test)}
+                          style={{
+                            width: "100%",
+                            padding: "0.35rem 0.6rem",
+                            fontSize: "0.75rem",
+                            fontWeight: 800,
+                            borderRadius: "6px",
+                            background: "rgba(16, 185, 129, 0.1)",
+                            color: "#10b981",
+                            border: "1px solid rgba(16, 185, 129, 0.3)",
+                            cursor: "pointer"
+                          }}
+                        >
+                          🏆 View Scorecard
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </Card>
             );
@@ -405,6 +473,164 @@ export function StudentChapterMockTests() {
               </Button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Test Result / Scorecard Modal */}
+      {viewingResultTest && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0, 0, 0, 0.8)",
+          backdropFilter: "blur(8px)",
+          zIndex: 99999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1rem"
+        }}>
+          <div className="glass-card animate-scale-up" style={{
+            maxWidth: "540px",
+            width: "100%",
+            maxHeight: "90vh",
+            overflowY: "auto",
+            padding: "1.5rem",
+            borderRadius: "20px",
+            border: "1.5px solid var(--border)",
+            background: "var(--card-bg)",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.25rem"
+          }}>
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid var(--border)", paddingBottom: "0.85rem" }}>
+              <div>
+                <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase" }}>
+                  {viewingResultTest.subject} • CLASS {viewingResultTest.className}
+                </span>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 900, margin: "0.2rem 0 0 0", color: "var(--text-heading)" }}>
+                  {viewingResultTest.chapterName}
+                </h3>
+                {viewingResultTest.title && (
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                    📝 {viewingResultTest.title}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingResultTest(null)}
+                style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "var(--text)", width: "30px", height: "30px", borderRadius: "50%", cursor: "pointer", fontWeight: 800 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {(() => {
+              const sub = viewingResultTest.submissions?.[0];
+              if (!sub) {
+                return (
+                  <div style={{ textAlign: "center", padding: "1.5rem", color: "var(--text-muted)" }}>
+                    No submission record found for this test.
+                  </div>
+                );
+              }
+
+              const passCutoff = viewingResultTest.passingMarks || 4;
+              const isPassed = sub.score >= passCutoff;
+              const pct = Math.round((sub.score / (sub.totalMarks || viewingResultTest.totalMarks || 10)) * 100);
+
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  {/* Big Pass/Fail Badge */}
+                  <div style={{
+                    padding: "1.25rem",
+                    borderRadius: "14px",
+                    textAlign: "center",
+                    background: isPassed ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                    border: `1.5px solid ${isPassed ? "rgba(16, 185, 129, 0.4)" : "rgba(239, 68, 68, 0.4)"}`
+                  }}>
+                    <div style={{ fontSize: "2rem", marginBottom: "0.25rem" }}>
+                      {isPassed ? "🎉" : "📉"}
+                    </div>
+                    <div style={{ fontSize: "1.4rem", fontWeight: 900, color: isPassed ? "#10b981" : "#ef4444" }}>
+                      {isPassed ? "TEST PASSED" : "TEST FAILED"}
+                    </div>
+                    <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--text-heading)", margin: "0.5rem 0 0.2rem 0" }}>
+                      {sub.score} <span style={{ fontSize: "1.1rem", color: "var(--text-muted)", fontWeight: 700 }}>/ {sub.totalMarks || viewingResultTest.totalMarks} Marks</span>
+                    </div>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 800, color: isPassed ? "#10b981" : "#ef4444" }}>
+                      {pct}% Overall Accuracy
+                    </div>
+                  </div>
+
+                  {/* Summary Details Grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem" }}>
+                    <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pass Cutoff</div>
+                      <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", marginTop: "0.2rem" }}>{passCutoff} Marks</div>
+                    </div>
+                    <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Time Taken</div>
+                      <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--primary)", marginTop: "0.2rem", fontFamily: "monospace" }}>{formatSeconds(sub.timeTaken)}</div>
+                    </div>
+                    <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Attempts Used</div>
+                      <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", marginTop: "0.2rem" }}>
+                        {viewingResultTest.submissions.length} / {viewingResultTest.allowedAttempts || 3}
+                      </div>
+                    </div>
+                    <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Completed On</div>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text)", marginTop: "0.2rem" }}>
+                        {new Date(sub.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submission note */}
+                  {sub.autoSubmitted && (
+                    <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)", padding: "0.6rem 0.85rem", borderRadius: "10px", fontSize: "0.78rem", color: "#ef4444", fontWeight: 700 }}>
+                      ⚠️ This test was automatically submitted due to time expiration or security warning limits.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Modal Footer */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border)", paddingTop: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewingResultTest(null)}
+              >
+                Close
+              </Button>
+
+              {(() => {
+                const isExp = viewingResultTest.deadline ? new Date() > new Date(viewingResultTest.deadline) : false;
+                const isMax = (viewingResultTest.submissions?.length || 0) >= (viewingResultTest.allowedAttempts || 3);
+                if (!isExp && !isMax) {
+                  return (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        const id = viewingResultTest.id;
+                        setViewingResultTest(null);
+                        router.push(`/dashboard/student/mock-test/${id}`);
+                      }}
+                    >
+                      Retake Test 🚀
+                    </Button>
+                  );
+                }
+                return null;
+              })()}
+            </div>
           </div>
         </div>
       )}

@@ -79,5 +79,21 @@ export function isInputAnswerCorrect(
     return true;
   }
 
+  // 5. Token Set Equivalence & Subsets (handles word-order invariance: "4 pi m2" vs "m2 4 pi")
+  const studentTokens = new Set(normStudent.split(" ").filter(Boolean));
+  const expectedTokens = new Set(normExpected.split(" ").filter(Boolean));
+
+  if (expectedTokens.size > 0) {
+    // Check if student's tokens contain all expected tokens
+    let allExpectedPresent = true;
+    for (const token of expectedTokens) {
+      if (!studentTokens.has(token)) {
+        allExpectedPresent = false;
+        break;
+      }
+    }
+    if (allExpectedPresent) return true;
+  }
+
   return false;
 }

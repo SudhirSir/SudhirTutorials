@@ -45,6 +45,12 @@ export default withAuth(
     }
 
     if (path.startsWith("/dashboard/store")) {
+      if (token?.role === "ADMIN") {
+        return NextResponse.redirect(new URL("/dashboard/admin", req.url));
+      }
+      if (token?.role === "TEACHER") {
+        return NextResponse.redirect(new URL("/dashboard/teacher", req.url));
+      }
       if (!token?.isStoreUser) {
         return NextResponse.redirect(new URL("/store-login", req.url));
       }

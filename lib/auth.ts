@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma, withDbRetry, getNextStoreUsername } from "@/lib/prisma";
+import { appCache } from "@/lib/cache";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -30,7 +31,8 @@ export const authOptions: NextAuthOptions = {
               where: {
                 OR: [
                   { username: credentials.username },
-                  { studentProfile: { email: credentials.username } }
+                  { studentProfile: { email: credentials.username } },
+                  { teacherProfile: { email: credentials.username } }
                 ]
               },
               select: {
@@ -75,8 +77,11 @@ export const authOptions: NextAuthOptions = {
 
           if (requestedRole) {
             if (requestedRole === "STUDENT") {
-              if (user.role !== "STUDENT") {
-                throw new Error("ROLE_MISMATCH");
+              // If an Admin or Teacher logs in from the default tab, automatically assign their real role
+              if (user.role === "ADMIN") {
+                sessionRole = "ADMIN";
+              } else if (user.role === "TEACHER") {
+                sessionRole = "TEACHER";
               }
             } else if (requestedRole === "TEACHER") {
               if (user.role !== "TEACHER" && user.role !== "ADMIN") {
@@ -96,10 +101,11 @@ export const authOptions: NextAuthOptions = {
                   4,
                   400
                 );
-                if (!adminIsTeacher) {
-                  throw new Error("ADMIN_NOT_TEACHER");
+                if (adminIsTeacher) {
+                  sessionRole = "TEACHER";
+                } else {
+                  sessionRole = "ADMIN";
                 }
-                sessionRole = "TEACHER"; // Allow Admin to act as Teacher
               }
             } else if (requestedRole === "ADMIN") {
               if (user.role !== "ADMIN") {
@@ -108,19 +114,10 @@ export const authOptions: NextAuthOptions = {
             }
           }
 
-          // Get existing user db token to preserve the other token type
-          const existingUser = await withDbRetry(
-            () => prisma.user.findUnique({
-              where: { id: user.id },
-              select: { activeToken: true }
-            }),
-            4,
-            400
-          );
-
+          // Use activeToken directly from already fetched user model
           let webToken = "";
           let appToken = "";
-          const currentDbToken = existingUser?.activeToken || "";
+          const currentDbToken = user?.activeToken || "";
           if (currentDbToken.includes('|')) {
             const parts = currentDbToken.split('|');
             parts.forEach(part => {
@@ -163,7 +160,7 @@ export const authOptions: NextAuthOptions = {
             username: user.username, 
             email: userEmail,
             role: sessionRole,
-            isStoreUser: user.isStoreUser,
+            isStoreUser: sessionRole === 'STUDENT' ? Boolean(user.isStoreUser) : false,
             mustChangePassword: user.mustChangePassword,
             onboardingCompleted: user.onboardingCompleted,
             isProfileVerified: user.isProfileVerified,
@@ -180,13 +177,32 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, account, trigger, session }: any) {
       if (user) {
-        if (trigger === 'signIn' && token.email && !token.id) {
-          // This is an OAuth sign in (Google)
-          let dbUser = await withDbRetry(() => prisma.user.findFirst({ where: { studentProfile: { email: token.email as string } } }));
+        // If user.role exists, this is 100% a Credentials login (Admin, Teacher, or Student)
+        if ((user as any).role) {
+          token.role = (user as any).role;
+          token.username = (user as any).username;
+          token.id = user.id;
+          token.email = (user as any).email;
+          token.isStoreUser = (user as any).role === 'STUDENT' ? Boolean((user as any).isStoreUser) : false;
+          token.mustChangePassword = (user as any).mustChangePassword;
+          token.onboardingCompleted = (user as any).onboardingCompleted;
+          token.isProfileVerified = (user as any).isProfileVerified;
+          token.activeToken = (user as any).activeToken;
+        } else if (account?.provider === 'google' || trigger === 'signIn') {
+          // This is a Google OAuth sign-in (no password / role provided by provider)
+          let dbUser = await withDbRetry(() => prisma.user.findFirst({
+            where: {
+              OR: [
+                { studentProfile: { email: token.email as string } },
+                { teacherProfile: { email: token.email as string } }
+              ]
+            }
+          }));
+
           if (!dbUser) {
-            // Create user
+            // Create self-registered OAuth store user
             const uniqueUsername = await getNextStoreUsername();
             dbUser = await withDbRetry(() => prisma.user.create({
               data: {
@@ -194,7 +210,7 @@ export const authOptions: NextAuthOptions = {
                 name: token.name || uniqueUsername,
                 passwordHash: 'OAUTH_PENDING_PASSWORD',
                 role: 'STUDENT',
-                isStoreUser: true, // Self-created accounts via OAuth are external/store users
+                isStoreUser: true,
                 mustChangePassword: false,
                 onboardingCompleted: true,
                 isProfileVerified: true,
@@ -206,41 +222,41 @@ export const authOptions: NextAuthOptions = {
               }
             }));
           }
+
           token.role = dbUser.role;
           token.username = dbUser.username;
           token.id = dbUser.id;
-          token.isStoreUser = dbUser.isStoreUser;
+          token.isStoreUser = dbUser.role === 'STUDENT' ? Boolean(dbUser.isStoreUser) : false;
           token.mustChangePassword = dbUser.mustChangePassword;
           token.onboardingCompleted = dbUser.onboardingCompleted;
           token.isProfileVerified = dbUser.isProfileVerified;
           token.activeToken = dbUser.activeToken;
-        } else {
-          // Credentials login
-          token.role = (user as any).role;
-          token.username = (user as any).username;
-          token.id = user.id;
-          token.email = (user as any).email;
-          token.isStoreUser = (user as any).isStoreUser;
-          token.mustChangePassword = (user as any).mustChangePassword;
-          token.onboardingCompleted = (user as any).onboardingCompleted;
-          token.isProfileVerified = (user as any).isProfileVerified;
-          token.activeToken = (user as any).activeToken;
         }
       } else if (token?.id) {
         try {
-          const dbUser = await withDbRetry(() => prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { 
-              name: true, 
-              isProfileVerified: true, 
-              onboardingCompleted: true,
-              mustChangePassword: true,
-              studentProfile: { select: { email: true } },
-              teacherProfile: { select: { email: true } }
-            }
-          }), 2, 100);
+          const cacheKey = `user-jwt:${token.id}`;
+          if (trigger === 'update') {
+            appCache.delete(cacheKey);
+          }
+          const dbUser = await appCache.getOrSet(cacheKey, () => {
+            return withDbRetry(() => prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { 
+                name: true, 
+                role: true,
+                isStoreUser: true,
+                isProfileVerified: true, 
+                onboardingCompleted: true,
+                mustChangePassword: true,
+                studentProfile: { select: { email: true } },
+                teacherProfile: { select: { email: true } }
+              }
+            }), 2, 100);
+          }, 30);
           if (dbUser) {
             if (dbUser.name) token.name = dbUser.name;
+            token.role = dbUser.role;
+            token.isStoreUser = dbUser.role === 'STUDENT' ? Boolean(dbUser.isStoreUser) : false;
             token.isProfileVerified = dbUser.isProfileVerified;
             token.onboardingCompleted = dbUser.onboardingCompleted;
             token.mustChangePassword = dbUser.mustChangePassword;
@@ -252,6 +268,7 @@ export const authOptions: NextAuthOptions = {
           console.error("Error refreshing session status in jwt callback:", e);
         }
       }
+
       if (trigger === 'update' && session) {
         if (session.name !== undefined) token.name = session.name;
         if (session.mustChangePassword !== undefined) token.mustChangePassword = session.mustChangePassword;
@@ -262,17 +279,17 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).username = token.username;
-        (session.user as any).id = token.id;
-        (session.user as any).email = token.email;
-        (session.user as any).isStoreUser = token.isStoreUser;
-        (session.user as any).mustChangePassword = token.mustChangePassword;
-        (session.user as any).onboardingCompleted = token.onboardingCompleted;
-        (session.user as any).isProfileVerified = token.isProfileVerified;
-        (session.user as any).activeToken = token.activeToken;
+        session.user.role = token.role;
+        session.user.username = token.username;
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.isStoreUser = token.role === 'STUDENT' ? Boolean(token.isStoreUser) : false;
+        session.user.mustChangePassword = token.mustChangePassword;
+        session.user.onboardingCompleted = token.onboardingCompleted;
+        session.user.isProfileVerified = token.isProfileVerified;
+        session.user.activeToken = token.activeToken;
       }
       return session;
     },

@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 import { z } from 'zod';
 import { isInputAnswerCorrect } from '@/lib/answerEvaluator';
 
@@ -102,6 +103,9 @@ export async function POST(req: Request) {
         answers: JSON.stringify(answers)
       }
     }));
+
+    // Invalidate leaderboard cache for fresh rank calculations
+    appCache.invalidate('leaderboard');
 
     const accuracy = mockTest.questions.length > 0
       ? Math.round((correctCount / mockTest.questions.length) * 100)

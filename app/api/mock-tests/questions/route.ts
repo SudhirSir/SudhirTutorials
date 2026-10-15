@@ -57,6 +57,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Mock test not found' }, { status: 404 });
     }
 
+    if (session.user.role === 'STUDENT') {
+      if (!mockTest.isPublished) {
+        return NextResponse.json({ error: 'This mock test has been deactivated by administrator.' }, { status: 403 });
+      }
+      if (mockTest.deadline && new Date() > new Date(mockTest.deadline)) {
+        return NextResponse.json({ error: 'This mock test deadline has passed and is now expired.' }, { status: 403 });
+      }
+    }
+
     return NextResponse.json({ mockTest, questions: mockTest.questions, success: true });
   } catch (error) {
     console.error('Error fetching mock questions:', error);

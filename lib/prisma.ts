@@ -5,20 +5,26 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 function getTunedDatabaseUrl(): string | undefined {
   const url = process.env.DATABASE_URL;
   if (!url) return undefined;
-  // If pgbouncer=true, ensure connection_limit is set appropriately (max 5 for PgBouncer pooler)
-  if (url.includes('pgbouncer=true')) {
-    if (url.includes('connection_limit=')) return url;
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}connection_limit=5&pool_timeout=15`;
-  }
-  let tunedUrl = url.replace(/connection_limit=\d+/, 'connection_limit=5');
-  if (!tunedUrl.includes('connection_limit=')) {
+
+  let tunedUrl = url;
+  // Supabase PgBouncer (port 6543) or connection poolers require healthy pool limit (20) so multiple concurrent logins & requests don't exhaust pool
+  if (tunedUrl.includes('connection_limit=')) {
+    tunedUrl = tunedUrl.replace(/connection_limit=\d+/, 'connection_limit=20');
+  } else {
     const separator = tunedUrl.includes('?') ? '&' : '?';
-    tunedUrl = `${tunedUrl}${separator}connection_limit=5`;
+    tunedUrl = `${tunedUrl}${separator}connection_limit=20`;
   }
-  if (!tunedUrl.includes('pool_timeout=')) {
-    tunedUrl = `${tunedUrl}&pool_timeout=15`;
+
+  if (tunedUrl.includes('pool_timeout=')) {
+    tunedUrl = tunedUrl.replace(/pool_timeout=\d+/, 'pool_timeout=30');
+  } else {
+    tunedUrl = `${tunedUrl}&pool_timeout=30`;
   }
+
+  if (!tunedUrl.includes('connect_timeout=')) {
+    tunedUrl = `${tunedUrl}&connect_timeout=15`;
+  }
+
   return tunedUrl;
 }
 
@@ -128,14 +134,21 @@ export async function withDbRetry<T>(
         error?.code === 'P1002' || 
         error?.code === 'P1017' ||
         error?.code === 'P2024' ||
+        error?.code === 'P2028' ||
         (error?.message && (
           error.message.includes("Can't reach database server") ||
           error.message.includes('connection pool') ||
+          error.message.includes('Connection pool') ||
+          error.message.includes('Timed out fetching a new connection') ||
           error.message.includes('EMAXCONNSESSION') ||
           error.message.includes('max clients reached') ||
+          error.message.includes('too many clients') ||
+          error.message.includes('Remaining connection slots are reserved') ||
           error.message.includes('ETIMEDOUT') ||
           error.message.includes('ECONNRESET') ||
-          error.message.includes('Connection terminated')
+          error.message.includes('Connection terminated') ||
+          error.message.includes('terminating connection') ||
+          error.message.includes('broken pipe')
         ));
 
       if (attempt >= retries || !isConnectionError) {

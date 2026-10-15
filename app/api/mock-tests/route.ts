@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 import { z } from 'zod';
 
 const createMockTestSchema = z.object({
@@ -18,6 +19,7 @@ const createMockTestSchema = z.object({
   totalMarks: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v)) || 10),
   passingMarks: z.union([z.number(), z.string()]).optional().transform(v => v ? parseFloat(String(v)) : 4),
   allowedAttempts: z.union([z.number(), z.string()]).optional().transform(v => v ? parseInt(String(v), 10) : 3),
+  deadline: z.union([z.string(), z.date()]).nullable().optional().transform(v => v ? new Date(v) : null),
   isPublished: z.boolean().optional().default(true),
   isStoreItem: z.boolean().optional().default(false),
   storePrice: z.union([z.number(), z.string()]).optional().transform(v => v !== undefined && v !== null ? parseFloat(String(v)) : 0),
@@ -97,13 +99,15 @@ export async function GET(req: Request) {
 
     if (role === 'STUDENT') {
       where.isPublished = true;
-      const userWithDetails = await withDbRetry(() => prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          studentProfile: { select: { className: true, board: true } },
-          studentBatches: { select: { className: true } }
-        }
-      }));
+      const userWithDetails = await appCache.getOrSet(`student-profile-batches:${userId}`, () => {
+        return withDbRetry(() => prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            studentProfile: { select: { className: true, board: true } },
+            studentBatches: { select: { className: true } }
+          }
+        }));
+      }, 120);
       if (userWithDetails) {
         if (userWithDetails.studentProfile?.board) {
           studentBoard = userWithDetails.studentProfile.board;
@@ -189,6 +193,7 @@ export async function POST(req: Request) {
         totalMarks: data.totalMarks,
         passingMarks: data.passingMarks,
         allowedAttempts: data.allowedAttempts || 3,
+        deadline: data.deadline,
         isPublished: data.isPublished,
         createdById: session.user.id
       }
@@ -212,7 +217,8 @@ export async function POST(req: Request) {
         }));
 
         if (targetStudents.length > 0) {
-          const notifMsg = `New Chapter Mock Test "${data.title || data.chapterName}" is now assigned & published for ${data.subject} (${data.chapterName})! Board: ${data.board}, Class: ${data.className}. Test your preparation now!`;
+          const deadlineText = data.deadline ? ` ⏰ Deadline: ${new Date(data.deadline).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.` : '';
+          const notifMsg = `New Chapter Mock Test "${data.title || data.chapterName}" is now assigned & active for ${data.subject} (${data.chapterName})! Board: ${data.board}, Class: ${data.className}.${deadlineText} Test your preparation now!`;
           await withDbRetry(() => prisma.notification.createMany({
             data: targetStudents.map(s => ({
               userId: s.id,
@@ -227,6 +233,10 @@ export async function POST(req: Request) {
         console.error('Failed to notify students:', notifErr);
       }
     }
+
+    // Invalidate caches for instant freshness across student portals
+    appCache.invalidate('mock-tests');
+    appCache.invalidate('leaderboard');
 
     return NextResponse.json({ mockTest, success: true });
   } catch (error) {
@@ -256,6 +266,9 @@ export async function PUT(req: Request) {
       data: updateData
     }));
 
+    appCache.invalidate('mock-tests');
+    appCache.invalidate('leaderboard');
+
     return NextResponse.json({ mockTest, success: true });
   } catch (error) {
     console.error('Error updating chapter mock test:', error);
@@ -279,6 +292,9 @@ export async function DELETE(req: Request) {
     await withDbRetry(() => prisma.chapterMockTest.delete({
       where: { id }
     }));
+
+    appCache.invalidate('mock-tests');
+    appCache.invalidate('leaderboard');
 
     return NextResponse.json({ success: true });
   } catch (error) {

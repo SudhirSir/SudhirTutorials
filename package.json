@@ -10,7 +10,9 @@
     "postinstall": "prisma generate",
     "mobile:sync": "npm run build && node -e \"const fs = require('fs'); fs.mkdirSync('out', { recursive: true }); fs.copyFileSync('public/offline.html', 'out/offline.html'); fs.copyFileSync('public/logo.png', 'out/logo.png');\" && npx cap sync",
     "mobile:open": "npx cap open android",
-    "mobile:open-ios": "npx cap open ios"
+    "mobile:open-ios": "npx cap open ios",
+    "seed:test-users": "node scripts/seed-test-users.js",
+    "clean:test-users": "node scripts/clean-test-users.js"
   },
   "dependencies": {
     "@capacitor-community/file-opener": "^8.0.1",

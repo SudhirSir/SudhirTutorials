@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { messageEmitter } from '@/lib/events';
+import { appCache } from '@/lib/cache';
 
 export async function PATCH(req: Request) {
   try {
@@ -54,6 +55,8 @@ export async function PATCH(req: Request) {
         receiverId: session.user.id
       });
     }
+
+    appCache.invalidate(`badges:${session.user.id}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

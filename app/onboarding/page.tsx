@@ -84,12 +84,24 @@ export default function OnboardingPage() {
     setOtp("");
   };
 
+  const handleWrongEmail = () => {
+    setOtpSent(false);
+    setOtp("");
+    setIsEmailAlreadyVerified(false);
+    setError("");
+    setTimeout(() => {
+      const input = document.getElementById("onboarding-email-input");
+      if (input) input.focus();
+    }, 50);
+  };
+
   const sendOtp = async () => {
     const clean = email.trim();
     if (!clean || !/^\S+@\S+\.\S+$/.test(clean)) {
       return setError("Please enter a valid email address first.");
     }
     setError("");
+    setOtp(""); // Automatically clear old OTP
     setSendingOtp(true);
     try {
       const res = await fetch("/api/auth/send-otp", {
@@ -100,6 +112,7 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (res.ok) {
         setOtpSent(true);
+        setOtp(""); // Ensure OTP input is empty for fresh entry
       } else {
         setError(data.error || "Failed to send OTP code.");
       }
@@ -457,9 +470,32 @@ export default function OnboardingPage() {
             </p>
             
             <div className="input-group" style={{ marginBottom: (!isEmailAlreadyVerified && otpSent) ? '1rem' : 0 }}>
-              <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, fontSize: '0.85rem' }}>Email Address</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>Email Address</label>
+                {(!isEmailAlreadyVerified && otpSent) && (
+                  <button
+                    type="button"
+                    onClick={handleWrongEmail}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      textDecoration: 'underline',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    ✏️ Wrong email? Change
+                  </button>
+                )}
+              </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input 
+                  id="onboarding-email-input"
                   type="email" 
                   required 
                   placeholder="e.g. email@example.com" 
@@ -493,10 +529,10 @@ export default function OnboardingPage() {
                 ) : (
                   <button 
                     type="button" 
-                    onClick={() => { setOtpSent(false); setOtp(''); }} 
-                    style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={handleWrongEmail} 
+                    style={{ padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    Change Email
+                    Wrong Email?
                   </button>
                 )}
               </div>

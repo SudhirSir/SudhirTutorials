@@ -549,6 +549,7 @@ model ChapterMockTest {
   totalMarks      Float    @default(10)
   passingMarks    Float?   @default(4)
   allowedAttempts Int      @default(3)
+  deadline        DateTime?
   isPublished     Boolean  @default(true)
   isStoreItem     Boolean  @default(false)
   storePrice      Float?   @default(0)

@@ -43,12 +43,17 @@ export default function LoginPage() {
     }
 
     if (status === "authenticated" && session?.user) {
-      const isStoreUser = (session.user as any).isStoreUser;
-      if (isStoreUser) {
-        router.push('/dashboard/store');
+      const role = String((session.user as any).role || "").toUpperCase();
+      const isStoreUser = role === "STUDENT" && Boolean((session.user as any).isStoreUser);
+
+      if (role === 'ADMIN') {
+        window.location.href = '/dashboard/admin';
+      } else if (role === 'TEACHER') {
+        window.location.href = '/dashboard/teacher';
+      } else if (isStoreUser) {
+        window.location.href = '/dashboard/store';
       } else {
-        const role = (session.user as any).role || "STUDENT";
-        router.push(`/dashboard/${role.toLowerCase()}`);
+        window.location.href = '/dashboard/student';
       }
     }
   }, [status, session, router]);
@@ -175,11 +180,40 @@ export default function LoginPage() {
         }
         applyError(res);
       } else {
-        // Navigate directly — no router.refresh() which caused a blank flash
         if (typeof window !== 'undefined') {
           safeSessionStorage.setItem('onboarding_allowed', 'true');
         }
-        router.push(`/dashboard/${activeTab}`);
+
+        // Check verified session to route strictly by role
+        try {
+          const sessRes = await fetch('/api/auth/session');
+          if (sessRes.ok) {
+            const sess = await sessRes.json();
+            const confirmedRole = String(sess?.user?.role || '').toUpperCase();
+            const isStore = confirmedRole === 'STUDENT' && Boolean(sess?.user?.isStoreUser);
+
+            if (confirmedRole === 'ADMIN') {
+              window.location.href = '/dashboard/admin';
+              return;
+            }
+            if (confirmedRole === 'TEACHER') {
+              window.location.href = '/dashboard/teacher';
+              return;
+            }
+            if (isStore) {
+              window.location.href = '/dashboard/store';
+              return;
+            }
+          }
+        } catch (e) {}
+
+        if (activeTab === 'admin') {
+          window.location.href = '/dashboard/admin';
+        } else if (activeTab === 'teacher') {
+          window.location.href = '/dashboard/teacher';
+        } else {
+          window.location.href = '/dashboard/student';
+        }
       }
     } catch (err) {
       safeSessionStorage.removeItem('tabSessionActive');

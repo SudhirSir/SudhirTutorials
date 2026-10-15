@@ -16,6 +16,34 @@ function LiveMathPreview({ label, text }: { label: string; text: string }) {
   return null;
 }
 
+function formatToDateInput(val?: string | null): string {
+  if (!val) return "";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  } catch {
+    return "";
+  }
+}
+
+function formatToTimeInput(val?: string | null): string {
+  if (!val) return "23:59:59";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "23:59:59";
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    const ss = String(d.getSeconds()).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  } catch {
+    return "23:59:59";
+  }
+}
+
 export function ChapterMockTestManager() {
   const [mockTests, setMockTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +53,14 @@ export function ChapterMockTestManager() {
   const [selectedBoard, setSelectedBoard] = useState("ALL");
   const [selectedSubject, setSelectedSubject] = useState("ALL");
   const [searchChapter, setSearchChapter] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchChapter);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchChapter]);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -48,6 +84,8 @@ export function ChapterMockTestManager() {
     totalMarks: "",
     passingMarks: "",
     allowedAttempts: "",
+    deadlineDate: "",
+    deadlineTime: "23:59:59",
     isPublished: true,
     isStoreItem: false,
     storePrice: "",
@@ -196,7 +234,7 @@ export function ChapterMockTestManager() {
       if (selectedClass && selectedClass !== "ALL") params.append("className", selectedClass);
       if (selectedBoard && selectedBoard !== "ALL") params.append("board", selectedBoard);
       if (selectedSubject && selectedSubject !== "ALL") params.append("subject", selectedSubject);
-      if (searchChapter) params.append("chapterName", searchChapter);
+      if (debouncedSearch) params.append("chapterName", debouncedSearch);
 
       const res = await fetch(`/api/mock-tests?${params.toString()}`);
       if (res.ok) {
@@ -207,7 +245,7 @@ export function ChapterMockTestManager() {
       console.error("Failed to load chapter mock tests:", e);
     }
     setLoading(false);
-  }, [selectedClass, selectedBoard, selectedSubject, searchChapter]);
+  }, [selectedClass, selectedBoard, selectedSubject, debouncedSearch]);
 
   useEffect(() => {
     const handleBackButton = (e: Event) => {
@@ -247,12 +285,21 @@ export function ChapterMockTestManager() {
     try {
       const url = "/api/mock-tests";
       const method = editingTest ? "PUT" : "POST";
+      let deadlineIso: string | null = null;
+      if (testForm.deadlineDate && String(testForm.deadlineDate).trim()) {
+        const dVal = String(testForm.deadlineDate).trim();
+        const tVal = String(testForm.deadlineTime || "23:59:59").trim();
+        deadlineIso = new Date(`${dVal}T${tVal}`).toISOString();
+      }
+
       const payload = {
         ...testForm,
         durationMinutes: parseInt(testForm.durationMinutes) || 15,
         totalMarks: parseFloat(testForm.totalMarks) || 10,
         passingMarks: parseFloat(testForm.passingMarks) || 4,
         allowedAttempts: parseInt(testForm.allowedAttempts) || 3,
+        deadline: deadlineIso,
+        isPublished: Boolean(testForm.isPublished),
         storePrice: parseFloat(testForm.storePrice) || 0,
       };
       const body = editingTest ? { id: editingTest.id, ...payload } : payload;
@@ -278,6 +325,8 @@ export function ChapterMockTestManager() {
           totalMarks: "",
           passingMarks: "",
           allowedAttempts: "",
+          deadlineDate: "",
+          deadlineTime: "23:59:59",
           isPublished: true,
           isStoreItem: false,
           storePrice: "",
@@ -556,6 +605,8 @@ export function ChapterMockTestManager() {
               totalMarks: "",
               passingMarks: "",
               allowedAttempts: "",
+              deadlineDate: "",
+              deadlineTime: "23:59:59",
               isPublished: true,
               isStoreItem: false,
               storePrice: "",
@@ -675,25 +726,25 @@ export function ChapterMockTestManager() {
                     )}
                   </div>
 
-                  {/* Publish Button (No Icon & Reduced Size) */}
+                  {/* Active / Deactivate Toggle Button */}
                   <button
                     onClick={() => handleTogglePublish(test)}
                     style={{
-                      padding: "0.15rem 0.4rem",
+                      padding: "0.2rem 0.5rem",
                       borderRadius: "6px",
-                      fontSize: "0.62rem",
-                      fontWeight: 700,
+                      fontSize: "0.68rem",
+                      fontWeight: 800,
                       border: "1px solid",
                       cursor: "pointer",
-                      borderColor: test.isPublished ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)",
-                      background: test.isPublished ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
-                      color: test.isPublished ? "#22c55e" : "#ef4444",
+                      borderColor: test.isPublished ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)",
+                      background: test.isPublished ? "rgba(34, 197, 94, 0.15)" : "rgba(239, 68, 68, 0.15)",
+                      color: test.isPublished ? "#16a34a" : "#dc2626",
                       whiteSpace: "nowrap",
                       flexShrink: 0
                     }}
-                    title={test.isPublished ? "Click to Unpublish (Set Draft)" : "Click to Publish Mock Test"}
+                    title={test.isPublished ? "Click to Deactivate Mock Test" : "Click to Activate Mock Test"}
                   >
-                    {test.isPublished ? "Published" : "Publish"}
+                    {test.isPublished ? "🟢 Active" : "🔴 Deactivated"}
                   </button>
                 </div>
 
@@ -702,6 +753,17 @@ export function ChapterMockTestManager() {
                   <Badge variant="neutral" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>⏱ {test.durationMinutes} Mins</Badge>
                   <Badge variant="neutral" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>{test._count?.questions || 0} Ques</Badge>
                   <Badge variant="neutral" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>Attempts: {test.allowedAttempts || 3}</Badge>
+                  {test.deadline ? (
+                    <Badge 
+                      variant={new Date() > new Date(test.deadline) ? "danger" : "warning"} 
+                      style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}
+                    >
+                      ⏰ {new Date() > new Date(test.deadline) ? "Expired: " : "Deadline: "}
+                      {new Date(test.deadline).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </Badge>
+                  ) : (
+                    <Badge variant="neutral" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>⏰ No Deadline</Badge>
+                  )}
                   {test.isStoreItem && (
                     <Badge variant="success" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>🏪 Store: ₹{test.storePrice || 0}</Badge>
                   )}
@@ -743,7 +805,9 @@ export function ChapterMockTestManager() {
                         totalMarks: test.totalMarks || "",
                         passingMarks: test.passingMarks || "",
                         allowedAttempts: test.allowedAttempts || "",
-                        isPublished: test.isPublished,
+                        deadlineDate: formatToDateInput(test.deadline),
+                        deadlineTime: test.deadline ? formatToTimeInput(test.deadline) : "23:59:59",
+                        isPublished: test.isPublished !== false,
                         isStoreItem: test.isStoreItem || false,
                         storePrice: test.storePrice || "",
                       });
@@ -916,6 +980,59 @@ export function ChapterMockTestManager() {
                 </div>
               </div>
 
+              {/* Submission Deadline (Moved Above Instructions) */}
+              <div>
+                <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: "0.35rem" }}>
+                  ⏰ Submission Deadline (Optional)
+                </label>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: "160px" }}>
+                    <label style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "0.2rem" }}>
+                      Deadline Date
+                    </label>
+                    <input
+                      type="date"
+                      value={testForm.deadlineDate}
+                      onChange={(e) => setTestForm({ ...testForm, deadlineDate: e.target.value })}
+                      style={{
+                        width: "100%",
+                        padding: "0.6rem 0.8rem",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border)",
+                        background: "var(--card-bg-alt)",
+                        color: "var(--text)",
+                        fontWeight: 600,
+                        fontSize: "0.85rem"
+                      }}
+                    />
+                  </div>
+                  <div style={{ width: "135px" }}>
+                    <label style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "0.2rem" }}>
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      step="1"
+                      value={testForm.deadlineTime}
+                      onChange={(e) => setTestForm({ ...testForm, deadlineTime: e.target.value })}
+                      style={{
+                        width: "100%",
+                        padding: "0.6rem 0.6rem",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border)",
+                        background: "var(--card-bg-alt)",
+                        color: "var(--text)",
+                        fontWeight: 600,
+                        fontSize: "0.85rem"
+                      }}
+                    />
+                  </div>
+                </div>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.25rem", display: "block" }}>
+                  Students cannot attempt after this date & time. Time defaults to 23:59:59. Leave date blank for no deadline.
+                </span>
+              </div>
+
               <div>
                 <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>Instructions / Syllabus Notes</label>
                 <textarea
@@ -957,16 +1074,17 @@ export function ChapterMockTestManager() {
                 )}
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              {/* Publish Check Field */}
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.55rem 0.75rem", borderRadius: "8px", background: "var(--card-bg-alt)", border: "1px solid var(--border)" }}>
                 <input
                   type="checkbox"
                   id="isPublishedCheck"
                   checked={testForm.isPublished}
                   onChange={(e) => setTestForm({ ...testForm, isPublished: e.target.checked })}
-                  style={{ width: "1.1rem", height: "1.1rem", accentColor: "var(--primary)" }}
+                  style={{ width: "1.15rem", height: "1.15rem", accentColor: "var(--primary)", cursor: "pointer" }}
                 />
-                <label htmlFor="isPublishedCheck" style={{ fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
-                  Publish immediately (Students will see this test)
+                <label htmlFor="isPublishedCheck" style={{ fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", color: "var(--text)" }}>
+                  Publish
                 </label>
               </div>
 

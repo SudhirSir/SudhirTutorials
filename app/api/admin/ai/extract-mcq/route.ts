@@ -323,11 +323,20 @@ CRITICAL EXTRACTION RULES:
       };
     }).filter(q => q.questionText && (q.questionType === 'INPUT' ? q.inputAnswer : (q.optA || q.optB)));
 
-    if (sanitizedQuestions.length === 0) {
+    // Deduplicate questions via Hash Set of normalized question texts in O(N)
+    const seenQuestionTexts = new Set<string>();
+    const deduplicatedQuestions = sanitizedQuestions.filter(q => {
+      const normKey = q.questionText.toLowerCase().replace(/\s+/g, ' ');
+      if (seenQuestionTexts.has(normKey)) return false;
+      seenQuestionTexts.add(normKey);
+      return true;
+    });
+
+    if (deduplicatedQuestions.length === 0) {
       return NextResponse.json({ error: 'Could not extract valid questions from content. Please format or paste clear question text.' }, { status: 400 });
     }
 
-    return NextResponse.json({ questions: sanitizedQuestions, success: true });
+    return NextResponse.json({ questions: deduplicatedQuestions, success: true });
   } catch (error: any) {
     console.error('Error in MCQ Extraction API:', error);
     return NextResponse.json({ error: error.message || 'Internal server error while extracting MCQs.' }, { status: 500 });
