@@ -30,6 +30,8 @@ const testEditSchema = z.object({
 });
 
 
+import { appCache } from '@/lib/cache';
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
@@ -39,43 +41,55 @@ export async function GET(req: Request) {
 
     const isAdmin = session.user.role === 'ADMIN';
 
-    let tests;
-    if (isAdmin) {
-      tests = await withDbRetry(() => prisma.test.findMany({
-        include: {
-          course: { select: { name: true } },
-          results: true
-        },
-        orderBy: { date: 'desc' }
-      }));
-    } else {
-      const teacherId = session.user.id;
-      const teacher = await withDbRetry(() => prisma.user.findUnique({
-        where: { id: teacherId },
-        include: {
-          teacherBatches: {
-            select: { courseId: true }
+    const selectResults = {
+      id: true,
+      studentId: true,
+      marks: true,
+      totalMarks: true,
+      remarks: true
+    };
+
+    const cacheKey = isAdmin ? 'tests:admin:all' : `tests:teacher:${session.user.id}`;
+    const tests = await appCache.getOrSet(cacheKey, async () => {
+      if (isAdmin) {
+        return withDbRetry(() => prisma.test.findMany({
+          include: {
+            course: { select: { name: true } },
+            results: { select: selectResults }
+          },
+          orderBy: { date: 'desc' }
+        }));
+      } else {
+        const teacherId = session.user.id;
+        const teacher = await withDbRetry(() => prisma.user.findUnique({
+          where: { id: teacherId },
+          include: {
+            teacherBatches: {
+              select: { courseId: true }
+            }
           }
-        }
-      }));
+        }));
 
-      if (!teacher) return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
+        if (!teacher) return [];
 
-      const courseIds = teacher.teacherBatches.map((b: any) => b.courseId);
+        const courseIds = teacher.teacherBatches.map((b: any) => b.courseId);
 
-      tests = await withDbRetry(() => prisma.test.findMany({
-        where: {
-          courseId: { in: courseIds }
-        },
-        include: {
-          course: { select: { name: true } },
-          results: true
-        },
-        orderBy: { date: 'desc' }
-      }));
-    }
+        return withDbRetry(() => prisma.test.findMany({
+          where: {
+            courseId: { in: courseIds }
+          },
+          include: {
+            course: { select: { name: true } },
+            results: { select: selectResults }
+          },
+          orderBy: { date: 'desc' }
+        }));
+      }
+    }, 20);
 
-    return NextResponse.json({ tests });
+    return NextResponse.json({ tests: tests || [] }, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    });
   } catch (error) {
     console.error('Error fetching tests:', error);
     return NextResponse.json({ error: 'Failed to fetch tests' }, { status: 500 });
@@ -148,6 +162,7 @@ export async function POST(req: Request) {
       console.error("Failed to auto-notify students of new test:", notifErr);
     }
 
+    appCache.invalidate('tests');
     return NextResponse.json({ test, success: true });
   } catch (error) {
     console.error('Error creating test:', error);
@@ -177,6 +192,7 @@ export async function DELETE(req: Request) {
       where: { id }
     }));
 
+    appCache.invalidate('tests');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("ERROR DELETING TEST:", error);
@@ -230,6 +246,7 @@ export async function PUT(req: Request) {
       data: updateData
     }));
 
+    appCache.invalidate('tests');
     return NextResponse.json({ test, success: true });
   } catch (error) {
     console.error('Error updating test:', error);

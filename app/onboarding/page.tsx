@@ -489,7 +489,7 @@ export default function OnboardingPage() {
                       gap: '0.25rem'
                     }}
                   >
-                    ✏️ Wrong email? Change
+                    ✏️ Change Email
                   </button>
                 )}
               </div>
@@ -532,7 +532,7 @@ export default function OnboardingPage() {
                     onClick={handleWrongEmail} 
                     style={{ padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    Wrong Email?
+                    Change Email
                   </button>
                 )}
               </div>

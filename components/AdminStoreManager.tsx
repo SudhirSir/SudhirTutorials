@@ -58,10 +58,10 @@ export function AdminStoreManager() {
 
   const fetchCustomers = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/store/sales?mode=customers");
+      const res = await fetch(`/api/admin/store/sales?mode=customers&t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setCustomers(data.customers);
+        setCustomers(data.customers || []);
       }
     } catch (e) {
       console.error("Error fetching customers:", e);
@@ -70,10 +70,10 @@ export function AdminStoreManager() {
 
   const fetchSales = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/store/sales");
+      const res = await fetch(`/api/admin/store/sales?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setSales(data.purchases);
+        setSales(data.purchases || []);
       }
     } catch (e) {
       console.error("Error fetching sales:", e);
@@ -83,22 +83,55 @@ export function AdminStoreManager() {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/store");
+      const res = await fetch(`/api/admin/store?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setItems(data.items);
+        setItems(data.items || []);
       }
     } catch (e) {
       console.error("Error fetching items:", e);
     }
     setLoading(false);
-    fetchCustomers();
-  }, [fetchCustomers]);
+  }, []);
 
   useEffect(() => {
     fetchItems();
     fetchSales();
-  }, [fetchItems, fetchSales]);
+    fetchCustomers();
+  }, [fetchItems, fetchSales, fetchCustomers]);
+
+  useEffect(() => {
+    if (activeTab === "sales") {
+      fetchSales();
+    } else if (activeTab === "customers") {
+      fetchCustomers();
+    } else if (activeTab === "inventory") {
+      fetchItems();
+    }
+  }, [activeTab, fetchSales, fetchCustomers, fetchItems]);
+
+  const [updatingPurchaseId, setUpdatingPurchaseId] = useState<string | null>(null);
+
+  const handleUpdatePurchaseStatus = async (purchaseId: string, newStatus: 'SUCCESS' | 'FAILED') => {
+    setUpdatingPurchaseId(purchaseId);
+    try {
+      const res = await fetch('/api/admin/store/sales', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseId, status: newStatus })
+      });
+      if (res.ok) {
+        await fetchSales();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update purchase status');
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Error updating purchase status');
+    } finally {
+      setUpdatingPurchaseId(null);
+    }
+  };
 
   const handleSelectCustomer = useCallback((cust: any) => {
     setSelectedCustomer(cust);
@@ -372,17 +405,23 @@ export function AdminStoreManager() {
 
   // --- Memoized Derived Metrics ---
 
+  const pendingSalesCount = useMemo(() => {
+    return sales.filter((s) => s.status === "PENDING").length;
+  }, [sales]);
+
   const totalRevenue = useMemo(() => {
-    return sales.reduce((acc, s) => acc + (s.amountPaid || 0), 0);
+    return sales
+      .filter((s) => s.status === "SUCCESS")
+      .reduce((acc, s) => acc + Number(s.amount ?? s.amountPaid ?? 0), 0);
   }, [sales]);
 
   const tabList = useMemo(
     () => [
       { id: "inventory", label: "Inventory / Items", count: items.length },
-      { id: "sales", label: "Sales & Revenue", count: sales.length },
+      { id: "sales", label: pendingSalesCount > 0 ? `Sales & Revenue (${pendingSalesCount} Pending)` : "Sales & Revenue", count: sales.length },
       { id: "customers", label: "Store Customers", count: customers.length }
     ],
-    [items.length, sales.length, customers.length]
+    [items.length, sales.length, pendingSalesCount, customers.length]
   );
 
   if (loading && items.length === 0) {
@@ -402,7 +441,23 @@ export function AdminStoreManager() {
               Manage notes, test series, storefront customers, and check sales analytics.
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            {pendingSalesCount > 0 && (
+              <div style={{ 
+                padding: "0.35rem 0.85rem", 
+                background: "rgba(234, 179, 8, 0.12)", 
+                border: "1px solid rgba(234, 179, 8, 0.35)", 
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                color: "#eab308",
+                fontWeight: 700,
+                fontSize: "0.85rem"
+              }}>
+                <span>⏳ {pendingSalesCount} Pending Verification</span>
+              </div>
+            )}
             <div style={{ 
               padding: "0.35rem 0.85rem", 
               textAlign: "center", 
@@ -413,7 +468,7 @@ export function AdminStoreManager() {
               alignItems: "center",
               gap: "0.5rem"
             }}>
-              <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Revenue:</span>
+              <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Verified Revenue:</span>
               <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#22c55e" }}>₹{totalRevenue.toLocaleString()}</span>
             </div>
             <Button
@@ -507,18 +562,113 @@ export function AdminStoreManager() {
                   <th style={{ padding: "0.75rem" }}>User</th>
                   <th style={{ padding: "0.75rem" }}>Item</th>
                   <th style={{ padding: "0.75rem" }}>Amount</th>
+                  <th style={{ padding: "0.75rem" }}>Payment Ref / Txn ID</th>
                   <th style={{ padding: "0.75rem" }}>Date</th>
                   <th style={{ padding: "0.75rem" }}>Status</th>
+                  <th style={{ padding: "0.75rem" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sales.map((sale) => (
                   <tr key={sale.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "0.75rem", fontWeight: 600 }}>{sale.user?.name || sale.user?.username || "Unknown User"}</td>
-                    <td style={{ padding: "0.75rem" }}>{sale.storeItem?.title || "Store Item"}</td>
-                    <td style={{ padding: "0.75rem", fontWeight: 700, color: "#22c55e" }}>₹{sale.amountPaid}</td>
+                    <td style={{ padding: "0.75rem", fontWeight: 600 }}>{sale.student?.name || sale.user?.name || sale.student?.username || sale.user?.username || "Unknown User"}</td>
+                    <td style={{ padding: "0.75rem" }}>{sale.item?.title || sale.storeItem?.title || "Store Item"}</td>
+                    <td style={{ padding: "0.75rem", fontWeight: 700, color: "#22c55e" }}>₹{(sale.amount ?? sale.amountPaid ?? 0).toLocaleString()}</td>
+                    <td style={{ padding: "0.75rem", fontFamily: "monospace", color: "var(--text)" }}>{sale.paymentId || "N/A"}</td>
                     <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                    <td style={{ padding: "0.75rem" }}><Badge variant="success">Completed</Badge></td>
+                    <td style={{ padding: "0.75rem" }}>
+                      {sale.status === 'SUCCESS' ? (
+                        <Badge variant="success">Access Granted</Badge>
+                      ) : sale.status === 'PENDING' ? (
+                        <Badge variant="warning">⏳ Pending Approval</Badge>
+                      ) : (
+                        <Badge variant="danger">Rejected</Badge>
+                      )}
+                    </td>
+                    <td style={{ padding: "0.75rem" }}>
+                      {sale.status === 'PENDING' ? (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            type="button"
+                            disabled={updatingPurchaseId === sale.id}
+                            onClick={() => handleUpdatePurchaseStatus(sale.id, 'SUCCESS')}
+                            style={{
+                              padding: "0.35rem 0.75rem",
+                              borderRadius: "8px",
+                              border: "none",
+                              background: "#10b981",
+                              color: "#fff",
+                              fontWeight: 700,
+                              fontSize: "0.8rem",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                          >
+                            ✓ Approve & Unlock
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingPurchaseId === sale.id}
+                            onClick={() => handleUpdatePurchaseStatus(sale.id, 'FAILED')}
+                            style={{
+                              padding: "0.35rem 0.75rem",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(239, 68, 68, 0.4)",
+                              background: "rgba(239, 68, 68, 0.08)",
+                              color: "#ef4444",
+                              fontWeight: 700,
+                              fontSize: "0.8rem",
+                              cursor: "pointer"
+                            }}
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
+                      ) : sale.status === 'SUCCESS' ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ fontSize: "0.82rem", color: "#10b981", fontWeight: 700 }}>✓ Access Active</span>
+                          <button
+                            type="button"
+                            disabled={updatingPurchaseId === sale.id}
+                            onClick={() => handleUpdatePurchaseStatus(sale.id, 'FAILED')}
+                            style={{
+                              padding: "0.2rem 0.5rem",
+                              borderRadius: "6px",
+                              border: "1px solid var(--border)",
+                              background: "transparent",
+                              color: "var(--text-muted)",
+                              fontSize: "0.75rem",
+                              cursor: "pointer"
+                            }}
+                            title="Revoke access if payment bounced"
+                          >
+                            Revoke
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ fontSize: "0.82rem", color: "#ef4444" }}>Rejected</span>
+                          <button
+                            type="button"
+                            disabled={updatingPurchaseId === sale.id}
+                            onClick={() => handleUpdatePurchaseStatus(sale.id, 'SUCCESS')}
+                            style={{
+                              padding: "0.2rem 0.5rem",
+                              borderRadius: "6px",
+                              border: "1px solid #10b981",
+                              background: "transparent",
+                              color: "#10b981",
+                              fontSize: "0.75rem",
+                              cursor: "pointer"
+                            }}
+                          >
+                            Re-approve
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -540,24 +690,29 @@ export function AdminStoreManager() {
                   <th style={{ padding: "0.75rem" }}>Email</th>
                   <th style={{ padding: "0.75rem" }}>Phone</th>
                   <th style={{ padding: "0.75rem" }}>Purchases</th>
+                  <th style={{ padding: "0.75rem" }}>Total Spent</th>
                   <th style={{ padding: "0.75rem" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {customers.map((cust) => (
-                  <tr key={cust.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "0.75rem", fontWeight: 600 }}>{cust.name}</td>
-                    <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>{cust.username}</td>
-                    <td style={{ padding: "0.75rem" }}>{cust.studentProfile?.email || "N/A"}</td>
-                    <td style={{ padding: "0.75rem" }}>{cust.studentProfile?.phone || "N/A"}</td>
-                    <td style={{ padding: "0.75rem" }}><Badge variant="info">{cust._count?.storePurchases || 0} Items</Badge></td>
-                    <td style={{ padding: "0.75rem" }}>
-                      <Button variant="outline" size="sm" onClick={() => handleSelectCustomer(cust)}>
-                        Manage Profile
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {customers.map((cust) => {
+                  const totalSpent = cust.storePurchases?.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0) || 0;
+                  return (
+                    <tr key={cust.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                      <td style={{ padding: "0.75rem", fontWeight: 600 }}>{cust.name}</td>
+                      <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>{cust.username}</td>
+                      <td style={{ padding: "0.75rem" }}>{cust.studentProfile?.email || "N/A"}</td>
+                      <td style={{ padding: "0.75rem" }}>{cust.studentProfile?.phone || "N/A"}</td>
+                      <td style={{ padding: "0.75rem" }}><Badge variant="info">{(cust._count?.storePurchases ?? cust.storePurchases?.length ?? 0)} Items</Badge></td>
+                      <td style={{ padding: "0.75rem", fontWeight: 700, color: totalSpent > 0 ? "#22c55e" : "var(--text-muted)" }}>₹{totalSpent.toLocaleString()}</td>
+                      <td style={{ padding: "0.75rem" }}>
+                        <Button variant="outline" size="sm" onClick={() => handleSelectCustomer(cust)}>
+                          Manage Profile
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -76,6 +76,17 @@ export async function GET(req: Request) {
       orderBy: { id: 'asc' }
     }));
 
+    if (session.user.role === 'STUDENT') {
+      const safeQuestions = questions.map(q => ({
+        id: q.id,
+        onlineTestId: q.onlineTestId,
+        questionText: q.questionText,
+        options: q.options,
+        marks: q.marks
+      }));
+      return NextResponse.json({ questions: safeQuestions });
+    }
+
     return NextResponse.json({ questions });
   } catch (error) {
     console.error(error);

@@ -29,9 +29,15 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    const rawName = file.name || 'uploaded_notes.pdf';
+    const ext = rawName.includes('.') ? rawName.split('.').pop()?.toLowerCase() || '' : '';
+    const ALLOWED_EXTENSIONS = new Set(['pdf', 'png', 'jpg', 'jpeg', 'webp', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt']);
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json({ error: 'File type not allowed. Please upload PDFs, images, or documents.' }, { status: 400 });
+    }
+
     // Create a unique filename
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const rawName = file.name || 'uploaded_notes.pdf';
     const filename = `${uniqueSuffix}-${rawName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
     // Save to public/uploads with Data URI fallback for serverless Vercel

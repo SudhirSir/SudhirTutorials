@@ -64,10 +64,20 @@ export function StudentPurchases({ onBrowseStore }: StudentPurchasesProps = {}) 
         return (
           <Card key={purchase.id} variant="glass" style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '2rem' }}>{item.type === 'NOTES' ? '📄' : '📝'}</div>
+              <div style={{ fontSize: '2rem' }}>{item.type === 'NOTES' ? '📄' : item.type === 'MOCK_TEST' ? '🎯' : '📝'}</div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-heading)' }}>{item.title}</h3>
-                <div className="input-label" style={{ fontSize: '0.85rem' }}>Purchased on: {new Date(purchase.createdAt).toLocaleDateString()}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-heading)' }}>{item.title}</h3>
+                  {purchase.status === 'PENDING' ? (
+                    <Badge variant="warning">⏳ Pending Approval</Badge>
+                  ) : (
+                    <Badge variant="success">Access Unlocked</Badge>
+                  )}
+                </div>
+                <div className="input-label" style={{ fontSize: '0.82rem', marginTop: '4px' }}>
+                  {purchase.status === 'PENDING' ? 'Ref submitted on: ' : 'Purchased on: '}
+                  {new Date(purchase.createdAt).toLocaleDateString()} {purchase.paymentId ? `• Ref: ${purchase.paymentId}` : ''}
+                </div>
               </div>
             </div>
 
@@ -76,15 +86,54 @@ export function StudentPurchases({ onBrowseStore }: StudentPurchasesProps = {}) 
             </p>
 
             <div style={{ marginTop: 'auto' }}>
-              {item.type === 'NOTES' ? (
-                <a 
-                  href={item.fileUrl} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="btn-ui btn-primary btn-full"
-                >
-                  Download Notes
-                </a>
+              {purchase.status === 'PENDING' ? (
+                <div style={{
+                  padding: '0.75rem',
+                  borderRadius: '12px',
+                  background: 'rgba(234, 179, 8, 0.1)',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  textAlign: 'center',
+                  color: '#eab308',
+                  fontSize: '0.85rem',
+                  fontWeight: 700
+                }}>
+                  ⏳ Payment verification in progress. Access will be unlocked once approved by Admin.
+                </div>
+              ) : item.type === 'MOCK_TEST' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {purchase.bestMockSubmission && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.25)', padding: '0.5rem 0.85rem', borderRadius: '10px' }}>
+                      <span className="input-label" style={{ fontSize: '0.8rem', color: '#22c55e', fontWeight: 700 }}>Best Score:</span>
+                      <Badge variant="success">
+                        {purchase.bestMockSubmission.score} / {purchase.bestMockSubmission.totalMarks}
+                      </Badge>
+                    </div>
+                  )}
+                  <Button 
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    onClick={() => router.push(`/dashboard/student/mock-test/${item.id.replace(/^mocktest-/, '')}`)}
+                  >
+                    {purchase.bestMockSubmission ? '🔄 Retake Chapter Mock Test' : '📝 Start Chapter Mock Test'}
+                  </Button>
+                </div>
+              ) : item.type === 'NOTES' ? (
+                item.fileUrl ? (
+                  <a 
+                    href={item.fileUrl} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="btn-ui btn-primary btn-full"
+                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 700 }}
+                  >
+                    📄 Open / Download Notes PDF ↗
+                  </a>
+                ) : (
+                  <Button variant="secondary" size="md" fullWidth disabled>
+                    📄 PDF File Available Soon
+                  </Button>
+                )
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {item.fileUrl && (

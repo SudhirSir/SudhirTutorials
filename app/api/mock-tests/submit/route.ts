@@ -78,6 +78,7 @@ export async function POST(req: Request) {
       }
 
       return {
+        id: q.id,
         questionId: q.id,
         questionText: q.questionText,
         options: opts,

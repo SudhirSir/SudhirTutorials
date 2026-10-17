@@ -84,6 +84,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
     { id: 'salary', label: 'Staff Salary Management' },
     { id: 'messages', label: 'My Chats' },
     { id: 'notifications', label: 'Notifications' },
+    { id: 'store-manager', label: 'ST Store Manager' },
     { id: 'settings', label: 'System Settings' },
   ];
 
@@ -145,7 +146,12 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
           return (
             <button
               key={link.id}
-              onClick={() => setActiveTab(link.id)}
+              onClick={() => {
+                setActiveTab(link.id);
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent('st:menu-navigated', { detail: { tab: link.id } }));
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -215,9 +221,9 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
                   {name}
                 </span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: isVerified ? 'var(--secondary)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                <span>{isVerified ? 'Verified Account' : 'Online'}</span>
-                {isVerified && (
+              <div style={{ fontSize: '0.75rem', color: (String(role || '').toUpperCase() === 'ADMIN' || isVerified || String(name || '').toLowerCase() === 'admin') ? 'var(--secondary)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <span>{(String(role || '').toUpperCase() === 'ADMIN' || isVerified || String(name || '').toLowerCase() === 'admin') ? 'Verified' : 'Online'}</span>
+                {(String(role || '').toUpperCase() === 'ADMIN' || isVerified || String(name || '').toLowerCase() === 'admin') && (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }} aria-label="Verified Profile">
                     <title>Verified Profile</title>
                     <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#3b82f6"/>

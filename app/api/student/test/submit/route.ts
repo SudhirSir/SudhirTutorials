@@ -14,10 +14,28 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { onlineTestId, score, timeTaken, autoSubmitted } = body;
+    const { onlineTestId, answers, score, timeTaken, autoSubmitted } = body;
 
-    if (!onlineTestId || score === undefined || timeTaken === undefined) {
+    if (!onlineTestId || timeTaken === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Server-side verification of answers against database to prevent tampering
+    const questions = await withDbRetry(() => prisma.onlineTestQuestion.findMany({
+      where: { onlineTestId }
+    }));
+
+    let verifiedScore = 0;
+    if (answers && typeof answers === 'object') {
+      questions.forEach(q => {
+        const studentAns = answers[q.id];
+        if (studentAns !== undefined && studentAns === q.correctOption) {
+          verifiedScore += q.marks;
+        }
+      });
+    } else if (typeof score === 'number') {
+      const maxPossibleMarks = questions.reduce((sum, q) => sum + (q.marks || 1), 0);
+      verifiedScore = Math.min(Math.max(0, score), maxPossibleMarks);
     }
 
     const submission = await withDbRetry(() => prisma.onlineTestSubmission.upsert({
@@ -28,20 +46,41 @@ export async function POST(req: Request) {
         }
       },
       update: {
-        score,
+        score: verifiedScore,
         timeTaken,
         autoSubmitted: !!autoSubmitted
       },
       create: {
         onlineTestId,
         studentId: session.user.id,
-        score,
+        score: verifiedScore,
         timeTaken,
         autoSubmitted: !!autoSubmitted
       }
     }));
 
-    return NextResponse.json({ success: true, submission });
+    const detailedResults = questions.map(q => {
+      const studentAns = answers && typeof answers === 'object' ? answers[q.id] : undefined;
+      const isCorrect = studentAns !== undefined && studentAns === q.correctOption;
+      return {
+        id: q.id,
+        onlineTestId: q.onlineTestId,
+        questionText: q.questionText,
+        options: q.options,
+        correctOption: q.correctOption,
+        marks: q.marks,
+        explanation: q.explanation,
+        studentAns,
+        isCorrect
+      };
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      submission, 
+      score: verifiedScore, 
+      detailedResults 
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to submit test' }, { status: 500 });

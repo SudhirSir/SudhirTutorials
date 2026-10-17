@@ -71,6 +71,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
         setForm({
           name: data.name || '',
           email: data.profile?.email || '',
+          registrationNo: data.profile?.registrationNo || '',
           phone: data.profile?.phone || '',
           address: data.profile?.address || '',
           dob: formattedDob,
@@ -544,6 +545,15 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                 <input style={inputStyle} value={form.school} onChange={e => setForm((f: any) => ({ ...f, school: e.target.value }))} />
               </div>
               <div>
+                <label style={labelStyle}>Registration Number</label>
+                <input 
+                  style={inputStyle} 
+                  value={form.registrationNo || ''} 
+                  onChange={e => setForm((f: any) => ({ ...f, registrationNo: e.target.value }))} 
+                  placeholder="e.g. REG-2026-001" 
+                />
+              </div>
+              <div>
                 <label style={labelStyle}>Class / Grade</label>
                 <input style={inputStyle} value={form.className} onChange={e => setForm((f: any) => ({ ...f, className: e.target.value }))} disabled title="Only Admin can edit Class / Grade" />
               </div>
@@ -605,7 +615,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
                 </div>
                 <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Registration Number</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.registrationNo || 'Not Assigned'}</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{profile.profile?.registrationNo || form.registrationNo || 'NA'}</div>
                 </div>
                 <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>Aadhaar Number</div>

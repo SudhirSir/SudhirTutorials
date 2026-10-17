@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 import { z } from 'zod';
 
 const resultsSchema = z.object({
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
 
     await withDbRetry(() => prisma.$transaction(operations));
 
+    appCache.invalidate('tests');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error saving test results:', error);

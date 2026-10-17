@@ -6,25 +6,34 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 
-export async function GET() {
+let cachedFinSummary: { timestamp: number; data: any } | null = null;
+const CACHE_TTL_MS = 20000; // 20 seconds memory cache for lightning-fast tab navigation
+
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
     if (!session || !session.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const forceRefresh = searchParams.get('fresh') === 'true';
+    const nowTs = Date.now();
+
+    if (!forceRefresh && cachedFinSummary && (nowTs - cachedFinSummary.timestamp < CACHE_TTL_MS)) {
+      return NextResponse.json(cachedFinSummary.data, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+    }
+
     const now = new Date();
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-    sixMonthsAgo.setHours(0, 0, 0, 0);
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0);
 
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
-
     const currentMonthShort = now.toLocaleString('en-US', { month: 'short' });
-
     const currentYearStr = String(now.getFullYear());
+
     const isCurrentMonthBilling = (bm?: string | null) => {
       if (!bm) return false;
       const lower = bm.toLowerCase();
@@ -32,17 +41,36 @@ export async function GET() {
     };
 
     // Parallelize all financial queries and wrap atomically with withDbRetry
-    const [payments, expenses, pendingAggregateResult, currentMonthFees] = await withDbRetry(async () => {
+    const [
+      revenueAggregate,
+      expenseAggregate,
+      pendingAggregateResult,
+      currentMonthFees,
+      recentPayments,
+      recentExpenses
+    ] = await withDbRetry(async () => {
       return await Promise.all([
-        prisma.payment.findMany({
+        // 1. Total revenue aggregated directly in PostgreSQL
+        prisma.payment.aggregate({
+          _sum: {
+            paidAmount: true,
+            amount: true,
+            lateFine: true,
+            discount: true
+          },
           where: {
             status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] }
-          },
-          select: { paidAmount: true, paidAt: true, createdAt: true, amount: true, lateFine: true, discount: true }
+          }
         }),
-        prisma.expense.findMany({
-          select: { amount: true, date: true, createdAt: true }
+
+        // 2. Total expenses aggregated directly in PostgreSQL
+        prisma.expense.aggregate({
+          _sum: {
+            amount: true
+          }
         }),
+
+        // 3. Pending dues aggregated directly in PostgreSQL
         prisma.payment.aggregate({
           _sum: {
             amount: true,
@@ -56,6 +84,8 @@ export async function GET() {
             }
           }
         }),
+
+        // 4. Current month fees
         prisma.payment.findMany({
           where: {
             OR: [
@@ -66,16 +96,40 @@ export async function GET() {
             ]
           },
           select: { amount: true, paidAmount: true, lateFine: true, discount: true, status: true, billingMonth: true, paidAt: true }
+        }),
+
+        // 5. Recent 6 months payments only for chart breakdown (avoids scanning years of data)
+        prisma.payment.findMany({
+          where: {
+            status: { in: ['PAID', 'VERIFIED', 'PAID_ONLINE'] },
+            OR: [
+              { paidAt: { gte: sixMonthsAgo } },
+              { createdAt: { gte: sixMonthsAgo } }
+            ]
+          },
+          select: { paidAmount: true, paidAt: true, createdAt: true, amount: true, lateFine: true, discount: true }
+        }),
+
+        // 6. Recent 6 months expenses only for chart breakdown
+        prisma.expense.findMany({
+          where: {
+            OR: [
+              { date: { gte: sixMonthsAgo } },
+              { createdAt: { gte: sixMonthsAgo } }
+            ]
+          },
+          select: { amount: true, date: true, createdAt: true }
         })
       ]);
     });
 
-    const totalRevenue = payments.reduce((acc: number, p: any) => {
-      const amt = p.paidAmount ?? (p.amount + (p.lateFine || 0) - (p.discount || 0));
-      return acc + (amt || 0);
-    }, 0);
+    const totalRevenue = (revenueAggregate as any)?._sum?.paidAmount ?? Math.max(0,
+      ((revenueAggregate as any)?._sum?.amount || 0) +
+      ((revenueAggregate as any)?._sum?.lateFine || 0) -
+      ((revenueAggregate as any)?._sum?.discount || 0)
+    );
 
-    const totalExpenses = expenses.reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+    const totalExpenses = (expenseAggregate as any)?._sum?.amount || 0;
 
     const currentMonthCollected = currentMonthFees.reduce((acc: number, f: any) => {
       const isPaidThisMonth = f.paidAt && new Date(f.paidAt) >= startOfCurrentMonth;
@@ -92,14 +146,13 @@ export async function GET() {
 
     const currentMonthPending = currentMonthFees.reduce((acc: number, f: any) => {
       if (['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status)) return acc;
-      // Only count unpaid dues for invoices belonging specifically to current month's billing cycle
       if (isCurrentMonthBilling(f.billingMonth)) {
         return acc + Math.max(0, (f.amount || 0) + (f.lateFine || 0) - (f.discount || 0) - (f.paidAmount || 0));
       }
       return acc;
     }, 0);
 
-    // Sum the actual outstanding balance of all pending/partially paid payments
+    // Sum outstanding balance of all pending/partially paid payments
     const totalPending = Math.max(0,
       ((pendingAggregateResult as any)?._sum?.amount || 0) +
       ((pendingAggregateResult as any)?._sum?.lateFine || 0) -
@@ -115,7 +168,7 @@ export async function GET() {
       monthStatsMap.set(key, { revenue: 0, expenses: 0 });
     }
 
-    payments.forEach((p: any) => {
+    recentPayments.forEach((p: any) => {
       const d = p.paidAt ? new Date(p.paidAt) : (p.createdAt ? new Date(p.createdAt) : null);
       if (!d || isNaN(d.getTime())) return;
       const key = `${d.getFullYear()}-${d.getMonth()}`;
@@ -125,7 +178,7 @@ export async function GET() {
       }
     });
 
-    expenses.forEach((e: any) => {
+    recentExpenses.forEach((e: any) => {
       const rawDate = e.date || e.createdAt;
       if (!rawDate) return;
       const d = new Date(rawDate);
@@ -150,7 +203,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
+    const payload = {
       totalRevenue,
       totalExpenses,
       totalPending,
@@ -158,11 +211,22 @@ export async function GET() {
       currentMonthPending,
       netProfit: totalRevenue - totalExpenses,
       monthlyData
-    }, {
+    };
+
+    if (totalRevenue > 0 || totalPending > 0 || currentMonthCollected > 0) {
+      cachedFinSummary = { timestamp: nowTs, data: payload };
+    }
+
+    return NextResponse.json(payload, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
   } catch (error) {
     console.error('Error fetching finance summary:', error);
+    if (cachedFinSummary?.data) {
+      return NextResponse.json(cachedFinSummary.data, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+    }
     return NextResponse.json({ error: 'Failed to fetch financial stats' }, { status: 500 });
   }
 }

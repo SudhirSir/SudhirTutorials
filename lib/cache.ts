@@ -87,6 +87,10 @@ class CacheEngine {
     return this.store.delete(key);
   }
 
+  del(key: string): boolean {
+    return this.delete(key);
+  }
+
   /**
    * Invalidates specific cache key or all keys matching a namespace in O(K) time
    */
@@ -109,6 +113,13 @@ class CacheEngine {
         this.delete(key);
       }
     }
+  }
+
+  /**
+   * Alias for invalidate(namespace)
+   */
+  invalidateNamespace(namespace: string): void {
+    this.invalidate(namespace);
   }
 
   /**

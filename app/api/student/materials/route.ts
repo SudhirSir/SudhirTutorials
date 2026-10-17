@@ -29,21 +29,38 @@ export async function GET() {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    const courseIds = studentWithBatches.studentBatches.map((b: any) => b.courseId);
+    const courseIds = studentWithBatches.studentBatches.map((b: any) => b.courseId).filter(Boolean);
 
-    // Fetch materials for those courses
-    const materials = await withDbRetry(() => prisma.material.findMany({
-      where: {
-        courseId: { in: courseIds }
-      },
-      include: {
-        course: { select: { name: true } },
-        teacher: { select: { name: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    }));
+    let materials: any[] = [];
+    if (courseIds.length > 0) {
+      materials = await withDbRetry(() => prisma.$queryRaw`
+        SELECT 
+          m.id,
+          m.title,
+          m.type,
+          CASE 
+            WHEN m.url LIKE 'data:%' THEN '/api/materials/' || m.id
+            ELSE m.url
+          END as url,
+          (m.url LIKE 'data:%') as "hasAttachment",
+          m."courseId",
+          m."teacherId",
+          m."createdAt",
+          m."isAssignment",
+          m.deadline,
+          CASE WHEN c.id IS NOT NULL THEN json_build_object('name', c.name) ELSE NULL END as course,
+          CASE WHEN u.id IS NOT NULL THEN json_build_object('name', u.name) ELSE NULL END as teacher
+        FROM "Material" m
+        LEFT JOIN "Course" c ON m."courseId" = c.id
+        LEFT JOIN "User" u ON m."teacherId" = u.id
+        WHERE m."courseId" = ANY(${courseIds})
+        ORDER BY m."createdAt" DESC
+      `);
+    }
 
-    return NextResponse.json({ materials });
+    return NextResponse.json({ materials }, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    });
   } catch (error) {
     console.error('Error fetching student materials:', error);
     return NextResponse.json({ error: 'Failed to fetch materials' }, { status: 500 });

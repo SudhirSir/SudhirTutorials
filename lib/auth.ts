@@ -47,6 +47,7 @@ export const authOptions: NextAuthOptions = {
                 onboardingCompleted: true,
                 isProfileVerified: true,
                 activeToken: true,
+                photoUrl: true,
                 studentProfile: { select: { email: true } },
                 teacherProfile: { select: { email: true } },
               }
@@ -159,6 +160,8 @@ export const authOptions: NextAuthOptions = {
             name: user.name || user.username, 
             username: user.username, 
             email: userEmail,
+            photoUrl: user.photoUrl || null,
+            image: user.photoUrl || null,
             role: sessionRole,
             isStoreUser: sessionRole === 'STUDENT' ? Boolean(user.isStoreUser) : false,
             mustChangePassword: user.mustChangePassword,
@@ -190,6 +193,8 @@ export const authOptions: NextAuthOptions = {
           token.onboardingCompleted = (user as any).onboardingCompleted;
           token.isProfileVerified = (user as any).isProfileVerified;
           token.activeToken = (user as any).activeToken;
+          token.photoUrl = (user as any).photoUrl || (user as any).image || null;
+          token.picture = (user as any).photoUrl || (user as any).image || null;
         } else if (account?.provider === 'google' || trigger === 'signIn') {
           // This is a Google OAuth sign-in (no password / role provided by provider)
           let dbUser = await withDbRetry(() => prisma.user.findFirst({
@@ -231,6 +236,8 @@ export const authOptions: NextAuthOptions = {
           token.onboardingCompleted = dbUser.onboardingCompleted;
           token.isProfileVerified = dbUser.isProfileVerified;
           token.activeToken = dbUser.activeToken;
+          token.photoUrl = dbUser.photoUrl || null;
+          token.picture = dbUser.photoUrl || null;
         }
       } else if (token?.id) {
         try {
@@ -244,6 +251,7 @@ export const authOptions: NextAuthOptions = {
               select: { 
                 name: true, 
                 role: true,
+                photoUrl: true,
                 isStoreUser: true,
                 isProfileVerified: true, 
                 onboardingCompleted: true,
@@ -256,6 +264,8 @@ export const authOptions: NextAuthOptions = {
           if (dbUser) {
             if (dbUser.name) token.name = dbUser.name;
             token.role = dbUser.role;
+            token.photoUrl = dbUser.photoUrl || null;
+            token.picture = dbUser.photoUrl || null;
             token.isStoreUser = dbUser.role === 'STUDENT' ? Boolean(dbUser.isStoreUser) : false;
             token.isProfileVerified = dbUser.isProfileVerified;
             token.onboardingCompleted = dbUser.onboardingCompleted;
@@ -271,11 +281,12 @@ export const authOptions: NextAuthOptions = {
 
       if (trigger === 'update' && session) {
         if (session.name !== undefined) token.name = session.name;
-        if (session.mustChangePassword !== undefined) token.mustChangePassword = session.mustChangePassword;
-        if (session.onboardingCompleted !== undefined) token.onboardingCompleted = session.onboardingCompleted;
-        if (session.isProfileVerified !== undefined) token.isProfileVerified = session.isProfileVerified;
         if (session.activeToken !== undefined) token.activeToken = session.activeToken;
         if (session.email !== undefined) token.email = session.email;
+        if (session.photoUrl !== undefined) {
+          token.photoUrl = session.photoUrl;
+          token.picture = session.photoUrl;
+        }
       }
       return token;
     },
@@ -285,6 +296,8 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username;
         session.user.id = token.id;
         session.user.email = token.email;
+        session.user.photoUrl = token.photoUrl || token.picture || null;
+        session.user.image = token.photoUrl || token.picture || null;
         session.user.isStoreUser = token.role === 'STUDENT' ? Boolean(token.isStoreUser) : false;
         session.user.mustChangePassword = token.mustChangePassword;
         session.user.onboardingCompleted = token.onboardingCompleted;

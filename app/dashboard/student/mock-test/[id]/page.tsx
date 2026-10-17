@@ -12,10 +12,13 @@ export default function ChapterMockTestArena() {
   const mockTestId = params.id as string;
   const router = useRouter();
   const { data: session } = useSession();
+  const isStoreUser = Boolean((session?.user as any)?.isStoreUser);
+  const backUrl = isStoreUser ? '/dashboard/store?tab=purchases' : '/dashboard/student?tab=mock-tests';
 
   const [testData, setTestData] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [activeQuestionIdx, setActiveQuestionIdx] = useState<number>(0);
@@ -28,6 +31,24 @@ export default function ChapterMockTestArena() {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(true);
   const [hasStarted, setHasStarted] = useState<boolean>(false);
   const [isWindowBlurred, setIsWindowBlurred] = useState<boolean>(false);
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    const photoFromSession = (session?.user as any)?.photoUrl || (session?.user as any)?.image;
+    if (photoFromSession) {
+      setUserPhoto(photoFromSession);
+    } else if (session?.user) {
+      fetch('/api/user/profile')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            const photo = data.photoUrl || data.profile?.photoUrl || null;
+            if (photo) setUserPhoto(photo);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session]);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -219,7 +240,7 @@ export default function ChapterMockTestArena() {
           onConfirm: () => {
             setModalConfig(prev => ({ ...prev, isOpen: false }));
             submitTest(false);
-            router.push('/dashboard/student?tab=mock-tests');
+            router.push(backUrl);
           },
           onCancel: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
         });
@@ -251,7 +272,7 @@ export default function ChapterMockTestArena() {
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('backbuttonpress', handleBackButton);
     };
-  }, [testData, router, triggerSecurityWarning, hasStarted, submitted]);
+  }, [testData, router, triggerSecurityWarning, hasStarted, submitted, backUrl]);
 
   useEffect(() => {
     const fetchTestData = async () => {
@@ -262,9 +283,13 @@ export default function ChapterMockTestArena() {
           setTestData(data.mockTest);
           setQuestions(data.questions || []);
           setTimeLeft((data.mockTest?.durationMinutes || 15) * 60);
+        } else {
+          const errData = await res.json();
+          setErrorMsg(errData.error || 'This mock test could not be loaded.');
         }
       } catch (e) {
         console.error("Failed to fetch mock test data:", e);
+        setErrorMsg('Network error while connecting to mock test server.');
       }
       setLoading(false);
     };
@@ -308,7 +333,7 @@ export default function ChapterMockTestArena() {
   const getAiExplanation = async (q: any, studentAns: any) => {
     setLoadingAi(prev => ({ ...prev, [q.id]: true }));
     try {
-      const opts = JSON.parse(q.options || "[]");
+      const opts = Array.isArray(q.options) ? q.options : JSON.parse(q.options || "[]");
       const isInputType = Array.isArray(opts) && opts[0] === "INPUT_ANSWER";
       const studentVal = isInputType ? (studentAns || "Not Attempted") : (studentAns !== undefined ? opts[studentAns] : 'Not Attempted');
       const correctVal = isInputType ? opts[1] : opts[q.correctOption];
@@ -337,8 +362,42 @@ export default function ChapterMockTestArena() {
     setLoadingAi(prev => ({ ...prev, [q.id]: false }));
   };
 
-  if (loading) return <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>🌀 Loading Chapter Mock Test environment...</div>;
-  if (!testData) return <div style={{ padding: '4rem', textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>⚠️ Chapter Mock Test Not Found.</div>;
+  if (loading) {
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: 'var(--text-muted)' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTop: '3px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ fontWeight: 600 }}>Loading Chapter Mock Test environment...</p>
+      </div>
+    );
+  }
+
+  if (!testData) {
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>
+          Mock Test Unavailable
+        </h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '450px', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+          {errorMsg || 'This mock test could not be loaded. Please ensure you have an approved store purchase or contact administration.'}
+        </p>
+        <button
+          onClick={() => router.push(backUrl)}
+          style={{
+            padding: '0.75rem 1.75rem',
+            borderRadius: '12px',
+            background: 'var(--primary, #2563eb)',
+            color: '#fff',
+            fontWeight: 700,
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          {isStoreUser ? '← Return to My Purchases' : '← Return to Mock Tests'}
+        </button>
+      </div>
+    );
+  }
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -633,10 +692,10 @@ export default function ChapterMockTestArena() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => router.push('/dashboard/student?tab=mock-tests')}
+                onClick={() => router.push(backUrl)}
                 style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
               >
-                ← Back to Mock Tests
+                {isStoreUser ? '← Back to My Purchases' : '← Back to Mock Tests'}
               </button>
 
               {testData.deadline && new Date() > new Date(testData.deadline) ? (
@@ -751,11 +810,11 @@ export default function ChapterMockTestArena() {
             )}
 
             <button 
-              onClick={() => router.push('/dashboard/student?tab=mock-tests')} 
+              onClick={() => router.push(backUrl)} 
               className="btn-primary" 
               style={{ padding: '0.55rem 1.5rem', fontSize: '0.85rem', fontWeight: 800, borderRadius: '10px', marginTop: '0.75rem' }}
             >
-              ← Back to Mock Tests
+              {isStoreUser ? '← Back to My Purchases' : '← Back to Mock Tests'}
             </button>
           </div>
 
@@ -765,18 +824,20 @@ export default function ChapterMockTestArena() {
               Detailed Question Analysis
             </h3>
             
-            {questions.map((q, idx) => {
-              const optionsArr = JSON.parse(q.options || '[]');
+            {(reportCard?.detailedResults || questions).map((q: any, idx: number) => {
+              const optionsArr = Array.isArray(q.options) ? q.options : JSON.parse(q.options || '[]');
               const isInputType = Array.isArray(optionsArr) && optionsArr[0] === 'INPUT_ANSWER';
-              const studentAns = answers[q.id];
+              const studentAns = q.studentSelected !== undefined ? q.studentSelected : answers[q.id];
 
-              let isCorrect = false;
-              let isUnanswered = studentAns === undefined || String(studentAns).trim() === '';
+              let isCorrect = q.isCorrect !== undefined ? q.isCorrect : false;
+              let isUnanswered = q.isUnattempted !== undefined ? q.isUnattempted : (studentAns === undefined || String(studentAns).trim() === '');
 
-              if (isInputType) {
-                isCorrect = !isUnanswered && isInputAnswerCorrect(studentAns, optionsArr[1]);
-              } else {
-                isCorrect = studentAns === q.correctOption;
+              if (q.isCorrect === undefined) {
+                if (isInputType) {
+                  isCorrect = !isUnanswered && isInputAnswerCorrect(studentAns, optionsArr[1]);
+                } else {
+                  isCorrect = studentAns === q.correctOption;
+                }
               }
 
               return (
@@ -1032,15 +1093,37 @@ export default function ChapterMockTestArena() {
             
             {/* Student ID & Profile Box */}
             <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.75rem', borderRadius: '10px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
-                {(session?.user?.name || (session?.user as any)?.username || 'S')[0].toUpperCase()}
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                color: '#fff',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.1rem',
+                flexShrink: 0,
+                overflow: 'hidden',
+                border: '1.5px solid rgba(59, 130, 246, 0.4)'
+              }}>
+                {userPhoto ? (
+                  <img
+                    src={userPhoto}
+                    alt={session?.user?.name || "Student"}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  (session?.user?.name || (session?.user as any)?.username || 'S')[0].toUpperCase()
+                )}
               </div>
               <div style={{ minWidth: 0, overflow: 'hidden' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {session?.user?.name || (session?.user as any)?.username || 'Student'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 800 }}>
-                  🆔 ID: {(session?.user as any)?.username || (session?.user as any)?.id?.slice(-6) || 'STU-001'}
+                  ID: {(session?.user as any)?.username || (session?.user as any)?.id?.slice(-6) || 'STU-001'}
                 </div>
               </div>
             </div>

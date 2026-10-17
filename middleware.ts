@@ -39,7 +39,7 @@ export default withAuth(
       if (token?.role !== "STUDENT") {
         return NextResponse.redirect(new URL("/login", req.url));
       }
-      if (token?.isStoreUser) {
+      if (token?.isStoreUser && !path.startsWith("/dashboard/student/mock-test") && !path.startsWith("/dashboard/student/test")) {
         return NextResponse.redirect(new URL("/dashboard/store", req.url));
       }
     }
@@ -57,8 +57,14 @@ export default withAuth(
     }
 
     // Protect Admin API routes
-    if (path.startsWith("/api/admin") && !path.startsWith("/api/admin/ai/ppt") && token?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    if (path.startsWith("/api/admin")) {
+      if (path.startsWith("/api/admin/ai/ppt")) {
+        if (token?.role !== "ADMIN" && token?.role !== "TEACHER") {
+          return NextResponse.json({ error: "Forbidden: Teachers and Admins only" }, { status: 403 });
+        }
+      } else if (token?.role !== "ADMIN") {
+        return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+      }
     }
 
     // Protect Teacher API routes (will be added in future features)

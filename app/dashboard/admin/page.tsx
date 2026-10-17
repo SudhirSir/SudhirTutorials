@@ -1074,7 +1074,7 @@ function AdminDashboardContent() {
 
   const fetchMaterials = async () => {
     try {
-      const res = await fetch('/api/teacher/materials');
+      const res = await fetch('/api/teacher/materials?t=' + Date.now());
       if (res.ok) {
         const data = await res.json();
         setMaterials(data.materials || []);
@@ -1083,10 +1083,22 @@ function AdminDashboardContent() {
   };
 
   const handleOpenMaterial = async (mat: any) => {
-    if (!mat.url) return;
-    const isBase64 = mat.url.startsWith('data:');
+    let fileUrl = mat.url;
+    if (!fileUrl || fileUrl.startsWith('/api/')) {
+      try {
+        const res = await fetch(`/api/materials/${mat.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          fileUrl = data.url;
+        }
+      } catch (err) {
+        console.error("Failed to load material content:", err);
+      }
+    }
+    if (!fileUrl) return;
+    const isBase64 = fileUrl.startsWith('data:');
     if (!isBase64) {
-      window.open(mat.url, '_blank');
+      window.open(fileUrl, '_blank');
       return;
     }
     const cap = (window as any).Capacitor;
@@ -1095,7 +1107,7 @@ function AdminDashboardContent() {
       try {
         const { Filesystem } = await import('@capacitor/filesystem');
         const { FileOpener } = await import('@capacitor-community/file-opener');
-        const parts = mat.url.split(',');
+        const parts = fileUrl.split(',');
         const base64Data = parts[1];
         let ext = 'pdf';
         let mime = 'application/pdf';
@@ -1131,7 +1143,7 @@ function AdminDashboardContent() {
       }
     } else {
       try {
-        const parts = mat.url.split(',');
+        const parts = fileUrl.split(',');
         const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
         const bstr = atob(parts[1]);
         let n = bstr.length;
@@ -1146,7 +1158,7 @@ function AdminDashboardContent() {
         console.error("Failed to open base64 blob:", err);
         const newWindow = window.open();
         if (newWindow) {
-          newWindow.document.write(`<iframe src="${mat.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+          newWindow.document.write(`<iframe src="${fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
         } else {
           alert("Pop-up blocked. Please allow pop-ups for this site.");
         }
@@ -1296,7 +1308,7 @@ function AdminDashboardContent() {
 
   const fetchTests = async () => {
     try {
-      const res = await fetch('/api/teacher/tests');
+      const res = await fetch('/api/teacher/tests?t=' + Date.now(), { cache: 'no-store', headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } });
       if (res.ok) {
         const data = await res.json();
         setTests(data.tests || []);
@@ -1523,12 +1535,20 @@ function AdminDashboardContent() {
     currentMonthPending?: number;
     netProfit: number;
     monthlyData: any[];
-  }>({
-    totalRevenue: 0,
-    totalExpenses: 0,
-    totalPending: 0,
-    netProfit: 0,
-    monthlyData: []
+  }>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('st_fin_summary');
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return {
+      totalRevenue: 0,
+      totalExpenses: 0,
+      totalPending: 0,
+      netProfit: 0,
+      monthlyData: []
+    };
   });
   const currentMonthCollected = finSummary?.currentMonthCollected || 0;
   const currentMonthPending = finSummary?.currentMonthPending || 0;
@@ -1901,24 +1921,30 @@ function AdminDashboardContent() {
     }
   };
 
-  const fetchFinSummary = async () => {
+  const fetchFinSummary = async (retries = 2) => {
     setIsLoadingFinSummary(true);
-    try {
-      const res = await fetch(`/api/admin/finances/summary?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && (data.totalRevenue > 0 || data.totalPending > 0 || data.currentMonthCollected > 0 || !finSummary)) {
-          setFinSummary(data);
-          if (data.totalRevenue > 0 || data.totalPending > 0) {
-            try { sessionStorage.setItem('st_fin_summary', JSON.stringify(data)); } catch (e) {}
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(`/api/admin/finances/summary?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.totalRevenue > 0 || data.totalPending > 0 || data.currentMonthCollected > 0 || !finSummary)) {
+            setFinSummary(data);
+            if (data.totalRevenue > 0 || data.totalPending > 0) {
+              try { sessionStorage.setItem('st_fin_summary', JSON.stringify(data)); } catch (e) {}
+            }
           }
+          break;
         }
+      } catch (err) {
+        if (attempt === retries) console.error("fetchFinSummary error:", err);
+        else await new Promise(r => setTimeout(r, 400));
       }
-    } catch (err) { console.error(err); }
-    finally { setIsLoadingFinSummary(false); }
+    }
+    setIsLoadingFinSummary(false);
   };
 
   const fetchExpenses = async () => {
@@ -2884,10 +2910,11 @@ function AdminDashboardContent() {
     fetchUnreadCounts();
 
     if (activeTab === 'overview') {
-      fetchOverviewStats();
+      fetchOverviewStats(true);
       fetchPendingVerifications();
-    } else if (activeTab === 'users') {
+    } else if (activeTab === 'users' || activeTab === 'directory') {
       handleSearchDirectory();
+      fetchAllStudents();
     } else if (activeTab === 'finances') {
       const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const now = new Date();
@@ -3572,71 +3599,116 @@ function AdminDashboardContent() {
             ))}
           </div>
 
-          {/* Premium Widgets Grid - Class & Batch Analytics Split in 2 side-by-side cards */}
-          <div className="admin-batches-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', width: '100%' }}>
-            {/* Part 1: Batches & Courses Stat Cards */}
-            <div className="glass-card animate-scale-up" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', background: 'var(--card-bg)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '0.85rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  📊 Class & Batch Overview
-                </h3>
-                <span className="role-badge" style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>REAL-TIME</span>
+          {/* Single Bar divided into two boxes for Total Batches and Total Courses */}
+          <div className="glass-card animate-scale-up" style={{
+            width: '100%',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            background: 'var(--card-bg)',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            overflow: 'hidden',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+          }}>
+            {/* Box 1: Total Batches */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem',
+              borderRight: '1px solid var(--border)',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05), transparent)'
+            }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: 'rgba(99, 102, 241, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.45rem',
+                flexShrink: 0
+              }}>
+                📚
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', flex: 1, alignItems: 'center' }}>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</div>
-                  <div className="stat-value" style={{ fontSize: '2rem', fontWeight: 900, margin: '6px 0 0 0', color: 'var(--text)' }}>{overviewStats?.totalBatches ?? '--'}</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem 1rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</div>
-                  <div className="stat-value" style={{ fontSize: '2rem', fontWeight: 900, margin: '6px 0 0 0', color: 'var(--text)' }}>{overviewStats?.totalCourses ?? '--'}</div>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }}>Total Batches</span>
+                <span className="stat-value" style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.1 }}>{overviewStats?.totalBatches ?? '--'}</span>
               </div>
             </div>
 
-            {/* Part 2: Student Class Distribution Card */}
-            <div className="glass-card animate-scale-up" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', background: 'var(--card-bg)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '0.85rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  🎓 Student Class Distribution
-                </h3>
-                <span className="role-badge" style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>BREAKDOWN</span>
+            {/* Box 2: Total Courses */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), transparent)'
+            }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: 'rgba(16, 185, 129, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.45rem',
+                flexShrink: 0
+              }}>
+                🎓
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }}>Total Courses</span>
+                <span className="stat-value" style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.1 }}>{overviewStats?.totalCourses ?? '--'}</span>
+              </div>
+            </div>
+          </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
-                {overviewStats?.classStats && overviewStats.classStats.length > 0 ? (
-                  overviewStats.classStats.map((item: any, idx: number) => {
-                    const total = overviewStats?.totalStudents || 1;
-                    const percentage = Math.round((item.count / total) * 100);
-                    
-                    const hslGradients = [
-                      'linear-gradient(135deg, hsl(263, 85%, 65%), hsl(263, 85%, 45%))',
-                      'linear-gradient(135deg, hsl(330, 85%, 65%), hsl(330, 85%, 45%))',
-                      'linear-gradient(135deg, hsl(142, 75%, 50%), hsl(142, 75%, 35%))',
-                      'linear-gradient(135deg, hsl(217, 95%, 60%), hsl(217, 95%, 40%))',
-                      'linear-gradient(135deg, hsl(35, 95%, 55%), hsl(35, 95%, 40%))'
-                    ];
-                    const gradient = hslGradients[idx % hslGradients.length];
+          {/* Student Class Distribution Card */}
+          <div className="glass-card animate-scale-up" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', background: 'var(--card-bg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed var(--border)', paddingBottom: '0.85rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🎓 Student Class Distribution
+              </h3>
+              <span className="role-badge" style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>BREAKDOWN</span>
+            </div>
 
-                    return (
-                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700 }}>
-                          <span style={{ color: 'var(--text)' }}>{item.className}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>{item.count} student{item.count !== 1 ? 's' : ''} ({percentage}%)</span>
-                        </div>
-                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.02)' }}>
-                          <div style={{ width: `${percentage}%`, height: '100%', background: gradient, borderRadius: '4px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
-                        </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
+              {overviewStats?.classStats && overviewStats.classStats.length > 0 ? (
+                overviewStats.classStats.map((item: any, idx: number) => {
+                  const total = overviewStats?.totalStudents || 1;
+                  const percentage = Math.round((item.count / total) * 100);
+                  
+                  const hslGradients = [
+                    'linear-gradient(135deg, hsl(263, 85%, 65%), hsl(263, 85%, 45%))',
+                    'linear-gradient(135deg, hsl(330, 85%, 65%), hsl(330, 85%, 45%))',
+                    'linear-gradient(135deg, hsl(142, 75%, 50%), hsl(142, 75%, 35%))',
+                    'linear-gradient(135deg, hsl(217, 95%, 60%), hsl(217, 95%, 40%))',
+                    'linear-gradient(135deg, hsl(35, 95%, 55%), hsl(35, 95%, 40%))'
+                  ];
+                  const gradient = hslGradients[idx % hslGradients.length];
+
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700 }}>
+                        <span style={{ color: 'var(--text)' }}>{item.className}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{item.count} student{item.count !== 1 ? 's' : ''} ({percentage}%)</span>
                       </div>
-                    );
-                  })
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    No class-wise data available.
-                  </div>
-                )}
-              </div>
+                      <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.02)' }}>
+                        <div style={{ width: `${percentage}%`, height: '100%', background: gradient, borderRadius: '4px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No class-wise data available.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -8749,6 +8821,24 @@ function AdminDashboardContent() {
                        <option value="false">Inactive</option>
                      </select>
                    </div>
+                    <div className="input-group">
+                      <label>Registration Number</label>
+                      <input 
+                        type="text" 
+                        value={editingProfile.registrationNo || ''} 
+                        onChange={e => setEditingProfile({...editingProfile, registrationNo: e.target.value})} 
+                        placeholder="e.g. REG-2026-001" 
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label>Roll Number</label>
+                      <input 
+                        type="text" 
+                        value={editingProfile.rollNumber || ''} 
+                        onChange={e => setEditingProfile({...editingProfile, rollNumber: e.target.value})} 
+                        placeholder="e.g. ROLL-101" 
+                      />
+                    </div>
                    <div className="input-group">
                      <label>Gender</label>
                      <select 
@@ -8853,24 +8943,26 @@ function AdminDashboardContent() {
                      </p>
                      
                      {otpValue ? (
-                       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--input-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)' }}>
-                         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Generated Pass:</span>
-                         <code style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '2px', background: 'rgba(245,158,11,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#f59e0b' }}>
-                           {otpValue}
-                         </code>
-                         <button 
-                           type="button"
-                           onClick={() => {
-                             navigator.clipboard.writeText(otpValue);
-                             alert("One-Time Password copied to clipboard!");
-                           }}
-                           style={{ padding: '6px 12px', background: '#f59e0b', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s' }}
-                           onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
-                           onMouseOut={e => e.currentTarget.style.opacity = '1'}
-                         >
-                           Copy Password
-                         </button>
-                       </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between', background: 'var(--input-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)', width: '100%', boxSizing: 'border-box' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Generated Pass:</span>
+                            <code style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '2px', background: 'rgba(245,158,11,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#f59e0b', wordBreak: 'break-all' }}>
+                              {otpValue}
+                            </code>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(otpValue);
+                              alert("One-Time Password copied to clipboard!");
+                            }}
+                            style={{ padding: '8px 14px', background: '#f59e0b', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s', width: '100%', maxWidth: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxSizing: 'border-box' }}
+                            onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
+                            onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                          >
+                            📋 Copy Password
+                          </button>
+                        </div>
                      ) : (
                        <button
                          type="button"

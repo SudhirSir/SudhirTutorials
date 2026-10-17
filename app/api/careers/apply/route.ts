@@ -32,9 +32,13 @@ export async function POST(req: Request) {
 
       const rawName = file.name || 'resume.pdf';
       const safeName = rawName.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const ext = safeName.includes('.') ? safeName.split('.').pop() || 'pdf' : 'pdf';
+      const ext = (safeName.includes('.') ? safeName.split('.').pop()?.toLowerCase() || 'pdf' : 'pdf');
+      const ALLOWED_RESUME_EXTENSIONS = new Set(['pdf', 'doc', 'docx']);
+      if (!ALLOWED_RESUME_EXTENSIONS.has(ext)) {
+        return NextResponse.json({ error: 'Only PDF and Word documents (.pdf, .doc, .docx) are allowed for resumes.' }, { status: 400 });
+      }
       const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-      const filename = `Resume_${name.replace(/\s+/g, '_')}_${uniqueId}.${ext}`;
+      const filename = `Resume_${name.replace(/[^a-zA-Z0-9]/g, '_')}_${uniqueId}.${ext}`;
 
       const uploadDir = join(process.cwd(), 'public', 'uploads', 'resumes');
       await mkdir(uploadDir, { recursive: true });

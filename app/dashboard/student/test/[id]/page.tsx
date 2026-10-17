@@ -10,6 +10,8 @@ export default function OnlineTestArena() {
   const testId = params.id as string;
   const router = useRouter();
   const { data: session } = useSession();
+  const isStoreUser = Boolean((session?.user as any)?.isStoreUser);
+  const testBackUrl = isStoreUser ? '/dashboard/store?tab=purchases' : '/dashboard/student?tab=tests';
 
   const [testData, setTestData] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -29,6 +31,24 @@ export default function OnlineTestArena() {
   const [hasStarted, setHasStarted] = useState(false);
   const [isWindowBlurred, setIsWindowBlurred] = useState(false);
   const [warningCount, setWarningCount] = useState(0);
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    const photoFromSession = (session?.user as any)?.photoUrl || (session?.user as any)?.image;
+    if (photoFromSession) {
+      setUserPhoto(photoFromSession);
+    } else if (session?.user) {
+      fetch('/api/user/profile')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            const photo = data.photoUrl || data.profile?.photoUrl || null;
+            if (photo) setUserPhoto(photo);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session]);
 
   const submittedRef = useRef(false);
   const warningCountRef = useRef(0);
@@ -207,16 +227,26 @@ export default function OnlineTestArena() {
     const timeTaken = testData ? (testData.durationMinutes * 60) - (timeLeft || 0) : 0;
 
     try {
-      await fetch('/api/student/test/submit', {
+      const res = await fetch('/api/student/test/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           onlineTestId: testId,
+          answers,
           score: calculatedScore,
           timeTaken,
           autoSubmitted
         })
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.score !== undefined) {
+          setScore(data.score);
+        }
+        if (data.detailedResults) {
+          setQuestions(data.detailedResults);
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -473,10 +503,10 @@ export default function OnlineTestArena() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => router.push('/dashboard/student?tab=store')}
+                onClick={() => router.push(testBackUrl)}
                 style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
               >
-                ← Back
+                {isStoreUser ? '← Back to My Purchases' : '← Back'}
               </button>
 
               <button
@@ -538,11 +568,11 @@ export default function OnlineTestArena() {
             </div>
 
             <button 
-              onClick={() => router.push('/dashboard/student?tab=purchases')} 
+              onClick={() => router.push(testBackUrl)} 
               className="btn-primary" 
               style={{ padding: '0.8rem 2.5rem', fontSize: '1rem', fontWeight: 800, borderRadius: '14px', marginTop: '1.5rem' }}
             >
-              ← Back to Purchases
+              {isStoreUser ? '← Back to My Purchases' : '← Back to Purchases'}
             </button>
           </div>
 
@@ -757,15 +787,37 @@ export default function OnlineTestArena() {
             
             {/* Student ID & Profile Box */}
             <div style={{ background: 'var(--card-bg-alt)', border: '1px solid var(--border)', padding: '0.85rem', borderRadius: '12px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem', flexShrink: 0 }}>
-                {(session?.user?.name || (session?.user as any)?.username || 'S')[0].toUpperCase()}
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                color: '#fff',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.15rem',
+                flexShrink: 0,
+                overflow: 'hidden',
+                border: '1.5px solid rgba(59, 130, 246, 0.4)'
+              }}>
+                {userPhoto ? (
+                  <img
+                    src={userPhoto}
+                    alt={session?.user?.name || "Student"}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  (session?.user?.name || (session?.user as any)?.username || 'S')[0].toUpperCase()
+                )}
               </div>
               <div style={{ minWidth: 0, overflow: 'hidden' }}>
                 <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {session?.user?.name || (session?.user as any)?.username || 'Student'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 800 }}>
-                  🆔 ID: {(session?.user as any)?.username || (session?.user as any)?.id?.slice(-6) || 'STU-001'}
+                  ID: {(session?.user as any)?.username || (session?.user as any)?.id?.slice(-6) || 'STU-001'}
                 </div>
               </div>
             </div>

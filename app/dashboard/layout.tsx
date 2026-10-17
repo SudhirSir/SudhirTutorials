@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { safeLocalStorage, safeSessionStorage } from "@/lib/safeStorage";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
@@ -54,6 +54,13 @@ const icons = {
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
+  store: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  ),
   logout: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4" />
@@ -79,7 +86,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const role = pathname.includes("admin") ? "Admin" : pathname.includes("teacher") ? "Teacher" : "Student";
-  const isVerified = (session?.user as any)?.isProfileVerified;
+  const isVerified = role === 'Admin' ||
+    String((session?.user as any)?.role || '').toUpperCase() === 'ADMIN' ||
+    Boolean((session?.user as any)?.isProfileVerified) ||
+    String((session?.user as any)?.username || '').toLowerCase() === 'admin' ||
+    String((session?.user as any)?.name || '').toLowerCase() === 'admin';
   const isStoreUser = (session?.user as any)?.isStoreUser;
 
   const defaultTab = role === 'Admin' ? 'overview' : role === 'Teacher' ? 'classes' : 'dashboard';
@@ -114,8 +125,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const router = useRouter();
   const handleNavLinkClick = () => {
     setIsMobileSidebarOpen(false);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent('st:menu-navigated'));
+    }
+    router.refresh();
   };
 
   useEffect(() => {
@@ -364,6 +380,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <Link href="/dashboard/admin?tab=salary" className={`nav-link-modern ${isActive('salary') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.finances}</span>
                   Staff Salaries
+                </Link>
+                <Link href="/dashboard/admin?tab=store-manager" className={`nav-link-modern ${isActive('store-manager') ? 'active' : ''}`} onClick={handleNavLinkClick}>
+                  <span className="icon">{icons.store}</span>
+                  ST Store Manager
                 </Link>
                 <Link href="/dashboard/admin?tab=settings" className={`nav-link-modern ${isActive('settings') ? 'active' : ''}`} onClick={handleNavLinkClick}>
                   <span className="icon">{icons.settings}</span>

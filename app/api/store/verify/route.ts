@@ -35,6 +35,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid payment signature.' }, { status: 400 });
     }
 
+    // Verify purchase ownership
+    const purchase = await withDbRetry(() => prisma.storePurchase.findUnique({
+      where: { id: purchaseId }
+    }));
+
+    if (!purchase) {
+      return NextResponse.json({ error: 'Purchase record not found.' }, { status: 404 });
+    }
+
+    if (purchase.studentId !== session.user.id && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized: You do not own this purchase record.' }, { status: 403 });
+    }
+
     // Update purchase record
     await withDbRetry(() => prisma.storePurchase.update({
       where: { id: purchaseId },
@@ -43,6 +56,12 @@ export async function POST(req: Request) {
         paymentId: razorpay_payment_id
       }
     }));
+
+    // Invalidate cached purchases
+    try {
+      const { appCache } = await import('@/lib/cache');
+      appCache.del(`student:purchases:${session.user.id}`);
+    } catch (e) {}
 
     return NextResponse.json({ success: true });
   } catch (error) {

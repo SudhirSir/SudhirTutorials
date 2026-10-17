@@ -11,7 +11,10 @@ export async function GET() {
   try {
     const regularItems = await appCache.getOrSet('store:published_items', () =>
       withDbRetry(() => prisma.storeItem.findMany({
-        where: { isPublished: true },
+        where: { 
+          isPublished: true,
+          NOT: { id: { startsWith: 'mocktest-' } }
+        },
         include: {
           onlineTests: {
             select: { id: true, durationMinutes: true, totalMarks: true }
@@ -40,19 +43,30 @@ export async function GET() {
       createdAt: m.createdAt
     }));
 
-    const items = [...regularItems, ...formattedMockTestItems];
+    const itemMap = new Map<string, any>();
+    regularItems.forEach((item: any) => itemMap.set(item.id, item));
+    formattedMockTestItems.forEach((item: any) => itemMap.set(item.id, item));
+    const items = Array.from(itemMap.values());
 
     let purchasedItemIds: string[] = [];
+    let pendingItemIds: string[] = [];
     const session = await getServerSession(authOptions) as any;
     if (session?.user?.id && session.user.role === 'STUDENT') {
-      const purchases = await withDbRetry(() => prisma.storePurchase.findMany({
-        where: { studentId: session.user.id, status: 'SUCCESS' },
-        select: { itemId: true }
-      }));
-      purchasedItemIds = purchases.map((p: any) => p.itemId);
+      const [successfulPurchases, pendingPurchases] = await Promise.all([
+        withDbRetry(() => prisma.storePurchase.findMany({
+          where: { studentId: session.user.id, status: 'SUCCESS' },
+          select: { itemId: true }
+        })),
+        withDbRetry(() => prisma.storePurchase.findMany({
+          where: { studentId: session.user.id, status: 'PENDING' },
+          select: { itemId: true }
+        }))
+      ]);
+      purchasedItemIds = successfulPurchases.map((p: any) => p.itemId);
+      pendingItemIds = pendingPurchases.map((p: any) => p.itemId);
     }
 
-    return NextResponse.json({ items, purchasedItemIds });
+    return NextResponse.json({ items, purchasedItemIds, pendingItemIds });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch public store items' }, { status: 500 });

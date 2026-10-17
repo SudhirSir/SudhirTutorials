@@ -28,7 +28,12 @@ export async function POST(req: Request) {
 
     const rawName = file.name || 'uploaded_file';
     const safeName = rawName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const ext = safeName.includes('.') ? safeName.split('.').pop() || 'dat' : 'dat';
+    const ext = safeName.includes('.') ? safeName.split('.').pop()?.toLowerCase() || '' : '';
+    const ALLOWED_CHAT_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'm4a', 'ogg']);
+    if (!ALLOWED_CHAT_EXTENSIONS.has(ext)) {
+      return NextResponse.json({ error: 'File type not allowed. Please upload images, audio, or PDF/document files.' }, { status: 400 });
+    }
+
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
     const filename = `${uniqueId}.${ext}`;
 

@@ -957,7 +957,10 @@ function TeacherDashboardContent() {
   
   const fetchTests = async () => {
     try {
-      const res = await fetch('/api/teacher/tests');
+      const res = await fetch('/api/teacher/tests?t=' + Date.now(), {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
       if (res.ok) {
         const data = await res.json();
         setTests(data.tests || []);
@@ -976,14 +979,12 @@ function TeacherDashboardContent() {
   };
 
   const fetchMaterials = async () => {
-    if (materialsFetchedRef.current) return;
     setMaterialsLoading(true);
     try {
-      const res = await fetch('/api/teacher/materials');
+      const res = await fetch('/api/teacher/materials?t=' + Date.now());
       if (res.ok) {
         const data = await res.json();
         setMaterials(data.materials || []);
-        materialsFetchedRef.current = true;
       }
     } catch (e) {
       console.error(e);
@@ -1019,10 +1020,22 @@ function TeacherDashboardContent() {
   };
 
   const handleOpenMaterial = async (mat: any) => {
-    if (!mat.url) return;
-    const isBase64 = mat.url.startsWith('data:');
+    let fileUrl = mat.url;
+    if (!fileUrl || fileUrl.startsWith('/api/')) {
+      try {
+        const res = await fetch(`/api/materials/${mat.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          fileUrl = data.url;
+        }
+      } catch (err) {
+        console.error("Failed to load material content:", err);
+      }
+    }
+    if (!fileUrl) return;
+    const isBase64 = fileUrl.startsWith('data:');
     if (!isBase64) {
-      window.open(mat.url, '_blank');
+      window.open(fileUrl, '_blank');
       return;
     }
     const cap = (window as any).Capacitor;
@@ -1031,7 +1044,7 @@ function TeacherDashboardContent() {
       try {
         const { Filesystem } = await import('@capacitor/filesystem');
         const { FileOpener } = await import('@capacitor-community/file-opener');
-        const parts = mat.url.split(',');
+        const parts = fileUrl.split(',');
         const base64Data = parts[1];
         let ext = 'pdf';
         let mime = 'application/pdf';
@@ -1067,7 +1080,7 @@ function TeacherDashboardContent() {
       }
     } else {
       try {
-        const parts = mat.url.split(',');
+        const parts = fileUrl.split(',');
         const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
         const bstr = atob(parts[1]);
         let n = bstr.length;
@@ -1082,7 +1095,7 @@ function TeacherDashboardContent() {
         console.error("Failed to open base64 blob:", err);
         const newWindow = window.open();
         if (newWindow) {
-          newWindow.document.write(`<iframe src="${mat.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+          newWindow.document.write(`<iframe src="${fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
         } else {
           alert("Pop-up blocked. Please allow pop-ups for this site.");
         }

@@ -305,7 +305,7 @@ export default function Home() {
             <Link href="#programs" className="vrsa-nav-link">Flagship Programs</Link>
             <Link href="#edupred-ai" className="vrsa-nav-link">EduPred AI™</Link>
             <Link href="/admissions" className="vrsa-nav-link">Admissions</Link>
-            <Link href="#storefront" className="vrsa-nav-link">Notes/Test Series</Link>
+            <Link href="#storefront" className="vrsa-nav-link">ST Store</Link>
             <Link href="#about" className="vrsa-nav-link">Why Us</Link>
             <Link href="/careers" className="vrsa-nav-link">Careers</Link>
           </nav>
@@ -380,7 +380,7 @@ export default function Home() {
               🤖 EduPred AI™ Predictor
             </Link>
             <Link href="#storefront" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.42rem 0.7rem', borderRadius: '10px', background: 'var(--surface-light)', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', fontSize: '0.82rem' }}>
-              🛒 Storefront (Notes & Test Series)
+              🛒 ST Store (Notes & Tests)
             </Link>
             <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '10px', background: 'var(--hp-gradient-btn)', color: '#ffffff', fontWeight: 800, textDecoration: 'none', fontSize: '0.84rem', marginTop: '0.15rem' }}>
               🔑 Student & Staff Login →

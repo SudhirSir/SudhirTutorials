@@ -90,6 +90,12 @@ export async function GET() {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 80);
 
+    const formatPhotoUrl = (id?: string, url?: string | null) => {
+      if (!url) return null;
+      if (url.startsWith('data:')) return `/api/user/avatar/${id}`;
+      return url;
+    };
+
     const mappedMessages = allMessages.map((m: any) => ({
       ...m,
       sender: m.sender ? {
@@ -97,14 +103,14 @@ export async function GET() {
         name: m.sender.name,
         username: m.sender.username,
         role: m.sender.role,
-        photoUrl: m.sender.photoUrl || null
+        photoUrl: formatPhotoUrl(m.sender.id, m.sender.photoUrl)
       } : undefined,
       receiver: m.receiver ? {
         id: m.receiver.id,
         name: m.receiver.name,
         username: m.receiver.username,
         role: m.receiver.role,
-        photoUrl: m.receiver.photoUrl || null
+        photoUrl: formatPhotoUrl(m.receiver.id, m.receiver.photoUrl)
       } : undefined,
       group: m.group ? {
         id: m.group.id,

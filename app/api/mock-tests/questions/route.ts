@@ -64,9 +64,41 @@ export async function GET(req: Request) {
       if (mockTest.deadline && new Date() > new Date(mockTest.deadline)) {
         return NextResponse.json({ error: 'This mock test deadline has passed and is now expired.' }, { status: 403 });
       }
+
+      if (mockTest.isStoreItem && session.user.isStoreUser) {
+        const hasAccess = await withDbRetry(() => prisma.storePurchase.findFirst({
+          where: {
+            studentId: session.user.id,
+            itemId: { in: [mockTest.id, `mocktest-${mockTest.id}`] },
+            status: 'SUCCESS'
+          }
+        }));
+
+        if (!hasAccess) {
+          return NextResponse.json({ error: 'Access requires an approved store purchase. Please wait for Admin verification.' }, { status: 403 });
+        }
+      }
     }
 
-    return NextResponse.json({ mockTest, questions: mockTest.questions, success: true });
+    let questionsToSend = mockTest.questions;
+    if (session.user.role === 'STUDENT') {
+      questionsToSend = mockTest.questions.map(q => {
+        let opts = JSON.parse(q.options || '[]');
+        if (Array.isArray(opts) && opts[0] === 'INPUT_ANSWER') {
+          opts = ['INPUT_ANSWER']; // strip answer string
+        }
+        return {
+          id: q.id,
+          mockTestId: q.mockTestId,
+          questionText: q.questionText,
+          options: JSON.stringify(opts),
+          marks: q.marks,
+          boardTag: q.boardTag
+        } as any;
+      });
+    }
+
+    return NextResponse.json({ mockTest, questions: questionsToSend, success: true });
   } catch (error) {
     console.error('Error fetching mock questions:', error);
     return NextResponse.json({ error: 'Failed to fetch mock questions' }, { status: 500 });

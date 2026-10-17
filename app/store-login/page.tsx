@@ -142,23 +142,6 @@ export default function StoreLoginPage() {
 
       setRegLoading(true);
       try {
-        const verifyRes = await fetch("/api/auth/verify-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: regEmail.trim(),
-            otp: regOtp.trim(),
-            type: "REGISTRATION"
-          })
-        });
-
-        if (!verifyRes.ok) {
-          const vData = await verifyRes.json();
-          setRegError(vData.error || "Invalid or expired OTP code.");
-          setRegLoading(false);
-          return;
-        }
-
         const regRes = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -174,6 +157,11 @@ export default function StoreLoginPage() {
         });
 
         const regData = await regRes.json();
+        if (!regRes.ok) {
+          setRegError(regData.error || "Registration failed.");
+          setRegLoading(false);
+          return;
+        }
         if (regRes.ok) {
           sessionStorage.setItem("tabSessionActive", "true");
           const authRes = await signIn("credentials", {

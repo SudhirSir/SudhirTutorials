@@ -166,7 +166,19 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
   useEffect(() => {
     if (messages.length > 0) {
-      safeLocalStorage.setItem(`st_chat_msgs_${currentUserId}`, JSON.stringify(messages.slice(0, 40)));
+      try {
+        const sanitized = messages.slice(0, 40).map(m => {
+          const msg = m as any;
+          if (msg.attachment && typeof msg.attachment === 'string' && msg.attachment.startsWith('data:')) {
+            return { ...m, attachment: '[attachment_cached]' };
+          }
+          if (m.content && m.content.length > 500 && m.content.startsWith('data:')) {
+            return { ...m, content: '[attachment_cached]' };
+          }
+          return m;
+        });
+        safeLocalStorage.setItem(`st_chat_msgs_${currentUserId}`, JSON.stringify(sanitized));
+      } catch (e) {}
     }
   }, [messages, currentUserId]);
 
@@ -406,10 +418,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
   // ── SSE lifecycle: connect on mount, disconnect on unmount / tab hidden ────
   useEffect(() => {
+    fetchMessages();
     if (document.visibilityState === 'visible') {
       connectSSE();
-    } else {
-      fetchMessages();
     }
 
     const onVisibility = () => {

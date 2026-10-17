@@ -79,10 +79,19 @@ export async function GET(req: Request) {
           select: { amount: true, lateFine: true, discount: true, paidAmount: true }
         }),
 
-        prisma.studentProfile.groupBy({
-          by: ['className'],
-          _count: { userId: true },
-          where: { className: { not: null } }
+        prisma.user.findMany({
+          where: {
+            role: 'STUDENT',
+            NOT: { isStoreUser: true }
+          },
+          select: {
+            studentProfile: {
+              select: { className: true, batch: true, grade: true }
+            },
+            studentBatches: {
+              select: { className: true, name: true }
+            }
+          }
         })
       ]);
 
@@ -99,10 +108,57 @@ export async function GET(req: Request) {
         return sum + Math.max(0, net);
       }, 0);
 
-      const classStats = classGroups.map(g => ({
-        className: g.className || 'Unknown',
-        count: g._count?.userId || 0
-      }));
+      const GRADE_ORDER = [
+        'Playgroup', 'Nursery', 'L.K.G', 'U.K.G',
+        '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th',
+        '11th', '11th (Sci)', '11th (Com)', '12th', '12th (Sci)', '12th (Com)',
+        'Other'
+      ];
+
+      function normalizeClassName(raw?: string | null, batch?: string | null, batchClass?: string | null): string {
+        const val = (raw && raw.trim()) ? raw.trim() : (batch && batch.trim()) ? batch.trim() : (batchClass && batchClass.trim()) ? batchClass.trim() : '';
+        if (!val) return 'Other';
+        const lower = val.toLowerCase();
+        if (lower.includes('u.k.g') || lower.includes('ukg')) return 'U.K.G';
+        if (lower.includes('l.k.g') || lower.includes('lkg')) return 'L.K.G';
+        if (lower.includes('nursery')) return 'Nursery';
+        if (lower.includes('playgroup')) return 'Playgroup';
+        if (lower.match(/\b(class\s*)?12(th)?\s*(\(sci|\(science|sci)?/i) && (lower.includes('sci') || lower.includes('zunoon'))) return '12th (Sci)';
+        if (lower.match(/\b(class\s*)?12(th)?\s*(\(com|\(commerce|com)?/i) && lower.includes('com')) return '12th (Com)';
+        if (lower.match(/\b(class\s*)?12(th)?\b/i) || lower.includes('xii')) return '12th (Sci)';
+        if (lower.match(/\b(class\s*)?11(th)?\s*(\(sci|\(science|sci)?/i) && lower.includes('sci')) return '11th (Sci)';
+        if (lower.match(/\b(class\s*)?11(th)?\s*(\(com|\(commerce|com)?/i) && lower.includes('com')) return '11th (Com)';
+        if (lower.match(/\b(class\s*)?11(th)?\b/i) || lower.includes('xi')) return '11th';
+        if (lower.match(/\b(class\s*)?10(th)?\b/i) || lower.includes(' x ') || lower.endsWith(' x') || lower.includes('mission x')) return '10th';
+        if (lower.match(/\b(class\s*)?9(th)?\b/i) || lower.includes(' ix') || lower.includes('class ix') || lower === 'ix') return '9th';
+        if (lower.match(/\b(class\s*)?8(th)?\b/i) || lower.includes('viii')) return '8th';
+        if (lower.match(/\b(class\s*)?7(th)?\b/i) || lower.includes('vii')) return '7th';
+        if (lower.match(/\b(class\s*)?6(th)?\b/i) || lower.includes('vi')) return '6th';
+        if (lower.match(/\b(class\s*)?5(th)?\b/i) || lower.includes(' v') || lower === 'v') return '5th';
+        if (lower.match(/\b(class\s*)?4(th)?\b/i) || lower.includes(' iv') || lower === 'iv') return '4th';
+        if (lower.match(/\b(class\s*)?3(rd)?\b/i) || lower.includes('iii')) return '3rd';
+        if (lower.match(/\b(class\s*)?2(nd)?\b/i) || lower.includes('ii')) return '2nd';
+        if (lower.match(/\b(class\s*)?1(st)?\b/i)) return '1st';
+        return val;
+      }
+
+      const classCountMap: Record<string, number> = {};
+      classGroups.forEach((s: any) => {
+        const batchCls = s.studentBatches && s.studentBatches[0] ? (s.studentBatches[0].className || s.studentBatches[0].name) : '';
+        const cls = normalizeClassName(s.studentProfile?.className || s.studentProfile?.grade, s.studentProfile?.batch, batchCls);
+        classCountMap[cls] = (classCountMap[cls] || 0) + 1;
+      });
+
+      const classStats = Object.entries(classCountMap)
+        .map(([className, count]) => ({ className, count }))
+        .sort((a, b) => {
+          const idxA = GRADE_ORDER.indexOf(a.className);
+          const idxB = GRADE_ORDER.indexOf(b.className);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return a.className.localeCompare(b.className);
+        });
 
       return {
         totalStudents,

@@ -8,31 +8,31 @@ export async function POST(req: Request) {
   try {
     const { name, email, phone, password, otp } = await req.json();
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Please provide all required fields.' }, { status: 400 });
+    if (!name || !email || !password || !otp) {
+      return NextResponse.json({ error: 'Please provide all required fields including verification OTP.' }, { status: 400 });
     }
 
-    // 1. Verify OTP if record exists
-    if (otp) {
-      const verification = await withDbRetry(() => prisma.otpVerification.findUnique({
-        where: { email },
-      }));
-
-      if (verification) {
-        if (verification.otp !== otp) {
-          return NextResponse.json({ error: 'Invalid verification code.' }, { status: 400 });
-        }
-
-        if (new Date() > verification.expiresAt) {
-          return NextResponse.json({ error: 'Verification code has expired. Please request a new one.' }, { status: 400 });
-        }
-
-        // Clean up OTP record
-        await withDbRetry(() => prisma.otpVerification.delete({
-          where: { email },
-        })).catch(() => {});
-      }
+    if (typeof password !== 'string' || password.length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters long.' }, { status: 400 });
     }
+
+    // 1. Verify OTP record strictly
+    const verification = await withDbRetry(() => prisma.otpVerification.findUnique({
+      where: { email },
+    }));
+
+    if (!verification || verification.otp !== String(otp).trim()) {
+      return NextResponse.json({ error: 'Invalid or expired verification code.' }, { status: 400 });
+    }
+
+    if (new Date() > verification.expiresAt) {
+      return NextResponse.json({ error: 'Verification code has expired. Please request a new one.' }, { status: 400 });
+    }
+
+    // Clean up OTP record so it cannot be replayed
+    await withDbRetry(() => prisma.otpVerification.delete({
+      where: { email },
+    })).catch(() => {});
 
     // 2. Check if email is already in use
     const existingProfile = await withDbRetry(() => prisma.studentProfile.findFirst({
