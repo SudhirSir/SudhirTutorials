@@ -208,8 +208,12 @@
             🔄 Try Again
         </button>
 
+        <button class="btn-retry" style="margin-top: 0.75rem; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border); box-shadow: none;" onclick="resetSession()">
+            ⚡ Reset Session & Reconnect
+        </button>
+
         <div class="connection-status">
-            <span class="dot"></span> Offline Mode
+            <span class="dot"></span> Offline / Reconnecting
         </div>
 
         <div class="tagline">
@@ -218,26 +222,38 @@
     </div>
 
     <script>
+        function resetSession() {
+            const btn = document.querySelector('.btn-retry');
+            if (btn) btn.innerHTML = '⚡ Resetting Session...';
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+            } catch(e) {}
+            fetch('/api/auth/reset-cookie', { credentials: 'omit' })
+                .catch(() => {})
+                .finally(() => {
+                    window.location.href = '/login';
+                });
+        }
+
         function retryConnection() {
             const btn = document.querySelector('.btn-retry');
             btn.innerHTML = '⚡ Checking Connection...';
             btn.style.opacity = '0.8';
             btn.disabled = true;
 
-            setTimeout(() => {
-                if (navigator.onLine) {
-                    window.location.href = 'https://sudhirtutorials.vercel.app/';
-                } else {
-                    btn.innerHTML = '🔄 Try Again';
-                    btn.style.opacity = '1';
-                    btn.disabled = false;
-                    
-                    const container = document.querySelector('.container');
-                    container.style.animation = 'none';
-                    container.offsetHeight; // trigger reflow
-                    container.style.animation = 'shake 0.4s ease';
-                }
-            }, 1000);
+            // Clear oversized session headers using credentials omit
+            fetch('/api/auth/reset-cookie', { credentials: 'omit' })
+                .catch(() => {})
+                .finally(() => {
+                    try {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                    } catch(e) {}
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 500);
+                });
         }
 
         // Add shake keyframe dynamically
@@ -251,9 +267,22 @@
         `;
         document.head.appendChild(style);
 
+        // If user is online, auto-heal any oversized cookie headers
+        if (navigator.onLine) {
+            fetch('/api/auth/reset-cookie', { credentials: 'omit' })
+                .then(r => {
+                    if (r.ok) {
+                        setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 800);
+                    }
+                })
+                .catch(() => {});
+        }
+
         // Auto-refresh when online status changes back to online
         window.addEventListener('online', () => {
-            window.location.href = 'https://sudhirtutorials.vercel.app/';
+            resetSession();
         });
     </script>
 </body>

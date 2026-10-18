@@ -34,7 +34,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       });
     }
 
-    return NextResponse.redirect(cached);
+    if (cached.startsWith('http://') || cached.startsWith('https://')) {
+      return NextResponse.redirect(cached);
+    }
+
+    if (cached.startsWith('/')) {
+      return NextResponse.redirect(new URL(cached, req.url));
+    }
+
+    return new NextResponse(null, { status: 404 });
   } catch (e) {
     return new NextResponse(null, { status: 500 });
   }
