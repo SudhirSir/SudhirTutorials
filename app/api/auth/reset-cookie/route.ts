@@ -15,26 +15,14 @@ function createClearCookieHeaders(): Headers {
     'next-auth.session-token',
     '__Secure-next-auth.session-token',
     'next-auth.csrf-token',
-    '__Host-next-auth.csrf-token',
-    'next-auth.callback-url',
-    '__Secure-next-auth.callback-url',
-  ];
-
-  // Also clear any NextAuth chunked cookies (next-auth.session-token.0 .. 50)
-  for (let i = 0; i <= 50; i++) {
-    cookieNames.push(`next-auth.session-token.${i}`);
-    cookieNames.push(`__Secure-next-auth.session-token.${i}`);
-  }
-
-  const cookieAttrs = [
-    'Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax',
-    'Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; Secure; SameSite=Lax',
+    'next-auth.session-token.0',
+    'next-auth.session-token.1',
+    '__Secure-next-auth.session-token.0',
+    '__Secure-next-auth.session-token.1',
   ];
 
   for (const name of cookieNames) {
-    for (const attr of cookieAttrs) {
-      headers.append('Set-Cookie', `${name}=; ${attr}`);
-    }
+    headers.append('Set-Cookie', `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
   }
 
   return headers;
