@@ -5,9 +5,10 @@ import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { appCache } from '@/lib/cache';
 
-let cachedOverviewStats: { timestamp: number; data: any } | null = null;
-const CACHE_TTL_MS = 1500; // 1.5s in-memory cache for ultra responsive 2.5s polling
+const CACHE_KEY = 'admin:overview:stats';
+const CACHE_TTL_SECONDS = 10;
 
 export async function GET(req: Request) {
   try {
@@ -18,18 +19,16 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const forceRefresh = searchParams.get('fresh') === 'true';
-    const nowTs = Date.now();
 
-    if (!forceRefresh && cachedOverviewStats && (nowTs - cachedOverviewStats.timestamp < CACHE_TTL_MS)) {
-      return NextResponse.json(cachedOverviewStats.data, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-      });
+    if (forceRefresh) {
+      appCache.del(CACHE_KEY);
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthName = now.toLocaleString('en-US', { month: 'long' });
-    const monthShort = now.toLocaleString('en-US', { month: 'short' });
+    const payload = await appCache.getOrSet(CACHE_KEY, async () => {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthName = now.toLocaleString('en-US', { month: 'long' });
+      const monthShort = now.toLocaleString('en-US', { month: 'short' });
 
     const statsResult = await withDbRetry(async () => {
       const [
@@ -171,30 +170,26 @@ export async function GET(req: Request) {
       };
     });
 
-    // Merge with previous cached non-zero data if any field returned 0 spuriously
-    const prevData = cachedOverviewStats?.data;
-    const payload = {
-      totalStudents: statsResult?.totalStudents || prevData?.totalStudents || 0,
-      totalTeachers: statsResult?.totalTeachers || prevData?.totalTeachers || 0,
-      totalBatches: statsResult?.totalBatches || prevData?.totalBatches || 0,
-      totalCourses: statsResult?.totalCourses || prevData?.totalCourses || 0,
-      classStats: (statsResult?.classStats && statsResult.classStats.length > 0) ? statsResult.classStats : (prevData?.classStats || []),
-      revenueThisMonth: statsResult?.revenueThisMonth || prevData?.revenueThisMonth || 0,
-      pendingDues: statsResult?.pendingDues || prevData?.pendingDues || 0,
+    return {
+      totalStudents: statsResult?.totalStudents ?? 0,
+      totalTeachers: statsResult?.totalTeachers ?? 0,
+      totalBatches: statsResult?.totalBatches ?? 0,
+      totalCourses: statsResult?.totalCourses ?? 0,
+      classStats: statsResult?.classStats || [],
+      revenueThisMonth: statsResult?.revenueThisMonth ?? 0,
+      pendingDues: statsResult?.pendingDues ?? 0,
       activityLogs: []
     };
-
-    if (payload.totalStudents > 0 || payload.totalTeachers > 0 || payload.revenueThisMonth > 0) {
-      cachedOverviewStats = { timestamp: nowTs, data: payload };
-    }
+  }, CACHE_TTL_SECONDS);
 
     return NextResponse.json(payload, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
   } catch (error) {
     console.error('Error fetching overview stats:', error);
-    if (cachedOverviewStats?.data) {
-      return NextResponse.json(cachedOverviewStats.data, {
+    const cached = appCache.get(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
       });
     }

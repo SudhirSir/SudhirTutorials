@@ -5,9 +5,10 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 
-let cachedFinSummary: { timestamp: number; data: any } | null = null;
-const CACHE_TTL_MS = 20000; // 20 seconds memory cache for lightning-fast tab navigation
+const CACHE_KEY = 'admin:finances:summary';
+const CACHE_TTL_SECONDS = 20;
 
 export async function GET(req: Request) {
   try {
@@ -18,13 +19,12 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const forceRefresh = searchParams.get('fresh') === 'true';
-    const nowTs = Date.now();
 
-    if (!forceRefresh && cachedFinSummary && (nowTs - cachedFinSummary.timestamp < CACHE_TTL_MS)) {
-      return NextResponse.json(cachedFinSummary.data, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-      });
+    if (forceRefresh) {
+      appCache.del(CACHE_KEY);
     }
+
+    const payload = await appCache.getOrSet(CACHE_KEY, async () => {
 
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0);
@@ -203,7 +203,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const payload = {
+    return {
       totalRevenue,
       totalExpenses,
       totalPending,
@@ -212,18 +212,16 @@ export async function GET(req: Request) {
       netProfit: totalRevenue - totalExpenses,
       monthlyData
     };
-
-    if (totalRevenue > 0 || totalPending > 0 || currentMonthCollected > 0) {
-      cachedFinSummary = { timestamp: nowTs, data: payload };
-    }
+  }, CACHE_TTL_SECONDS);
 
     return NextResponse.json(payload, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
   } catch (error) {
     console.error('Error fetching finance summary:', error);
-    if (cachedFinSummary?.data) {
-      return NextResponse.json(cachedFinSummary.data, {
+    const cached = appCache.get(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
       });
     }

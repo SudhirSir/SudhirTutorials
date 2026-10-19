@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 
 export async function GET(req: Request) {
   try {
@@ -16,59 +17,70 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('q');
     const role = searchParams.get('role');
+    const forceFresh = searchParams.get('fresh') === 'true';
 
-    const selectFields = {
-      id: true,
-      username: true,
-      name: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      studentProfile: true,
-      teacherProfile: true,
-    };
+    const cacheKey = `admin:directory:${role || 'ALL'}:${search ? search.trim().toLowerCase() : ''}`;
 
-    const where: any = { isStoreUser: false };
-    if (role) {
-      if (role === 'TEACHER_OR_ADMIN') {
-        where.role = { in: ['TEACHER', 'ADMIN'] };
-      } else {
-        where.role = role;
-      }
-    } else {
-      where.role = { in: ['STUDENT', 'TEACHER', 'ADMIN'] };
+    if (forceFresh) {
+      appCache.del(cacheKey);
     }
 
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { username: { contains: search, mode: 'insensitive' } }
-      ];
-    }
-
-    const users = await withDbRetry(() => prisma.user.findMany({
-      where,
-      select: selectFields,
-      orderBy: { name: 'asc' },
-      ...(search || role ? {} : { take: 100 })
-    }));
-
-    const mappedUsers = users.map((u: any) => {
-      const photo = u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl;
-      return {
-        id: u.id,
-        username: u.username,
-        name: u.name,
-        role: u.role,
-        isActive: u.isActive !== undefined ? u.isActive : true,
-        createdAt: u.createdAt,
-        photoUrl: photo || null,
-        studentProfile: u.studentProfile,
-        teacherProfile: u.teacherProfile
+    const mappedUsers = await appCache.getOrSet(cacheKey, async () => {
+      const selectFields = {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        studentProfile: true,
+        teacherProfile: true,
       };
-    });
 
-    return NextResponse.json({ users: mappedUsers });
+      const where: any = { NOT: { isStoreUser: true } };
+      if (role) {
+        if (role === 'TEACHER_OR_ADMIN') {
+          where.role = { in: ['TEACHER', 'ADMIN'] };
+        } else {
+          where.role = role;
+        }
+      } else {
+        where.role = { in: ['STUDENT', 'TEACHER', 'ADMIN'] };
+      }
+
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } }
+        ];
+      }
+
+      const users = await withDbRetry(() => prisma.user.findMany({
+        where,
+        select: selectFields,
+        orderBy: { name: 'asc' },
+        ...(search || role ? {} : { take: 100 })
+      }));
+
+      return users.map((u: any) => {
+        const photo = u.role === 'STUDENT' ? u.studentProfile?.photoUrl : u.teacherProfile?.photoUrl;
+        return {
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          role: u.role,
+          isActive: u.isActive !== undefined ? u.isActive : true,
+          createdAt: u.createdAt,
+          photoUrl: photo || null,
+          studentProfile: u.studentProfile,
+          teacherProfile: u.teacherProfile
+        };
+      });
+    }, 10);
+
+    return NextResponse.json({ users: mappedUsers }, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch directory" }, { status: 500 });
   }

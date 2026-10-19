@@ -1005,16 +1005,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       .sort((a, b) => (latestTime.get(b.id) ?? 0) - (latestTime.get(a.id) ?? 0));
   }, [contacts, messages, currentUserId]);
 
-  // ── Auto-open to latest chat ONLY on initial desktop load (preserves Back button state) ──
-  const hasAutoOpenedRef = useRef(false);
+  // ── Auto-open disabled: preserve conversation list until user explicitly selects a chat ──
   useEffect(() => {
-    if (!hasAutoOpenedRef.current && !selectedUser && !initialSelectedUserId && sortedContacts.length > 0 && !initialLoading) {
-      if (typeof window !== 'undefined' && window.innerWidth > 768) {
-        hasAutoOpenedRef.current = true;
-        setSelectedUser(sortedContacts[0]);
-      }
-    }
-  }, [sortedContacts, selectedUser, initialSelectedUserId, initialLoading]);
+    // Left intentionally empty to ensure no default chat is opened automatically on desktop or mobile
+  }, []);
 
   // ── Helper to reliably open base64 and remote file attachments ───────────
   const downloadOrOpenFile = useCallback((mediaUrl: string, fileName: string) => {
@@ -1843,16 +1837,16 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
               {selectedUser.role === 'GROUP' ? (
                 <>
                   <button onClick={handleLeaveGroup}
-                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ width: '100%', padding: '0.5rem 0.8rem', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: '#fff', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
                     🚪 Leave Group
                   </button>
                   {isAdminOfGroup && (
                     <button onClick={handleDeleteGroup}
-                      style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                      style={{ width: '100%', padding: '0.5rem 0.8rem', borderRadius: 8, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
                       🗑️ Delete Group
                     </button>
                   )}
@@ -1860,11 +1854,11 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
               ) : (
                 <>
                   <button onClick={() => handleToggleBlock(selectedUser.id)}
-                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'transparent', border: `1px solid ${blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171'}`, color: blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
+                    style={{ width: '100%', padding: '0.5rem 0.8rem', borderRadius: 8, background: 'transparent', border: `1px solid ${blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171'}`, color: blockedUsers.includes(selectedUser.id) ? '#10b981' : '#f87171', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.15s' }}>
                     {blockedUsers.includes(selectedUser.id) ? '🔓 Unblock User' : '🚫 Block User'}
                   </button>
                   <button onClick={() => { if (confirm('Delete entire chat? Cannot be undone.')) { handleDeleteChat(selectedUser.id); setShowProfileModal(false); } }}
-                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ width: '100%', padding: '0.5rem 0.8rem', borderRadius: 8, background: '#ef4444', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
                     🗑️ Delete Chat
                   </button>
                   <button onClick={async () => {
@@ -1875,7 +1869,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                       alert('Report submitted.');
                     } catch { alert('Failed. Try again.'); }
                   }}
-                    style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ width: '100%', padding: '0.5rem 0.8rem', borderRadius: 8, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
                     ⚠️ Report User
                   </button>
                 </>

@@ -72,6 +72,7 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
           name: data.name || '',
           email: data.profile?.email || '',
           registrationNo: data.profile?.registrationNo || '',
+          rollNumber: data.profile?.rollNumber || '',
           phone: data.profile?.phone || '',
           address: data.profile?.address || '',
           dob: formattedDob,
@@ -543,6 +544,15 @@ export function ProfileEditor({ role }: ProfileEditorProps) {
               <div>
                 <label style={labelStyle}>School / Institution</label>
                 <input style={inputStyle} value={form.school} onChange={e => setForm((f: any) => ({ ...f, school: e.target.value }))} />
+              </div>
+              <div>
+                <label style={labelStyle}>Roll Number</label>
+                <input 
+                  style={inputStyle} 
+                  value={form.rollNumber || ''} 
+                  onChange={e => setForm((f: any) => ({ ...f, rollNumber: e.target.value }))} 
+                  placeholder="e.g. 101 or ROLL-2026" 
+                />
               </div>
               <div>
                 <label style={labelStyle}>Registration Number</label>

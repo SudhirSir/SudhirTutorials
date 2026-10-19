@@ -138,27 +138,32 @@ export async function GET(req: Request) {
     if (subject && subject !== 'ALL') where.subject = subject;
     if (chapterName && chapterName !== 'ALL') where.chapterName = { contains: chapterName, mode: 'insensitive' };
 
-    const mockTests = await withDbRetry(() => prisma.chapterMockTest.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            questions: true,
-            submissions: true,
-          }
+    const cacheKey = `mock-tests:list:${role}:${userId}:${targetClass || 'ALL'}:${targetBoard || 'ALL'}:${subject || 'ALL'}:${chapterName || 'ALL'}:${isPublished || 'ALL'}`;
+    const mockTests = await appCache.getOrSet(cacheKey, () => {
+      return withDbRetry(() => prisma.chapterMockTest.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              questions: true,
+              submissions: true,
+            }
+          },
+          createdBy: {
+            select: { name: true, role: true }
+          },
+          submissions: role === 'STUDENT' ? {
+            where: { studentId: userId },
+            orderBy: { createdAt: 'desc' },
+          } : false
         },
-        createdBy: {
-          select: { name: true, role: true }
-        },
-        submissions: role === 'STUDENT' ? {
-          where: { studentId: userId },
-          orderBy: { createdAt: 'desc' },
-        } : false
-      },
-      orderBy: { createdAt: 'desc' }
-    }));
+        orderBy: { createdAt: 'desc' }
+      }));
+    }, 15);
 
-    return NextResponse.json({ mockTests, success: true });
+    return NextResponse.json({ mockTests, success: true }, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    });
   } catch (error) {
     console.error('Error fetching chapter mock tests:', error);
     return NextResponse.json({ error: 'Failed to fetch chapter mock tests' }, { status: 500 });
@@ -198,6 +203,9 @@ export async function POST(req: Request) {
         createdById: session.user.id
       }
     }));
+
+    appCache.invalidate('mock-tests');
+    appCache.invalidate('leaderboard');
 
     // Auto notification to matching class & board students if published
     if (data.isPublished) {

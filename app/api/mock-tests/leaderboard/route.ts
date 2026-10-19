@@ -66,20 +66,21 @@ export async function GET(req: Request) {
           orderBy: { createdAt: 'asc' }
         }));
 
-        // Filter FIRST ATTEMPT ONLY per student using O(N) Hash Map
-        const firstAttemptsMap = new Map<string, any>();
+        // Track highest score (best attempt) achieved per student
+        const bestAttemptsMap = new Map<string, any>();
         for (const sub of allSubmissions) {
-          if (!firstAttemptsMap.has(sub.studentId)) {
-            firstAttemptsMap.set(sub.studentId, sub);
+          const existing = bestAttemptsMap.get(sub.studentId);
+          if (!existing || sub.score > existing.score || (sub.score === existing.score && sub.timeTaken < existing.timeTaken)) {
+            bestAttemptsMap.set(sub.studentId, sub);
           }
         }
 
-        const leaderboardList = Array.from(firstAttemptsMap.values());
+        const leaderboardList = Array.from(bestAttemptsMap.values());
 
-        // Rank students:
-        // 1. Score (descending)
-        // 2. Time taken (ascending - faster time gets better rank)
-        // 3. Created date (ascending)
+        // Strictly rank students based on marks achieved in descending order:
+        // 1. Score (descending - highest marks achieved = Rank 1)
+        // 2. Time taken (ascending - faster completion is tie-breaker)
+        // 3. Submission date (ascending - earlier attempt is tie-breaker)
         leaderboardList.sort((a, b) => {
           if (b.score !== a.score) return b.score - a.score;
           if (a.timeTaken !== b.timeTaken) return a.timeTaken - b.timeTaken;
@@ -157,7 +158,7 @@ export async function GET(req: Request) {
         orderBy: { createdAt: 'asc' }
       }));
 
-      // Group by student & mockTestId -> keep FIRST ATTEMPT ONLY
+      // Group by student & mockTestId -> keep HIGHEST SCORE attempt per student
       const studentTestMap = new Map<string, Map<string, any>>();
 
       for (const sub of allSubmissions) {
@@ -165,7 +166,8 @@ export async function GET(req: Request) {
           studentTestMap.set(sub.studentId, new Map());
         }
         const testMap = studentTestMap.get(sub.studentId)!;
-        if (!testMap.has(sub.mockTestId)) {
+        const existing = testMap.get(sub.mockTestId);
+        if (!existing || sub.score > existing.score || (sub.score === existing.score && sub.timeTaken < existing.timeTaken)) {
           testMap.set(sub.mockTestId, sub);
         }
       }

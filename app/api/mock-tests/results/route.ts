@@ -60,7 +60,11 @@ export async function GET(req: Request) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [
+        { score: 'desc' },
+        { timeTaken: 'asc' },
+        { createdAt: 'asc' }
+      ]
     }));
 
     return NextResponse.json({ submissions, success: true });

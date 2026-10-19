@@ -217,14 +217,22 @@ function AdminDashboardContent() {
         fetchAllStudents()
       ]);
     }
-  }, [searchParams, session]);
+  }, [searchParams, session, activeTab]);
 
   const fetchTeachers = async () => {
     try {
       const res = await fetch('/api/admin/directory?role=TEACHER_OR_ADMIN');
       const data = await res.json();
-      setAllTeachers(data.users || []);
-    } catch (e) {}
+      if (Array.isArray(data.users) && data.users.length > 0) {
+        setAllTeachers(data.users);
+      } else {
+        const fallbackRes = await fetch('/api/admin/directory?role=TEACHER');
+        const fallbackData = await fallbackRes.json();
+        setAllTeachers(fallbackData.users || []);
+      }
+    } catch (e) {
+      console.error("fetchTeachers error", e);
+    }
   };
   
   // User Creation State
@@ -2399,27 +2407,10 @@ function AdminDashboardContent() {
       });
       if (res.ok) {
         const data = await res.json();
-        const hasValidMetrics = (data.totalStudents > 0 || data.totalTeachers > 0 || data.revenueThisMonth > 0 || data.totalBatches > 0 || data.totalCourses > 0);
-        if (hasValidMetrics || !overviewStats) {
-          setOverviewStats((prev: any) => {
-            if (!prev) return data;
-            return {
-              ...data,
-              totalStudents: data.totalStudents || prev.totalStudents || 0,
-              totalTeachers: data.totalTeachers || prev.totalTeachers || 0,
-              totalBatches: data.totalBatches || prev.totalBatches || 0,
-              totalCourses: data.totalCourses || prev.totalCourses || 0,
-              revenueThisMonth: data.revenueThisMonth || prev.revenueThisMonth || 0,
-              pendingDues: data.pendingDues || prev.pendingDues || 0,
-              classStats: (data.classStats && data.classStats.length > 0) ? data.classStats : (prev.classStats || [])
-            };
-          });
-        }
-        if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
-        if (hasValidMetrics) {
+        if (data) {
+          setOverviewStats(data);
+          if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
           try { sessionStorage.setItem('st_overview_stats', JSON.stringify(data)); } catch (e) {}
-        } else if (retryCount < 3) {
-          setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 600);
         }
       } else if (res.status === 401 && retryCount < 2) {
         setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 400);
@@ -2910,7 +2901,7 @@ function AdminDashboardContent() {
     fetchUnreadCounts();
 
     if (activeTab === 'overview') {
-      fetchOverviewStats(true);
+      fetchOverviewStats(false);
       fetchPendingVerifications();
     } else if (activeTab === 'users' || activeTab === 'directory') {
       handleSearchDirectory();
@@ -2940,6 +2931,9 @@ function AdminDashboardContent() {
     } else if (activeTab === 'tests' || (activeTab === 'academics' && academicSubTab === 'tests')) {
       fetchTests();
       fetchCourses();
+    } else if (activeTab === 'mock-tests' || (activeTab === 'academics' && academicSubTab === 'mock-tests')) {
+      fetchCourses();
+      fetchBatches();
     } else if (activeTab === 'analytics' || (activeTab === 'academics' && academicSubTab === 'analytics')) {
       fetchReports();
       fetchFinSummary();
@@ -3517,15 +3511,16 @@ function AdminDashboardContent() {
               background: 'rgba(255, 255, 255, 0.05)',
               border: '1px solid var(--border)',
               color: 'var(--text)',
-              padding: '0.45rem 0.9rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.75rem',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 600,
+              fontSize: '0.72rem',
+              lineHeight: 1,
               cursor: 'pointer',
               transition: 'all 0.2s',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.35rem'
             }}
             className="academic-back-btn"
           >
@@ -3605,65 +3600,65 @@ function AdminDashboardContent() {
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
             background: 'var(--card-bg)',
-            borderRadius: '16px',
+            borderRadius: '12px',
             border: '1px solid var(--border)',
             overflow: 'hidden',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
           }}>
             {/* Box 1: Total Batches */}
             <div style={{
-              padding: '1.25rem 1.5rem',
+              padding: '0.65rem 1rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '1rem',
+              gap: '0.65rem',
               borderRight: '1px solid var(--border)',
               background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05), transparent)'
             }}>
               <div style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '12px',
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
                 background: 'rgba(99, 102, 241, 0.12)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.45rem',
+                fontSize: '1.05rem',
                 flexShrink: 0
               }}>
                 📚
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }}>Total Batches</span>
-                <span className="stat-value" style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.1 }}>{overviewStats?.totalBatches ?? '--'}</span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Batches</span>
+                <span className="stat-value" style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.1 }}>{overviewStats?.totalBatches ?? '--'}</span>
               </div>
             </div>
 
             {/* Box 2: Total Courses */}
             <div style={{
-              padding: '1.25rem 1.5rem',
+              padding: '0.65rem 1rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '1rem',
+              gap: '0.65rem',
               background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), transparent)'
             }}>
               <div style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '12px',
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
                 background: 'rgba(16, 185, 129, 0.12)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.45rem',
+                fontSize: '1.05rem',
                 flexShrink: 0
               }}>
                 🎓
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }}>Total Courses</span>
-                <span className="stat-value" style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.1 }}>{overviewStats?.totalCourses ?? '--'}</span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Courses</span>
+                <span className="stat-value" style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.1 }}>{overviewStats?.totalCourses ?? '--'}</span>
               </div>
             </div>
           </div>
@@ -5771,30 +5766,30 @@ function AdminDashboardContent() {
         )}
 
           {financeSubTab === 'ASSIGN' && (
-            <div className="glass-card" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', fontWeight: 800 }}>Assign New Fee</h3>
+            <div className="glass-card" style={{ padding: '1.25rem 1.5rem', maxWidth: '480px', margin: '0 auto', width: '100%' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', fontWeight: 700 }}>Assign New Fee</h3>
 
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', background: 'rgba(0,0,0,0.2)', padding: '3px', borderRadius: '10px' }}>
                 <button 
                   type="button"
                   onClick={() => setAddFeeMode('INDIVIDUAL')}
-                  style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'INDIVIDUAL' ? 'var(--primary)' : 'transparent', color: 'white' }}
+                  style={{ flex: 1, padding: '0.45rem', borderRadius: '7px', border: 'none', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'INDIVIDUAL' ? 'var(--primary)' : 'transparent', color: 'white' }}
                 >
                   Student Charge
                 </button>
                 <button 
                   type="button"
                   onClick={() => setAddFeeMode('BATCH')}
-                  style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'BATCH' ? 'var(--primary)' : 'transparent', color: 'white' }}
+                  style={{ flex: 1, padding: '0.45rem', borderRadius: '7px', border: 'none', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: addFeeMode === 'BATCH' ? 'var(--primary)' : 'transparent', color: 'white' }}
                 >
                   Batch Allocation
                 </button>
               </div>
 
-              <form onSubmit={handleAddFee} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <form onSubmit={handleAddFee} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {addFeeMode === 'INDIVIDUAL' ? (
                   <div className="input-group">
-                    <label>Select Student</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Select Student</label>
                     <div style={{ position: 'relative' }}>
                       <input
                         list="student-list"
@@ -5822,9 +5817,9 @@ function AdminDashboardContent() {
                           }
                         }}
                         style={{
-                          width: '100%', padding: '0.85rem 1.25rem',
-                          borderRadius: '12px',
-                          background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem'
+                          width: '100%', padding: '0.55rem 0.85rem',
+                          borderRadius: '8px',
+                          background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem'
                         }}
                       />
                       <datalist id="student-list">
@@ -5836,7 +5831,7 @@ function AdminDashboardContent() {
                   </div>
                 ) : (
                   <div className="input-group">
-                    <label>Select Allocation Batch Target</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Select Allocation Batch Target</label>
                     <select
                       required
                       value={feeStudentId}
@@ -5849,7 +5844,7 @@ function AdminDashboardContent() {
                           setFeeAmount('');
                         }
                       }}
-                      style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                     >
                       <option value="">-- Choose Target Batch --</option>
                       {batches.map(b => (
@@ -5860,52 +5855,55 @@ function AdminDashboardContent() {
                 )}
 
                 {addFeeMode === 'INDIVIDUAL' ? (
-                  <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                     <div className="input-group">
-                      <label>Base Fee (₹)</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Base Fee (₹)</label>
                       <input
                         type="number"
                         required
-                        placeholder="Enter base fee"
+                        placeholder="Base fee"
                         value={feeAmount}
                         onChange={e => setFeeAmount(e.target.value)}
+                        style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
                       />
                     </div>
                     <div className="input-group">
-                      <label>Discount (₹)</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Discount (₹)</label>
                       <input
                         type="number"
                         required
-                        placeholder="Enter discount amount"
+                        placeholder="Discount"
                         value={feeDiscount}
                         onChange={e => setFeeDiscount(e.target.value)}
+                        style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
                       />
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="input-group">
-                    <label>Amount (₹)</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Amount (₹)</label>
                     <input
                       type="number"
                       required
                       placeholder="Enter amount"
                       value={feeAmount}
                       onChange={e => setFeeAmount(e.target.value)}
+                      style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
                     />
                   </div>
                 )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div className="input-group">
-                    <label>Billing Month</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Billing Month</label>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <select
                         value={feeBillingMonth.split(' ')[0] || 'January'}
                         onChange={e => {
                           const yearPart = feeBillingMonth.split(' ')[1] || String(new Date().getFullYear());
                           setFeeBillingMonth(`${e.target.value} ${yearPart}`);
                         }}
-                        style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                        style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                       >
                         {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
                           <option key={m} value={m}>{m}</option>
@@ -5917,7 +5915,7 @@ function AdminDashboardContent() {
                           const monthPart = feeBillingMonth.split(' ')[0] || 'January';
                           setFeeBillingMonth(`${monthPart} ${e.target.value}`);
                         }}
-                        style={{ width: '110px', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                        style={{ width: '95px', padding: '0.55rem 0.65rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                       >
                         {Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - 1 + i)).map(y => (
                           <option key={y} value={y}>{y}</option>
@@ -5926,11 +5924,11 @@ function AdminDashboardContent() {
                     </div>
                   </div>
                   <div className="input-group">
-                    <label>Category</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Category</label>
                     <select 
                       value={feeTitle} 
                       onChange={e => setFeeTitle(e.target.value)}
-                      style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                      style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                     >
                       <option value="Monthly Fee">Monthly</option>
                       <option value="Registration">Registration</option>
@@ -5942,30 +5940,30 @@ function AdminDashboardContent() {
                 </div>
 
                 {feeTitle === 'Others' && (
-                  <div className="input-group" style={{ marginTop: '0.75rem' }}>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Specify Custom Fee Category Name</label>
+                  <div className="input-group">
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Specify Custom Fee Category Name</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Special Fee / Uniform / Picnic / Fine / Others" 
+                      placeholder="e.g. Special Fee / Uniform / Fine" 
                       value={feeCategoryCustomTitle} 
                       onChange={e => setFeeCategoryCustomTitle(e.target.value)} 
-                      style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} 
+                      style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }} 
                     />
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div className="input-group">
-                    <label>Issue Date (Optional)</label>
-                    <input type="date" value={feeCreatedAt} onChange={e => setFeeCreatedAt(e.target.value)} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Issue Date (Optional)</label>
+                    <input type="date" value={feeCreatedAt} onChange={e => setFeeCreatedAt(e.target.value)} style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }} />
                   </div>
                   <div className="input-group">
-                    <label>Due Date (Optional)</label>
-                    <input type="date" value={feeDueDate} onChange={e => setFeeDueDate(e.target.value)} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Due Date (Optional)</label>
+                    <input type="date" value={feeDueDate} onChange={e => setFeeDueDate(e.target.value)} style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }} />
                   </div>
                 </div>
 
-                <button type="submit" disabled={isAddingFee} className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }}>
+                <button type="submit" disabled={isAddingFee} className="btn-primary" style={{ width: '100%', marginTop: '0.5rem', padding: '0.65rem 1rem', fontSize: '0.85rem', borderRadius: '8px' }}>
                   {isAddingFee ? 'Assigning...' : 'Assign Fee / Charge'}
                 </button>
               </form>
@@ -6464,7 +6462,7 @@ function AdminDashboardContent() {
             <div className="glass-card" style={{ padding: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 800 }}>Course Directory</h2>
               <form onSubmit={handleCreateCourse} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                <input type="text" required placeholder="Course Name" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', flex: '1 1 200px', minWidth: 0 }} />
+                <input type="text" required placeholder="Course Name" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', flex: '1 1 200px', minWidth: 0 }} />
                 <button type="submit" className="btn-primary" disabled={isAddingCourse} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', fontSize: '0.9rem', flex: '1 1 auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isAddingCourse ? '...' : 'Add Course'}</button>
               </form>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -6479,7 +6477,7 @@ function AdminDashboardContent() {
                             required 
                             value={editingCourseName} 
                             onChange={e => setEditingCourseName(e.target.value)} 
-                            style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', width: '100%' }} 
+                            style={{ padding: '0.6rem', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', width: '100%' }} 
                           />
                         </div>
                         <div className="input-group">
@@ -6489,7 +6487,7 @@ function AdminDashboardContent() {
                             placeholder="Description (optional)" 
                             value={editingCourseDesc} 
                             onChange={e => setEditingCourseDesc(e.target.value)} 
-                            style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', color: 'white', width: '100%' }} 
+                            style={{ padding: '0.6rem', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', width: '100%' }} 
                           />
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -6513,7 +6511,7 @@ function AdminDashboardContent() {
                               setEditingCourseName(course.name);
                               setEditingCourseDesc(course.description || '');
                             }} 
-                            style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                            style={{ padding: '6px 10px', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
                           >
                             ✎ Edit
                           </button>
@@ -6699,7 +6697,11 @@ function AdminDashboardContent() {
                           💬 Message Batch
                         </button>
                         <button 
-                          onClick={() => { setEditingBatch(batch); setShowBatchEditModal(true); }}
+                          onClick={() => { 
+                            setEditingBatch(batch); 
+                            if (allTeachers.length === 0) fetchTeachers();
+                            setShowBatchEditModal(true); 
+                          }}
                           className="btn-secondary"
                           style={{ padding: '0.55rem 1rem', borderRadius: '12px' }}
                         >
@@ -7121,18 +7123,18 @@ function AdminDashboardContent() {
           )}
 
           {showPublishMaterialForm && (
-            <div className="glass-card animate-scale-up" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700, color: '#ef4444' }}>Publish Study Material</h3>
-              <form onSubmit={handleUploadMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', maxWidth: '480px', margin: '0 auto', width: '100%' }}>
+              <h3 style={{ fontSize: '1.15rem', marginBottom: '1rem', fontWeight: 700, color: '#ef4444' }}>Publish Study Material</h3>
+              <form onSubmit={handleUploadMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 
                 <div className="input-group">
-                  <label style={{ fontWeight: 600 }}>Title / Description</label>
-                  <input type="text" required placeholder="e.g. Physics Chapter 1 Notes" value={matTitle} onChange={e => setMatTitle(e.target.value)} />
+                  <label style={{ fontWeight: 600, fontSize: '0.8rem' }}>Title / Description</label>
+                  <input type="text" required placeholder="e.g. Physics Chapter 1 Notes" value={matTitle} onChange={e => setMatTitle(e.target.value)} style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }} />
                 </div>
 
                 <div className="input-group">
-                  <label style={{ fontWeight: 600 }}>Material Type</label>
-                  <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <label style={{ fontWeight: 600, fontSize: '0.8rem' }}>Material Type</label>
+                  <select value={matType} onChange={e => setMatType(e.target.value)} style={{ padding: '0.55rem 0.85rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem' }}>
                     <option value="PDF">PDF Document</option>
                     <option value="VIDEO">Video File / Clip</option>
                     <option value="WORD">Word Document (DOCX)</option>
@@ -7142,21 +7144,21 @@ function AdminDashboardContent() {
                 </div>
 
                 <div className="input-group">
-                  <label style={{ fontWeight: 600 }}>Course Category</label>
-                  <select required value={matCourseId} onChange={e => setMatCourseId(e.target.value)} style={{ padding: '0.85rem 1.25rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                  <label style={{ fontWeight: 600, fontSize: '0.8rem' }}>Course Category</label>
+                  <select required value={matCourseId} onChange={e => setMatCourseId(e.target.value)} style={{ padding: '0.55rem 0.85rem', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem' }}>
                     <option value="">Select a Course...</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '0.25rem' }}>
                   <button
                     type="button"
                     onClick={() => setUploadMode('FILE')}
                     style={{
-                      flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+                      flex: 1, padding: '6px', borderRadius: '6px', border: 'none',
                       background: uploadMode === 'FILE' ? '#ef4444' : 'transparent',
-                      color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
+                      color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: '0.2s'
                     }}
                   >
                     📂 Local File
@@ -7165,9 +7167,9 @@ function AdminDashboardContent() {
                     type="button"
                     onClick={() => setUploadMode('URL')}
                     style={{
-                      flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+                      flex: 1, padding: '6px', borderRadius: '6px', border: 'none',
                       background: uploadMode === 'URL' ? '#ef4444' : 'transparent',
-                      color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: '0.2s'
+                      color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: '0.2s'
                     }}
                   >
                     🔗 Paste URL
@@ -7177,8 +7179,8 @@ function AdminDashboardContent() {
                 {uploadMode === 'FILE' ? (
                   <div style={{
                     border: '2px dashed var(--border)',
-                    borderRadius: '16px',
-                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    padding: '1rem',
                     textAlign: 'center',
                     cursor: 'pointer',
                     position: 'relative',
@@ -7196,35 +7198,35 @@ function AdminDashboardContent() {
                         cursor: 'pointer'
                       }}
                     />
-                    <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>📤</div>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '0.2rem' }}>📤</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text)' }}>
                       {selectedFileName ? 'Change Selected File' : 'Drag & Drop or Click to Select'}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                       PDF, DOC, DOCX, PNG, JPG, MP4, etc.
                     </div>
                     {selectedFileName && (
-                      <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ marginTop: '0.5rem', padding: '0.4rem', background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {selectedFileName}
                         </span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>
                           Size: {selectedFileSize}
                         </span>
                         {filePreview && (
-                          <img src={filePreview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', margin: '4px auto 0', border: '1px solid var(--border)' }} />
+                          <img src={filePreview} alt="Preview" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', margin: '4px auto 0', border: '1px solid var(--border)' }} />
                         )}
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="input-group">
-                    <label style={{ fontWeight: 600 }}>File URL / External Link</label>
-                    <input type="text" required placeholder="https://..." value={matUrl} onChange={e => setMatUrl(e.target.value)} />
+                    <label style={{ fontWeight: 600, fontSize: '0.8rem' }}>File URL / External Link</label>
+                    <input type="text" required placeholder="https://..." value={matUrl} onChange={e => setMatUrl(e.target.value)} style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }} />
                   </div>
                 )}
 
-                <button type="submit" className="btn-primary" disabled={isUploading} style={{ background: '#10b981', border: 'none', marginTop: '0.5rem' }}>
+                <button type="submit" className="btn-primary" disabled={isUploading} style={{ background: '#10b981', border: 'none', marginTop: '0.35rem', padding: '0.65rem 1rem', fontSize: '0.85rem', borderRadius: '8px' }}>
                   {isUploading ? 'Publishing...' : '🚀 Publish Material'}
                 </button>
               </form>
@@ -9215,22 +9217,69 @@ function AdminDashboardContent() {
 
                       {/* Add Teachers */}
                       <div className="glass-card" style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)' }}>
-                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          ➕ Available Teachers
-                        </h4>
-                        <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                          <h4 style={{ fontSize: '0.95rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            ➕ Add Faculty / Teacher
+                          </h4>
+                          {allTeachers.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={() => fetchTeachers()}
+                              style={{ padding: '2px 8px', fontSize: '0.7rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                              ↻ Reload
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Dropdown Selection */}
+                        <div style={{ marginBottom: '0.75rem' }}>
+                          <select
+                            defaultValue=""
+                            onChange={(e) => {
+                              const tId = e.target.value;
+                              if (!tId) return;
+                              const t = allTeachers.find(item => item.id === tId || item.username === tId);
+                              if (t && !editingBatch.teachers?.some((te: any) => te.id === t.id)) {
+                                const newTeachers = [...(editingBatch.teachers || []), t];
+                                setEditingBatch({ ...editingBatch, teachers: newTeachers });
+                              }
+                              e.target.value = "";
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.55rem 0.75rem',
+                              borderRadius: '8px',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border)',
+                              color: 'var(--text)',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            <option value="">-- Select Teacher from Dropdown --</option>
+                            {allTeachers
+                              .filter(t => !editingBatch.teachers?.some((te: any) => te.id === t.id))
+                              .map((t: any) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.name} ({t.username})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+
+                        <div style={{ maxHeight: '130px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                           {allTeachers.filter(t => !editingBatch.teachers?.some((te: any) => te.id === t.id)).length === 0 ? (
-                            <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                              All teachers assigned.
+                            <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                              {allTeachers.length === 0 ? 'Loading teachers or none available...' : 'All teachers assigned.'}
                             </div>
                           ) : (
                             allTeachers
                               .filter(t => !editingBatch.teachers?.some((te: any) => te.id === t.id))
                               .map((t: any) => (
-                                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', border: '1px dashed var(--border)' }}>
+                                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.01)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t.name}</span>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.username}</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t.name}</span>
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{t.username}</span>
                                   </div>
                                   <button 
                                     type="button"
@@ -9238,7 +9287,7 @@ function AdminDashboardContent() {
                                       const newTeachers = [...(editingBatch.teachers || []), t];
                                       setEditingBatch({ ...editingBatch, teachers: newTeachers });
                                     }}
-                                    style={{ padding: '4px 10px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700 }}
+                                    style={{ padding: '3px 8px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700 }}
                                   >
                                     + Assign
                                   </button>
@@ -9824,18 +9873,18 @@ function AdminDashboardContent() {
 
       {/* ── Edit Fee Record Modal (Admin corrective editing) ───────────────── */}
       {showEditFeeModal && editingFeeRecord && typeof window !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 980000, overflowY: 'auto', padding: '2rem 1rem' }}>
-          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', margin: 'auto', border: '1px solid var(--primary)', borderRadius: '24px', background: 'var(--card-bg)' }}>
-            <h2 style={{ fontSize: '1.6rem', margin: '0 0 0.5rem', fontWeight: 800, color: 'var(--text)' }}>✎ Edit Fee Record</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 980000, overflowY: 'auto', padding: '1.5rem 1rem' }}>
+          <div className="glass-card animate-scale-up" style={{ width: '100%', maxWidth: '450px', padding: '1.25rem 1.5rem', margin: 'auto', border: '1px solid var(--primary)', borderRadius: '16px', background: 'var(--card-bg)' }}>
+            <h2 style={{ fontSize: '1.25rem', margin: '0 0 0.25rem', fontWeight: 800, color: 'var(--text)' }}>✎ Edit Fee Record</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.82rem' }}>
               Student: <strong>{editingFeeRecord.student?.name}</strong> ({editingFeeRecord.student?.username})
             </p>
 
-            <form onSubmit={saveFeeRecordEdits} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={saveFeeRecordEdits} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               
               <div className="input-group">
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Billing Month</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Billing Month</label>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
                   <select
                     value={(editingFeeRecord.billingMonth || '').split(' ')[0] || 'January'}
                     onChange={e => {
@@ -9843,7 +9892,7 @@ function AdminDashboardContent() {
                       setEditingFeeRecord({...editingFeeRecord, billingMonth: `${e.target.value} ${yearPart}`});
                     }}
                     required
-                    style={{ flex: 1, padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   >
                     {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
                       <option key={m} value={m}>{m}</option>
@@ -9855,7 +9904,7 @@ function AdminDashboardContent() {
                       const monthPart = (editingFeeRecord.billingMonth || '').split(' ')[0] || 'January';
                       setEditingFeeRecord({...editingFeeRecord, billingMonth: `${monthPart} ${e.target.value}`});
                     }}
-                    style={{ width: '110px', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ width: '95px', padding: '0.5rem 0.65rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   >
                     {Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - 1 + i)).map(y => (
                       <option key={y} value={y}>{y}</option>
@@ -9865,80 +9914,80 @@ function AdminDashboardContent() {
               </div>
 
               <div className="input-group">
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Invoice Title / Description</label>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Invoice Title / Description</label>
                 <input 
                   type="text" 
                   required 
                   placeholder="e.g. Monthly Tuition Fee"
                   value={editingFeeRecord.title || ''} 
                   onChange={e => setEditingFeeRecord({...editingFeeRecord, title: e.target.value})} 
-                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="input-group">
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Base Amount (₹)</label>
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Base Amount (₹)</label>
                   <input 
                     type="number" 
                     required 
                     value={editingFeeRecord.amount ?? 0} 
                     onChange={e => setEditingFeeRecord({...editingFeeRecord, amount: parseFloat(e.target.value || '0')})} 
-                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   />
                 </div>
                 <div className="input-group">
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Discount Applied (₹)</label>
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Discount Applied (₹)</label>
                   <input 
                     type="number" 
                     required 
                     value={editingFeeRecord.discount ?? 0} 
                     onChange={e => setEditingFeeRecord({...editingFeeRecord, discount: parseFloat(e.target.value || '0')})} 
-                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="input-group">
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Late Fine Charged (₹)</label>
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Late Fine Charged (₹)</label>
                   <input 
                     type="number" 
                     required 
                     value={editingFeeRecord.lateFine ?? 0} 
                     onChange={e => setEditingFeeRecord({...editingFeeRecord, lateFine: parseFloat(e.target.value || '0')})} 
-                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   />
                 </div>
                 <div className="input-group">
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Paid Amount (₹)</label>
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Paid Amount (₹)</label>
                   <input 
                     type="number" 
                     required 
                     value={editingFeeRecord.paidAmount ?? 0} 
                     onChange={e => setEditingFeeRecord({...editingFeeRecord, paidAmount: parseFloat(e.target.value || '0')})} 
-                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="input-group">
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Due Date</label>
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Due Date</label>
                   <input 
                     type="date" 
                     required 
                     value={editingFeeRecord.dueDate ? new Date(editingFeeRecord.dueDate).toISOString().split('T')[0] : ''} 
                     onChange={e => setEditingFeeRecord({...editingFeeRecord, dueDate: e.target.value})} 
-                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   />
                 </div>
                 <div className="input-group">
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Payment Status</label>
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Payment Status</label>
                   <select 
                     value={editingFeeRecord.status || 'PENDING'} 
                     onChange={e => setEditingFeeRecord({...editingFeeRecord, status: e.target.value})}
-                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                   >
                     <option value="PENDING">Pending</option>
                     <option value="PAID">Paid (Offline)</option>
@@ -9950,21 +9999,21 @@ function AdminDashboardContent() {
               </div>
 
               <div className="input-group">
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Administrative Remarks</label>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Administrative Remarks</label>
                 <input 
                   type="text" 
                   placeholder="e.g. Corrected manual calculation error"
                   value={editingFeeRecord.remarks || ''} 
                   onChange={e => setEditingFeeRecord({...editingFeeRecord, remarks: e.target.value})} 
-                  style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
                 <button 
                   type="button" 
                   onClick={() => { setShowEditFeeModal(false); setEditingFeeRecord(null); }} 
-                  style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
                 >
                   Cancel
                 </button>
@@ -9972,7 +10021,7 @@ function AdminDashboardContent() {
                   type="submit" 
                   disabled={isSavingFeeRecord}
                   className="btn-primary" 
-                  style={{ padding: '0.55rem 1.25rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
                   {isSavingFeeRecord ? 'Saving Changes...' : 'Save Changes'}
                 </button>

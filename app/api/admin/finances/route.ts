@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
+import { appCache } from '@/lib/cache';
 
 const feeSchema = z.object({
   type: z.enum(['INDIVIDUAL', 'BATCH']),
@@ -299,6 +300,9 @@ export async function POST(req: Request) {
         `Assigned fee of ₹${finalAmount} (Net: ₹${finalAmount - finalDiscount}) to student ${studentId} for month ${billingMonth} (${title})`
       );
 
+      appCache.invalidate('admin:finances');
+      appCache.invalidate('admin:overview');
+
       return NextResponse.json({ success: true, payment });
     }
   } catch (error) {
@@ -440,6 +444,9 @@ export async function PATCH(req: Request) {
       `Updated fee status for record ${id} to ${status}. Paid amount: ₹${updated.paidAmount}`
     );
 
+    appCache.invalidate('admin:finances');
+    appCache.invalidate('admin:overview');
+
     return NextResponse.json({ success: true, payment: updated });
   } catch (error) {
     console.error(error);
@@ -527,6 +534,9 @@ export async function PUT(req: Request) {
       `Edited details for fee record ${id}. Amount: ₹${updated.amount}, Status: ${updated.status}`
     );
 
+    appCache.invalidate('admin:finances');
+    appCache.invalidate('admin:overview');
+
     return NextResponse.json({ success: true, payment: updated });
   } catch (error) {
     console.error('Error updating payment:', error);
@@ -552,6 +562,9 @@ export async function DELETE(req: Request) {
       'DELETE_FEE_RECORD',
       `Deleted fee record ${id}`
     );
+
+    appCache.invalidate('admin:finances');
+    appCache.invalidate('admin:overview');
 
     return NextResponse.json({ success: true });
   } catch (error) {

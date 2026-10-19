@@ -101,8 +101,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
       if (typeof window !== "undefined") {
         (window as any).isLoggingOut = true;
@@ -115,7 +118,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           safeLocalStorage.setItem('theme', theme);
         }
       }
-      await signOut({ redirect: false });
+      await signOut({ callbackUrl: '/login', redirect: true });
     } catch (e) {
       console.error("Signout error:", e);
     } finally {
@@ -484,9 +487,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="sidebar-footer">
-            <button onClick={handleLogout} className="btn-logout-modern">
-              <span className="icon">{icons.logout}</span>
-              Sign Out
+            <button onClick={handleLogout} disabled={isLoggingOut} className="btn-logout-modern" style={{ opacity: isLoggingOut ? 0.7 : 1, cursor: isLoggingOut ? 'not-allowed' : 'pointer' }}>
+              <span className="icon">{isLoggingOut ? '⏳' : icons.logout}</span>
+              {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
             </button>
           </div>
         </div>

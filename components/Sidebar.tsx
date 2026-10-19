@@ -17,8 +17,11 @@ interface SidebarProps {
 export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photoUrl }: SidebarProps) {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
       if (typeof window !== "undefined") {
         (window as any).isLoggingOut = true;
@@ -31,7 +34,7 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
           safeLocalStorage.setItem('theme', theme);
         }
       }
-      await signOut({ redirect: false });
+      await signOut({ callbackUrl: '/login', redirect: true });
     } catch (e) {
       console.error("Signout error:", e);
     } finally {
@@ -256,24 +259,33 @@ export function Sidebar({ activeTab, setActiveTab, role, name, isVerified, photo
         
         <button 
           onClick={handleLogout}
+          disabled={isLoggingOut}
           style={{
             width: '100%',
-            padding: '1rem',
+            padding: '0.85rem 1rem',
             borderRadius: '14px',
             border: '1px solid rgba(239, 68, 68, 0.2)',
-            background: 'rgba(239, 68, 68, 0.05)',
+            background: isLoggingOut ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.05)',
             color: '#ef4444',
             fontWeight: 700,
             fontSize: '0.9rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
+            cursor: isLoggingOut ? 'not-allowed' : 'pointer',
+            opacity: isLoggingOut ? 0.7 : 1,
+            transition: 'all 0.2s',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.75rem'
           }}
         >
-          Logout
+          {isLoggingOut ? (
+            <>
+              <span className="spinner" style={{ width: 14, height: 14, border: '2px solid rgba(239,68,68,0.3)', borderTopColor: '#ef4444', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.6s linear infinite' }} />
+              Logging out...
+            </>
+          ) : (
+            'Logout'
+          )}
         </button>
       </div>
 

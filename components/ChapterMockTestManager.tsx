@@ -552,7 +552,9 @@ export function ChapterMockTestManager() {
       const res = await fetch(`/api/mock-tests/results?mockTestId=${test.id}`);
       if (res.ok) {
         const data = await res.json();
-        setResults(data.submissions || []);
+        const rawSubs = data.submissions || [];
+        const sorted = [...rawSubs].sort((a: any, b: any) => (b.score - a.score) || (a.timeTaken - b.timeTaken));
+        setResults(sorted);
       }
     } catch (e) {
       console.error(e);
