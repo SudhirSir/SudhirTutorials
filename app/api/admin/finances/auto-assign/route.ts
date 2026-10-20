@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { getLateFineSettings } from '@/lib/feeSettings';
-import { getGradeLetterCode } from '@/lib/feeUtils';
+import { getGradeLetterCode, getNextUniqueReceiptNo } from '@/lib/feeUtils';
 
 // GET: Preview auto-billing for a specific month
 export async function GET(request: Request) {
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       if (baseFee <= 0) continue; // safety guard to exclude 0 base fee
       const discount = student.studentProfile?.scholarship || 0;
       const gradeCode = getGradeLetterCode(student.studentProfile?.className);
-      const receiptNo = `${String(targetYear).slice(-2)}/${gradeCode}/${1001 + currentTotalPayments + assignedCount}`;
+      const receiptNo = await getNextUniqueReceiptNo(prisma, dueDate, student.studentProfile?.className, assignedCount);
       
       paymentsToCreate.push({
         studentId: student.id,

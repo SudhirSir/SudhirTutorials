@@ -83,3 +83,54 @@ export function generateReceiptNo(payment: any, serial?: number | string): strin
   const serialStr = String(num).padStart(4, '0');
   return `${paidYear}/${gradeCode}/${serialStr}`;
 }
+
+/**
+ * Safely generates the next unique receipt number without any risk of collision.
+ * Format: {YY}/{GradeCode}/{Serial}
+ * Example: "26/B/1228"
+ */
+export async function getNextUniqueReceiptNo(
+  db: any,
+  dateVal?: Date | string,
+  className?: string | null,
+  offset: number = 0
+): Promise<string> {
+  const date = dateVal ? new Date(dateVal) : new Date();
+  const yearCode = String(date.getFullYear()).slice(-2);
+  const gradeCode = getGradeLetterCode(className);
+
+  // Retrieve existing receipt numbers for this year to find the true max numeric sequence
+  const payments = await db.payment.findMany({
+    where: {
+      receiptNo: {
+        startsWith: `${yearCode}/`
+      }
+    },
+    select: { receiptNo: true },
+    orderBy: { createdAt: 'desc' },
+    take: 500
+  });
+
+  let maxSerial = 1000;
+  for (const p of payments) {
+    if (!p.receiptNo) continue;
+    const parts = p.receiptNo.split('/');
+    if (parts.length === 3) {
+      const serialNum = parseInt(parts[2], 10);
+      if (!isNaN(serialNum) && serialNum > maxSerial) {
+        maxSerial = serialNum;
+      }
+    }
+  }
+
+  const count = await db.payment.count();
+  let candidateSerial = Math.max(maxSerial + 1, 1001 + count) + offset;
+
+  let candidate = `${yearCode}/${gradeCode}/${candidateSerial}`;
+  while (await db.payment.findUnique({ where: { receiptNo: candidate } })) {
+    candidateSerial++;
+    candidate = `${yearCode}/${gradeCode}/${candidateSerial}`;
+  }
+
+  return candidate;
+}

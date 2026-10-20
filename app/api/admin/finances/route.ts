@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
-import { calculateLateFine, generateReceiptNo, getGradeLetterCode } from '@/lib/feeUtils';
+import { calculateLateFine, generateReceiptNo, getGradeLetterCode, getNextUniqueReceiptNo } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
@@ -12,13 +12,22 @@ import { logActivity } from '@/lib/activity';
 import { appCache } from '@/lib/cache';
 
 const feeSchema = z.object({
-  type: z.enum(['INDIVIDUAL', 'BATCH']),
-  amount: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
-  billingMonth: z.string().min(1, "Month is required"),
+  type: z.enum(['INDIVIDUAL', 'BATCH']).optional().default('INDIVIDUAL'),
+  amount: z.union([z.string(), z.number()]).optional().transform(val => {
+    if (val === undefined || val === null || val === '') return undefined;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? undefined : num;
+  }),
+  billingMonth: z.string().min(1, "Billing month is required"),
   title: z.string().optional().default("Monthly Fee"),
   studentId: z.string().optional(), // For individual
+  studentUsername: z.string().optional(), // Alias support
   batchId: z.string().optional(), // For batch-specific assignment
-  discount: z.number().optional().default(0),
+  discount: z.union([z.string(), z.number()]).optional().transform(val => {
+    if (val === undefined || val === null || val === '') return 0;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? 0 : num;
+  }).default(0),
   remarks: z.string().optional(),
   dueDate: z.string().optional(),
   createdAt: z.string().optional(),
@@ -150,9 +159,12 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const validatedData = feeSchema.parse(body);
+    const validation = feeSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.issues[0]?.message || 'Invalid fee parameters' }, { status: 400 });
+    }
 
-    const { type, amount, billingMonth, title, studentId, batchId, discount, remarks, dueDate, createdAt } = validatedData;
+    const { type, amount, billingMonth, title, studentId, studentUsername, batchId, discount, remarks, dueDate, createdAt } = validation.data;
 
     const parsed = new Date(`${billingMonth} 12`);
     if (isNaN(parsed.getTime())) {
@@ -161,52 +173,70 @@ export async function POST(req: Request) {
     
     const finalDueDate = dueDate ? new Date(dueDate) : new Date(parsed.getFullYear(), parsed.getMonth(), 12);
     const finalCreatedAt = createdAt ? new Date(createdAt) : new Date();
-    const currentTotalPayments = await withDbRetry(() => prisma.payment.count());
 
     if (type === 'BATCH') {
-      const where: any = { role: 'STUDENT' };
-      if (batchId) {
-        where.studentBatches = { some: { id: batchId } };
+      if (!batchId) {
+        return NextResponse.json({ error: 'Please choose a target batch.' }, { status: 400 });
       }
+
+      const where: any = { role: 'STUDENT', studentBatches: { some: { id: batchId } } };
 
       const students = await withDbRetry(() => prisma.user.findMany({ 
         where,
         select: {
           id: true,
           username: true,
+          name: true,
           studentProfile: { select: { baseFee: true, scholarship: true, className: true } }
         }
       }));
+
+      if (students.length === 0) {
+        return NextResponse.json({ error: 'No students found in the selected batch.' }, { status: 400 });
+      }
       
       let count = 0;
+      let alreadyAssignedCount = 0;
+
       for (const s of students) {
-        // Prevent duplicate for same month
+        // Prevent duplicate for same month AND same title
         const existing = await withDbRetry(() => prisma.payment.findFirst({
-          where: { studentId: s.id, billingMonth }
+          where: { studentId: s.id, billingMonth, title: title || 'Monthly Fee' }
         }));
-        if (existing) continue;
+        if (existing) {
+          alreadyAssignedCount++;
+          continue;
+        }
 
         const sScholarship = s.studentProfile?.scholarship || 0;
         const sDiscount = Math.max(discount || 0, sScholarship);
-        const finalAssignedAmount = amount || s.studentProfile?.baseFee || 0;
-        const gradeCode = getGradeLetterCode(s.studentProfile?.className);
-        const yearCode = String(finalCreatedAt.getFullYear()).slice(-2);
-        const receiptNo = `${yearCode}/${gradeCode}/${1001 + currentTotalPayments + count}`;
+        const finalAssignedAmount = amount !== undefined ? amount : (s.studentProfile?.baseFee || 0);
 
-        await withDbRetry(() => prisma.payment.create({
-          data: {
-            studentId: s.id,
-            receiptNo,
-            amount: finalAssignedAmount,
-            billingMonth,
-            dueDate: finalDueDate,
-            createdAt: finalCreatedAt,
-            title: title || 'Monthly Fee',
-            status: 'PENDING',
-            discount: sDiscount,
-            remarks
+        // Safely generate unique receiptNo
+        let createdPayment: any = null;
+        for (let retry = 0; retry < 3; retry++) {
+          try {
+            const receiptNo = await getNextUniqueReceiptNo(prisma, finalCreatedAt, s.studentProfile?.className, count + retry);
+            createdPayment = await withDbRetry(() => prisma.payment.create({
+              data: {
+                studentId: s.id,
+                receiptNo,
+                amount: finalAssignedAmount,
+                billingMonth,
+                dueDate: finalDueDate,
+                createdAt: finalCreatedAt,
+                title: title || 'Monthly Fee',
+                status: 'PENDING',
+                discount: sDiscount,
+                remarks
+              }
+            }));
+            break;
+          } catch (createErr: any) {
+            if (createErr?.code === 'P2002' && retry < 2) continue;
+            throw createErr;
           }
-        }));
+        }
 
         // Notify Student
         try {
@@ -214,7 +244,7 @@ export async function POST(req: Request) {
             data: {
               userId: s.id,
               title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
-              message: `A new fee of ₹${finalAssignedAmount.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
+              message: `A new fee of ₹${Math.max(0, finalAssignedAmount - sDiscount).toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
               type: 'FEE',
               isRead: false
             }
@@ -229,28 +259,51 @@ export async function POST(req: Request) {
       await logActivity(
         session.user.id,
         'ASSIGN_FEE_BATCH',
-        `Assigned fee of ₹${amount || 'Base Fee'} to ${count} students for month ${billingMonth} (${title})`
+        `Assigned fee of ₹${amount ?? 'Base Fee'} to ${count} students for month ${billingMonth} (${title})`
       );
 
-      return NextResponse.json({ success: true, count });
+      appCache.invalidate('admin:finances');
+      appCache.invalidate('admin:overview');
+
+      return NextResponse.json({ 
+        success: true, 
+        count,
+        message: count > 0 
+          ? `Successfully assigned fee to ${count} student(s)!${alreadyAssignedCount > 0 ? ` (${alreadyAssignedCount} already had this fee assigned)` : ''}`
+          : `All ${alreadyAssignedCount} students in this batch already have this fee assigned for ${billingMonth}.`
+      });
     } else {
       // Individual
-      const student = await withDbRetry(() => prisma.user.findUnique({ 
-        where: { username: studentId },
-        select: { id: true, studentProfile: { select: { baseFee: true, scholarship: true, className: true } } }
-      }));
-      if (!student) return NextResponse.json({ error: 'Student ID not found' }, { status: 404 });
+      const targetQuery = (studentId || studentUsername || '').trim();
+      if (!targetQuery) {
+        return NextResponse.json({ error: 'Please select a student.' }, { status: 400 });
+      }
 
-      // Prevent duplicate for same month
-      const existing = await withDbRetry(() => prisma.payment.findFirst({
-        where: { studentId: student.id, billingMonth }
+      const student = await withDbRetry(() => prisma.user.findFirst({ 
+        where: { 
+          role: 'STUDENT',
+          OR: [
+            { username: { equals: targetQuery, mode: 'insensitive' } },
+            { id: targetQuery }
+          ]
+        },
+        select: { id: true, username: true, name: true, studentProfile: { select: { baseFee: true, scholarship: true, className: true } } }
       }));
-      if (existing) return NextResponse.json({ error: `Fee billing has already been generated for this student for ${billingMonth}` }, { status: 400 });
+      if (!student) {
+        return NextResponse.json({ error: `Student "${targetQuery}" not found. Please select a registered student.` }, { status: 404 });
+      }
+
+      // Prevent duplicate for same month AND same title
+      const existing = await withDbRetry(() => prisma.payment.findFirst({
+        where: { studentId: student.id, billingMonth, title: title || 'Monthly Fee' }
+      }));
+      if (existing) {
+        return NextResponse.json({ error: `Fee "${title || 'Monthly Fee'}" has already been assigned to this student for ${billingMonth}.` }, { status: 400 });
+      }
 
       const sScholarship = student.studentProfile?.scholarship || 0;
       const sBaseFee = student.studentProfile?.baseFee || 0;
 
-      // The UI submits both the base fee (amount) and discount directly.
       let finalAmount = sBaseFee;
       let finalDiscount = sScholarship;
 
@@ -261,23 +314,31 @@ export async function POST(req: Request) {
         finalDiscount = discount;
       }
 
-      const gradeCode = getGradeLetterCode(student.studentProfile?.className);
-      const receiptNo = `${String(finalCreatedAt.getFullYear()).slice(-2)}/${gradeCode}/${1001 + currentTotalPayments}`;
-
-      const payment = await withDbRetry(() => prisma.payment.create({
-        data: {
-          studentId: student.id,
-          receiptNo,
-          amount: finalAmount,
-          billingMonth,
-          dueDate: finalDueDate,
-          createdAt: finalCreatedAt,
-          title: title || 'Monthly Fee',
-          status: 'PENDING',
-          discount: finalDiscount,
-          remarks
-        },
-      }));
+      // Safely generate unique receiptNo
+      let payment: any = null;
+      for (let retry = 0; retry < 3; retry++) {
+        try {
+          const receiptNo = await getNextUniqueReceiptNo(prisma, finalCreatedAt, student.studentProfile?.className, retry);
+          payment = await withDbRetry(() => prisma.payment.create({
+            data: {
+              studentId: student.id,
+              receiptNo,
+              amount: finalAmount,
+              billingMonth,
+              dueDate: finalDueDate,
+              createdAt: finalCreatedAt,
+              title: title || 'Monthly Fee',
+              status: 'PENDING',
+              discount: finalDiscount,
+              remarks
+            },
+          }));
+          break;
+        } catch (createErr: any) {
+          if (createErr?.code === 'P2002' && retry < 2) continue;
+          throw createErr;
+        }
+      }
 
       // Notify Student
       try {
@@ -285,7 +346,7 @@ export async function POST(req: Request) {
           data: {
             userId: student.id,
             title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
-            message: `A new individual fee of ₹${(finalAmount - finalDiscount).toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
+            message: `A new fee of ₹${Math.max(0, finalAmount - finalDiscount).toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
             type: 'FEE',
             isRead: false
           }
@@ -297,17 +358,21 @@ export async function POST(req: Request) {
       await logActivity(
         session.user.id,
         'ASSIGN_FEE_INDIVIDUAL',
-        `Assigned fee of ₹${finalAmount} (Net: ₹${finalAmount - finalDiscount}) to student ${studentId} for month ${billingMonth} (${title})`
+        `Assigned fee of ₹${finalAmount} (Net: ₹${Math.max(0, finalAmount - finalDiscount)}) to student ${student.username} for month ${billingMonth} (${title})`
       );
 
       appCache.invalidate('admin:finances');
       appCache.invalidate('admin:overview');
 
-      return NextResponse.json({ success: true, payment });
+      return NextResponse.json({ 
+        success: true, 
+        payment, 
+        message: `Fee successfully assigned to ${student.name || student.username}!` 
+      });
     }
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Failed to assign fees' }, { status: 500 });
+  } catch (error: any) {
+    console.error("Assign fee error:", error);
+    return NextResponse.json({ error: error?.message || 'Failed to assign fees' }, { status: 500 });
   }
 }
 

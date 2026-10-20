@@ -243,22 +243,22 @@ function AdminDashboardContent() {
 
   useEffect(() => {
     try {
-      const cached = sessionStorage.getItem('st_overview_stats');
+      const cached = sessionStorage.getItem('st_overview_stats') || localStorage.getItem('st_overview_stats');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed && (parsed.totalStudents > 0 || parsed.totalTeachers > 0 || parsed.revenueThisMonth > 0)) {
+        if (parsed && (parsed.totalStudents !== undefined || parsed.revenueThisMonth !== undefined)) {
           setOverviewStats(parsed);
           setIsLoadingOverview(false);
         }
       }
-      const cachedFin = sessionStorage.getItem('st_fin_summary');
+      const cachedFin = sessionStorage.getItem('st_fin_summary') || localStorage.getItem('st_fin_summary');
       if (cachedFin) {
         const parsedFin = JSON.parse(cachedFin);
         if (parsedFin && (parsedFin.totalRevenue > 0 || parsedFin.totalPending > 0 || parsedFin.currentMonthCollected > 0)) {
           setFinSummary(parsedFin);
         }
       }
-      const cachedStudents = sessionStorage.getItem('st_all_students');
+      const cachedStudents = sessionStorage.getItem('st_all_students') || localStorage.getItem('st_all_students');
       if (cachedStudents) {
         const parsedStudents = JSON.parse(cachedStudents);
         if (Array.isArray(parsedStudents) && parsedStudents.length > 0) {
@@ -1854,7 +1854,7 @@ function AdminDashboardContent() {
     try {
       const payload: any = {
         type: addFeeMode,
-        amount: feeAmount,
+        amount: feeAmount !== '' ? parseFloat(feeAmount) : undefined,
         billingMonth: feeBillingMonth,
         title: feeTitle === 'Others' ? (feeCategoryCustomTitle.trim() || 'Others') : feeTitle
       };
@@ -1863,9 +1863,24 @@ function AdminDashboardContent() {
       if (feeCreatedAt) payload.createdAt = feeCreatedAt;
 
       if (addFeeMode === 'INDIVIDUAL') {
-        payload.studentId = feeStudentId; // username
-        payload.discount = parseFloat(feeDiscount || '0');
+        let targetStudentId = feeStudentId?.trim();
+        if (!targetStudentId && feeStudentSearch.trim()) {
+          const parenMatch = feeStudentSearch.match(/\(([^)]+)\)$/);
+          targetStudentId = parenMatch ? parenMatch[1].trim() : feeStudentSearch.trim();
+        }
+        if (!targetStudentId) {
+          alert('Please select or enter a valid student.');
+          setIsAddingFee(false);
+          return;
+        }
+        payload.studentId = targetStudentId;
+        payload.discount = parseFloat(feeDiscount || '0') || 0;
       } else {
+        if (!feeStudentId) {
+          alert('Please select a target batch.');
+          setIsAddingFee(false);
+          return;
+        }
         payload.batchId = feeStudentId; // batch id
       }
 
@@ -1874,19 +1889,21 @@ function AdminDashboardContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      const data = await res.json();
       if (res.ok) {
         setFeeStudentId('');
         setFeeStudentSearch('');
         setFeeAmount('');
         setFeeDiscount('');
         fetchFinances();
-        alert('Fee(s) successfully assigned!');
+        fetchFinSummary();
+        alert(data.message || (addFeeMode === 'BATCH' ? `Fee(s) successfully assigned to ${data.count || 0} student(s)!` : 'Fee successfully assigned!'));
       } else {
-        const data = await res.json();
         alert(data.error || 'Failed to assign fee.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(err.message || 'Network error while assigning fee.');
     } finally {
       setIsAddingFee(false);
     }
@@ -2407,19 +2424,29 @@ function AdminDashboardContent() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data) {
+        if (data && typeof data === 'object') {
           setOverviewStats(data);
           if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
-          try { sessionStorage.setItem('st_overview_stats', JSON.stringify(data)); } catch (e) {}
+          try {
+            sessionStorage.setItem('st_overview_stats', JSON.stringify(data));
+            localStorage.setItem('st_overview_stats', JSON.stringify(data));
+          } catch (e) {}
         }
       } else if (res.status === 401 && retryCount < 2) {
-        setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 400);
+        setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 500);
+        return;
+      } else if (retryCount < 2) {
+        setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 1000 * (retryCount + 1));
         return;
       } else {
         if (!overviewStats) setOverviewStatsError(true);
       }
     } catch (err) {
-      console.error(err);
+      console.error("fetchOverviewStats error:", err);
+      if (retryCount < 2) {
+        setTimeout(() => fetchOverviewStats(isSilent, retryCount + 1), 1000 * (retryCount + 1));
+        return;
+      }
       if (!overviewStats) setOverviewStatsError(true);
     } finally {
       setIsLoadingOverview(false);
@@ -3578,10 +3605,10 @@ function AdminDashboardContent() {
           {/* Key Metrics Row */}
           <div className="admin-overview-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
             {[
-              { label: 'Total Students', value: overviewStats ? overviewStats.totalStudents : '--', icon: '👥', color: '#ef4444' },
-              { label: 'Active Teachers', value: overviewStats ? overviewStats.totalTeachers : '--', icon: '👨‍🏫', color: '#10b981' },
-              { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : '--', icon: '💰', color: '#3b82f6' },
-              { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : '--', icon: '⚠️', color: '#ef4444' }
+              { label: 'Total Students', value: overviewStats?.totalStudents ?? (isLoadingOverview ? '...' : '--'), icon: '👥', color: '#ef4444' },
+              { label: 'Active Teachers', value: overviewStats?.totalTeachers ?? (isLoadingOverview ? '...' : '--'), icon: '👨‍🏫', color: '#10b981' },
+              { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : (isLoadingOverview ? '...' : '--'), icon: '💰', color: '#3b82f6' },
+              { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : (isLoadingOverview ? '...' : '--'), icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
               <div key={i} className="glass-card animate-scale-up" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${stat.color}`, background: 'var(--card-bg)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '0.85rem', right: '0.85rem', fontSize: '1.6rem', opacity: 0.12 }}>{stat.icon}</div>
@@ -5039,8 +5066,11 @@ function AdminDashboardContent() {
                                               )}
                                               <button 
                                                 onClick={() => {
+                                                  setAddFeeMode('INDIVIDUAL');
                                                   setFeeStudentId(s.username);
                                                   setFeeStudentSearch(`${s.name} (${s.username})`);
+                                                  setFeeAmount(String(s.studentProfile?.baseFee || 0));
+                                                  setFeeDiscount(String(s.studentProfile?.scholarship || 0));
                                                   setFinanceSubTab('ASSIGN');
                                                 }} 
                                                 style={{ padding: '6px 12px', background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
@@ -5797,23 +5827,37 @@ function AdminDashboardContent() {
                         placeholder="Type name or ID to search..."
                         value={feeStudentSearch}
                         onChange={e => {
-                          setFeeStudentSearch(e.target.value);
+                          const val = e.target.value;
+                          setFeeStudentSearch(val);
                           const students = allStudents;
+                          const parenMatch = val.match(/\(([^)]+)\)$/);
+                          const searchKey = parenMatch ? parenMatch[1].trim() : val.trim();
                           const matched = students.find(
-                            s => s.username === e.target.value ||
-                                 `${s.name} (${s.username})` === e.target.value
+                            s => s.username?.toLowerCase() === searchKey.toLowerCase() ||
+                                 s.name?.trim().toLowerCase() === searchKey.toLowerCase() ||
+                                 `${s.name} (${s.username})`.toLowerCase() === val.toLowerCase()
                           );
                           if (matched) {
                             setFeeStudentId(matched.username);
                             const base = matched.studentProfile?.baseFee || 0;
                             const scholarship = matched.studentProfile?.scholarship || 0;
-                            const finalBase = Math.max(0, base - scholarship);
                             if (base > 0) {
                               setFeeAmount(String(base));
                               setFeeDiscount(String(scholarship));
                             }
                           } else {
-                            setFeeStudentId('');
+                            const byUsername = students.find(s => s.username?.toLowerCase() === val.trim().toLowerCase());
+                            if (byUsername) {
+                              setFeeStudentId(byUsername.username);
+                              const base = byUsername.studentProfile?.baseFee || 0;
+                              const scholarship = byUsername.studentProfile?.scholarship || 0;
+                              if (base > 0) {
+                                setFeeAmount(String(base));
+                                setFeeDiscount(String(scholarship));
+                              }
+                            } else {
+                              setFeeStudentId(searchKey);
+                            }
                           }
                         }}
                         style={{
@@ -9403,7 +9447,8 @@ function AdminDashboardContent() {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
-                                studentUsername: student.username,
+                                type: 'INDIVIDUAL',
+                                studentId: student.username,
                                 amount: finalFee,
                                 title: `${editingBatch.name} - Monthly Fee`,
                                 billingMonth,
