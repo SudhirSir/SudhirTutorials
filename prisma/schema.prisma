@@ -527,6 +527,8 @@ model OnlineTestSubmission {
   score         Float
   timeTaken     Int      // seconds
   autoSubmitted Boolean  @default(false)
+  startedAt     DateTime?
+  completedAt   DateTime?
   createdAt     DateTime @default(now())
 
   @@unique([onlineTestId, studentId])
@@ -593,6 +595,8 @@ model ChapterMockSubmission {
   timeTaken     Int             // seconds
   autoSubmitted Boolean         @default(false)
   answers       String?         @db.Text // JSON map of questionId -> selectedOptionIdx
+  startedAt     DateTime?
+  completedAt   DateTime?
   createdAt     DateTime        @default(now())
 
   @@index([studentId])

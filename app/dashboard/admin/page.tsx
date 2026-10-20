@@ -236,8 +236,29 @@ function AdminDashboardContent() {
   };
   
   // User Creation State
-  const [overviewStats, setOverviewStats] = useState<any>(null);
-  const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(true);
+  const [overviewStats, setOverviewStats] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('st_overview_stats') || localStorage.getItem('st_overview_stats');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && (parsed.totalStudents !== undefined || parsed.revenueThisMonth !== undefined)) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+    }
+    return null;
+  });
+  const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('st_overview_stats') || localStorage.getItem('st_overview_stats');
+        if (cached) return false;
+      } catch (e) {}
+    }
+    return true;
+  });
   const [statementData, setStatementData] = useState<any>(null);
   const [isLoadingStatement, setIsLoadingStatement] = useState<boolean>(false);
 
@@ -468,6 +489,7 @@ function AdminDashboardContent() {
 
   // Study Materials
   const [materials, setMaterials] = useState<any[]>([]);
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState<boolean>(false);
   const [selectedMaterialClassFilter, setSelectedMaterialClassFilter] = useState<string>('ALL');
   const [matTitle, setMatTitle] = useState('');
   const [matType, setMatType] = useState('PDF');
@@ -1081,13 +1103,18 @@ function AdminDashboardContent() {
   };
 
   const fetchMaterials = async () => {
+    setIsLoadingMaterials(true);
     try {
       const res = await fetch('/api/teacher/materials?t=' + Date.now());
       if (res.ok) {
         const data = await res.json();
         setMaterials(data.materials || []);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingMaterials(false);
+    }
   };
 
   const handleOpenMaterial = async (mat: any) => {
@@ -2449,7 +2476,9 @@ function AdminDashboardContent() {
       }
       if (!overviewStats) setOverviewStatsError(true);
     } finally {
-      setIsLoadingOverview(false);
+      if (retryCount >= 2 || !overviewStats) {
+        setIsLoadingOverview(false);
+      }
     }
   };
 
@@ -2928,7 +2957,7 @@ function AdminDashboardContent() {
     fetchUnreadCounts();
 
     if (activeTab === 'overview') {
-      fetchOverviewStats(false);
+      fetchOverviewStats(true);
       fetchPendingVerifications();
     } else if (activeTab === 'users' || activeTab === 'directory') {
       handleSearchDirectory();
@@ -3605,8 +3634,8 @@ function AdminDashboardContent() {
           {/* Key Metrics Row */}
           <div className="admin-overview-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
             {[
-              { label: 'Total Students', value: overviewStats?.totalStudents ?? (isLoadingOverview ? '...' : '--'), icon: '👥', color: '#ef4444' },
-              { label: 'Active Teachers', value: overviewStats?.totalTeachers ?? (isLoadingOverview ? '...' : '--'), icon: '👨‍🏫', color: '#10b981' },
+              { label: 'Total Students', value: overviewStats?.totalStudents ?? (isLoadingOverview ? '...' : (overviewStats ? 0 : '--')), icon: '👥', color: '#ef4444' },
+              { label: 'Active Teachers', value: overviewStats?.totalTeachers ?? (isLoadingOverview ? '...' : (overviewStats ? 0 : '--')), icon: '👨‍🏫', color: '#10b981' },
               { label: 'Revenue This Month', value: overviewStats ? `₹${(overviewStats.revenueThisMonth || 0).toLocaleString()}` : (isLoadingOverview ? '...' : '--'), icon: '💰', color: '#3b82f6' },
               { label: 'Pending Dues', value: overviewStats ? `₹${(overviewStats.pendingDues || 0).toLocaleString()}` : (isLoadingOverview ? '...' : '--'), icon: '⚠️', color: '#ef4444' }
             ].map((stat, i) => (
@@ -3615,7 +3644,7 @@ function AdminDashboardContent() {
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.35rem', fontWeight: 700 }}>{stat.label}</div>
                 <div className="stat-value" style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {stat.value}
-                  {isLoadingOverview && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
+                  {isLoadingOverview && !overviewStats && <span style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: stat.color, borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />}
                 </div>
               </div>
             ))}
@@ -7124,7 +7153,12 @@ function AdminDashboardContent() {
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {materials.length === 0 ? (
+                {isLoadingMaterials ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    <div style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    <div style={{ fontWeight: 600 }}>Loading study materials...</div>
+                  </div>
+                ) : materials.length === 0 ? (
                   <p style={{ color: 'var(--text-muted)' }}>No study materials published yet.</p>
                 ) : (
                   materials

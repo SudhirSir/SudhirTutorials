@@ -14,6 +14,8 @@ const submitSchema = z.object({
   answers: z.record(z.string(), z.union([z.number(), z.string()])), // questionId -> optionIndex OR input text string
   timeTaken: z.number().min(0), // seconds
   autoSubmitted: z.boolean().optional().default(false),
+  startedAt: z.union([z.string(), z.date()]).optional(),
+  completedAt: z.union([z.string(), z.date()]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -29,7 +31,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid submission payload', details: validation.error.format() }, { status: 400 });
     }
 
-    const { mockTestId, answers, timeTaken, autoSubmitted } = validation.data;
+    const { mockTestId, answers, timeTaken, autoSubmitted, startedAt, completedAt } = validation.data;
+    const submissionCompletedAt = completedAt ? new Date(completedAt) : new Date();
+    const submissionStartedAt = startedAt ? new Date(startedAt) : new Date(submissionCompletedAt.getTime() - (timeTaken || 0) * 1000);
     const studentId = session.user.id;
 
     // Fetch mock test with questions
@@ -101,7 +105,9 @@ export async function POST(req: Request) {
         totalMarks: mockTest.totalMarks > 0 ? mockTest.totalMarks : totalMarks,
         timeTaken,
         autoSubmitted,
-        answers: JSON.stringify(answers)
+        answers: JSON.stringify(answers),
+        startedAt: submissionStartedAt,
+        completedAt: submissionCompletedAt
       }
     }));
 

@@ -1508,10 +1508,11 @@ export function ChapterMockTestManager() {
                     <tr style={{ borderBottom: "2px solid var(--border)", color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase" }}>
                       <th style={{ padding: "0.75rem" }}>Rank</th>
                       <th style={{ padding: "0.75rem" }}>Student Name</th>
-                      <th style={{ padding: "0.75rem" }}>Roll No / Class</th>
+                      <th style={{ padding: "0.75rem" }}>Student ID / Class</th>
                       <th style={{ padding: "0.75rem" }}>Score</th>
                       <th style={{ padding: "0.75rem" }}>Status</th>
                       <th style={{ padding: "0.75rem" }}>Time Taken</th>
+                      <th style={{ padding: "0.75rem" }}>Start & End Time</th>
                       <th style={{ padding: "0.75rem" }}>Date</th>
                     </tr>
                   </thead>
@@ -1525,10 +1526,10 @@ export function ChapterMockTestManager() {
                             {idx === 0 ? "🥇 1st" : idx === 1 ? "🥈 2nd" : idx === 2 ? "🥉 3rd" : `#${idx + 1}`}
                           </td>
                           <td style={{ padding: "0.75rem", fontWeight: 700 }}>
-                            {sub.student?.name || sub.student?.username}
+                            {sub.student?.name?.trim() || sub.student?.username}
                           </td>
                           <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
-                            {sub.student?.studentProfile?.rollNumber || "N/A"} ({sub.student?.studentProfile?.className || sub.mockTest?.className})
+                            {(sub.student?.studentProfile?.rollNumber || sub.student?.username || "N/A")} ({sub.student?.studentProfile?.className || sub.mockTest?.className})
                           </td>
                           <td style={{ padding: "0.75rem", fontWeight: 900, color: isPassed ? "#22c55e" : "#ef4444" }}>
                             {sub.score} / {sub.totalMarks}
@@ -1549,8 +1550,12 @@ export function ChapterMockTestManager() {
                           <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
                             ⏱ {Math.floor(sub.timeTaken / 60)}m {sub.timeTaken % 60}s {sub.autoSubmitted && "⚠️ Auto-submitted"}
                           </td>
+                          <td style={{ padding: "0.75rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                            <div style={{ color: "#10b981", fontWeight: 700 }}>🟢 Start: {sub.startedAt ? new Date(sub.startedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }) : "--"}</div>
+                            <div style={{ color: "var(--text-muted)", marginTop: "2px" }}>🏁 End: {sub.completedAt ? new Date(sub.completedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }) : "--"}</div>
+                          </td>
                           <td style={{ padding: "0.75rem", color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                            {new Date(sub.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                            {new Date(sub.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                           </td>
                         </tr>
                       );

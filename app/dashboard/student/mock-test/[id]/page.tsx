@@ -69,6 +69,7 @@ export default function ChapterMockTestArena() {
 
   const submittedRef = useRef(false);
   const warningCountRef = useRef(0);
+  const startTimeRef = useRef<Date | null>(null);
 
   const requestFullscreenMode = () => {
     try {
@@ -129,6 +130,8 @@ export default function ChapterMockTestArena() {
 
     const duration = testData?.durationMinutes ? testData.durationMinutes * 60 : 900;
     const timeTaken = duration - (timeLeft || 0);
+    const completedAt = new Date();
+    const startedAt = startTimeRef.current || new Date(completedAt.getTime() - Math.max(0, timeTaken) * 1000);
 
     try {
       const res = await fetch('/api/mock-tests/submit', {
@@ -138,7 +141,9 @@ export default function ChapterMockTestArena() {
           mockTestId,
           answers,
           timeTaken,
-          autoSubmitted
+          autoSubmitted,
+          startedAt: startedAt.toISOString(),
+          completedAt: completedAt.toISOString()
         })
       });
 
@@ -724,6 +729,7 @@ export default function ChapterMockTestArena() {
                 <button
                   type="button"
                   onClick={() => {
+                    startTimeRef.current = new Date();
                     setHasStarted(true);
                     requestFullscreenMode();
                   }}

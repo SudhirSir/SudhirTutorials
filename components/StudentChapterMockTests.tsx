@@ -432,7 +432,8 @@ export function StudentChapterMockTests() {
                             {entry.studentName}
                           </div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                            {entry.className ? `Class ${entry.className}` : ""} {entry.board ? `• ${entry.board}` : ""}
+                            {entry.displayId && entry.displayId !== 'N/A' ? `${entry.displayId} • ` : (entry.username ? `${entry.username} • ` : "")}
+                            {entry.className ? `Class ${entry.className}` : ""} {entry.board && entry.board !== 'N/A' && entry.board !== 'All Boards' ? `• ${entry.board}` : ""}
                           </div>
                         </div>
                       </div>
@@ -577,15 +578,27 @@ export function StudentChapterMockTests() {
                       <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--primary)", marginTop: "0.2rem", fontFamily: "monospace" }}>{formatSeconds(sub.timeTaken)}</div>
                     </div>
                     <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", color: "#10b981", fontWeight: 800, textTransform: "uppercase" }}>🟢 Started At</div>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text)", marginTop: "0.2rem" }}>
+                        {new Date(sub.startedAt || (new Date(sub.createdAt).getTime() - (sub.timeTaken || 0) * 1000)).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                      </div>
+                    </div>
+                    <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", color: "#ef4444", fontWeight: 800, textTransform: "uppercase" }}>🏁 Completed At</div>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text)", marginTop: "0.2rem" }}>
+                        {new Date(sub.completedAt || sub.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                      </div>
+                    </div>
+                    <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
                       <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Attempts Used</div>
                       <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", marginTop: "0.2rem" }}>
                         {viewingResultTest.submissions.length} / {viewingResultTest.allowedAttempts || 3}
                       </div>
                     </div>
                     <div style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "12px", border: "1px solid var(--border)" }}>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Completed On</div>
-                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text)", marginTop: "0.2rem" }}>
-                        {new Date(sub.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Attempt Date</div>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text)", marginTop: "0.2rem" }}>
+                        {new Date(sub.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </div>
                     </div>
                   </div>

@@ -7,6 +7,51 @@ import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { appCache } from '@/lib/cache';
 
+function getMatchingClassNames(rawClass: string | null | undefined): string[] {
+  if (!rawClass) return [];
+  const cls = rawClass.toString().trim();
+  if (/12/i.test(cls)) {
+    return ['12th', '12th (Sci)', '12th Sci', '12th (Com)', '12th Com', '12th Commerce', '12th (Comm)', 'Class 12', 'Class 12th', '12'];
+  }
+  if (/11/i.test(cls)) {
+    return ['11th', '11th (Sci)', '11th Sci', '11th (Com)', '11th Com', '11th Commerce', '11th (Comm)', 'Class 11', 'Class 11th', '11'];
+  }
+  if (/10/i.test(cls)) {
+    return ['10th', 'Class 10', 'Class 10th', '10'];
+  }
+  if (/9/i.test(cls) || /IX/i.test(cls)) {
+    return ['9th', 'Class 9', 'Class 9th', '9', 'CBSE Class IX'];
+  }
+  if (/8/i.test(cls)) {
+    return ['8th', 'Class 8', 'Class 8th', '8'];
+  }
+  if (/7/i.test(cls)) {
+    return ['7th', 'Class 7', 'Class 7th', '7'];
+  }
+  if (/6/i.test(cls)) {
+    return ['6th', 'Class 6', 'Class 6th', '6'];
+  }
+  return [cls];
+}
+
+function getMatchingBoards(rawBoard: string | null | undefined): string[] {
+  const list = ['All Boards', 'ALL', 'All'];
+  if (!rawBoard) return list;
+  const b = rawBoard.toString().trim();
+  list.push(b);
+  if (/CBSE/i.test(b)) {
+    list.push('CBSE', 'CBSE Board');
+  }
+  if (/ICSE/i.test(b)) {
+    list.push('ICSE', 'ICSE Board');
+  }
+  if (/UP/i.test(b)) {
+    list.push('UP Board', 'UP');
+  }
+  return Array.from(new Set(list));
+}
+
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
@@ -87,21 +132,36 @@ export async function GET(req: Request) {
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
 
-        const rankedEntries = leaderboardList.map((entry, index) => ({
-          rank: index + 1,
-          studentId: entry.studentId,
-          studentName: entry.student?.name || entry.student?.username || 'Student',
-          username: entry.student?.username || '',
-          photoUrl: entry.student?.photoUrl || entry.student?.studentProfile?.photoUrl || null,
-          className: entry.student?.studentProfile?.className || mockTest.className,
-          board: entry.student?.studentProfile?.board || mockTest.board,
-          score: entry.score,
-          totalMarks: mockTest.totalMarks,
-          passingMarks: mockTest.passingMarks || 4,
-          isPassed: entry.score >= (mockTest.passingMarks || 4),
-          timeTaken: entry.timeTaken,
-          submittedAt: entry.createdAt
-        }));
+        const rankedEntries = leaderboardList.map((entry, index) => {
+          const completedAt = entry.completedAt || entry.createdAt;
+          const startedAt = entry.startedAt || new Date(new Date(completedAt).getTime() - (entry.timeTaken || 0) * 1000);
+          const studentName = entry.student?.name?.trim() || entry.student?.username || 'Student';
+          const rollNo = entry.student?.studentProfile?.rollNumber;
+          const username = entry.student?.username || '';
+          const displayId = rollNo || username || entry.studentId;
+          const boardVal = entry.student?.studentProfile?.board;
+          const cleanBoard = (boardVal && boardVal !== 'N/A' && boardVal !== 'All Boards') ? boardVal : (mockTest.board !== 'All Boards' ? mockTest.board : null);
+
+          return {
+            rank: index + 1,
+            studentId: entry.studentId,
+            studentName,
+            username,
+            rollNumber: rollNo || username,
+            displayId,
+            photoUrl: entry.student?.photoUrl || entry.student?.studentProfile?.photoUrl || null,
+            className: entry.student?.studentProfile?.className || mockTest.className,
+            board: cleanBoard,
+            score: entry.score,
+            totalMarks: mockTest.totalMarks,
+            passingMarks: mockTest.passingMarks || 4,
+            isPassed: entry.score >= (mockTest.passingMarks || 4),
+            timeTaken: entry.timeTaken,
+            startedAt,
+            completedAt,
+            submittedAt: completedAt
+          };
+        });
 
         return {
           scope: 'test',
@@ -123,7 +183,18 @@ export async function GET(req: Request) {
     const overallResult = await appCache.getOrSet(cacheKey, async () => {
       const testWhere: any = { isPublished: true, isStoreItem: false };
       if (studentClass && studentClass !== 'ALL') {
-        testWhere.className = studentClass;
+        const matchingCls = getMatchingClassNames(studentClass);
+        if (matchingCls.length > 0) {
+          testWhere.className = { in: matchingCls };
+        } else {
+          testWhere.className = studentClass;
+        }
+      }
+      if (studentBoard && studentBoard !== 'ALL' && studentBoard !== 'All Boards') {
+        const matchingBds = getMatchingBoards(studentBoard);
+        if (matchingBds.length > 0) {
+          testWhere.board = { in: matchingBds };
+        }
       }
 
       const matchingTests = await withDbRetry(() => prisma.chapterMockTest.findMany({
@@ -192,13 +263,22 @@ export async function GET(req: Request) {
         });
 
         if (firstSub) {
+          const studentName = firstSub.student?.name?.trim() || firstSub.student?.username || 'Student';
+          const rollNo = firstSub.student?.studentProfile?.rollNumber;
+          const username = firstSub.student?.username || '';
+          const displayId = rollNo || username || studentId;
+          const boardVal = firstSub.student?.studentProfile?.board;
+          const cleanBoard = (boardVal && boardVal !== 'N/A' && boardVal !== 'All Boards') ? boardVal : (studentBoard && studentBoard !== 'ALL' && studentBoard !== 'All Boards' ? studentBoard : null);
+
           aggregateList.push({
             studentId,
-            studentName: firstSub.student?.name || firstSub.student?.username || 'Student',
-            username: firstSub.student?.username || '',
+            studentName,
+            username,
+            rollNumber: rollNo || username,
+            displayId,
             photoUrl: firstSub.student?.photoUrl || firstSub.student?.studentProfile?.photoUrl || null,
             className: firstSub.student?.studentProfile?.className || studentClass || 'N/A',
-            board: firstSub.student?.studentProfile?.board || studentBoard || 'N/A',
+            board: cleanBoard,
             totalScore,
             totalTimeTaken,
             testsAttempted,

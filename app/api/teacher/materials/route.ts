@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
+import { appCache } from '@/lib/cache';
 
 export async function GET() {
   try {
@@ -14,56 +15,58 @@ export async function GET() {
     }
 
     const isTeacher = session.user.role === 'TEACHER';
-    let materials: any[] = [];
+    const cacheKey = isTeacher ? `materials:teacher:${session.user.id}` : 'materials:admin';
 
-    if (isTeacher) {
-      materials = await withDbRetry(() => prisma.$queryRaw`
-        SELECT 
-          m.id,
-          m.title,
-          m.type,
-          CASE 
-            WHEN m.url LIKE 'data:%' THEN '/api/materials/' || m.id
-            ELSE m.url
-          END as url,
-          (m.url LIKE 'data:%') as "hasAttachment",
-          m."courseId",
-          m."teacherId",
-          m."createdAt",
-          m."isAssignment",
-          m.deadline,
-          CASE WHEN c.id IS NOT NULL THEN json_build_object('name', c.name) ELSE NULL END as course,
-          CASE WHEN u.id IS NOT NULL THEN json_build_object('name', u.name) ELSE NULL END as teacher
-        FROM "Material" m
-        LEFT JOIN "Course" c ON m."courseId" = c.id
-        LEFT JOIN "User" u ON m."teacherId" = u.id
-        WHERE m."teacherId" = ${session.user.id}
-        ORDER BY m."createdAt" DESC
-      `);
-    } else {
-      materials = await withDbRetry(() => prisma.$queryRaw`
-        SELECT 
-          m.id,
-          m.title,
-          m.type,
-          CASE 
-            WHEN m.url LIKE 'data:%' THEN '/api/materials/' || m.id
-            ELSE m.url
-          END as url,
-          (m.url LIKE 'data:%') as "hasAttachment",
-          m."courseId",
-          m."teacherId",
-          m."createdAt",
-          m."isAssignment",
-          m.deadline,
-          CASE WHEN c.id IS NOT NULL THEN json_build_object('name', c.name) ELSE NULL END as course,
-          CASE WHEN u.id IS NOT NULL THEN json_build_object('name', u.name) ELSE NULL END as teacher
-        FROM "Material" m
-        LEFT JOIN "Course" c ON m."courseId" = c.id
-        LEFT JOIN "User" u ON m."teacherId" = u.id
-        ORDER BY m."createdAt" DESC
-      `);
-    }
+    const materials = await appCache.getOrSet(cacheKey, async () => {
+      if (isTeacher) {
+        return withDbRetry(() => prisma.$queryRaw`
+          SELECT 
+            m.id,
+            m.title,
+            m.type,
+            CASE 
+              WHEN LEFT(m.url, 5) = 'data:' THEN '/api/materials/' || m.id
+              ELSE m.url
+            END as url,
+            (LEFT(m.url, 5) = 'data:') as "hasAttachment",
+            m."courseId",
+            m."teacherId",
+            m."createdAt",
+            m."isAssignment",
+            m.deadline,
+            CASE WHEN c.id IS NOT NULL THEN json_build_object('name', c.name) ELSE NULL END as course,
+            CASE WHEN u.id IS NOT NULL THEN json_build_object('name', u.name) ELSE NULL END as teacher
+          FROM "Material" m
+          LEFT JOIN "Course" c ON m."courseId" = c.id
+          LEFT JOIN "User" u ON m."teacherId" = u.id
+          WHERE m."teacherId" = ${session.user.id}
+          ORDER BY m."createdAt" DESC
+        `);
+      } else {
+        return withDbRetry(() => prisma.$queryRaw`
+          SELECT 
+            m.id,
+            m.title,
+            m.type,
+            CASE 
+              WHEN LEFT(m.url, 5) = 'data:' THEN '/api/materials/' || m.id
+              ELSE m.url
+            END as url,
+            (LEFT(m.url, 5) = 'data:') as "hasAttachment",
+            m."courseId",
+            m."teacherId",
+            m."createdAt",
+            m."isAssignment",
+            m.deadline,
+            CASE WHEN c.id IS NOT NULL THEN json_build_object('name', c.name) ELSE NULL END as course,
+            CASE WHEN u.id IS NOT NULL THEN json_build_object('name', u.name) ELSE NULL END as teacher
+          FROM "Material" m
+          LEFT JOIN "Course" c ON m."courseId" = c.id
+          LEFT JOIN "User" u ON m."teacherId" = u.id
+          ORDER BY m."createdAt" DESC
+        `);
+      }
+    }, 30);
 
     return NextResponse.json({ materials }, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
@@ -157,6 +160,7 @@ export async function POST(req: Request) {
       console.error("Failed to notify students of uploaded material:", err);
     }
 
+    appCache.invalidate('materials:');
     return NextResponse.json({ success: true, material });
   } catch (error) {
     console.error("ERROR UPLOADING STUDY MATERIAL:", error);
@@ -194,6 +198,7 @@ export async function DELETE(req: Request) {
       where: { id }
     }));
 
+    appCache.invalidate('materials:');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("ERROR DELETING MATERIAL:", error);

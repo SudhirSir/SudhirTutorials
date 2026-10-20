@@ -31,16 +31,41 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const userRole = session.user.role;
     if (userRole === 'STUDENT' && material.courseId) {
-      const studentWithBatches = await withDbRetry(() => prisma.user.findUnique({
+      const student = await withDbRetry(() => prisma.user.findUnique({
         where: { id: session.user.id },
         include: {
           studentBatches: {
             where: { courseId: material.courseId },
             select: { id: true }
+          },
+          studentProfile: {
+            select: { className: true, grade: true }
           }
         }
       }));
-      if (!studentWithBatches || !studentWithBatches.studentBatches || studentWithBatches.studentBatches.length === 0) {
+
+      const hasBatchEnrollment = Boolean(student?.studentBatches && student.studentBatches.length > 0);
+      let hasClassMatch = false;
+
+      if (!hasBatchEnrollment && student?.studentProfile) {
+        const userClass = (student.studentProfile.className || student.studentProfile.grade || '').toLowerCase();
+        const course = await withDbRetry(() => prisma.course.findUnique({
+          where: { id: material.courseId },
+          select: { name: true }
+        }));
+        if (course) {
+          const cName = course.name.toLowerCase();
+          if ((/12/i.test(userClass) || /xii/i.test(userClass)) && (cName.includes('12') || cName.includes('xii'))) hasClassMatch = true;
+          else if ((/11/i.test(userClass) || /xi/i.test(userClass)) && (cName.includes('11') || cName.includes('xi'))) hasClassMatch = true;
+          else if ((/10/i.test(userClass) || /x\b/i.test(userClass)) && (cName.includes('10') || cName.includes(' x'))) hasClassMatch = true;
+          else if ((/9/i.test(userClass) || /ix/i.test(userClass)) && (cName.includes('9') || cName.includes('ix'))) hasClassMatch = true;
+          else if ((/8/i.test(userClass) || /viii/i.test(userClass)) && (cName.includes('8') || cName.includes('viii'))) hasClassMatch = true;
+          else if ((/7/i.test(userClass) || /vii/i.test(userClass)) && (cName.includes('7') || cName.includes('vii'))) hasClassMatch = true;
+          else if ((/6/i.test(userClass) || /vi/i.test(userClass)) && (cName.includes('6') || cName.includes('vi'))) hasClassMatch = true;
+        }
+      }
+
+      if (!hasBatchEnrollment && !hasClassMatch) {
         return NextResponse.json({ error: 'Access denied: You are not enrolled in this course.' }, { status: 403 });
       }
     } else if (userRole !== 'STUDENT' && userRole !== 'TEACHER' && userRole !== 'ADMIN') {

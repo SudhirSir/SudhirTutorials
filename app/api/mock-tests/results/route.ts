@@ -67,7 +67,12 @@ export async function GET(req: Request) {
       ]
     }));
 
-    return NextResponse.json({ submissions, success: true });
+    const mappedSubmissions = submissions.map((sub: any) => {
+      const completedAt = sub.completedAt || sub.createdAt;
+      const startedAt = sub.startedAt || new Date(new Date(completedAt).getTime() - (sub.timeTaken || 0) * 1000);
+      return { ...sub, startedAt, completedAt };
+    });
+    return NextResponse.json({ submissions: mappedSubmissions, success: true });
   } catch (error) {
     console.error('Error fetching mock test results:', error);
     return NextResponse.json({ error: 'Failed to fetch mock test results' }, { status: 500 });
