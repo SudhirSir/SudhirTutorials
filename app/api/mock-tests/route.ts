@@ -107,7 +107,7 @@ export async function GET(req: Request) {
             studentBatches: { select: { className: true } }
           }
         }));
-      }, 120);
+      }, 30);
       if (userWithDetails) {
         if (userWithDetails.studentProfile?.board) {
           studentBoard = userWithDetails.studentProfile.board;
@@ -122,7 +122,7 @@ export async function GET(req: Request) {
       where.isPublished = isPublished === 'true';
     }
 
-    const targetClass = (className && className !== 'ALL') ? className : (role === 'STUDENT' ? studentClass : null);
+    const targetClass = role === 'STUDENT' ? (studentClass || null) : ((className && className !== 'ALL') ? className : null);
     if (targetClass) {
       const matchClasses = getMatchingClassNames(targetClass);
       if (matchClasses.length > 0) {

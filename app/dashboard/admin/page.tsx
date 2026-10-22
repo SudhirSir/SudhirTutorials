@@ -8987,7 +8987,7 @@ function AdminDashboardContent() {
                      >
                        <option value="">Select Batch...</option>
                        {batches.map(b => (
-                         <option key={b.id} value={b.name}>{b.name}</option>
+                         <option key={b.id} value={b.name}>{b.name}{b.className ? ` (${b.className})` : ''}</option>
                        ))}
                      </select>
                    </div>
@@ -9087,7 +9087,7 @@ function AdminDashboardContent() {
                          >
                            <option value="">Select Batch...</option>
                            {batches.map(b => (
-                             <option key={b.id} value={b.name}>{b.name}</option>
+                             <option key={b.id} value={b.name}>{b.name}{b.className ? ` (${b.className})` : ''}</option>
                            ))}
                          </select>
                        </div>
@@ -9583,14 +9583,41 @@ function AdminDashboardContent() {
                       ) : (
                         allStudents
                           .filter(u => !editingBatch.students?.some((st: any) => st.id === u.id))
+                          .sort((a, b) => {
+                            const aMatch = (a.studentProfile?.className || '').toLowerCase() === (editingBatch.className || '').toLowerCase() ? 1 : 0;
+                            const bMatch = (b.studentProfile?.className || '').toLowerCase() === (editingBatch.className || '').toLowerCase() ? 1 : 0;
+                            return bMatch - aMatch;
+                          })
                           .map((s: any) => (
                             <div key={s.id} className="available-student-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{s.name}</span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.username}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{s.name}</span>
+                                  {s.studentProfile?.className && (
+                                    <span style={{ 
+                                      fontSize: '0.68rem', 
+                                      fontWeight: 700, 
+                                      padding: '1px 6px', 
+                                      borderRadius: '6px', 
+                                      background: (s.studentProfile.className || '').toLowerCase() === (editingBatch.className || '').toLowerCase() ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.12)', 
+                                      color: (s.studentProfile.className || '').toLowerCase() === (editingBatch.className || '').toLowerCase() ? '#10b981' : '#f87171',
+                                      border: (s.studentProfile.className || '').toLowerCase() === (editingBatch.className || '').toLowerCase() ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+                                    }}>
+                                      {s.studentProfile.className}
+                                    </span>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                  {s.username} {s.studentProfile?.batch ? `• Current: ${s.studentProfile.batch}` : ''}
+                                </span>
                               </div>
                               <button 
                                 onClick={() => {
+                                  if (s.studentProfile?.className && editingBatch.className && s.studentProfile.className.toLowerCase() !== editingBatch.className.toLowerCase()) {
+                                    if (!confirm(`⚠️ Class Mismatch Notice:\n\n"${s.name}" is registered in Class ${s.studentProfile.className}, but this batch is for Class ${editingBatch.className}.\n\nAre you sure you want to add this student to ${editingBatch.name}?`)) {
+                                      return;
+                                    }
+                                  }
                                   const newStudents = [...(editingBatch.students || []), s];
                                   setEditingBatch({ ...editingBatch, students: newStudents });
                                 }}

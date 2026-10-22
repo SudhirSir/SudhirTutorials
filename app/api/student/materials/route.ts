@@ -33,13 +33,11 @@ export async function GET() {
 
       if (!student) return [];
 
-      const matchedCourseIds = new Set<string>(
-        student.studentBatches.map((b: any) => b.courseId).filter(Boolean)
-      );
-
       const userClass = student.studentProfile?.className ||
                         student.studentProfile?.grade ||
                         (student.studentBatches[0]?.className);
+
+      const matchedCourseIds = new Set<string>();
 
       if (userClass) {
         const cls = userClass.toLowerCase();
@@ -49,13 +47,33 @@ export async function GET() {
 
         allCourses.forEach(c => {
           const cName = c.name.toLowerCase();
-          if ((/12/i.test(cls) || /xii/i.test(cls)) && (cName.includes('12') || cName.includes('xii'))) matchedCourseIds.add(c.id);
-          else if ((/11/i.test(cls) || /xi/i.test(cls)) && (cName.includes('11') || cName.includes('xi'))) matchedCourseIds.add(c.id);
-          else if ((/10/i.test(cls) || /x\b/i.test(cls)) && (cName.includes('10') || cName.includes(' x'))) matchedCourseIds.add(c.id);
-          else if ((/9/i.test(cls) || /ix/i.test(cls)) && (cName.includes('9') || cName.includes('ix'))) matchedCourseIds.add(c.id);
-          else if ((/8/i.test(cls) || /viii/i.test(cls)) && (cName.includes('8') || cName.includes('viii'))) matchedCourseIds.add(c.id);
-          else if ((/7/i.test(cls) || /vii/i.test(cls)) && (cName.includes('7') || cName.includes('vii'))) matchedCourseIds.add(c.id);
-          else if ((/6/i.test(cls) || /vi/i.test(cls)) && (cName.includes('6') || cName.includes('vi'))) matchedCourseIds.add(c.id);
+          if ((/12|xii/i.test(cls)) && (/12|xii/i.test(cName))) matchedCourseIds.add(c.id);
+          else if ((/11|xi/i.test(cls)) && (/11|xi/i.test(cName))) matchedCourseIds.add(c.id);
+          else if ((/10|x\b/i.test(cls)) && (/10|\bx\b/i.test(cName))) matchedCourseIds.add(c.id);
+          else if ((/9|ix/i.test(cls)) && (/9|ix/i.test(cName))) matchedCourseIds.add(c.id);
+          else if ((/8|viii/i.test(cls)) && (/8|viii/i.test(cName))) matchedCourseIds.add(c.id);
+          else if ((/7|vii/i.test(cls)) && (/7|vii/i.test(cName))) matchedCourseIds.add(c.id);
+          else if ((/6|vi/i.test(cls)) && (/6|vi/i.test(cName))) matchedCourseIds.add(c.id);
+        });
+
+        // Also add courseId from batches whose className matches the user's class
+        student.studentBatches.forEach((b: any) => {
+          if (b.courseId) {
+            const bc = (b.className || '').toLowerCase();
+            const isMatch = !bc ||
+              (/10|x\b/i.test(cls) && /10|x\b/i.test(bc)) ||
+              (/12|xii/i.test(cls) && /12|xii/i.test(bc)) ||
+              (/9|ix/i.test(cls) && /9|ix/i.test(bc)) ||
+              (/8|viii/i.test(cls) && /8|viii/i.test(bc));
+            if (isMatch) {
+              matchedCourseIds.add(b.courseId);
+            }
+          }
+        });
+      } else {
+        // Fallback to all enrolled batches if no class registered
+        student.studentBatches.forEach((b: any) => {
+          if (b.courseId) matchedCourseIds.add(b.courseId);
         });
       }
 

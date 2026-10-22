@@ -7,12 +7,12 @@ function getTunedDatabaseUrl(): string | undefined {
   if (!url) return undefined;
 
   let tunedUrl = url;
-  // Supabase PgBouncer (port 6543) or connection poolers require healthy pool limit (20) so multiple concurrent logins & requests don't exhaust pool
+  // Supabase PgBouncer (port 6543) or connection poolers require healthy pool limit (5) so multiple concurrent logins & requests don't exhaust pool
   if (tunedUrl.includes('connection_limit=')) {
-    tunedUrl = tunedUrl.replace(/connection_limit=\d+/, 'connection_limit=20');
+    tunedUrl = tunedUrl.replace(/connection_limit=\d+/, 'connection_limit=5');
   } else {
     const separator = tunedUrl.includes('?') ? '&' : '?';
-    tunedUrl = `${tunedUrl}${separator}connection_limit=20`;
+    tunedUrl = `${tunedUrl}${separator}connection_limit=5`;
   }
 
   if (tunedUrl.includes('pool_timeout=')) {
@@ -118,8 +118,8 @@ prisma.$use(async (params, next) => {
  */
 export async function withDbRetry<T>(
   fn: () => Promise<T>,
-  retries: number = 3,
-  delayMs: number = 150,
+  retries: number = 4,
+  delayMs: number = 300,
   exponential: boolean = true
 ): Promise<T> {
   let attempt = 0;
@@ -155,7 +155,15 @@ export async function withDbRetry<T>(
         throw error;
       }
 
-      await new Promise(resolve => setTimeout(resolve, currentDelay));
+      const isPoolExhaustion = error?.message && (
+        error.message.includes('max clients reached') || 
+        error.message.includes('too many clients') ||
+        error.message.includes('connection pool') ||
+        error.message.includes('Timed out fetching a new connection')
+      );
+      const waitTime = isPoolExhaustion ? Math.max(currentDelay, 500) : currentDelay;
+
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       if (exponential) {
         currentDelay *= 1.5;
       }

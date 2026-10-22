@@ -19,7 +19,7 @@ export async function GET() {
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    // Parallelise ALL independent queries — including fee settings that was previously sequential
+    // Parallelise ALL independent queries — including fee settings
     const [user, attendanceRecords, testResults, feeSettings] = await Promise.all([
       withDbRetry(() => prisma.user.findUnique({
         where: { id: studentId },
@@ -57,6 +57,8 @@ export async function GET() {
               rollNumber: true,
               grade: true,
               scholarship: true,
+              className: true,
+              batch: true,
             }
           },
           payments: {
@@ -120,7 +122,6 @@ export async function GET() {
         orderBy: { id: 'desc' },
         take: 50,
       })),
-      // Fee settings fetched in parallel (previously sequential after the DB queries — saves ~200-400ms)
       getLateFineSettings(),
     ]);
 
@@ -178,6 +179,61 @@ export async function GET() {
     const totalMax = validTestResults.reduce((acc: number, r: any) => acc + (r.totalMarks || 100), 0);
     const averageScore = totalMax > 0 ? Math.round((totalObtained / totalMax) * 100) : null;
 
+    // Guard against cross-class contamination for timetable & schedules
+    let activeBatches = user.studentBatches || [];
+    const profClass = (user.studentProfile?.className || '').trim().toLowerCase();
+    if (profClass) {
+      const is12 = /12|xii/i.test(profClass);
+      const is11 = /11|xi/i.test(profClass);
+      const is10 = /10|x\b/i.test(profClass);
+      const is9 = /9|ix/i.test(profClass);
+      const is8 = /8|viii/i.test(profClass);
+
+      const isMismatch = (batchClass: string | null | undefined) => {
+        if (!batchClass) return false;
+        const bc = batchClass.toLowerCase();
+        if (is10 && (/12|xii/i.test(bc) || /11|xi/i.test(bc) || /9|ix/i.test(bc) || /8|viii/i.test(bc))) return true;
+        if (is12 && (/10|x\b/i.test(bc) || /11|xi/i.test(bc) || /9|ix/i.test(bc) || /8|viii/i.test(bc))) return true;
+        if (is9 && (/12|xii/i.test(bc) || /11|xi/i.test(bc) || /10|x\b/i.test(bc) || /8|viii/i.test(bc))) return true;
+        if (is8 && (/12|xii/i.test(bc) || /11|xi/i.test(bc) || /10|x\b/i.test(bc) || /9|ix/i.test(bc))) return true;
+        return false;
+      };
+
+      activeBatches = activeBatches.filter(b => !isMismatch(b.className));
+
+      // Fallback: If no matching batch connected, find matching batch by profile batch or class
+      if (activeBatches.length === 0) {
+        const fallbackBatch = await withDbRetry(() => prisma.batch.findFirst({
+          where: {
+            OR: [
+              ...(user.studentProfile?.batch ? [{ name: user.studentProfile.batch }] : []),
+              { className: { contains: user.studentProfile?.className || '' } }
+            ]
+          },
+          select: {
+            id: true,
+            name: true,
+            className: true,
+            subjects: true,
+            course: { select: { name: true } },
+            teachers: { select: { id: true, name: true } },
+            schedules: {
+              select: {
+                id: true,
+                dayOfWeek: true,
+                startTime: true,
+                endTime: true,
+                subject: true,
+              }
+            }
+          }
+        }));
+        if (fallbackBatch) {
+          activeBatches = [fallbackBatch];
+        }
+      }
+    }
+
     const enrichedAttendance = attendanceRecords.map((a: any) => {
       const recordDate = new Date(a.date);
       const dayOfWeek = recordDate.getDay();
@@ -186,12 +242,12 @@ export async function GET() {
       const activeSchedules = daySchedules.length > 0 ? daySchedules : batchSchedules;
 
       // 1. Time range: From first class start to last class end of the day
-      let timeStr = '5:15 PM - 7:20 PM';
+      let timeStr = 'Scheduled Time';
       if (activeSchedules.length > 0) {
         const sorted = [...activeSchedules].sort((x: any, y: any) => (x.startTime || '').localeCompare(y.startTime || ''));
-        const startTime = sorted[0]?.startTime || '5:15 PM';
-        const endTime = sorted[sorted.length - 1]?.endTime || '7:20 PM';
-        timeStr = `${startTime} - ${endTime}`;
+        const startTime = sorted[0]?.startTime || '';
+        const endTime = sorted[sorted.length - 1]?.endTime || '';
+        timeStr = startTime && endTime ? `${startTime} - ${endTime}` : (startTime || endTime || 'Scheduled Time');
       }
 
       // 2. Subjects: Comma separated list of all subjects held on that day
@@ -217,7 +273,7 @@ export async function GET() {
 
     return NextResponse.json({
       name: user.name,
-      batches: user.studentBatches,
+      batches: activeBatches,
       profile: user.studentProfile,
       feeHighlight,
       attendance: {

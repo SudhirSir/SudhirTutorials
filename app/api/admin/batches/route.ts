@@ -37,7 +37,9 @@ export async function GET() {
               username: true,
               studentProfile: {
                 select: {
-                  baseFee: true
+                  baseFee: true,
+                  className: true,
+                  batch: true
                 }
               }
             } 
@@ -98,7 +100,15 @@ export async function POST(req: Request) {
       }
     }));
 
+    if (students.length > 0) {
+      await withDbRetry(() => prisma.studentProfile.updateMany({
+        where: { userId: { in: students.map((s: any) => s.id) } },
+        data: { batch: name }
+      }));
+    }
+
     appCache.invalidate('admin:batches');
+    appCache.invalidate('admin:directory');
 
     return NextResponse.json({ success: true, batch });
   } catch (error) {
@@ -135,7 +145,16 @@ export async function PATCH(req: Request) {
       }
     }));
 
+    // Sync studentProfile.batch for the enrolled students
+    if (students.length > 0) {
+      await withDbRetry(() => prisma.studentProfile.updateMany({
+        where: { userId: { in: students.map((s: any) => s.id) } },
+        data: { batch: name }
+      }));
+    }
+
     appCache.invalidate('admin:batches');
+    appCache.invalidate('admin:directory');
 
     return NextResponse.json({ success: true, batch });
   } catch (error) {
@@ -157,6 +176,7 @@ export async function DELETE(req: Request) {
     await withDbRetry(() => prisma.batch.delete({ where: { id } }));
 
     appCache.invalidate('admin:batches');
+    appCache.invalidate('admin:directory');
 
     return NextResponse.json({ success: true });
   } catch (error) {
