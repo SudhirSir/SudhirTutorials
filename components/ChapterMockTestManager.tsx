@@ -149,21 +149,54 @@ export function ChapterMockTestManager() {
     }
   };
 
+  const formatExtractedQuestion = (q: any, defaultBoard: string) => {
+    const isInput =
+      q.questionType === "INPUT" ||
+      q.type === "INPUT" ||
+      (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER") ||
+      Boolean(q.inputAnswer && !q.optB);
+
+    let optionsArr: string[] = [];
+    if (isInput) {
+      const targetAns = String(q.inputAnswer || q.optA || "").trim();
+      optionsArr = ["INPUT_ANSWER", targetAns || "0"];
+    } else {
+      optionsArr = [q.optA, q.optB, q.optC, q.optD]
+        .map(opt => String(opt || "").trim())
+        .filter(Boolean);
+
+      if (optionsArr.length < 2) {
+        if (optionsArr.length === 1) {
+          optionsArr.push("None of the above");
+        } else {
+          optionsArr = ["Option A", "Option B"];
+        }
+      }
+    }
+
+    let correctOpt = 0;
+    if (!isInput) {
+      const parsed = typeof q.correctOption === "number" ? q.correctOption : parseInt(q.correctOption, 10);
+      correctOpt = isNaN(parsed) ? 0 : Math.max(0, Math.min(optionsArr.length - 1, parsed));
+    }
+
+    return {
+      questionText: String(q.questionText || "Question").trim() || "Question",
+      options: optionsArr,
+      correctOption: correctOpt,
+      marks: 1,
+      explanation: String(q.explanation || "").trim(),
+      boardTag: String(q.boardTag || `${defaultBoard || ""} Pattern`).trim()
+    };
+  };
+
   const handleBatchSaveExtractedQuestions = async () => {
     if (!activeTestForQuestions || extractedQuestions.length === 0) return;
     setIsBatchSaving(true);
     try {
-      const formattedQs = extractedQuestions.map(q => {
-        const isInput = q.type === "INPUT" || (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER");
-        return {
-          questionText: q.questionText,
-          options: isInput ? ["INPUT_ANSWER", q.inputAnswer || q.optA || ""] : [q.optA, q.optB, q.optC, q.optD].filter(Boolean),
-          correctOption: isInput ? 0 : q.correctOption || 0,
-          marks: 1,
-          explanation: q.explanation || "",
-          boardTag: q.boardTag || `${activeTestForQuestions.board || ''} Pattern`
-        };
-      });
+      const formattedQs = extractedQuestions.map(q =>
+        formatExtractedQuestion(q, activeTestForQuestions.board || "")
+      );
 
       const res = await fetch("/api/mock-tests/questions", {
         method: "POST",
@@ -174,8 +207,10 @@ export function ChapterMockTestManager() {
         })
       });
 
-      if (res.ok) {
-        alert(`Batch added ${formattedQs.length} questions successfully!`);
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
+        alert(`Batch added ${data.createdCount || formattedQs.length} questions successfully!`);
         setShowAiExtractorModal(false);
         setExtractedQuestions([]);
         setExtractorText("");
@@ -184,10 +219,12 @@ export function ChapterMockTestManager() {
         openQuestionsManager(activeTestForQuestions);
         fetchMockTests();
       } else {
-        alert("Failed to batch save extracted questions.");
+        const errMsg = data.error || (data.details ? JSON.stringify(data.details) : "Failed to batch save extracted questions.");
+        alert(`Failed to batch save extracted questions: ${errMsg}`);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("Batch save error:", e);
+      alert(e.message || "Failed to batch save extracted questions. Network or server error.");
     } finally {
       setIsBatchSaving(false);
     }
@@ -196,15 +233,7 @@ export function ChapterMockTestManager() {
   const handleImportSingleExtractedQuestion = async (q: any) => {
     if (!activeTestForQuestions) return;
     try {
-      const isInput = q.type === "INPUT" || (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER");
-      const formattedQ = {
-        questionText: q.questionText,
-        options: isInput ? ["INPUT_ANSWER", q.inputAnswer || q.optA || ""] : [q.optA, q.optB, q.optC, q.optD].filter(Boolean),
-        correctOption: isInput ? 0 : q.correctOption || 0,
-        marks: 1,
-        explanation: q.explanation || "",
-        boardTag: q.boardTag || `${activeTestForQuestions.board || ''} Pattern`
-      };
+      const formattedQ = formatExtractedQuestion(q, activeTestForQuestions.board || "");
 
       const res = await fetch("/api/mock-tests/questions", {
         method: "POST",
@@ -215,15 +244,18 @@ export function ChapterMockTestManager() {
         })
       });
 
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
         alert("Single question imported successfully!");
         openQuestionsManager(activeTestForQuestions);
         fetchMockTests();
       } else {
-        alert("Failed to import question.");
+        alert(data.error || "Failed to import question.");
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("Import single question error:", e);
+      alert(e.message || "Failed to import question.");
     }
   };
 
@@ -1673,7 +1705,7 @@ export function ChapterMockTestManager() {
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", maxHeight: "360px", overflowY: "auto", paddingRight: "0.25rem" }}>
                     {extractedQuestions.map((q, idx) => {
-                      const isInputType = q.type === "INPUT" || (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER");
+                      const isInputType = q.questionType === "INPUT" || q.type === "INPUT" || (Array.isArray(q.options) && q.options[0] === "INPUT_ANSWER") || Boolean(q.inputAnswer && !q.optB);
                       const targetAns = q.inputAnswer || q.optA || "";
                       return (
                         <div key={idx} style={{ background: "var(--card-bg-alt)", padding: "0.85rem", borderRadius: "10px", border: "1px solid var(--border)", fontSize: "0.85rem" }}>

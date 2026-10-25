@@ -7,26 +7,54 @@ import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
 
+function normalizeQuestionOptions(v: any): string[] {
+  let arr: string[] = [];
+  if (typeof v === 'string') {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) arr = parsed;
+      else arr = [v];
+    } catch {
+      arr = [v];
+    }
+  } else if (Array.isArray(v)) {
+    arr = v.map(item => String(item ?? '').trim());
+  }
+  if (!Array.isArray(arr)) arr = [];
+
+  if (arr[0] === 'INPUT_ANSWER') {
+    const val = arr[1] !== undefined ? String(arr[1]).trim() : '';
+    return ['INPUT_ANSWER', val || '0'];
+  }
+
+  const filtered = arr.filter(Boolean);
+  if (filtered.length >= 2) return filtered;
+  if (filtered.length === 1) return [filtered[0], 'None of the above'];
+  return ['Option A', 'Option B'];
+}
+
+const singleQuestionItemSchema = z.object({
+  questionText: z.string().optional().nullable().transform(v => String(v || '').trim() || 'Question'),
+  options: z.any().transform(normalizeQuestionOptions),
+  correctOption: z.union([z.number(), z.string()]).optional().nullable().transform(v => Math.max(0, parseInt(String(v ?? 0), 10) || 0)),
+  marks: z.union([z.number(), z.string()]).optional().nullable().transform(v => parseFloat(String(v ?? 1)) || 1),
+  explanation: z.string().optional().nullable().transform(v => v || ''),
+  boardTag: z.string().optional().nullable().transform(v => v || ''),
+});
+
 const questionSchema = z.object({
   mockTestId: z.string().min(1),
-  questionText: z.string().min(1),
-  options: z.array(z.string()).min(2), // array of strings
-  correctOption: z.number().int().min(0),
-  marks: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v)) || 1),
-  explanation: z.string().optional(),
-  boardTag: z.string().optional(),
+  questionText: z.string().optional().nullable().transform(v => String(v || '').trim() || 'Question'),
+  options: z.any().transform(normalizeQuestionOptions),
+  correctOption: z.union([z.number(), z.string()]).optional().nullable().transform(v => Math.max(0, parseInt(String(v ?? 0), 10) || 0)),
+  marks: z.union([z.number(), z.string()]).optional().nullable().transform(v => parseFloat(String(v ?? 1)) || 1),
+  explanation: z.string().optional().nullable().transform(v => v || ''),
+  boardTag: z.string().optional().nullable().transform(v => v || ''),
 });
 
 const bulkQuestionsSchema = z.object({
   mockTestId: z.string().min(1),
-  questions: z.array(z.object({
-    questionText: z.string().min(1),
-    options: z.array(z.string()).min(2),
-    correctOption: z.number().int().min(0),
-    marks: z.union([z.number(), z.string()]).optional().transform(v => parseFloat(String(v || 1)) || 1),
-    explanation: z.string().optional(),
-    boardTag: z.string().optional(),
-  }))
+  questions: z.array(singleQuestionItemSchema).min(1),
 });
 
 // GET: Fetch questions for a mock test
@@ -180,9 +208,9 @@ export async function POST(req: Request) {
     }));
 
     return NextResponse.json({ question, success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding mock question:', error);
-    return NextResponse.json({ error: 'Failed to add mock question' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to add mock question' }, { status: 500 });
   }
 }
 

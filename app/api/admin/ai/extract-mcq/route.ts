@@ -46,6 +46,7 @@ function parseMcqsLocally(text: string, board?: string): any[] {
     if (questionText && (optA || optB)) {
       mcqs.push({
         questionType: 'MCQ',
+        type: 'MCQ',
         questionText,
         optA: optA || 'Option A',
         optB: optB || 'Option B',
@@ -61,6 +62,7 @@ function parseMcqsLocally(text: string, board?: string): any[] {
       if (inputAnswer) {
         mcqs.push({
           questionType: 'INPUT',
+          type: 'INPUT',
           questionText,
           inputAnswer,
           explanation,
@@ -306,7 +308,7 @@ CRITICAL EXTRACTION RULES:
 
     // Sanitize and normalize extracted questions (MCQ + INPUT mixed)
     const sanitizedQuestions = questionsArr.map((q: any) => {
-      const isInput = q.questionType === 'INPUT' || (!q.optA && !q.optB && (q.inputAnswer || q.answer));
+      const isInput = q.questionType === 'INPUT' || q.type === 'INPUT' || (!q.optA && !q.optB && (q.inputAnswer || q.answer));
       return {
         questionType: isInput ? 'INPUT' : 'MCQ',
         questionText: String(q.questionText || q.question || q.title || '').trim(),
@@ -321,7 +323,7 @@ CRITICAL EXTRACTION RULES:
         explanation: String(q.explanation || q.solution || '').trim(),
         boardTag: String(q.boardTag || `${board || 'CBSE'} Pattern`).trim()
       };
-    }).filter(q => q.questionText && (q.questionType === 'INPUT' ? q.inputAnswer : (q.optA || q.optB)));
+    }).filter(q => q.questionText && (q.questionType === 'INPUT' ? Boolean(q.inputAnswer || q.optA) : (q.optA || q.optB)));
 
     // Deduplicate questions via Hash Set of normalized question texts in O(N)
     const seenQuestionTexts = new Set<string>();
