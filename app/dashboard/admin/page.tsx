@@ -1691,6 +1691,7 @@ function AdminDashboardContent() {
   // Auto-Billing Control Panel State
   const [autoBillingMonth, setAutoBillingMonth] = useState("");
   const [autoBillingPreview, setAutoBillingPreview] = useState<any>(null);
+  const [selectedBillingStudentIds, setSelectedBillingStudentIds] = useState<string[]>([]);
   const [loadingAutoBillingPreview, setLoadingAutoBillingPreview] = useState(false);
   const [runningAutoBilling, setRunningAutoBilling] = useState(false);
 
@@ -3063,6 +3064,10 @@ function AdminDashboardContent() {
       if (res.ok) {
         const data = await res.json();
         setAutoBillingPreview(data);
+        if (data.preview && Array.isArray(data.preview)) {
+          const pendingIds = data.preview.filter((p: any) => !p.alreadyBilled).map((p: any) => p.id);
+          setSelectedBillingStudentIds(pendingIds);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -3086,7 +3091,10 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/finances/auto-assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ billingMonth: autoBillingMonth })
+        body: JSON.stringify({ 
+          billingMonth: autoBillingMonth,
+          selectedStudentIds: selectedBillingStudentIds 
+        })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -6325,9 +6333,9 @@ function AdminDashboardContent() {
                                           checked={isChecked && !p.alreadyBilled}
                                           onChange={e => {
                                             if (e.target.checked) {
-                                              setSelectedBillingStudentIds(prev => [...prev, p.id]);
+                                              setSelectedBillingStudentIds((prev: string[]) => [...prev, p.id]);
                                             } else {
-                                              setSelectedBillingStudentIds(prev => prev.filter(id => id !== p.id));
+                                              setSelectedBillingStudentIds((prev: string[]) => prev.filter((id: string) => id !== p.id));
                                             }
                                           }}
                                           style={{ cursor: p.alreadyBilled ? 'not-allowed' : 'pointer', transform: 'scale(1.1)' }}
@@ -6400,12 +6408,23 @@ function AdminDashboardContent() {
                       )}
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                        <Button variant="secondary" onClick={() => setShowAutoBillingConfirmModal(false)}>
+                        <button 
+                          type="button"
+                          className="btn-secondary" 
+                          onClick={() => setShowAutoBillingConfirmModal(false)}
+                          style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                        >
                           Cancel
-                        </Button>
-                        <Button variant="primary" onClick={executeAutoBillingConfirmed} isLoading={runningAutoBilling} style={{ fontWeight: 800 }}>
-                          🚀 Confirm & Run Billing
-                        </Button>
+                        </button>
+                        <button 
+                          type="button"
+                          className="btn-primary" 
+                          onClick={executeAutoBillingConfirmed} 
+                          disabled={runningAutoBilling}
+                          style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                          {runningAutoBilling ? 'Generating Invoices...' : '🚀 Confirm & Run Billing'}
+                        </button>
                       </div>
                     </div>
                   </Modal>
