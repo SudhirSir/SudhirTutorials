@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
-import { calculateLateFine, generateReceiptNo, getGradeLetterCode, getNextUniqueReceiptNo } from '@/lib/feeUtils';
+import { calculateLateFine, generateReceiptNo, getGradeLetterCode, getNextUniqueReceiptNo, getBatchUniqueReceiptNumbers } from '@/lib/feeUtils';
 import { getLateFineSettings } from '@/lib/feeSettings';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
@@ -195,65 +195,80 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'No students found in the selected batch.' }, { status: 400 });
       }
       
+      // Scalable batch assignment: query existing in 1 DB roundtrip using in-memory Set
+      const studentIds = students.map(s => s.id);
+      const existingPayments = await withDbRetry(() => prisma.payment.findMany({
+        where: {
+          studentId: { in: studentIds },
+          billingMonth,
+          title: title || 'Monthly Fee'
+        },
+        select: { studentId: true }
+      }));
+      const existingSet = new Set(existingPayments.map(p => p.studentId));
+      const targetStudents = students.filter(s => !existingSet.has(s.id));
+      const alreadyAssignedCount = students.length - targetStudents.length;
+
       let count = 0;
-      let alreadyAssignedCount = 0;
 
-      for (const s of students) {
-        // Prevent duplicate for same month AND same title
-        const existing = await withDbRetry(() => prisma.payment.findFirst({
-          where: { studentId: s.id, billingMonth, title: title || 'Monthly Fee' }
+      if (targetStudents.length > 0) {
+        // Generate unique receipts in one single batch pass with zero collisions
+        const receiptItems = targetStudents.map(s => ({ className: s.studentProfile?.className }));
+        const receiptNumbers = await getBatchUniqueReceiptNumbers(prisma, finalCreatedAt, receiptItems);
+
+        const paymentsToCreate = targetStudents.map((s, idx) => {
+          const sScholarship = s.studentProfile?.scholarship || 0;
+          const sDiscount = Math.max(discount || 0, sScholarship);
+          const finalAssignedAmount = amount !== undefined ? amount : (s.studentProfile?.baseFee || 0);
+
+          return {
+            studentId: s.id,
+            receiptNo: receiptNumbers[idx],
+            amount: finalAssignedAmount,
+            billingMonth,
+            dueDate: finalDueDate,
+            createdAt: finalCreatedAt,
+            title: title || 'Monthly Fee',
+            status: 'PENDING',
+            discount: sDiscount,
+            remarks
+          };
+        });
+
+        await withDbRetry(() => prisma.payment.createMany({
+          data: paymentsToCreate
         }));
-        if (existing) {
-          alreadyAssignedCount++;
-          continue;
+
+        // Bulk notify students
+        const dueDayStr = String(finalDueDate.getDate()).padStart(2, '0');
+        const dueMonthStr = String(finalDueDate.getMonth() + 1).padStart(2, '0');
+        const formattedDueDate = `${dueDayStr}/${dueMonthStr}/${finalDueDate.getFullYear()}`;
+
+        const notifsToCreate = targetStudents.map(s => {
+          const sScholarship = s.studentProfile?.scholarship || 0;
+          const sDiscount = Math.max(discount || 0, sScholarship);
+          const finalAssignedAmount = amount !== undefined ? amount : (s.studentProfile?.baseFee || 0);
+          const net = Math.max(0, finalAssignedAmount - sDiscount);
+
+          return {
+            userId: s.id,
+            senderId: session.user.id,
+            title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
+            message: `A new fee of ₹${net.toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${formattedDueDate} to avoid late fines.`,
+            type: 'FEE',
+            isRead: false
+          };
+        });
+
+        if (notifsToCreate.length > 0) {
+          await withDbRetry(() => prisma.notification.createMany({
+            data: notifsToCreate
+          })).catch(err => console.error("Failed to notify students of fee assignment:", err));
+
+          appCache.invalidate('badges');
         }
 
-        const sScholarship = s.studentProfile?.scholarship || 0;
-        const sDiscount = Math.max(discount || 0, sScholarship);
-        const finalAssignedAmount = amount !== undefined ? amount : (s.studentProfile?.baseFee || 0);
-
-        // Safely generate unique receiptNo
-        let createdPayment: any = null;
-        for (let retry = 0; retry < 3; retry++) {
-          try {
-            const receiptNo = await getNextUniqueReceiptNo(prisma, finalCreatedAt, s.studentProfile?.className, count + retry);
-            createdPayment = await withDbRetry(() => prisma.payment.create({
-              data: {
-                studentId: s.id,
-                receiptNo,
-                amount: finalAssignedAmount,
-                billingMonth,
-                dueDate: finalDueDate,
-                createdAt: finalCreatedAt,
-                title: title || 'Monthly Fee',
-                status: 'PENDING',
-                discount: sDiscount,
-                remarks
-              }
-            }));
-            break;
-          } catch (createErr: any) {
-            if (createErr?.code === 'P2002' && retry < 2) continue;
-            throw createErr;
-          }
-        }
-
-        // Notify Student
-        try {
-          await withDbRetry(() => prisma.notification.create({
-            data: {
-              userId: s.id,
-              title: `💳 New Fee Assigned: ${title || 'Monthly Fee'}`,
-              message: `A new fee of ₹${Math.max(0, finalAssignedAmount - sDiscount).toFixed(0)} has been assigned to you for ${billingMonth}. Please pay before ${String(finalDueDate.getDate()).padStart(2, '0')}/${String(finalDueDate.getMonth() + 1).padStart(2, '0')}/${finalDueDate.getFullYear()} to avoid late fines.`,
-              type: 'FEE',
-              isRead: false
-            }
-          }));
-        } catch (err) {
-          console.error("Failed to notify student of fee assignment:", err);
-        }
-
-        count++;
+        count = targetStudents.length;
       }
 
       await logActivity(

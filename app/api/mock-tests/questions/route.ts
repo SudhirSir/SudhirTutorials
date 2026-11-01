@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 function normalizeQuestionOptions(v: any): string[] {
   let arr: string[] = [];
@@ -152,17 +153,39 @@ export async function POST(req: Request) {
 
       const { mockTestId, questions } = validation.data;
 
-      const createdQuestions = await withDbRetry(() => prisma.chapterMockQuestion.createMany({
-        data: questions.map(q => ({
-          mockTestId,
-          questionText: q.questionText,
-          options: JSON.stringify(q.options),
-          correctOption: q.correctOption,
-          marks: q.marks,
-          explanation: q.explanation || '',
-          boardTag: q.boardTag || ''
-        }))
-      }));
+      let createdCount = 0;
+      try {
+        const createdQuestions = await withDbRetry(() => prisma.chapterMockQuestion.createMany({
+          data: questions.map(q => ({
+            id: crypto.randomUUID(),
+            mockTestId,
+            questionText: q.questionText,
+            options: JSON.stringify(q.options),
+            correctOption: q.correctOption,
+            marks: q.marks,
+            explanation: q.explanation || '',
+            boardTag: q.boardTag || ''
+          }))
+        }));
+        createdCount = createdQuestions.count;
+      } catch (bulkErr: any) {
+        console.warn('createMany failed, falling back to transaction:', bulkErr?.message);
+        const txResults = await withDbRetry(() => prisma.$transaction(
+          questions.map(q => prisma.chapterMockQuestion.create({
+            data: {
+              id: crypto.randomUUID(),
+              mockTestId,
+              questionText: q.questionText,
+              options: JSON.stringify(q.options),
+              correctOption: q.correctOption,
+              marks: q.marks,
+              explanation: q.explanation || '',
+              boardTag: q.boardTag || ''
+            }
+          }))
+        ));
+        createdCount = txResults.length;
+      }
 
       // Recalculate total marks for the test
       const allQs = await withDbRetry(() => prisma.chapterMockQuestion.findMany({
@@ -174,7 +197,7 @@ export async function POST(req: Request) {
         data: { totalMarks: totalMarksSum }
       }));
 
-      return NextResponse.json({ createdCount: createdQuestions.count, success: true });
+      return NextResponse.json({ createdCount, success: true });
     }
 
     // Single question insert

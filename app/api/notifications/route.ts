@@ -73,12 +73,15 @@ export async function GET(req: Request) {
 
 // POST: Admin/Teacher sends a notification to one or more users
 const sendSchema = z.object({
-  title: z.string().min(1).max(100),
-  message: z.string().min(1).max(500),
+  title: z.string().min(1, "Title is required").max(100),
+  message: z.string().min(1, "Message is required").max(1000),
   type: z.string().default('SYSTEM'),
+  targetMode: z.enum(['ALL', 'ALL_STUDENTS', 'ALL_TEACHERS', 'BATCHES', 'CUSTOM']).optional(),
   targetRole: z.string().optional(),
   targetSelections: z.array(z.string()).optional(),
   targetUserId: z.string().optional(),
+  targetUserIds: z.array(z.string()).optional(),
+  batchIds: z.array(z.string()).optional(),
 });
 
 export async function POST(req: Request) {
@@ -96,64 +99,116 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
     }
 
-    const { title, message, type, targetRole, targetSelections, targetUserId } = validation.data;
+    const { 
+      title, 
+      message, 
+      type, 
+      targetMode, 
+      targetRole, 
+      targetSelections, 
+      targetUserId, 
+      targetUserIds, 
+      batchIds 
+    } = validation.data;
     const targetSet = new Set<string>();
 
+    // 1. Direct custom user selections
     if (targetUserId) {
       targetSet.add(targetUserId);
+    }
+    if (targetUserIds && targetUserIds.length > 0) {
+      targetUserIds.forEach(id => { if (id) targetSet.add(id); });
+    }
+
+    // 2. Target Mode based handling
+    if (targetMode === 'ALL_STUDENTS') {
+      const students = await withDbRetry(() => prisma.user.findMany({
+        where: { role: 'STUDENT', isActive: true, NOT: { isStoreUser: true } },
+        select: { id: true }
+      }));
+      students.forEach(s => targetSet.add(s.id));
+    } else if (targetMode === 'ALL_TEACHERS') {
+      const teachers = await withDbRetry(() => prisma.user.findMany({
+        where: { role: 'TEACHER', isActive: true },
+        select: { id: true }
+      }));
+      teachers.forEach(t => targetSet.add(t.id));
+    } else if (targetMode === 'BATCHES' || (batchIds && batchIds.length > 0)) {
+      const bIds = batchIds || [];
+      const batchStudents = await withDbRetry(() => prisma.user.findMany({
+        where: {
+          role: 'STUDENT',
+          isActive: true,
+          NOT: { isStoreUser: true },
+          OR: [
+            { studentBatches: { some: { id: { in: bIds } } } },
+            { studentBatches: { some: { name: { in: bIds } } } },
+            { studentProfile: { OR: [ { batch: { in: bIds } }, { className: { in: bIds } } ] } }
+          ]
+        },
+        select: { id: true }
+      }));
+      batchStudents.forEach(bs => targetSet.add(bs.id));
+    } else if (targetMode === 'ALL') {
+      const users = await withDbRetry(() => prisma.user.findMany({
+        where: { role: { in: ['STUDENT', 'TEACHER'] }, isActive: true, NOT: { isStoreUser: true } },
+        select: { id: true }
+      }));
+      users.forEach(u => targetSet.add(u.id));
     } else if (targetSelections && targetSelections.length > 0) {
+      // Backward-compatibility: targetSelections array
       if (targetSelections.includes('TEACHER')) {
         const teachers = await withDbRetry(() => prisma.user.findMany({
-          where: { role: 'TEACHER' },
+          where: { role: 'TEACHER', isActive: true },
           select: { id: true }
         }));
-        teachers.forEach((t: any) => targetSet.add(t.id));
+        teachers.forEach(t => targetSet.add(t.id));
       }
 
       if (targetSelections.includes('STUDENT')) {
         const students = await withDbRetry(() => prisma.user.findMany({
-          where: { role: 'STUDENT', isActive: true },
+          where: { role: 'STUDENT', isActive: true, NOT: { isStoreUser: true } },
           select: { id: true }
         }));
-        students.forEach((s: any) => targetSet.add(s.id));
+        students.forEach(s => targetSet.add(s.id));
       }
 
-      const specificClasses = targetSelections.filter(s => s !== 'TEACHER' && s !== 'STUDENT');
-      if (specificClasses.length > 0) {
+      const specificBatchesOrClasses = targetSelections.filter(s => s !== 'TEACHER' && s !== 'STUDENT');
+      if (specificBatchesOrClasses.length > 0) {
         const classStudents = await withDbRetry(() => prisma.user.findMany({
           where: {
             role: 'STUDENT',
             isActive: true,
-            studentProfile: {
-              OR: [
-                { className: { in: specificClasses } },
-                { grade: { in: specificClasses } },
-                { batch: { in: specificClasses } }
-              ]
-            }
+            NOT: { isStoreUser: true },
+            OR: [
+              { studentBatches: { some: { id: { in: specificBatchesOrClasses } } } },
+              { studentBatches: { some: { name: { in: specificBatchesOrClasses } } } },
+              { studentProfile: { OR: [ { className: { in: specificBatchesOrClasses } }, { grade: { in: specificBatchesOrClasses } }, { batch: { in: specificBatchesOrClasses } } ] } }
+            ]
           },
           select: { id: true }
         }));
-        classStudents.forEach((cs: any) => targetSet.add(cs.id));
+        classStudents.forEach(cs => targetSet.add(cs.id));
       }
     } else if (targetRole && targetRole !== 'ALL') {
       const users = await withDbRetry(() => prisma.user.findMany({
-        where: { role: targetRole },
+        where: { role: targetRole, isActive: true },
         select: { id: true },
       }));
-      users.forEach((u: any) => targetSet.add(u.id));
-    } else {
+      users.forEach(u => targetSet.add(u.id));
+    } else if (!targetUserId && (!targetUserIds || targetUserIds.length === 0)) {
+      // Default fallback: broadcast to all active students and teachers
       const users = await withDbRetry(() => prisma.user.findMany({
-        where: { role: { in: ['STUDENT', 'TEACHER'] } },
+        where: { role: { in: ['STUDENT', 'TEACHER'] }, isActive: true, NOT: { isStoreUser: true } },
         select: { id: true },
       }));
-      users.forEach((u: any) => targetSet.add(u.id));
+      users.forEach(u => targetSet.add(u.id));
     }
 
     const targetIds = Array.from(targetSet);
 
     if (targetIds.length === 0) {
-      return NextResponse.json({ error: 'No target users found' }, { status: 400 });
+      return NextResponse.json({ error: 'No recipient users found for selected audience' }, { status: 400 });
     }
 
     await withDbRetry(() => prisma.notification.createMany({

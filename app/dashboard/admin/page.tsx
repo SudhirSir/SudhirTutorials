@@ -19,6 +19,7 @@ import { AdminStoreManager } from '@/components/AdminStoreManager';
 import { QuickServicesWidget } from '@/components/QuickServicesWidget';
 import { EduPredAI } from '@/components/EduPredAI';
 import { ChapterMockTestManager } from '@/components/ChapterMockTestManager';
+import Modal from '@/components/ui/Modal';
 import { cleanDisplayName, safeSessionStorage } from '@/lib/safeStorage';
 
 function formatDobDisplay(dobStr: string | null | undefined): string {
@@ -109,11 +110,18 @@ function AdminDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const ACADEMIC_SUBTABS = ['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'admissions', 'mock-tests'];
+
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlTab = params.get('tab');
-      if (urlTab) return urlTab;
+      if (urlTab) {
+        if (['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'admissions', 'mock-tests'].includes(urlTab)) {
+          return 'academics';
+        }
+        return urlTab;
+      }
       const stored = safeSessionStorage.getItem('st_active_tab_admin');
       if (stored) return stored;
     }
@@ -135,6 +143,11 @@ function AdminDashboardContent() {
   const [financeSubTab, setFinanceSubTab] = useState<'OVERVIEW' | 'LEDGER' | 'ASSIGN' | 'EXPENSES' | 'BILLING_ENGINE' | 'STATEMENT'>('OVERVIEW');
   const [academicSubTab, setAcademicSubTab] = useState<'menu' | 'courses' | 'attendance' | 'materials' | 'tests' | 'analytics' | 'lectures' | 'admissions' | 'mock-tests'>(() => {
     if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab');
+      if (urlTab && ['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'admissions', 'mock-tests'].includes(urlTab)) {
+        return urlTab as any;
+      }
       const storedSub = safeSessionStorage.getItem('st_academic_subtab_admin');
       if (storedSub) return storedSub as any;
     }
@@ -149,16 +162,7 @@ function AdminDashboardContent() {
   const [pptDifficulty, setPptDifficulty] = useState('Intermediate');
   const [pptDuration, setPptDuration] = useState('45');
   const [batchModalTab, setBatchModalTab] = useState<'CONFIG' | 'STUDENTS'>('CONFIG');
-
-  useEffect(() => {
-    // Intercept separate tab clicks to open nested sub-tab layout under academics
-    if (['courses', 'attendance', 'materials', 'tests', 'analytics', 'lectures', 'admissions', 'mock-tests'].includes(activeTab)) {
-      setAcademicSubTab(activeTab as any);
-      safeSessionStorage.setItem('st_academic_subtab_admin', activeTab);
-      setActiveTab('academics');
-      safeSessionStorage.setItem('st_active_tab_admin', 'academics');
-    }
-  }, [activeTab]);
+  const [showAutoBillingConfirmModal, setShowAutoBillingConfirmModal] = useState(false);
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -204,11 +208,21 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!session?.user) return;
     const tab = searchParams.get('tab');
-    if (tab && tab !== activeTab) {
-      setActiveTab(tab);
-      safeSessionStorage.setItem('st_active_tab_admin', tab);
+    if (!tab) return;
+
+    if (ACADEMIC_SUBTABS.includes(tab)) {
+      setActiveTab('academics');
+      safeSessionStorage.setItem('st_active_tab_admin', 'academics');
+      setAcademicSubTab(tab as any);
+      safeSessionStorage.setItem('st_academic_subtab_admin', tab);
+    } else {
+      if (tab !== activeTab) {
+        setActiveTab(tab);
+        safeSessionStorage.setItem('st_active_tab_admin', tab);
+      }
     }
-    if (tab === 'courses' || activeTab === 'courses') {
+
+    if (tab === 'courses' || tab === 'academics' || activeTab === 'courses') {
       Promise.all([
         fetchCourses(),
         fetchBatches(),
@@ -217,7 +231,7 @@ function AdminDashboardContent() {
         fetchAllStudents()
       ]);
     }
-  }, [searchParams, session, activeTab]);
+  }, [searchParams, session]);
 
   const fetchTeachers = async () => {
     try {
@@ -3057,12 +3071,16 @@ function AdminDashboardContent() {
     }
   };
 
-  const runAutoBillingEngine = async () => {
+  const runAutoBillingEngine = () => {
     if (!autoBillingMonth) {
       alert("Please select or enter a billing month first.");
       return;
     }
-    if (!confirm(`Are you sure you want to run automated fee billing for ${autoBillingMonth}? This will generate fee records for all active students with auto-calculated base fees.`)) return;
+    setShowAutoBillingConfirmModal(true);
+  };
+
+  const executeAutoBillingConfirmed = async () => {
+    setShowAutoBillingConfirmModal(false);
     setRunningAutoBilling(true);
     try {
       const res = await fetch('/api/admin/finances/auto-assign', {
@@ -3071,8 +3089,8 @@ function AdminDashboardContent() {
         body: JSON.stringify({ billingMonth: autoBillingMonth })
       });
       const data = await res.json();
-      if (res.ok) {
-        alert(`Billing generated successfully for ${autoBillingMonth}!\n\nNewly Billed: ${data.count || 0} students\nSkipped (Already Generated): ${data.skippedCount || 0} students`);
+      if (res.ok && data.success) {
+        alert(`🎉 Billing generated successfully for ${autoBillingMonth}!\n\nNewly Billed: ${data.count || 0} students\nSkipped (Already Generated): ${data.skippedCount || 0} students\n\n🔔 Notifications with due dates have been automatically sent to all billed students!`);
         fetchFinances();
         fetchFinSummary();
         fetchAutoBillingPreview(autoBillingMonth);
@@ -6221,40 +6239,176 @@ function AdminDashboardContent() {
                       </div>
                     </div>
 
-                    {/* Preview Table */}
-                    <div style={{ maxHeight: '350px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                      <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-                        <thead style={{ background: 'var(--card-bg-alt)', position: 'sticky', top: 0, zIndex: 10 }}>
-                          <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                            <th style={{ padding: '0.75rem 1rem' }}>Student Name</th>
-                            <th>User ID</th>
-                            <th>Class</th>
-                            <th>Calculated Base Fee</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {autoBillingPreview.preview?.map((p: any) => (
-                            <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                              <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text)' }}>{p.name}</td>
-                              <td style={{ color: 'var(--text)' }}>{p.username}</td>
-                              <td style={{ color: 'var(--text)' }}>{p.class}</td>
-                              <td style={{ fontWeight: 700, color: '#10b981' }}>₹{p.baseFee}</td>
-                              <td>
-                                <span style={{ 
-                                  padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800,
-                                  background: p.alreadyBilled ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                                  color: p.alreadyBilled ? '#10b981' : '#f59e0b'
-                                }}>
-                                  {p.alreadyBilled ? 'BILLED ✓' : 'READY'}
+                    {/* Preview Selection Header & Controls */}
+                    {(() => {
+                      const pendingStudents = (autoBillingPreview.preview || []).filter((p: any) => !p.alreadyBilled);
+                      const allPendingSelected = pendingStudents.length > 0 && pendingStudents.every((p: any) => selectedBillingStudentIds.includes(p.id));
+
+                      return (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>
+                                Checked for Billing:
+                              </span>
+                              <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 800, fontSize: '0.82rem' }}>
+                                {selectedBillingStudentIds.length} of {pendingStudents.length} Students
+                              </span>
+                              {pendingStudents.length - selectedBillingStudentIds.length > 0 && (
+                                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                  ({pendingStudents.length - selectedBillingStudentIds.length} unchecked / excluded)
                                 </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedBillingStudentIds(pendingStudents.map((p: any) => p.id))}
+                                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', padding: '2px 6px' }}
+                              >
+                                Select All Pending
+                              </button>
+                              <span style={{ color: 'var(--border)' }}>•</span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedBillingStudentIds([])}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', padding: '2px 6px' }}
+                              >
+                                Deselect All
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Preview Table */}
+                          <div style={{ maxHeight: '380px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                            <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                              <thead style={{ background: 'var(--card-bg-alt)', position: 'sticky', top: 0, zIndex: 10 }}>
+                                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                                  <th style={{ width: '48px', padding: '0.75rem 0.5rem', textAlign: 'center' }}>
+                                    <input
+                                      type="checkbox"
+                                      aria-label="Select all pending students"
+                                      checked={allPendingSelected}
+                                      onChange={e => {
+                                        if (e.target.checked) {
+                                          setSelectedBillingStudentIds(pendingStudents.map((p: any) => p.id));
+                                        } else {
+                                          setSelectedBillingStudentIds([]);
+                                        }
+                                      }}
+                                      style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
+                                    />
+                                  </th>
+                                  <th style={{ padding: '0.75rem 0.75rem' }}>Student Name</th>
+                                  <th>User ID</th>
+                                  <th>Class</th>
+                                  <th>Calculated Base Fee</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {autoBillingPreview.preview?.map((p: any) => {
+                                  const isChecked = selectedBillingStudentIds.includes(p.id);
+                                  return (
+                                    <tr 
+                                      key={p.id} 
+                                      style={{ 
+                                        borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                        background: isChecked && !p.alreadyBilled ? 'rgba(16,185,129,0.03)' : 'transparent'
+                                      }}
+                                    >
+                                      <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
+                                        <input
+                                          type="checkbox"
+                                          disabled={p.alreadyBilled}
+                                          checked={isChecked && !p.alreadyBilled}
+                                          onChange={e => {
+                                            if (e.target.checked) {
+                                              setSelectedBillingStudentIds(prev => [...prev, p.id]);
+                                            } else {
+                                              setSelectedBillingStudentIds(prev => prev.filter(id => id !== p.id));
+                                            }
+                                          }}
+                                          style={{ cursor: p.alreadyBilled ? 'not-allowed' : 'pointer', transform: 'scale(1.1)' }}
+                                          title={p.alreadyBilled ? "Already billed for this month" : (isChecked ? "Click to exclude this student" : "Click to include in billing")}
+                                        />
+                                      </td>
+                                      <td style={{ padding: '0.75rem 0.75rem', fontWeight: 600, color: 'var(--text)' }}>
+                                        {p.name}
+                                        {!isChecked && !p.alreadyBilled && (
+                                          <span style={{ marginLeft: '0.4rem', fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700 }}>(Excluded)</span>
+                                        )}
+                                      </td>
+                                      <td style={{ color: 'var(--text-muted)' }}>{p.username}</td>
+                                      <td style={{ color: 'var(--text)' }}>{p.class || p.className}</td>
+                                      <td style={{ fontWeight: 700, color: isChecked && !p.alreadyBilled ? '#10b981' : 'var(--text-muted)' }}>₹{p.baseFee}</td>
+                                      <td>
+                                        <span style={{ 
+                                          padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800,
+                                          background: p.alreadyBilled ? 'rgba(16,185,129,0.1)' : (isChecked ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)'),
+                                          color: p.alreadyBilled ? '#10b981' : (isChecked ? '#10b981' : 'var(--text-muted)')
+                                        }}>
+                                          {p.alreadyBilled ? 'BILLED ✓' : (isChecked ? 'SELECTED' : 'SKIPPED')}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
+                )}
+
+                {/* Auto Billing Mobile & Desktop Friendly Confirmation Modal */}
+                {showAutoBillingConfirmModal && (
+                  <Modal
+                    isOpen={showAutoBillingConfirmModal}
+                    onClose={() => setShowAutoBillingConfirmModal(false)}
+                    title="🚀 Run Automated Monthly Fee Billing"
+                    maxWidth="520px"
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>
+                          Confirm Billing Run for <strong>{autoBillingMonth}</strong>
+                        </p>
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          This will generate fee invoices for all active students with auto-calculated base fees, assign collision-free official receipt numbers, and automatically dispatch notifications to students with payment due dates.
+                        </p>
+                      </div>
+
+                      {autoBillingPreview && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                          <div style={{ padding: '0.75rem', background: 'var(--card-bg-alt, rgba(255,255,255,0.03))', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Checked to Bill</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981', marginTop: '0.2rem' }}>
+                              {selectedBillingStudentIds.length} Students
+                            </div>
+                          </div>
+                          <div style={{ padding: '0.75rem', background: 'var(--card-bg-alt, rgba(255,255,255,0.03))', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Excluded / Unchecked</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.2rem' }}>
+                              {Math.max(0, (autoBillingPreview.pendingBillingCount || 0) - selectedBillingStudentIds.length)} Students
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <Button variant="secondary" onClick={() => setShowAutoBillingConfirmModal(false)}>
+                          Cancel
+                        </Button>
+                        <Button variant="primary" onClick={executeAutoBillingConfirmed} isLoading={runningAutoBilling} style={{ fontWeight: 800 }}>
+                          🚀 Confirm & Run Billing
+                        </Button>
+                      </div>
+                    </div>
+                  </Modal>
                 )}
               </div>
             </div>

@@ -91,9 +91,13 @@ export function NotificationsPanel({
   const [showCompose, setShowCompose] = useState(false);
   const [composeTitle, setComposeTitle] = useState('');
   const [composeMsg, setComposeMsg] = useState('');
-  const [selectedTargets, setSelectedTargets] = useState<string[]>(['STUDENT', 'TEACHER']);
-  const [isTargetDropdownOpen, setIsTargetDropdownOpen] = useState(false);
+  const [targetAudienceMode, setTargetAudienceMode] = useState<'ALL_STUDENTS' | 'ALL_TEACHERS' | 'BATCHES' | 'CUSTOM' | 'ALL'>('ALL_STUDENTS');
+  const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
   const [availableBatches, setAvailableBatches] = useState<any[]>([]);
+  const [customUserSearch, setCustomUserSearch] = useState('');
+  const [searchedUsers, setSearchedUsers] = useState<any[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [selectedCustomUsers, setSelectedCustomUsers] = useState<any[]>([]);
   const [composing, setComposing] = useState(false);
   const [composeSuccess, setComposeSuccess] = useState('');
 
@@ -106,27 +110,53 @@ export function NotificationsPanel({
       .catch(console.error);
   }, []);
 
-  const targetOptions = [
-    { id: 'TEACHER', label: '👨‍🏫 All Teachers' },
-    { id: 'STUDENT', label: '🎓 All Students' },
-    ...availableBatches.map(b => ({
-      id: b.name,
-      label: `🏫 ${b.name}${b.className ? ` (${b.className})` : ''}`
-    }))
-  ];
+  // Debounced search for custom recipient selection
+  useEffect(() => {
+    if (targetAudienceMode !== 'CUSTOM' || !customUserSearch.trim()) {
+      setSearchedUsers([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchingUsers(true);
+      try {
+        const res = await fetch('/api/admin/directory?q=' + encodeURIComponent(customUserSearch.trim()));
+        if (res.ok) {
+          const data = await res.json();
+          setSearchedUsers(data.users || []);
+        }
+      } catch (err) {
+        console.error("User search error:", err);
+      } finally {
+        setSearchingUsers(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [customUserSearch, targetAudienceMode]);
 
-  const toggleTarget = (id: string) => {
-    setSelectedTargets(prev => 
-      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+  const toggleBatch = (bId: string) => {
+    setSelectedBatchIds(prev => 
+      prev.includes(bId) ? prev.filter(id => id !== bId) : [...prev, bId]
     );
   };
 
-  const selectAllTargets = () => {
-    setSelectedTargets(targetOptions.map(t => t.id));
+  const selectAllBatches = () => {
+    setSelectedBatchIds(availableBatches.map(b => b.id || b.name));
   };
 
-  const clearAllTargets = () => {
-    setSelectedTargets([]);
+  const clearAllBatches = () => {
+    setSelectedBatchIds([]);
+  };
+
+  const addCustomUser = (user: any) => {
+    if (!selectedCustomUsers.some(u => u.id === user.id)) {
+      setSelectedCustomUsers(prev => [...prev, user]);
+    }
+    setCustomUserSearch('');
+    setSearchedUsers([]);
+  };
+
+  const removeCustomUser = (userId: string) => {
+    setSelectedCustomUsers(prev => prev.filter(u => u.id !== userId));
   };
 
   const role = (session?.user as any)?.role as string;
@@ -251,24 +281,44 @@ export function NotificationsPanel({
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (targetAudienceMode === 'BATCHES' && selectedBatchIds.length === 0) {
+      alert("Please select at least one batch from the available batches list.");
+      return;
+    }
+
+    if (targetAudienceMode === 'CUSTOM' && selectedCustomUsers.length === 0) {
+      alert("Please search and select at least one individual student or teacher.");
+      return;
+    }
+
     setComposing(true);
     try {
-      const targets = selectedTargets && selectedTargets.length > 0 ? selectedTargets : ['STUDENT', 'TEACHER'];
+      const payload: any = {
+        title: composeTitle,
+        message: composeMsg,
+        type: 'SYSTEM',
+        targetMode: targetAudienceMode
+      };
+
+      if (targetAudienceMode === 'BATCHES') {
+        payload.batchIds = selectedBatchIds;
+      } else if (targetAudienceMode === 'CUSTOM') {
+        payload.targetUserIds = selectedCustomUsers.map(u => u.id);
+      }
+
       const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          title: composeTitle, 
-          message: composeMsg, 
-          type: 'SYSTEM', 
-          targetSelections: targets 
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (res.ok) {
-        setComposeSuccess(`Sent to ${data.sent} user(s)!`);
+        setComposeSuccess('Notification dispatched to ' + (data.sent || 0) + ' user(s) successfully!');
         setComposeTitle('');
         setComposeMsg('');
+        setSelectedBatchIds([]);
+        setSelectedCustomUsers([]);
         setTimeout(() => { setComposeSuccess(''); setShowCompose(false); }, 3000);
       } else {
         alert(data.error || 'Failed to send notification');
@@ -305,14 +355,267 @@ export function NotificationsPanel({
 
       {/* Compose Form */}
       {showCompose && (
-        <Card variant="glass" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.1rem', color: 'var(--text-heading)' }}>Broadcast Notification</h3>
+        <Card variant="glass" style={{ marginBottom: '1.5rem', border: '1px solid var(--primary)', borderRadius: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              📢 Send Notification
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Targeted & Broadcast Dispatch</span>
+          </div>
+
           {composeSuccess && (
-            <Badge variant="success" style={{ padding: '0.5rem 1rem', marginBottom: '1rem', width: '100%', justifyContent: 'center' }}>
+            <Badge variant="success" style={{ padding: '0.6rem 1rem', marginBottom: '1.25rem', width: '100%', justifyContent: 'center', fontSize: '0.88rem' }}>
               {composeSuccess}
             </Badge>
           )}
+
           <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Recipient Audience Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-heading)' }}>
+                🎯 Select Recipients:
+              </label>
+
+              {/* Mode Selection Pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                {[
+                  { id: 'ALL_STUDENTS', label: '🎓 All Students' },
+                  { id: 'ALL_TEACHERS', label: '👨‍🏫 All Teachers' },
+                  { id: 'BATCHES', label: '🏫 Available Batches' },
+                  { id: 'CUSTOM', label: '👤 Custom (Individual Student / Teacher)' },
+                  { id: 'ALL', label: '🌐 Everyone' }
+                ].map(opt => {
+                  const isSelected = targetAudienceMode === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setTargetAudienceMode(opt.id as any)}
+                      style={{
+                        padding: '0.4rem 0.85rem',
+                        borderRadius: '20px',
+                        border: '1px solid ' + (isSelected ? 'var(--primary)' : 'var(--border)'),
+                        background: isSelected ? 'var(--primary)' : 'var(--card-bg-alt, rgba(255,255,255,0.04))',
+                        color: isSelected ? '#ffffff' : 'var(--text)',
+                        fontSize: '0.82rem',
+                        fontWeight: isSelected ? 800 : 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Audience Context Info Banner */}
+              {targetAudienceMode === 'ALL_STUDENTS' && (
+                <div style={{ padding: '0.6rem 0.85rem', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#3b82f6', fontSize: '0.82rem', fontWeight: 600 }}>
+                  ✓ This notification will be received by all active students across all classes.
+                </div>
+              )}
+
+              {targetAudienceMode === 'ALL_TEACHERS' && (
+                <div style={{ padding: '0.6rem 0.85rem', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981', fontSize: '0.82rem', fontWeight: 600 }}>
+                  ✓ This notification will be received by all faculty and teaching staff.
+                </div>
+              )}
+
+              {targetAudienceMode === 'ALL' && (
+                <div style={{ padding: '0.6rem 0.85rem', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#f59e0b', fontSize: '0.82rem', fontWeight: 600 }}>
+                  ✓ Broad broadcast: will be sent to all active students AND all teachers.
+                </div>
+              )}
+
+              {/* Batches Available Sub-Selector */}
+              {targetAudienceMode === 'BATCHES' && (
+                <div style={{ marginTop: '0.35rem', padding: '0.9rem', background: 'var(--card-bg-alt, rgba(255,255,255,0.03))', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      Select Batches ({selectedBatchIds.length} of {availableBatches.length} selected):
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button type="button" onClick={selectAllBatches} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Select All
+                      </button>
+                      <span style={{ color: 'var(--border)' }}>•</span>
+                      <button type="button" onClick={clearAllBatches} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  {availableBatches.length === 0 ? (
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Loading batches...</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
+                      {availableBatches.map(b => {
+                        const bKey = b.id || b.name;
+                        const isChecked = selectedBatchIds.includes(bKey);
+                        return (
+                          <button
+                            key={bKey}
+                            type="button"
+                            onClick={() => toggleBatch(bKey)}
+                            style={{
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '8px',
+                              border: '1px solid ' + (isChecked ? '#10b981' : 'var(--border)'),
+                              background: isChecked ? 'rgba(16,185,129,0.12)' : 'var(--card-bg)',
+                              color: isChecked ? '#10b981' : 'var(--text)',
+                              fontSize: '0.8rem',
+                              fontWeight: isChecked ? 800 : 500,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            <span>{isChecked ? '✓' : '+'}</span>
+                            <span>{b.name}</span>
+                            {b.className && <span style={{ opacity: 0.65, fontSize: '0.72rem' }}>({b.className})</span>}
+                            {b._count?.students !== undefined && (
+                              <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(255,255,255,0.08)' }}>
+                                {b._count.students}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Custom Individual User Sub-Selector */}
+              {targetAudienceMode === 'CUSTOM' && (
+                <div style={{ marginTop: '0.35rem', padding: '0.9rem', background: 'var(--card-bg-alt, rgba(255,255,255,0.03))', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <div style={{ marginBottom: '0.6rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      Search & add individual students or teachers:
+                    </span>
+                  </div>
+
+                  {/* Selected User Pills */}
+                  {selectedCustomUsers.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      {selectedCustomUsers.map(u => (
+                        <span
+                          key={u.id}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.25rem 0.6rem',
+                            borderRadius: '16px',
+                            background: u.role === 'TEACHER' ? 'rgba(16,185,129,0.15)' : 'rgba(59,130,246,0.15)',
+                            color: u.role === 'TEACHER' ? '#10b981' : '#3b82f6',
+                            border: '1px solid ' + (u.role === 'TEACHER' ? 'rgba(16,185,129,0.3)' : 'rgba(59,130,246,0.3)'),
+                            fontSize: '0.78rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          <span>{u.role === 'TEACHER' ? '👨‍🏫' : '🎓'}</span>
+                          <span>{u.name || u.username}</span>
+                          {u.studentProfile?.className && (
+                            <span style={{ opacity: 0.75, fontSize: '0.7rem' }}>({u.studentProfile.className})</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeCustomUser(u.id)}
+                            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '0 2px', fontWeight: 900, fontSize: '0.85rem' }}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Search Bar */}
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Type name or username (e.g. Rahul, rohit123)..."
+                      value={customUserSearch}
+                      onChange={e => setCustomUserSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--input-bg)',
+                        color: 'var(--text)',
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                    {searchingUsers && (
+                      <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Searching...
+                      </span>
+                    )}
+
+                    {/* Search Results Dropdown */}
+                    {searchedUsers.length > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '105%',
+                          left: 0,
+                          right: 0,
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                          background: 'var(--card-bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          zIndex: 50,
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.35)'
+                        }}
+                      >
+                        {searchedUsers.map(u => (
+                          <div
+                            key={u.id}
+                            onClick={() => addCustomUser(u)}
+                            style={{
+                              padding: '0.55rem 0.85rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              borderBottom: '1px solid rgba(255,255,255,0.04)',
+                              fontSize: '0.82rem'
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <div>
+                              <strong style={{ color: 'var(--text-heading)' }}>{u.name || u.username}</strong>
+                              <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.75rem' }}>
+                                @{u.username} {u.studentProfile?.className ? '• Class ' + u.studentProfile.className : ''}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                background: u.role === 'TEACHER' ? 'rgba(16,185,129,0.1)' : 'rgba(59,130,246,0.1)',
+                                color: u.role === 'TEACHER' ? '#10b981' : '#3b82f6'
+                              }}
+                            >
+                              {u.role}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Input
               label="Notification Title"
               required
@@ -321,21 +624,21 @@ export function NotificationsPanel({
               onChange={e => setComposeTitle(e.target.value)}
             />
 
-              <Textarea
-                label="Message Content"
-                required
-                placeholder="Write your notification message here..."
-                value={composeMsg}
-                onChange={e => setComposeMsg(e.target.value)}
-                rows={3}
-              />
-              
-              <Button type="submit" isLoading={composing} variant="primary" size="sm" style={{ alignSelf: 'flex-end', padding: '0.45rem 1rem', fontSize: '0.82rem' }}>
-                🚀 Send Notification
-              </Button>
-            </form>
-          </Card>
-        )}
+            <Textarea
+              label="Message Content"
+              required
+              placeholder="Write your notification message here..."
+              value={composeMsg}
+              onChange={e => setComposeMsg(e.target.value)}
+              rows={3}
+            />
+            
+            <Button type="submit" isLoading={composing} variant="primary" size="sm" style={{ alignSelf: 'flex-end', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 800 }}>
+              🚀 Send Notification
+            </Button>
+          </form>
+        </Card>
+      )}
 
         {/* Sent / Received Navigation */}
         {(role === 'ADMIN' || role === 'TEACHER') && (

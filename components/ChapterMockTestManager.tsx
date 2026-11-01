@@ -161,9 +161,13 @@ export function ChapterMockTestManager() {
       const targetAns = String(q.inputAnswer || q.optA || "").trim();
       optionsArr = ["INPUT_ANSWER", targetAns || "0"];
     } else {
-      optionsArr = [q.optA, q.optB, q.optC, q.optD]
-        .map(opt => String(opt || "").trim())
-        .filter(Boolean);
+      if (Array.isArray(q.options) && q.options.length >= 2 && q.options[0] !== "INPUT_ANSWER") {
+        optionsArr = q.options.map((opt: any) => String(opt || "").trim()).filter(Boolean);
+      } else {
+        optionsArr = [q.optA, q.optB, q.optC, q.optD]
+          .map(opt => String(opt || "").trim())
+          .filter(Boolean);
+      }
 
       if (optionsArr.length < 2) {
         if (optionsArr.length === 1) {
@@ -219,7 +223,7 @@ export function ChapterMockTestManager() {
         openQuestionsManager(activeTestForQuestions);
         fetchMockTests();
       } else {
-        const errMsg = data.error || (data.details ? JSON.stringify(data.details) : "Failed to batch save extracted questions.");
+        const errMsg = data.error || (data.details ? JSON.stringify(data.details) : (res.statusText ? `${res.status}: ${res.statusText}` : "Failed to batch save extracted questions."));
         alert(`Failed to batch save extracted questions: ${errMsg}`);
       }
     } catch (e: any) {

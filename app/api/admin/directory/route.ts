@@ -10,7 +10,7 @@ import { appCache } from '@/lib/cache';
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions) as any;
-    if (!session || !session.user || session.user.role !== 'ADMIN') {
+    if (!session || !session.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

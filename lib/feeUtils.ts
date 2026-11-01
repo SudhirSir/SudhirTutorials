@@ -85,6 +85,133 @@ export function generateReceiptNo(payment: any, serial?: number | string): strin
 }
 
 /**
+ * Robustly parses billingMonth from user input or APIs (e.g. "April 2026", "2026-04", "2026-4", "apr 2026").
+ */
+export function parseBillingMonth(billingMonth?: string | null): { 
+  monthName: string; 
+  year: number; 
+  monthIndex: number; 
+  formatted: string;
+} {
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const now = new Date();
+  if (!billingMonth || typeof billingMonth !== 'string' || !billingMonth.trim()) {
+    const mIdx = now.getMonth();
+    const y = now.getFullYear();
+    return { monthName: monthNames[mIdx], year: y, monthIndex: mIdx, formatted: `${monthNames[mIdx]} ${y}` };
+  }
+
+  const str = billingMonth.trim();
+
+  // Pattern 1: YYYY-MM or YYYY-M
+  const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const mIdx = parseInt(isoMatch[2], 10) - 1;
+    const clampedM = Math.max(0, Math.min(11, isNaN(mIdx) ? now.getMonth() : mIdx));
+    return {
+      monthName: monthNames[clampedM],
+      year: isNaN(year) ? now.getFullYear() : year,
+      monthIndex: clampedM,
+      formatted: `${monthNames[clampedM]} ${year}`
+    };
+  }
+
+  // Pattern 2: "Month YYYY" or "Mon YYYY" or "Month, YYYY"
+  const textMatch = str.match(/^([A-Za-z]+)[\s,]+(\d{4})$/);
+  if (textMatch) {
+    const mName = textMatch[1].toLowerCase();
+    const year = parseInt(textMatch[2], 10);
+    const idx = monthNames.findIndex(m => m.toLowerCase().startsWith(mName));
+    const clampedM = idx !== -1 ? idx : now.getMonth();
+    return {
+      monthName: monthNames[clampedM],
+      year: isNaN(year) ? now.getFullYear() : year,
+      monthIndex: clampedM,
+      formatted: `${monthNames[clampedM]} ${year}`
+    };
+  }
+
+  // Pattern 3: just month name or partial
+  const singleIdx = monthNames.findIndex(m => m.toLowerCase().startsWith(str.toLowerCase()));
+  if (singleIdx !== -1) {
+    const year = now.getFullYear();
+    return {
+      monthName: monthNames[singleIdx],
+      year,
+      monthIndex: singleIdx,
+      formatted: `${monthNames[singleIdx]} ${year}`
+    };
+  }
+
+  // Fallback
+  const mIdx = now.getMonth();
+  const y = now.getFullYear();
+  return { monthName: monthNames[mIdx], year: y, monthIndex: mIdx, formatted: `${monthNames[mIdx]} ${y}` };
+}
+
+/**
+ * Ultra-fast batch generator for guaranteed unique receipt numbers without collisions.
+ * Uses a single database fetch and an in-memory hash Set for O(N) generation.
+ * Format: {YY}/{GradeCode}/{Serial}
+ * Example: "26/B/1228"
+ */
+export async function getBatchUniqueReceiptNumbers(
+  db: any,
+  dateVal?: Date | string,
+  items: { className?: string | null }[] = []
+): Promise<string[]> {
+  if (!items || items.length === 0) return [];
+  const date = dateVal ? new Date(dateVal) : new Date();
+  const yearCode = String(date.getFullYear()).slice(-2);
+
+  // Retrieve existing receipt numbers for this year to populate Set and discover max serial
+  const payments = await db.payment.findMany({
+    where: {
+      receiptNo: {
+        startsWith: `${yearCode}/`
+      }
+    },
+    select: { receiptNo: true }
+  });
+
+  const existingSet = new Set<string>();
+  let maxSerial = 1000;
+
+  for (const p of payments) {
+    if (!p.receiptNo) continue;
+    existingSet.add(p.receiptNo);
+    const parts = p.receiptNo.split('/');
+    if (parts.length === 3) {
+      const serialNum = parseInt(parts[2], 10);
+      if (!isNaN(serialNum) && serialNum > maxSerial) {
+        maxSerial = serialNum;
+      }
+    }
+  }
+
+  let currentSerial = Math.max(maxSerial + 1, 1001 + existingSet.size);
+  const results: string[] = [];
+
+  for (const item of items) {
+    const gradeCode = getGradeLetterCode(item.className);
+    let candidate = `${yearCode}/${gradeCode}/${currentSerial}`;
+    while (existingSet.has(candidate)) {
+      currentSerial++;
+      candidate = `${yearCode}/${gradeCode}/${currentSerial}`;
+    }
+    existingSet.add(candidate);
+    results.push(candidate);
+    currentSerial++;
+  }
+
+  return results;
+}
+
+/**
  * Safely generates the next unique receipt number without any risk of collision.
  * Format: {YY}/{GradeCode}/{Serial}
  * Example: "26/B/1228"
@@ -95,42 +222,6 @@ export async function getNextUniqueReceiptNo(
   className?: string | null,
   offset: number = 0
 ): Promise<string> {
-  const date = dateVal ? new Date(dateVal) : new Date();
-  const yearCode = String(date.getFullYear()).slice(-2);
-  const gradeCode = getGradeLetterCode(className);
-
-  // Retrieve existing receipt numbers for this year to find the true max numeric sequence
-  const payments = await db.payment.findMany({
-    where: {
-      receiptNo: {
-        startsWith: `${yearCode}/`
-      }
-    },
-    select: { receiptNo: true },
-    orderBy: { createdAt: 'desc' },
-    take: 500
-  });
-
-  let maxSerial = 1000;
-  for (const p of payments) {
-    if (!p.receiptNo) continue;
-    const parts = p.receiptNo.split('/');
-    if (parts.length === 3) {
-      const serialNum = parseInt(parts[2], 10);
-      if (!isNaN(serialNum) && serialNum > maxSerial) {
-        maxSerial = serialNum;
-      }
-    }
-  }
-
-  const count = await db.payment.count();
-  let candidateSerial = Math.max(maxSerial + 1, 1001 + count) + offset;
-
-  let candidate = `${yearCode}/${gradeCode}/${candidateSerial}`;
-  while (await db.payment.findUnique({ where: { receiptNo: candidate } })) {
-    candidateSerial++;
-    candidate = `${yearCode}/${gradeCode}/${candidateSerial}`;
-  }
-
-  return candidate;
+  const res = await getBatchUniqueReceiptNumbers(db, dateVal, [{ className }]);
+  return res[0] || `${String(new Date().getFullYear()).slice(-2)}/${getGradeLetterCode(className)}/${1001 + offset}`;
 }
