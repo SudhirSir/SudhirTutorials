@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { sendPushNotification } from '@/lib/push';
 import { messageEmitter } from '@/lib/events';
+import { appCache } from '@/lib/cache';
 import { z } from 'zod';
 
 const messageSchema = z.object({
@@ -29,10 +30,14 @@ export async function GET() {
     const [memberships, directMessages] = await Promise.all([
       withDbRetry(() => prisma.groupMember.findMany({
         where: { userId: currentUserId },
-        select: { groupId: true }
+        select: {
+          groupId: true,
+          group: { select: { id: true, name: true, photoUrl: true } }
+        }
       })),
       withDbRetry(() => prisma.message.findMany({
         where: {
+          groupId: null,
           OR: [
             { senderId: currentUserId, deletedBySender: false },
             { receiverId: currentUserId, deletedByReceiver: false },
@@ -86,7 +91,14 @@ export async function GET() {
       }));
     }
 
-    const allMessages = [...directMessages, ...groupMessages]
+    const uniqueMessageMap = new Map<string, any>();
+    for (const msg of [...directMessages, ...groupMessages]) {
+      if (!uniqueMessageMap.has(msg.id)) {
+        uniqueMessageMap.set(msg.id, msg);
+      }
+    }
+
+    const allMessages = Array.from(uniqueMessageMap.values())
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 80);
 
@@ -119,7 +131,17 @@ export async function GET() {
       } : undefined
     }));
 
-    return NextResponse.json({ messages: mappedMessages });
+    const groups = memberships
+      .map((m: any) => m.group)
+      .filter(Boolean)
+      .map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        photoUrl: g.photoUrl || null,
+        role: 'GROUP',
+      }));
+
+    return NextResponse.json({ messages: mappedMessages, groups });
   } catch (error) {
     console.error('Error fetching messages:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -239,6 +261,8 @@ export async function DELETE(req: Request) {
     const messageIdsParam = searchParams.get('messageIds');
     const chatUserId = searchParams.get('chatUserId');
     const chatGroupId = searchParams.get('chatGroupId');
+    const chatUserIdsParam = searchParams.get('chatUserIds');
+    const chatGroupIdsParam = searchParams.get('chatGroupIds');
 
     // Case 1: Bulk delete messages
     if (messageIdsParam) {
@@ -278,7 +302,7 @@ export async function DELETE(req: Request) {
         } else {
           // Direct message deletion logic (same as single message)
           const isSender = msg.senderId === session.user.id;
-          const updateData = isSender ? { deletedBySender: true } : { deletedByReceiver: true };
+          const updateData = isSender ? { deletedBySender: true } : { deletedByReceiver: true, isRead: true };
           const willBothBeDeleted = (isSender && msg.deletedByReceiver) || (!isSender && msg.deletedBySender);
 
           if (willBothBeDeleted) {
@@ -302,6 +326,8 @@ export async function DELETE(req: Request) {
         }
       }
 
+      appCache.invalidate(`badges:${session.user.id}`);
+
       return NextResponse.json({ success: true, deletedCount: authorizedMsgs.length });
     }
 
@@ -322,6 +348,8 @@ export async function DELETE(req: Request) {
         }));
         const memberIds = members.map((gm: any) => gm.userId);
 
+        appCache.invalidate(`badges:${session.user.id}`);
+
         messageEmitter.emit('message', {
           type: 'delete',
           messageId,
@@ -339,7 +367,7 @@ export async function DELETE(req: Request) {
       }
 
       const isSender = msg.senderId === session.user.id;
-      const updateData = isSender ? { deletedBySender: true } : { deletedByReceiver: true };
+      const updateData = isSender ? { deletedBySender: true } : { deletedByReceiver: true, isRead: true };
       const willBothBeDeleted = (isSender && msg.deletedByReceiver) || (!isSender && msg.deletedBySender);
 
       if (willBothBeDeleted) {
@@ -361,29 +389,116 @@ export async function DELETE(req: Request) {
         deletedByUserId: session.user.id
       });
 
+      appCache.invalidate(`badges:${session.user.id}`);
+
       return NextResponse.json({ success: true, deletedMessageId: messageId });
+    }
+
+    // Case 2b: Bulk delete chats (direct chats and/or group chats)
+    if (chatUserIdsParam || chatGroupIdsParam) {
+      const chatUserIds = Array.from(new Set((chatUserIdsParam || '').split(',').map(id => id.trim()).filter(Boolean)));
+      const chatGroupIds = Array.from(new Set((chatGroupIdsParam || '').split(',').map(id => id.trim()).filter(Boolean)));
+
+      if (chatUserIds.length === 0 && chatGroupIds.length === 0) {
+        return NextResponse.json({ error: 'No chat IDs provided' }, { status: 400 });
+      }
+
+      if (chatUserIds.length > 0) {
+        await withDbRetry(() => prisma.message.updateMany({
+          where: { groupId: null, senderId: session.user.id, receiverId: { in: chatUserIds } },
+          data: { deletedBySender: true }
+        }));
+
+        await withDbRetry(() => prisma.message.updateMany({
+          where: { groupId: null, senderId: { in: chatUserIds }, receiverId: session.user.id },
+          data: { deletedByReceiver: true, isRead: true }
+        }));
+
+        await withDbRetry(() => prisma.message.deleteMany({
+          where: {
+            groupId: null,
+            deletedBySender: true,
+            deletedByReceiver: true,
+            OR: [
+              { senderId: session.user.id, receiverId: { in: chatUserIds } },
+              { senderId: { in: chatUserIds }, receiverId: session.user.id }
+            ]
+          }
+        }));
+
+        for (const uid of chatUserIds) {
+          messageEmitter.emit('message', {
+            type: 'deleteChat',
+            chatUserId: uid,
+            senderId: session.user.id,
+            receiverId: uid,
+            deletedByUserId: session.user.id
+          });
+        }
+      }
+
+      if (chatGroupIds.length > 0) {
+        await withDbRetry(() => prisma.groupMember.deleteMany({
+          where: { groupId: { in: chatGroupIds }, userId: session.user.id }
+        }));
+
+        const remainingCounts = await withDbRetry(() => prisma.groupMember.groupBy({
+          by: ['groupId'],
+          where: { groupId: { in: chatGroupIds } },
+          _count: { _all: true }
+        }));
+
+        const nonEmptySet = new Set(remainingCounts.map((r: any) => r.groupId));
+        const emptyGroupIds = chatGroupIds.filter(gid => !nonEmptySet.has(gid));
+
+        if (emptyGroupIds.length > 0) {
+          await withDbRetry(() => prisma.chatGroup.deleteMany({
+            where: { id: { in: emptyGroupIds } }
+          }));
+        }
+
+        for (const gid of chatGroupIds) {
+          messageEmitter.emit('message', {
+            type: 'deleteChat',
+            chatGroupId: gid,
+            senderId: session.user.id,
+            deletedByUserId: session.user.id
+          });
+        }
+      }
+
+      appCache.invalidate(`badges:${session.user.id}`);
+
+      return NextResponse.json({
+        success: true,
+        deletedChatUserCount: chatUserIds.length,
+        deletedChatGroupCount: chatGroupIds.length
+      });
     }
 
     // Case 3: Delete entire direct chat
     if (chatUserId) {
       await withDbRetry(() => prisma.message.updateMany({
-        where: { senderId: session.user.id, receiverId: chatUserId },
+        where: { groupId: null, senderId: session.user.id, receiverId: chatUserId },
         data: { deletedBySender: true }
       }));
 
       await withDbRetry(() => prisma.message.updateMany({
-        where: { senderId: chatUserId, receiverId: session.user.id },
-        data: { deletedByReceiver: true }
+        where: { groupId: null, senderId: chatUserId, receiverId: session.user.id },
+        data: { deletedByReceiver: true, isRead: true }
       }));
 
       await withDbRetry(() => prisma.message.deleteMany({
         where: {
+          groupId: null,
           OR: [
             { senderId: session.user.id, receiverId: chatUserId, deletedBySender: true, deletedByReceiver: true },
             { senderId: chatUserId, receiverId: session.user.id, deletedBySender: true, deletedByReceiver: true }
           ]
         }
       }));
+
+      appCache.invalidate(`badges:${session.user.id}`);
 
       messageEmitter.emit('message', {
         type: 'deleteChat',
@@ -411,6 +526,8 @@ export async function DELETE(req: Request) {
           where: { id: chatGroupId }
         }));
       }
+
+      appCache.invalidate(`badges:${session.user.id}`);
 
       messageEmitter.emit('message', {
         type: 'deleteChat',

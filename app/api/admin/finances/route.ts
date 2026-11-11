@@ -110,7 +110,6 @@ export async function GET(req: Request) {
         } 
       },
       orderBy: { createdAt: 'desc' },
-      ...(status || month || studentId || studentUsername ? {} : { take: 250 })
     }));
 
     const { perDayFine, flatFineAfter10Days } = await getLateFineSettings();

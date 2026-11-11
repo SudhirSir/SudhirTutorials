@@ -3150,10 +3150,14 @@ function AdminDashboardContent() {
       async () => {
         setIsDeleting(true);
         try {
-          const res = await fetch(`/api/admin/finances?id=${delTargetId}`, { method: 'DELETE' });
+          const deletedId = delTargetId;
+          const res = await fetch(`/api/admin/finances?id=${deletedId}`, { method: 'DELETE' });
           if (res.ok) {
             setShowDelModal(false);
             setDelTargetId(null);
+            setSelectedUserDetail((prev: any) =>
+              prev?.payments ? { ...prev, payments: prev.payments.filter((p: any) => p.id !== deletedId) } : prev
+            );
             fetchFinances();
           } else {
             const data = await res.json();
@@ -5105,9 +5109,9 @@ function AdminDashboardContent() {
                                           </td>
                                           <td style={{ padding: '0.85rem 1rem' }}>
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                              {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
+                                              {(fee.status === 'PENDING' || (fee.status !== 'FAILED' && fee.totalDue > 0.01)) && (
                                                 <button 
-                                                  onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
+                                                  onClick={() => { setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: Math.max(0, fee.amount + Math.max(fee.lateFine || 0, fee.currentLateFine || 0) - (fee.discount || 0) - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
                                                   style={{ padding: '6px 14px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
                                                 >
                                                   💳 Collect
@@ -5405,7 +5409,12 @@ function AdminDashboardContent() {
                               if (students.length === 0) return <tr><td colSpan={6} style={{ padding: '3.5rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>No registered students found in directory.</td></tr>;
 
                               return students.map(s => {
-                                const studentInvoices = fees.filter(f => f.studentId === s.id);
+                                const studentInvoices = fees.filter(f =>
+                                  f.studentId === s.id ||
+                                  f.studentId === s.username ||
+                                  f.student?.username === s.username ||
+                                  f.student?.id === s.id
+                                );
                                 const totalPaid = studentInvoices
                                   .filter(f => ['PAID', 'VERIFIED', 'PAID_ONLINE'].includes(f.status) || (f.status === 'PENDING' && f.paidAmount > 0))
                                   .reduce((acc, f) => acc + (f.paidAmount || 0), 0);
@@ -5510,12 +5519,12 @@ function AdminDashboardContent() {
                   const s = collectModalStudent;
                   const pendingBills = fees.filter(f => 
                     (f.studentId === s.id || f.studentId === s.username || f.student?.username === s.username || f.student?.id === s.id) &&
-                    (f.status === 'PENDING' || f.totalDue > 0.01)
+                    (f.status === 'PENDING' || (f.status !== 'FAILED' && f.totalDue > 0.01))
                   ).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
                   const selectedBills = pendingBills.filter(f => selectedCollectFeeIds.includes(f.id));
                   const selectedTotal = selectedBills.reduce((acc, f) => {
-                    const fine = f.currentLateFine || f.lateFine || 0;
+                    const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
                     return acc + Math.max(0, f.amount + fine - (f.discount || 0) - (f.paidAmount || 0));
                   }, 0);
 
@@ -5577,7 +5586,7 @@ function AdminDashboardContent() {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '320px', overflowY: 'auto', paddingRight: '0.25rem' }}>
                               {pendingBills.map(fee => {
-                                const fine = fee.currentLateFine || fee.lateFine || 0;
+                                const fine = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
                                 const netDue = Math.max(0, fee.amount + fine - (fee.discount || 0) - (fee.paidAmount || 0));
                                 const isChecked = selectedCollectFeeIds.includes(fee.id);
 
@@ -5607,7 +5616,7 @@ function AdminDashboardContent() {
                                       <div>
                                         <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{fee.billingMonth}</div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                          Base: ₹{fee.amount - fee.discount} {fine > 0 ? `| Fine: +₹${fine}` : ''}
+                                          Base: ₹{fee.amount - fee.discount}{fine > 0 ? ` | Fine: +₹${fine}` : ''}{fee.paidAmount > 0 ? ` | Paid: -₹${fee.paidAmount}` : ''}
                                         </div>
                                       </div>
                                     </div>
@@ -5628,7 +5637,7 @@ function AdminDashboardContent() {
                                 setCollectModalStudent(null);
                                 if (selectedBills.length === 1) {
                                   const fee = selectedBills[0];
-                                  const fine = fee.currentLateFine || fee.lateFine || 0;
+                                  const fine = Math.max(fee.lateFine || 0, fee.currentLateFine || 0);
                                   const netDue = Math.max(0, fee.amount + fine - (fee.discount || 0) - (fee.paidAmount || 0));
                                   setPayingFee(fee);
                                   setShowPaymentModal(true);
@@ -5786,9 +5795,9 @@ function AdminDashboardContent() {
                                       </div>
 
                                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
-                                        {(fee.status === 'PENDING' || fee.totalDue > 0.01) && (
+                                        {(fee.status === 'PENDING' || (fee.status !== 'FAILED' && fee.totalDue > 0.01)) && (
                                           <button 
-                                            onClick={() => { setSelectedLedgerMobileStudent(null); setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: (fee.amount + fee.currentLateFine - fee.discount - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
+                                            onClick={() => { setSelectedLedgerMobileStudent(null); setPayingFee(fee); setShowPaymentModal(true); setPaymentDetails({ paymentMethod: 'CASH', transactionId: '', discount: fee.discount, remarks: '', paidAmount: Math.max(0, fee.amount + Math.max(fee.lateFine || 0, fee.currentLateFine || 0) - (fee.discount || 0) - (fee.paidAmount || 0)).toString(), paidAt: new Date().toISOString().split('T')[0] }); }} 
                                             style={{ flex: 1, padding: '0.45rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800 }}
                                           >
                                             Collect ₹{fee.totalDue}
@@ -10129,7 +10138,7 @@ function AdminDashboardContent() {
                    onClick={async () => {
                      if (payingFee?.isBatch && Array.isArray(payingFee?.batchFees)) {
                        for (const f of payingFee.batchFees) {
-                         const fine = f.currentLateFine || f.lateFine || 0;
+                         const fine = Math.max(f.lateFine || 0, f.currentLateFine || 0);
                          const fDue = Math.max(0, f.amount + fine - (f.discount || 0) - (f.paidAmount || 0));
                          await updateFeeStatus(f.id, 'PAID', { ...paymentDetails, paidAmount: fDue });
                        }
@@ -11377,14 +11386,19 @@ function AdminDashboardContent() {
                         f.student?.username === selectedUserDetail.username || 
                         f.student?.id === selectedUserDetail.id
                       );
-                      const activePayments = studentPayments.length > 0 ? studentPayments : (selectedUserDetail.payments || []);
-                      const pendingPayments = activePayments.filter((f: any) => f.status === 'PENDING' || (f.status !== 'PAID' && f.status !== 'VERIFIED' && f.status !== 'PAID_ONLINE'));
+                      const mergedPaymentsMap = new Map<string, any>();
+                      (selectedUserDetail.payments || []).forEach((p: any) => mergedPaymentsMap.set(p.id, p));
+                      studentPayments.forEach((p: any) => mergedPaymentsMap.set(p.id, { ...mergedPaymentsMap.get(p.id), ...p }));
+                      const activePayments = Array.from(mergedPaymentsMap.values());
+                      const pendingPayments = activePayments.filter((f: any) =>
+                        f.status === 'PENDING' || (f.status !== 'PAID' && f.status !== 'VERIFIED' && f.status !== 'PAID_ONLINE' && f.status !== 'FAILED')
+                      );
                       if (pendingPayments.length > 0) {
                         return pendingPayments.reduce((sum: number, f: any) => {
                           const fine = Math.max(
                             f.lateFine || 0,
                             f.currentLateFine || 0,
-                            calculateLiveLateFine ? calculateLiveLateFine(f.dueDate, f.paidAt, f.billingMonth) : 0
+                            f.status === 'PENDING' && calculateLiveLateFine ? calculateLiveLateFine(f.dueDate, '', f.billingMonth) : 0
                           );
                           const netDue = Math.max(0, (f.amount || 0) + fine - (f.discount || 0) - (f.paidAmount || 0));
                           return sum + netDue;

@@ -90,6 +90,17 @@ function dateSeparatorText(dateStr: string): string {
   return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+// ─── Deduplicate messages by ID ──────────────────────────────────────────────
+function dedupeMessages(list: ChatMessage[]): ChatMessage[] {
+  const map = new Map<string, ChatMessage>();
+  for (const m of list) {
+    if (m?.id && !map.has(m.id)) {
+      map.set(m.id, m);
+    }
+  }
+  return Array.from(map.values());
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserId }: ChatWindowProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -121,6 +132,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const [activeMenuMessageId, setActiveMenuMessageId] = useState<string | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [chatSelectMode, setChatSelectMode] = useState(false);
+  const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
+  const [isDeletingChats, setIsDeletingChats] = useState(false);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
@@ -151,7 +166,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       if (cachedMsgs) {
         const parsed = JSON.parse(cachedMsgs);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
+          setMessages(dedupeMessages(parsed));
         }
       }
     } catch (e) {}
@@ -161,13 +176,15 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   useEffect(() => {
     if (contacts.length > 0) {
       safeLocalStorage.setItem(`st_chat_contacts_${currentUserId}`, JSON.stringify(contacts.slice(0, 30)));
+    } else if (!initialLoading) {
+      safeLocalStorage.removeItem(`st_chat_contacts_${currentUserId}`);
     }
-  }, [contacts, currentUserId]);
+  }, [contacts, currentUserId, initialLoading]);
 
   useEffect(() => {
     if (messages.length > 0) {
       try {
-        const sanitized = messages.slice(0, 40).map(m => {
+        const sanitized = dedupeMessages(messages).slice(0, 40).map(m => {
           const msg = m as any;
           if (msg.attachment && typeof msg.attachment === 'string' && msg.attachment.startsWith('data:')) {
             return { ...m, attachment: '[attachment_cached]' };
@@ -179,8 +196,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         });
         safeLocalStorage.setItem(`st_chat_msgs_${currentUserId}`, JSON.stringify(sanitized));
       } catch (e) {}
+    } else if (!initialLoading) {
+      safeLocalStorage.removeItem(`st_chat_msgs_${currentUserId}`);
     }
-  }, [messages, currentUserId]);
+  }, [messages, currentUserId, initialLoading]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -189,9 +208,27 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFetchingRef = useRef(false);
+  const isSendingRef = useRef(false);
+  const isCreatingGroupRef = useRef(false);
+  const isForwardingRef = useRef(false);
+  const mutationSeqRef = useRef(0);
+  const recentlyCreatedGroupIdsRef = useRef<Map<string, number>>(new Map());
+  const onMessagesReadRef = useRef(onMessagesRead);
+  const contactsRef = useRef<ChatUser[]>(contacts);
+  const sseConnectedRef = useRef<boolean>(sseConnected);
+  const chatSelectModeRef = useRef<boolean>(chatSelectMode);
+
+  useEffect(() => { onMessagesReadRef.current = onMessagesRead; }, [onMessagesRead]);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
+  useEffect(() => { sseConnectedRef.current = sseConnected; }, [sseConnected]);
+  useEffect(() => { chatSelectModeRef.current = chatSelectMode; }, [chatSelectMode]);
 
   const longPressTimerRef = useRef<any>(null);
   const longPressedRef = useRef<boolean>(false);
+  const chatLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chatLongPressedRef = useRef<boolean>(false);
+  const chatTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastChatTouchTimeRef = useRef<number>(0);
 
   const startLongPress = (messageId: string) => {
     longPressedRef.current = false;
@@ -208,6 +245,44 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       longPressTimerRef.current = null;
     }
   };
+
+  const startChatLongPress = (chatId: string, clientX?: number, clientY?: number) => {
+    chatLongPressedRef.current = false;
+    if (chatSelectModeRef.current) return;
+    chatTouchStartRef.current = (clientX !== undefined && clientY !== undefined) ? { x: clientX, y: clientY } : null;
+    if (chatLongPressTimerRef.current) clearTimeout(chatLongPressTimerRef.current);
+    chatLongPressTimerRef.current = setTimeout(() => {
+      chatLongPressedRef.current = true;
+      chatSelectModeRef.current = true;
+      setChatSelectMode(true);
+      setSelectedChatIds(prev => prev.includes(chatId) ? prev : [...prev, chatId]);
+    }, 550);
+  };
+
+  const moveChatLongPress = (clientX: number, clientY: number) => {
+    if (!chatTouchStartRef.current || !chatLongPressTimerRef.current) return;
+    if (
+      Math.abs(clientX - chatTouchStartRef.current.x) > 10 ||
+      Math.abs(clientY - chatTouchStartRef.current.y) > 10
+    ) {
+      clearTimeout(chatLongPressTimerRef.current);
+      chatLongPressTimerRef.current = null;
+    }
+  };
+
+  const endChatLongPress = () => {
+    if (chatLongPressTimerRef.current) {
+      clearTimeout(chatLongPressTimerRef.current);
+      chatLongPressTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (chatLongPressTimerRef.current) clearTimeout(chatLongPressTimerRef.current);
+    };
+  }, []);
 
   // Keep selectedUserRef in sync
   useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
@@ -231,35 +306,88 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     const handleBack = (e: Event) => {
       if (showProfileModal) { e.preventDefault(); setShowProfileModal(false); }
       else if (showUserSearch) { e.preventDefault(); setShowUserSearch(false); }
+      else if (chatSelectMode) { e.preventDefault(); setChatSelectMode(false); setSelectedChatIds([]); }
       else if (selectedUser) { e.preventDefault(); setSelectedUser(null); }
     };
     window.addEventListener('backbuttonpress', handleBack);
     return () => window.removeEventListener('backbuttonpress', handleBack);
-  }, [showProfileModal, showUserSearch, selectedUser]);
+  }, [showProfileModal, showUserSearch, chatSelectMode, selectedUser]);
 
   // ── Core: fetch all messages (debounced to prevent parallel calls) ─────────
   const fetchMessages = useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
+    const fetchStartSeq = mutationSeqRef.current;
     try {
       const res = await fetch('/api/messages', { cache: 'no-store' });
       if (!res.ok) return;
       const data = await res.json();
+      if (mutationSeqRef.current !== fetchStartSeq) return; // Discard stale snapshot raced by local mutation
       const msgs: ChatMessage[] = data.messages || [];
+      const serverGroups: ChatUser[] | undefined = Array.isArray(data.groups) ? data.groups : undefined;
+      const now = Date.now();
 
-      // Merge and preserve temporary messages
-      setMessages(prev => {
-        const temps = prev.filter(m => m.id.startsWith('temp-'));
-        const activeTemps = temps.filter(t => !msgs.some(m => m.content === t.content && (t.groupId ? m.groupId === t.groupId : m.receiverId === t.receiverId)));
-        return [...activeTemps, ...msgs];
+      recentlyCreatedGroupIdsRef.current.forEach((createdAt, gid) => {
+        if (now - createdAt > 15000) recentlyCreatedGroupIdsRef.current.delete(gid);
       });
 
-      // Derive contacts (including groups) from messages, merging with existing
+      const serverGroupIds = serverGroups ? new Set(serverGroups.map(g => g.id)) : null;
+      const isActiveGroupId = (gid: string) => {
+        if (!serverGroupIds) return true;
+        if (serverGroupIds.has(gid)) return true;
+        const createdAt = recentlyCreatedGroupIdsRef.current.get(gid);
+        return createdAt !== undefined && now - createdAt <= 15000;
+      };
+
+      // Merge and preserve temporary messages, deduplicating by message ID
+      setMessages(prev => {
+        const filteredIncoming = serverGroupIds
+          ? msgs.filter(m => !m.groupId || isActiveGroupId(m.groupId))
+          : msgs;
+        const uniqueMsgs = dedupeMessages(filteredIncoming);
+        const consumedIncomingIds = new Set(prev.filter(m => !m.id.startsWith('temp-')).map(m => m.id));
+        const temps = prev.filter(m => m.id.startsWith('temp-'));
+        const activeTemps = temps.filter(t => {
+          const match = uniqueMsgs.find(m =>
+            !consumedIncomingIds.has(m.id) &&
+            m.senderId === currentUserId &&
+            m.content === t.content &&
+            (t.groupId ? m.groupId === t.groupId : (!m.groupId && m.receiverId === t.receiverId)) &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(t.createdAt).getTime()) < 120000
+          );
+          if (match) {
+            consumedIncomingIds.add(match.id);
+            return false;
+          }
+          return true;
+        });
+        const merged = serverGroupIds
+          ? [...activeTemps, ...uniqueMsgs].filter(m => !m.groupId || isActiveGroupId(m.groupId))
+          : [...activeTemps, ...uniqueMsgs];
+        return dedupeMessages(merged);
+      });
+
+      // Derive contacts (including authoritative server groups), pruning left/deleted groups
       setContacts(prev => {
-        const map = new Map<string, ChatUser>(prev.map(u => [u.id, u]));
+        const map = new Map<string, ChatUser>();
+        for (const u of prev) {
+          if (!u?.id) continue;
+          if (u.role === 'GROUP' && serverGroupIds && !isActiveGroupId(u.id)) {
+            continue;
+          }
+          map.set(u.id, u);
+        }
+        if (serverGroups) {
+          for (const g of serverGroups) {
+            if (!g?.id) continue;
+            const existing = map.get(g.id);
+            map.set(g.id, { ...(existing || {}), id: g.id, name: g.name, photoUrl: g.photoUrl || null, role: 'GROUP' });
+          }
+        }
         msgs.forEach(m => {
           if (m.groupId && m.group) {
             const gid = m.groupId;
+            if (!isActiveGroupId(gid)) return;
             if (!map.has(gid)) {
               map.set(gid, {
                 id: gid,
@@ -276,26 +404,40 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         return Array.from(map.values());
       });
 
+      if (serverGroupIds) {
+        setSelectedChatIds(prev => prev.filter(id => {
+          const isKnownGrp = contactsRef.current.some(c => c.id === id && c.role === 'GROUP');
+          return !isKnownGrp || isActiveGroupId(id);
+        }));
+        const curSu = selectedUserRef.current;
+        if (curSu?.role === 'GROUP' && !isActiveGroupId(curSu.id)) {
+          setSelectedUser(null);
+        }
+      }
+
       // Auto mark as read for current open chat
       const su = selectedUserRef.current;
-      if (su) {
+      if (su && (su.role !== 'GROUP' || isActiveGroupId(su.id))) {
         const isGrp = su.role === 'GROUP';
         const hasUnread = isGrp
           ? msgs.some(m => m.groupId === su.id && m.senderId !== currentUserId && !m.isRead)
           : msgs.some(m => m.senderId === su.id && m.receiverId === currentUserId && !m.isRead);
-        if (hasUnread) markAsRead(su.id, false);
+        if (hasUnread) markAsRead(su.id, false, isGrp);
       }
-      setInitialLoading(false);
     } catch (e) {
       console.warn('[Chat] fetchMessages error:', e);
     } finally {
+      setInitialLoading(false);
       isFetchingRef.current = false;
     }
   }, [currentUserId]);
 
   // ── Mark messages as read (silent - no re-fetch) ──────────────────────────
-  const markAsRead = useCallback(async (id: string, updateState = true) => {
-    const isGroup = contacts.some(c => c.id === id && c.role === 'GROUP');
+  const markAsRead = useCallback(async (id: string, updateState = true, knownIsGroup?: boolean) => {
+    const isGroup = knownIsGroup ?? (
+      (selectedUserRef.current?.id === id && selectedUserRef.current?.role === 'GROUP') ||
+      contactsRef.current.some(c => c.id === id && c.role === 'GROUP')
+    );
     try {
       await fetch('/api/messages/read', {
         method: 'PATCH',
@@ -307,12 +449,12 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           if (isGroup) {
             return m.groupId === id ? { ...m, isRead: true } : m;
           }
-          return m.senderId === id && m.receiverId === currentUserId ? { ...m, isRead: true } : m;
+          return m.senderId === id && m.receiverId === currentUserId && !m.groupId ? { ...m, isRead: true } : m;
         }));
       }
-      onMessagesRead?.();
+      onMessagesReadRef.current?.();
     } catch {}
-  }, [currentUserId, onMessagesRead, contacts]);
+  }, [currentUserId]);
 
   // ── SSE real-time connection ───────────────────────────────────────────────
   const connectSSE = useCallback(() => {
@@ -335,13 +477,19 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         if (data.type === 'create') {
           const newMsg: ChatMessage = data.message;
           setMessages(prev => {
-            const deduped = prev.filter(m =>
-              !(m.id.startsWith('temp-') && m.content === newMsg.content && 
-                (newMsg.groupId ? m.groupId === newMsg.groupId : m.receiverId === newMsg.receiverId)
-              )
-              && m.id !== newMsg.id
-            );
-            return [newMsg, ...deduped];
+            if (prev.some(m => m.id === newMsg.id)) {
+              return dedupeMessages(prev.map(m => m.id === newMsg.id ? newMsg : m));
+            }
+            let removedTemp = false;
+            const filtered = prev.filter(m => {
+              if (!removedTemp && m.id.startsWith('temp-') && m.senderId === newMsg.senderId && m.content === newMsg.content &&
+                (newMsg.groupId ? m.groupId === newMsg.groupId : (!m.groupId && m.receiverId === newMsg.receiverId))) {
+                removedTemp = true;
+                return false;
+              }
+              return m.id !== newMsg.id;
+            });
+            return dedupeMessages([newMsg, ...filtered]);
           });
           // Add to contacts if new
           if (newMsg.groupId && newMsg.group) {
@@ -369,10 +517,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             if (data.groupId) {
               return m.groupId === data.groupId ? { ...m, isRead: true } : m;
             }
-            return m.senderId === data.senderId && m.receiverId === data.receiverId
+            return m.senderId === data.senderId && m.receiverId === data.receiverId && !m.groupId
               ? { ...m, isRead: true } : m;
           }));
-          onMessagesRead?.();
+          onMessagesReadRef.current?.();
         }
         else if (data.type === 'delete') {
           if (data.messageId) {
@@ -381,10 +529,22 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         }
         else if (data.type === 'deleteChat') {
           if (data.deletedByUserId === currentUserId || data.chatGroupId) {
-            const id = data.chatGroupId || data.chatUserId;
-            setMessages(prev => prev.filter(m => m.groupId !== id && m.senderId !== id && m.receiverId !== id));
-            setContacts(prev => prev.filter(c => c.id !== id));
-            if (selectedUserRef.current?.id === id) setSelectedUser(null);
+            mutationSeqRef.current += 1;
+            if (data.chatGroupId) {
+              const gid = data.chatGroupId;
+              recentlyCreatedGroupIdsRef.current.delete(gid);
+              setMessages(prev => prev.filter(m => m.groupId !== gid));
+              setContacts(prev => prev.filter(c => c.id !== gid));
+              setSelectedChatIds(prev => prev.filter(cid => cid !== gid));
+              if (selectedUserRef.current?.id === gid) setSelectedUser(null);
+            } else if (data.chatUserId) {
+              const uid = data.chatUserId;
+              setMessages(prev => prev.filter(m => m.groupId || (m.senderId !== uid && m.receiverId !== uid)));
+              setContacts(prev => prev.filter(c => c.id !== uid));
+              setSelectedChatIds(prev => prev.filter(cid => cid !== uid));
+              if (selectedUserRef.current?.id === uid) setSelectedUser(null);
+            }
+            onMessagesReadRef.current?.();
           }
         }
         else if (data.type === 'update') {
@@ -401,7 +561,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       // Reconnect after 5s (not 30s like before)
       reconnectTimerRef.current = setTimeout(connectSSE, 5000);
     };
-  }, [currentUserId, fetchMessages, markAsRead, onMessagesRead]);
+  }, [currentUserId, fetchMessages, markAsRead]);
 
   // ── Polling helpers (defined first so SSE effect can reference them) ────────
   const stopPolling = useCallback(() => {
@@ -410,11 +570,11 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
   const startPolling = useCallback(() => {
     stopPolling();
-    const delay = sseConnected ? 15000 : 4000;
+    const delay = sseConnectedRef.current ? 15000 : 4000;
     pollTimerRef.current = setInterval(() => {
       if (document.visibilityState === 'visible') fetchMessages();
     }, delay);
-  }, [sseConnected, fetchMessages, stopPolling]);
+  }, [fetchMessages, stopPolling]);
 
   // ── SSE lifecycle: connect on mount, disconnect on unmount / tab hidden ────
   useEffect(() => {
@@ -449,7 +609,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   useEffect(() => {
     startPolling();
     return stopPolling;
-  }, [startPolling, stopPolling, selectedUser?.id]);
+  }, [startPolling, stopPolling, sseConnected, selectedUser?.id]);
 
 
 
@@ -495,6 +655,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
   // ── Preload user directory when New Chat opens ────────────────────────────
   const openNewChat = useCallback(async () => {
+    setChatSelectMode(false);
+    setSelectedChatIds([]);
     setShowUserSearch(v => !v);
     if (showUserSearch) return;
     if (preloadedUsers.length > 0) { setSearchResults(preloadedUsers); setSearchQuery(''); return; }
@@ -535,28 +697,32 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // ── Send message with instant optimistic update ────────────────────────────
   const handleSendMessage = useCallback(async (e?: React.FormEvent, customContent?: string) => {
     if (e) e.preventDefault();
+    if (isSendingRef.current) return;
     const content = customContent ?? newMsg;
-    if (!content.trim() || !selectedUser || isSending) return;
+    if (!content.trim() || !selectedUser) return;
 
+    isSendingRef.current = true;
+    mutationSeqRef.current += 1;
     setIsSending(true);
+    const targetUser = selectedUser;
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const isGrp = selectedUser.role === 'GROUP';
+    const isGrp = targetUser.role === 'GROUP';
     const tempMsg: ChatMessage = {
       id: tempId,
       senderId: currentUserId,
-      receiverId: isGrp ? '' : selectedUser.id,
-      groupId: isGrp ? selectedUser.id : undefined,
+      receiverId: isGrp ? undefined : targetUser.id,
+      groupId: isGrp ? targetUser.id : undefined,
       content,
       createdAt: new Date().toISOString(),
       isRead: false,
-    } as any;
+    };
 
     // Instant optimistic render
-    setMessages(prev => [tempMsg, ...prev]);
+    setMessages(prev => dedupeMessages([tempMsg, ...prev]));
     if (!customContent) setNewMsg('');
 
     try {
-      const payload = isGrp ? { groupId: selectedUser.id, content } : { receiverId: selectedUser.id, content };
+      const payload = isGrp ? { groupId: targetUser.id, content } : { receiverId: targetUser.id, content };
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -566,13 +732,13 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       if (res.ok) {
         const data = await res.json();
         const realMsg: ChatMessage = data.message;
-        // Replace temp with real message (SSE may have already done this — dedup)
+        // Replace temp with real message (SSE may have already injected it — dedup by ID)
         setMessages(prev => {
-          if (prev.some(m => m.id === realMsg.id)) {
-            // SSE already injected real msg; just remove the temp
-            return prev.filter(m => m.id !== tempId);
+          const withoutTemp = prev.filter(m => m.id !== tempId);
+          if (withoutTemp.some(m => m.id === realMsg.id)) {
+            return dedupeMessages(withoutTemp);
           }
-          return prev.map(m => m.id === tempId ? realMsg : m);
+          return dedupeMessages([realMsg, ...withoutTemp]);
         });
       } else {
         const d = await res.json().catch(() => ({}));
@@ -585,12 +751,15 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
       setMessages(prev => prev.filter(m => m.id !== tempId));
       if (!customContent) setNewMsg(content);
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
-  }, [newMsg, selectedUser, currentUserId, isSending]);
+  }, [newMsg, selectedUser, currentUserId]);
 
   // ── Open group modal & load users ──────────────────────────────────────────
   const openNewGroupModal = useCallback(async () => {
+    setChatSelectMode(false);
+    setSelectedChatIds([]);
     setShowGroupModal(true);
     if (preloadedUsers.length > 0) return;
     try {
@@ -605,10 +774,13 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // ── Create Group Chat handler ──────────────────────────────────────────────
   const handleCreateGroup = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCreatingGroupRef.current) return;
     if (!groupName.trim() || selectedGroupMembers.length === 0) {
       alert('Please enter group name and select members.');
       return;
     }
+    isCreatingGroupRef.current = true;
+    setIsCreatingGroup(true);
     try {
       const res = await fetch('/api/messages/groups', {
         method: 'POST',
@@ -622,7 +794,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           name: data.group.name,
           role: 'GROUP',
         };
-        setContacts(prev => [newGrp, ...prev]);
+        mutationSeqRef.current += 1;
+        recentlyCreatedGroupIdsRef.current.set(newGrp.id, Date.now());
+        setContacts(prev => prev.some(c => c.id === newGrp.id) ? prev : [newGrp, ...prev]);
         setSelectedUser(newGrp);
         setGroupName('');
         setSelectedGroupMembers([]);
@@ -631,7 +805,12 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         const d = await res.json().catch(() => ({}));
         alert(`Failed: ${d.error || 'Unknown error'}`);
       }
-    } catch { alert('Network error.'); }
+    } catch {
+      alert('Network error.');
+    } finally {
+      isCreatingGroupRef.current = false;
+      setIsCreatingGroup(false);
+    }
   }, [groupName, selectedGroupMembers]);
 
   // Group Details and Member Actions
@@ -736,8 +915,12 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         body: JSON.stringify({ groupId: selectedUser.id, action: 'LEAVE_GROUP' })
       });
       if (res.ok) {
+        const leftId = selectedUser.id;
+        mutationSeqRef.current += 1;
+        recentlyCreatedGroupIdsRef.current.delete(leftId);
         setSelectedUser(null);
-        setContacts(prev => prev.filter(c => c.id !== selectedUser.id));
+        setContacts(prev => prev.filter(c => c.id !== leftId));
+        setMessages(prev => prev.filter(m => m.groupId !== leftId));
         setShowProfileModal(false);
       } else {
         const d = await res.json();
@@ -773,8 +956,12 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         method: 'DELETE'
       });
       if (res.ok) {
+        const deletedGroupId = selectedUser.id;
+        mutationSeqRef.current += 1;
+        recentlyCreatedGroupIdsRef.current.delete(deletedGroupId);
         setSelectedUser(null);
-        setContacts(prev => prev.filter(c => c.id !== selectedUser.id));
+        setContacts(prev => prev.filter(c => c.id !== deletedGroupId));
+        setMessages(prev => prev.filter(m => m.groupId !== deletedGroupId));
         setShowProfileModal(false);
       } else {
         const d = await res.json();
@@ -786,7 +973,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // ── Attach file / image ───────────────────────────────────────────────────
   const handleAttachFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedUser) return;
+    if (!file || !selectedUser || isUploading || isSendingRef.current) return;
     if (file.size > 3 * 1024 * 1024) {
       alert('⚠️ Max file size is 3 MB.');
       return;
@@ -817,6 +1004,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   // ── Delete single message ─────────────────────────────────────────────────
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!confirm('Delete this message?')) return;
+    mutationSeqRef.current += 1;
     setMessages(prev => prev.filter(m => m.id !== messageId)); // optimistic
     try {
       const res = await fetch(`/api/messages?messageId=${messageId}`, { method: 'DELETE' });
@@ -828,6 +1016,7 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
   const handleBulkDeleteMessages = useCallback(async () => {
     if (selectedMessageIds.length === 0) return;
     if (!confirm(`Delete all ${selectedMessageIds.length} selected messages?`)) return;
+    mutationSeqRef.current += 1;
     setMessages(prev => prev.filter(m => !selectedMessageIds.includes(m.id)));
     const ids = selectedMessageIds.join(',');
     setSelectedMessageIds([]);
@@ -840,28 +1029,86 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
 
   // ── Delete entire chat / Leave group ──────────────────────────────────────
   const handleDeleteChat = useCallback(async (userId: string) => {
-    const isGrp = selectedUser?.role === 'GROUP';
-    const confirmMsg = isGrp 
-      ? 'Leave and delete this entire group chat? This cannot be undone.' 
+    const targetContact = contactsRef.current.find(c => c.id === userId) || selectedUser;
+    const isGrp = targetContact?.role === 'GROUP';
+    const confirmMsg = isGrp
+      ? 'Leave and delete this entire group chat? This cannot be undone.'
       : 'Delete this entire chat? This cannot be undone.';
     if (!confirm(confirmMsg)) return;
 
+    mutationSeqRef.current += 1;
     if (isGrp) {
+      recentlyCreatedGroupIdsRef.current.delete(userId);
       setMessages(prev => prev.filter(m => m.groupId !== userId));
       setContacts(prev => prev.filter(c => c.id !== userId));
-      setSelectedUser(null);
+      if (selectedUser?.id === userId) setSelectedUser(null);
       try {
-        await fetch(`/api/messages?chatGroupId=${userId}`, { method: 'DELETE' });
-      } catch {}
+        const res = await fetch(`/api/messages?chatGroupId=${userId}`, { method: 'DELETE' });
+        if (!res.ok) fetchMessages();
+        else onMessagesReadRef.current?.();
+      } catch { fetchMessages(); }
     } else {
-      setMessages(prev => prev.filter(m => m.senderId !== userId && m.receiverId !== userId));
+      setMessages(prev => prev.filter(m => m.groupId || (m.senderId !== userId && m.receiverId !== userId)));
       setContacts(prev => prev.filter(c => c.id !== userId));
-      setSelectedUser(null);
+      if (selectedUser?.id === userId) setSelectedUser(null);
       try {
-        await fetch(`/api/messages?chatUserId=${userId}`, { method: 'DELETE' });
-      } catch {}
+        const res = await fetch(`/api/messages?chatUserId=${userId}`, { method: 'DELETE' });
+        if (!res.ok) fetchMessages();
+        else onMessagesReadRef.current?.();
+      } catch { fetchMessages(); }
     }
-  }, [selectedUser]);
+  }, [selectedUser, fetchMessages]);
+
+  // ── Bulk delete chats from chat list (WhatsApp-style multi-select) ────────
+  const handleBulkDeleteChats = useCallback(async () => {
+    if (selectedChatIds.length === 0 || isDeletingChats) return;
+    const count = selectedChatIds.length;
+    if (!confirm(`Delete ${count} selected chat${count > 1 ? 's' : ''}? This cannot be undone.`)) return;
+
+    const selectedSet = new Set(selectedChatIds);
+    const groupIds: string[] = [];
+    const userIds: string[] = [];
+
+    for (const id of selectedChatIds) {
+      const c = contactsRef.current.find(item => item.id === id);
+      if (c?.role === 'GROUP') groupIds.push(id);
+      else userIds.push(id);
+    }
+
+    const groupSet = new Set(groupIds);
+    const userSet = new Set(userIds);
+
+    mutationSeqRef.current += 1;
+    groupIds.forEach(gid => recentlyCreatedGroupIdsRef.current.delete(gid));
+    setIsDeletingChats(true);
+    setMessages(prev => prev.filter(m => {
+      if (m.groupId) return !groupSet.has(m.groupId);
+      return !(userSet.has(m.senderId) || (m.receiverId ? userSet.has(m.receiverId) : false));
+    }));
+    setContacts(prev => prev.filter(c => !selectedSet.has(c.id)));
+    if (selectedUser && selectedSet.has(selectedUser.id)) setSelectedUser(null);
+    chatSelectModeRef.current = false;
+    setChatSelectMode(false);
+    setSelectedChatIds([]);
+
+    try {
+      const params = new URLSearchParams();
+      if (userIds.length > 0) params.set('chatUserIds', userIds.join(','));
+      if (groupIds.length > 0) params.set('chatGroupIds', groupIds.join(','));
+      const res = await fetch(`/api/messages?${params.toString()}`, { method: 'DELETE' });
+      if (!res.ok) {
+        fetchMessages();
+        alert('⚠️ Could not delete selected chats. Please try again.');
+      } else {
+        onMessagesReadRef.current?.();
+      }
+    } catch {
+      fetchMessages();
+      alert('⚠️ Network error deleting chats.');
+    } finally {
+      setIsDeletingChats(false);
+    }
+  }, [selectedChatIds, isDeletingChats, selectedUser, fetchMessages]);
 
   // ── Edit message ──────────────────────────────────────────────────────────
   const handleEditMessage = useCallback(async (messageId: string, currentContent: string) => {
@@ -906,21 +1153,24 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
     }
   }, [preloadedUsers]);
 
-  const handleForwardMessage = useCallback(async (content: string, target: ChatUser) => {
+  const handleForwardMessage = useCallback(async (content: string, target: ChatUser): Promise<boolean> => {
+    if (isForwardingRef.current) return false;
+    isForwardingRef.current = true;
+    mutationSeqRef.current += 1;
     const isGrp = target.role === 'GROUP';
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const tempMsg: ChatMessage = {
       id: tempId,
       senderId: currentUserId,
-      receiverId: isGrp ? '' : target.id,
+      receiverId: isGrp ? undefined : target.id,
       groupId: isGrp ? target.id : undefined,
       content,
       createdAt: new Date().toISOString(),
       isRead: false,
-    } as any;
+    };
 
     if (selectedUser && selectedUser.id === target.id) {
-      setMessages(prev => [tempMsg, ...prev]);
+      setMessages(prev => dedupeMessages([tempMsg, ...prev]));
     }
 
     try {
@@ -936,28 +1186,34 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
         const realMsg: ChatMessage = data.message;
         if (selectedUser && selectedUser.id === target.id) {
           setMessages(prev => {
-            if (prev.some(m => m.id === realMsg.id)) {
-              return prev.filter(m => m.id !== tempId);
+            const withoutTemp = prev.filter(m => m.id !== tempId);
+            if (withoutTemp.some(m => m.id === realMsg.id)) {
+              return dedupeMessages(withoutTemp);
             }
-            return prev.map(m => m.id === tempId ? realMsg : m);
+            return dedupeMessages([realMsg, ...withoutTemp]);
           });
         }
         setContacts(prev => {
           const filtered = prev.filter(c => c.id !== target.id);
           return [target, ...filtered];
         });
+        return true;
       } else {
         const d = await res.json().catch(() => ({}));
         alert(`⚠️ Forward failed: ${d.error || 'Unknown error'}`);
         if (selectedUser && selectedUser.id === target.id) {
           setMessages(prev => prev.filter(m => m.id !== tempId));
         }
+        return false;
       }
     } catch {
       alert('⚠️ Network error forwarding message.');
       if (selectedUser && selectedUser.id === target.id) {
         setMessages(prev => prev.filter(m => m.id !== tempId));
       }
+      return false;
+    } finally {
+      isForwardingRef.current = false;
     }
   }, [currentUserId, selectedUser]);
 
@@ -1170,26 +1426,93 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
           .chat-input-form input[type="text"] { padding: 0.55rem 0.9rem !important; font-size: 0.88rem !important; }
           .chat-action-btn { width: 36px !important; height: 36px !important; }
         }
+        @media (max-width: 480px) {
+          .chat-sidebar-header { padding: 0.7rem 0.65rem !important; gap: 0.35rem !important; }
+          .chat-sidebar-header button { padding: 4px 6px !important; font-size: 0.69rem !important; }
+        }
       `}</style>
 
       {/* ── SIDEBAR ── */}
       <div className="chat-sidebar">
-        <div style={{ padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>Chats</span>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: sseConnected ? '#10b981' : '#f59e0b', display: 'inline-block', flexShrink: 0 }} title={sseConnected ? 'Live' : 'Polling'} />
+        {chatSelectMode ? (
+          <div className="chat-sidebar-header" style={{ padding: '0.8rem 1rem', background: 'rgba(16, 185, 129, 0.1)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', minWidth: 0 }}>
+              <button
+                type="button"
+                onClick={() => { chatSelectModeRef.current = false; setChatSelectMode(false); setSelectedChatIds([]); }}
+                title="Cancel selection"
+                style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >
+                ✕
+              </button>
+              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                {selectedChatIds.length} selected
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const allIds = sortedContacts.map(c => c.id);
+                  if (allIds.length > 0 && selectedChatIds.length === allIds.length) {
+                    setSelectedChatIds([]);
+                  } else {
+                    setSelectedChatIds(allIds);
+                  }
+                }}
+                style={{ padding: '5px 9px', borderRadius: 16, background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                {sortedContacts.length > 0 && selectedChatIds.length === sortedContacts.length ? 'Clear' : 'All'}
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteChats}
+                disabled={selectedChatIds.length === 0 || isDeletingChats}
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: 16,
+                  background: '#ef4444',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  cursor: selectedChatIds.length > 0 && !isDeletingChats ? 'pointer' : 'not-allowed',
+                  opacity: selectedChatIds.length > 0 && !isDeletingChats ? 1 : 0.45,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {isDeletingChats ? 'Deleting...' : `🗑️ Delete${selectedChatIds.length > 0 ? ` (${selectedChatIds.length})` : ''}`}
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={openNewGroupModal}
-              style={{ padding: '5px 10px', borderRadius: 20, background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: '0.18s' }}>
-              👥 Group
-            </button>
-            <button onClick={openNewChat}
-              style={{ padding: '5px 10px', borderRadius: 20, background: 'var(--primary)', border: 'none', color: 'white', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 3px 8px rgba(99,102,241,0.3)', transition: '0.18s' }}>
-              {showUserSearch ? 'Cancel' : '✏️ New'}
-            </button>
+        ) : (
+          <div className="chat-sidebar-header" style={{ padding: '0.9rem 1rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0 }}>
+              <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)' }}>Chats</span>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: sseConnected ? '#10b981' : '#f59e0b', display: 'inline-block', flexShrink: 0 }} title={sseConnected ? 'Live' : 'Polling'} />
+            </div>
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexShrink: 0 }}>
+              {!showUserSearch && sortedContacts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setChatSelectMode(true); setSelectedChatIds([]); }}
+                  title="Select multiple chats"
+                  style={{ padding: '4px 8px', borderRadius: 16, background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.73rem', fontWeight: 700, cursor: 'pointer', transition: '0.18s', whiteSpace: 'nowrap' }}
+                >
+                  ☑️ Select
+                </button>
+              )}
+              <button type="button" onClick={openNewGroupModal}
+                style={{ padding: '4px 8px', borderRadius: 16, background: 'var(--card-bg-alt)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.73rem', fontWeight: 700, cursor: 'pointer', transition: '0.18s', whiteSpace: 'nowrap' }}>
+                👥 Group
+              </button>
+              <button type="button" onClick={openNewChat}
+                style={{ padding: '4px 9px', borderRadius: 16, background: 'var(--primary)', border: 'none', color: 'white', fontSize: '0.73rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 3px 8px rgba(99,102,241,0.3)', transition: '0.18s', whiteSpace: 'nowrap' }}>
+                {showUserSearch ? 'Cancel' : '✏️ New'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {showUserSearch ? (
           <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', gap: '0.6rem' }}>
@@ -1257,7 +1580,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                       (m.senderId === currentUserId && m.receiverId === u.id && !m.groupId)
                     )
                   );
-                  const latest = chatMsgs.length > 0 ? chatMsgs[0] : null;
+                  const latest = chatMsgs.length > 0
+                    ? chatMsgs.reduce((best, cur) => new Date(cur.createdAt).getTime() > new Date(best.createdAt).getTime() ? cur : best, chatMsgs[0])
+                    : null;
                   let preview = u.role === 'GROUP' ? 'Group Chat' : (u.role ?? '');
                   if (latest) {
                     const pfx = latest.senderId === currentUserId ? 'You: ' : (u.role === 'GROUP' ? `${latest.sender?.name || 'Someone'}: ` : '');
@@ -1269,18 +1594,86 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                     } else { preview = pfx + latest.content; }
                   }
                   const isActive = selectedUser?.id === u.id;
+                  const isSelectedChat = chatSelectMode && selectedChatIds.includes(u.id);
                   const isGrp = u.role === 'GROUP';
                   return (
                     <div key={u.id || idx}
-                      onClick={() => { setSelectedUser(u); markAsRead(u.id); }}
+                      onMouseDown={(e) => {
+                        if (e.button !== 0 || Date.now() - lastChatTouchTimeRef.current < 800) return;
+                        startChatLongPress(u.id, e.clientX, e.clientY);
+                      }}
+                      onMouseUp={endChatLongPress}
+                      onMouseLeave={endChatLongPress}
+                      onTouchStart={(e) => {
+                        lastChatTouchTimeRef.current = Date.now();
+                        if (e.touches.length !== 1) return;
+                        const t = e.touches[0];
+                        startChatLongPress(u.id, t?.clientX, t?.clientY);
+                      }}
+                      onTouchMove={(e) => {
+                        const t = e.touches[0];
+                        if (t) moveChatLongPress(t.clientX, t.clientY);
+                      }}
+                      onTouchEnd={() => {
+                        lastChatTouchTimeRef.current = Date.now();
+                        endChatLongPress();
+                      }}
+                      onTouchCancel={() => {
+                        lastChatTouchTimeRef.current = Date.now();
+                        endChatLongPress();
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        endChatLongPress();
+                        if (Date.now() - lastChatTouchTimeRef.current < 1500) {
+                          chatLongPressedRef.current = true;
+                        }
+                        chatSelectModeRef.current = true;
+                        setChatSelectMode(true);
+                        setSelectedChatIds(prev => prev.includes(u.id) ? prev : [...prev, u.id]);
+                      }}
+                      onClick={() => {
+                        if (chatLongPressedRef.current) {
+                          chatLongPressedRef.current = false;
+                          return;
+                        }
+                        if (chatSelectMode) {
+                          setSelectedChatIds(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]);
+                          return;
+                        }
+                        setSelectedUser(u);
+                        markAsRead(u.id, true, isGrp);
+                      }}
                       style={{
-                        padding: '0.85rem 1.25rem', cursor: 'pointer',
-                        background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent',
-                        borderLeft: `3px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
+                        padding: '0.82rem 1rem', cursor: 'pointer',
+                        background: isSelectedChat ? 'rgba(16, 185, 129, 0.12)' : (isActive ? 'rgba(99,102,241,0.1)' : 'transparent'),
+                        borderLeft: `3px solid ${isSelectedChat ? '#10b981' : (isActive ? 'var(--primary)' : 'transparent')}`,
                         borderBottom: '1px solid var(--border)',
-                        display: 'flex', alignItems: 'center', gap: '0.85rem',
+                        display: 'flex', alignItems: 'center', gap: '0.75rem',
                         transition: 'background 0.15s, border-color 0.15s',
                       }}>
+                      {chatSelectMode && (
+                        <div
+                          aria-checked={isSelectedChat}
+                          role="checkbox"
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            background: isSelectedChat ? '#10b981' : 'transparent',
+                            border: isSelectedChat ? '2px solid #10b981' : '2px solid var(--text-muted)',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.72rem',
+                            fontWeight: 900,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isSelectedChat ? '✓' : ''}
+                        </div>
+                      )}
                       <div style={{ width: 42, height: 42, borderRadius: '50%', background: isGrp ? 'linear-gradient(135deg,#60a5fa,#2563eb)' : 'linear-gradient(135deg,var(--surface-light),var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: '1.1rem', overflow: 'hidden', border: isGrp ? '2px solid #2563eb' : '2px solid var(--primary)' }}>
                         {u.photoUrl ? <img src={u.photoUrl} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (isGrp ? '👥' : (u.name?.[0] ?? '?'))}
                       </div>
@@ -1333,9 +1726,10 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
             {/* Header */}
             <div style={{ padding: '0.45rem 0.75rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
-                <button onClick={() => setSelectedUser(null)} className="chat-back-btn"
-                  style={{ background: 'var(--primary)', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '5px 10px', borderRadius: '10px', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(239,68,68,0.35)' }}>
-                  ← Chats
+                <button type="button" onClick={() => setSelectedUser(null)} className="chat-back-btn"
+                  title="Back"
+                  style={{ background: 'var(--primary)', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '3px 7px', borderRadius: '6px', fontWeight: 700, fontSize: '0.68rem', lineHeight: 1.15, alignItems: 'center', gap: '2px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  ← Back
                 </button>
                 <div onClick={() => setShowProfileModal(true)} title="View profile"
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', padding: '2px 6px', borderRadius: 8, transition: 'background 0.15s', minWidth: 0, flex: 1 }}
@@ -1662,9 +2056,8 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                   <input type="text"
                     placeholder={(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) ? '🚫 Blocked — unblock to message' : 'Type a message...'}
                     value={newMsg}
-                    disabled={(selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) || isSending}
+                    disabled={selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)}
                     onChange={e => setNewMsg(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                     style={{
                       flex: 1, padding: '0.68rem 1.1rem', borderRadius: 24,
                       background: (selectedUser.role !== 'GROUP' && blockedUsers.includes(selectedUser.id)) ? 'rgba(239,68,68,0.05)' : 'var(--input-bg)',
@@ -1924,9 +2317,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                   )}
                 </div>
               </div>
-              <button type="submit" disabled={!groupName.trim() || selectedGroupMembers.length === 0}
-                style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'var(--primary)', border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem', opacity: (groupName.trim() && selectedGroupMembers.length > 0) ? 1 : 0.5, transition: 'opacity 0.15s' }}>
-                Create Group
+              <button type="submit" disabled={!groupName.trim() || selectedGroupMembers.length === 0 || isCreatingGroup}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: 12, background: 'var(--primary)', border: 'none', color: 'white', fontWeight: 700, cursor: isCreatingGroup ? 'wait' : 'pointer', marginTop: '0.5rem', opacity: (groupName.trim() && selectedGroupMembers.length > 0 && !isCreatingGroup) ? 1 : 0.5, transition: 'opacity 0.15s' }}>
+                {isCreatingGroup ? 'Creating...' : 'Create Group'}
               </button>
             </form>
           </div>
@@ -1981,8 +2374,9 @@ export function ChatWindow({ currentUserId, onMessagesRead, initialSelectedUserI
                   return (
                     <div key={target.id}
                       onClick={async () => {
-                        if (forwardingContent) {
-                          await handleForwardMessage(forwardingContent, target);
+                        if (!forwardingContent || isForwardingRef.current) return;
+                        const ok = await handleForwardMessage(forwardingContent, target);
+                        if (ok) {
                           setShowForwardModal(false);
                           setForwardingContent(null);
                           setForwardSearchQuery('');
